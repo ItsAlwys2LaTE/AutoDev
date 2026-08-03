@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-SDLC Phase 1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 p-8">
+    <div class="max-w-4xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <header class="text-center space-y-2">
+            <h1 class="text-3xl font-bold text-slate-900">Auto-SDLC Orchestrator</h1>
+            <p class="text-slate-500">Phase 1: Autonomous Requirements Generation</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+            <label for="featureRequest" class="block font-semibold text-slate-700">Enter Feature Request:</label>
+            <textarea id="featureRequest" rows="4" 
+                class="w-full rounded-lg border border-slate-300 p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                placeholder="E.g., Build a Python utility function for validating user passwords. It needs to be at least 8 characters long..."></textarea>
+            
+            <button id="submitBtn" onclick="generateRequirements()" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2">
+                <span>Generate Structured Requirements</span>
+                <!-- Loading spinner (hidden by default) -->
+                <svg id="spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Output Section -->
+        <div id="outputSection" class="bg-slate-900 rounded-xl shadow-sm border border-slate-800 p-6 hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold text-slate-200">Generated JSON Output (Pydantic Validated):</h2>
+                <span class="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium border border-green-500/20">Success</span>
+            </div>
+            <pre><code id="jsonOutput" class="text-green-400 text-sm overflow-x-auto block"></code></pre>
+        </div>
+
+        <!-- Error Section -->
+        <div id="errorSection" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg hidden">
+            <p id="errorText" class="text-red-700 font-medium"></p>
+        </div>
+
+    </div>
+
+    <script>
+        async function generateRequirements() {
+            const input = document.getElementById('featureRequest').value;
+            const btn = document.getElementById('submitBtn');
+            const spinner = document.getElementById('spinner');
+            const outputSection = document.getElementById('outputSection');
+            const jsonOutput = document.getElementById('jsonOutput');
+            const errorSection = document.getElementById('errorSection');
+            const errorText = document.getElementById('errorText');
+
+            if (!input.trim()) return;
+
+            // Update UI to loading state
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+            spinner.classList.remove('hidden');
+            outputSection.classList.add('hidden');
+            errorSection.classList.add('hidden');
+
+            try {
+                // Send request to our FastAPI backend
+                const response = await fetch('/api/generate-requirements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ feature_request: input })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.detail || 'Failed to generate requirements');
+
+                // Display success
+                jsonOutput.textContent = JSON.stringify(data, null, 2);
+                outputSection.classList.remove('hidden');
+
+            } catch (error) {
+                // Display error
+                errorText.textContent = error.message;
+                errorSection.classList.remove('hidden');
+            } finally {
+                // Restore UI state
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+                spinner.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
