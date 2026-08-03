@@ -1,12 +1,10 @@
-# AutoDev: AI Software Architect 🤖⚙️
+# AutoDev: AI Software Architect
 
 **Prompt-to-PR: An Autonomous AI Coding Pipeline with Multi-Agent Arbitration**
 
 AutoDev is an autonomous Software Development Life Cycle (SDLC) orchestrator. Instead of relying on single-shot LLM prompts that frequently generate buggy code, AutoDev utilizes a multi-agent pipeline. It takes a plain English feature request, extracts strict requirements, generates code, and then uses an **Arbitration Engine** (multiple AI critics) to test, debate, and force the system to fix its own bugs before automatically opening a GitHub Pull Request.
 
-This project is currently being developed as a final-year B.Tech Capstone Project (Group 9).
-
-## 📍 Current Status: Phase 1 Completed
+## Current Status: Phase 1 Completed
 
 ### Phase 1: Autonomous Requirements Generation
 
