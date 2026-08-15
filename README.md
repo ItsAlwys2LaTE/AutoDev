@@ -38,7 +38,6 @@ The system utilizes semantic API keys to prevent rate-limit overlaps and distrib
 ```
 AutoDev/
 ├── README.md                  # Project overview and run instructions
-├── architecture_plan.md       # Your project roadmap
 └── backend/
     ├── requirements.txt       # Python dependencies (fastapi, pytest, etc.)
     ├── main.py                # The FastAPI web server and API routes
