@@ -1,78 +1,96 @@
-# AutoDev: AI Software Architect
+# AutoDev: Autonomous AI Software Architect
 
-**Prompt-to-PR: An Autonomous AI Coding Pipeline with Multi-Agent Arbitration**
+AutoDev is an automated, multi-agent Software Development Life Cycle (SDLC) pipeline. It takes a plain-text feature request and autonomously orchestrates the generation of requirements, system architecture, source code, and local unit test execution.
 
-AutoDev is an autonomous Software Development Life Cycle (SDLC) orchestrator. Instead of relying on single-shot LLM prompts that frequently generate buggy code, AutoDev utilizes a multi-agent pipeline. It takes a plain English feature request, extracts strict requirements, generates code, and then uses an **Arbitration Engine** (multiple AI critics) to test, debate, and force the system to fix its own bugs before automatically opening a GitHub Pull Request.
+## Current State: Phase 2 Completed
 
-## Current Status: Phase 1 Completed
+The system currently implements a strict, modular pipeline utilizing Google's Gemini models for structured output generation and a secure local sandbox for code execution.
 
-### Phase 1: Autonomous Requirements Generation
+### Phase 1: Requirements Engineering
 
-We have successfully built the Requirements Agent. This phase acts as the "Product Manager" of the system.
+- **Agent:** `requirements_agent.py`
+- **Function:** Ingests a plain-text feature request and translates it into a strict JSON `RequirementsDocument` containing User Stories and testable Acceptance Criteria (ACs).
 
-- **Input:** A plain-text, vague feature request from a user.
-- **Action:** Processes the request using Google's `gemini-3.5-flash` model.
-- **Output:** A highly structured JSON object natively validated via Pydantic, breaking the request down into exhaustive User Stories and highly specific, testable Acceptance Criteria (ACs).
+### Phase 2: System Design & Architectural Blueprinting
 
-This structured ground truth is essential, as all future downstream code-generation and testing agents will rely entirely on these Acceptance Criteria.
+- **Agent:** `design_agent.py`
+- **Function:** Ingests the JSON requirements and outputs a structured `SystemDesignBlueprint`. This includes architectural patterns, file ordering, and detailed multi-line pseudocode.
 
-## 🛠 Tech Stack (Current Build)
+### Phase 2b: Code Generation
 
-- **Backend:** Python 3.10+, FastAPI
-- **AI Engine:** Google GenAI SDK (`gemini-3.5-flash`)
-- **Data Validation:** Pydantic
-- **Frontend:** HTML5, Tailwind CSS, JavaScript (Vanilla)
+- **Agent:** `codegen_agent.py`
+- **Function:** Ingests the Blueprint and Requirements to write production-ready Python source code (`.py` files) and comprehensive `pytest` unit test suites.
 
-## 🚀 How to Run the Phase 1 Build
+### Phase 2c: Local Execution Sandbox
 
-Follow these steps to run the interactive Phase 1 Web Dashboard locally on your machine.
+- **Module:** `executor.py`
+- **Function:** Creates a secure Python `tempfile.TemporaryDirectory()`, writes the generated files to disk, executes `pytest` against the AI-generated code, and returns the raw execution logs. (The temporary directory is automatically deleted after execution.)
 
-### 1. Prerequisites
+## Model Architecture
 
-- Python 3.10 or higher installed on your system.
-- A valid Google Gemini API Key.
+The system utilizes semantic API keys to prevent rate-limit overlaps and distributes the workload across the latest Gemini models:
 
-### 2. Installation
+- **Primary Model:** `gemini-3.6-flash` (Optimized for coding, tool use, and multi-step workflows).
+- **Fallback Model:** `gemini-3.5-flash-lite` (Automatically triggered via robust `try`/`except` blocks if the primary model fails or rate-limits).
 
-Clone the repository and navigate into the backend directory:
+## Directory Structure
 
-```bash
-git clone https://github.com/your-username/autodev.git
-cd autodev/backend
+```
+AutoDev/
+├── README.md                  # Project overview and run instructions
+├── architecture_plan.md       # Your project roadmap
+└── backend/
+    ├── requirements.txt       # Python dependencies (fastapi, pytest, etc.)
+    ├── main.py                # The FastAPI web server and API routes
+    ├── models.py              # Pydantic data schemas (Shared state)
+    ├── executor.py            # Local sandbox execution logic
+    ├── index.html             # The Tailwind/JS frontend dashboard
+    └── agents/
+        ├── requirements_agent.py  # Phase 1: Feature -> Requirements
+        ├── design_agent.py        # Phase 2: Requirements -> Blueprint
+        └── codegen_agent.py       # Phase 2b: Blueprint -> Code
 ```
 
-Install the required Python dependencies:
+## Setup & Execution
+
+### 1. Install Dependencies
+
+Ensure you have Python 3.10+ installed. Navigate to the `backend/` directory and run:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Environment Setup
+### 2. Environment Variables
 
-Create a file named `.env` inside the backend folder and add your Gemini API key:
+Create a `.env` file in the `backend/` directory and configure your distinct agent keys:
 
 ```
-GEMINI_API_KEY=your_actual_api_key_here
+GEMINI_API_KEY_REQUIREMENTS=your_api_key_here
+GEMINI_API_KEY_DESIGN=your_api_key_here
+GEMINI_API_KEY_CODEGEN=your_api_key_here
 ```
 
-### 4. Start the Application
+(You can use the same key for all three if you do not need strict quota segmentation.)
 
-Run the FastAPI web server using Uvicorn:
+### 3. Start the Application
+
+Boot up the FastAPI server:
 
 ```bash
 uvicorn main:app --reload
 ```
 
-### 5. Access the Dashboard
+### 4. Run the Pipeline
 
-Open your web browser and navigate to: [http://localhost:8000](http://localhost:8000)
+1. Open [http://localhost:8000](http://localhost:8000) in your browser.
+2. Enter a feature request (e.g., "Build an email validation utility").
+3. Click through the sequential UI phases (Phase 1 → Phase 2 → Phase 2b → Phase 2c) to watch the AI build and test the software autonomously.
 
-You can now type in a plain-text feature request (e.g., *"Build an email notification system for successful purchases"*) and watch the agent generate the structured JSON requirements.
+## Project Roadmap
 
-## 🗺 Project Roadmap
-
-- [x] **Phase 1:** Foundation & Requirements Extraction Agent (Current)
-- [ ] **Phase 2:** Design Blueprinting, Code Generation Agent, & Local Execution Sandbox
+- [x] **Phase 1:** Foundation & Requirements Extraction Agent
+- [x] **Phase 2:** Design Blueprinting, Code Generation Agent, & Local Execution Sandbox (Current)
 - [ ] **Phase 3:** The Arbitration Engine (Correctness, Architecture, & Completeness Critics via LangGraph)
 - [ ] **Phase 4:** The Adjudicator & Self-Correction Loop
 - [ ] **Phase 5:** Deployment Agent (Automated GitHub PR integration) & React UI Dashboard
