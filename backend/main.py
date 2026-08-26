@@ -17,12 +17,16 @@ load_dotenv()
 
 app = FastAPI(title="Auto-SDLC Pipeline")
 
+from typing import Optional
+
 class FeatureRequestInput(BaseModel):
     feature_request: str
 
 class CodeGenInput(BaseModel):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
+    previous_codebase: Optional[GeneratedCodeBase] = None
+    revision_plan: Optional[str] = None
 
 class ArbitrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -55,7 +59,12 @@ def api_generate_design(requirements: RequirementsDocument):
 @app.post("/api/generate-code")
 def api_generate_code(payload: CodeGenInput):
     try:
-        return generate_code(payload.requirements, payload.blueprint)
+        return generate_code(
+            payload.requirements, 
+            payload.blueprint,
+            payload.previous_codebase,
+            payload.revision_plan
+        )
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

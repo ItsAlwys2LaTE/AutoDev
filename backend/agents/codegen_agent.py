@@ -6,7 +6,12 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase
 
-def generate_code(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint) -> GeneratedCodeBase:
+def generate_code(
+    requirements: RequirementsDocument, 
+    blueprint: SystemDesignBlueprint,
+    previous_codebase: GeneratedCodeBase = None,
+    revision_plan: str = None
+) -> GeneratedCodeBase:
     api_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
     if not api_key:
         raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
@@ -34,6 +39,17 @@ def generate_code(requirements: RequirementsDocument, blueprint: SystemDesignBlu
     {blueprint.model_dump_json(indent=2)}
     
     Generate the complete codebase.
+    """
+
+    if previous_codebase and revision_plan:
+        prompt_content += f"""
+    PREVIOUS CODEBASE (FAILED TESTS/CRITIQUES):
+    {previous_codebase.model_dump_json(indent=2)}
+    
+    REVISION PLAN:
+    {revision_plan}
+    
+    CRITICAL INSTRUCTION: You are in a SELF-CORRECTION LOOP. The previous codebase failed the AI Critics' evaluation. You MUST rewrite the source code to completely resolve the issues listed in the REVISION PLAN above.
     """
 
     def _call_gemini(model_name: str) -> GeneratedCodeBase:

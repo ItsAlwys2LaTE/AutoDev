@@ -194,6 +194,8 @@
         let currentBlueprint = null;
         let currentCodebase = null;
         let currentExecutionResult = null;
+        let currentRevisionPlan = null;
+        let currentRevisionCount = 0;
 
         function setVisible(elementId, isVisible) {
             const el = document.getElementById(elementId);
@@ -304,23 +306,38 @@
             }
         }
 
-        async function generateCode() {
+        async function generateCode(isRevision = false) {
             if (!currentRequirements || !currentBlueprint) return showError("Missing prerequisites.");
             
             setVisible('errorSection', false);
             setVisible('codeOutputSection', false);
             setVisible('execOutputSection', false);
             setVisible('criticOutputSection', false);
+            
+            if (isRevision) {
+                document.getElementById('codeBtnText').textContent = `Self-Correcting (Iter ${currentRevisionCount})...`;
+            } else {
+                currentRevisionCount = 0;
+                currentRevisionPlan = null;
+            }
+            
             setButtonLoading('codeBtn', 'codeSpinner', true);
 
             try {
+                const payload = {
+                    requirements: currentRequirements,
+                    blueprint: currentBlueprint
+                };
+                
+                if (isRevision && currentRevisionPlan) {
+                    payload.previous_codebase = currentCodebase;
+                    payload.revision_plan = currentRevisionPlan;
+                }
+
                 const response = await fetch('/api/generate-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        requirements: currentRequirements,
-                        blueprint: currentBlueprint
-                    }) 
+                    body: JSON.stringify(payload) 
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'API Error');
@@ -349,6 +366,7 @@
                 showError(`Phase 2b Failed: ${error.message}`);
             } finally {
                 setButtonLoading('codeBtn', 'codeSpinner', false);
+                document.getElementById('codeBtnText').textContent = 'Phase 2b: Generate Source Code & Tests';
             }
         }
 
@@ -462,6 +480,28 @@
                 
                 setVisible('criticOutputSection', true);
                 scrollToSection('criticOutputSection');
+
+                // AUTOMATIC SELF-CORRECTION LOOP
+                if (data.decision && data.decision.verdict.toLowerCase() === 'revise' && currentRevisionCount < 3) {
+                    currentRevisionCount++;
+                    currentRevisionPlan = data.decision.revision_plan;
+                    
+                    // Show a toast or update UI to indicate loop
+                    const badge = document.getElementById('adjudicatorVerdict');
+                    badge.textContent = `REVISE (Loop ${currentRevisionCount}/3 starting...)`;
+                    badge.classList.add('animate-pulse');
+
+                    // Wait 3 seconds so user can read the critique, then start the loop
+                    setTimeout(async () => {
+                        try {
+                            await generateCode(true); // Generate code as a revision
+                            await executeCode();      // Execute the revised code
+                            await runCritics();       // Re-run critics
+                        } catch (err) {
+                            console.error("Self-correction loop failed", err);
+                        }
+                    }, 3000);
+                }
 
             } catch (error) {
                 showError(`Phase 3 Failed: ${error.message}`);
