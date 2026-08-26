@@ -265,8 +265,23 @@
                 if (!response.ok) throw new Error(data.detail || 'API Error');
 
                 currentRequirements = data; 
-                // Populate rich text div
-                const reqText = `PROJECT TITLE:\n${data.project_title}\n\nDESCRIPTION:\n${data.description}\n\nTARGET AUDIENCE:\n${data.target_audience}\n\nCORE FEATURES:\n${data.core_features.map(f => `- ${f.feature_title} [${f.priority}]: ${f.description}`).join('\n')}\n\nACCEPTANCE CRITERIA:\n${data.acceptance_criteria.map(a => `- ${a}`).join('\n')}`;
+                // Populate rich text div using actual Pydantic schema fields
+                let reqText = `PROJECT TITLE:\n${data.project_title || 'N/A'}\n\nOVERVIEW:\n${data.overview || 'N/A'}\n\nUSER STORIES:\n`;
+                if (data.user_stories && Array.isArray(data.user_stories)) {
+                    data.user_stories.forEach((story, i) => {
+                        reqText += `\n${i + 1}. ${story.title}\n`;
+                        reqText += `   As a: ${story.as_a}\n`;
+                        reqText += `   I want to: ${story.i_want_to}\n`;
+                        reqText += `   So that: ${story.so_that}\n`;
+                        if (story.acceptance_criteria && Array.isArray(story.acceptance_criteria)) {
+                            reqText += `   Acceptance Criteria:\n`;
+                            story.acceptance_criteria.forEach(ac => {
+                                reqText += `     • [${ac.id}] ${ac.description}\n`;
+                                reqText += `       Expected: ${ac.expected_behavior}\n`;
+                            });
+                        }
+                    });
+                }
                 document.getElementById('jsonOutput').innerText = reqText;
                 
                 setVisible('outputSection', true);
@@ -318,8 +333,16 @@
                 if (!response.ok) throw new Error(data.detail || 'API Error');
 
                 currentBlueprint = data;
-                // Populate rich text div
-                const bpText = `SYSTEM ARCHITECTURE:\n${data.architecture_pattern}\n\nDATABASE SCHEMA:\n${data.database_schema}\n\nAPI ENDPOINTS:\n${data.api_endpoints.map(e => `- ${e}`).join('\n')}\n\nFILES TO GENERATE:\n${data.file_structure.map(f => `\n📄 ${f.file_name}\n   Purpose: ${f.purpose}\n   Dependencies: ${f.dependencies.join(', ')}`).join('\n')}`;
+                // Populate rich text div using actual Pydantic schema fields
+                let bpText = `ARCHITECTURE OVERVIEW:\n${data.architecture_overview || 'N/A'}\n\nFILES TO GENERATE:\n`;
+                if (data.files && Array.isArray(data.files)) {
+                    data.files.forEach((f, i) => {
+                        bpText += `\n📄 ${i + 1}. ${f.file_name}\n`;
+                        bpText += `   Purpose: ${f.purpose}\n`;
+                        bpText += `   Dependencies: ${(f.dependencies || []).join(', ') || 'None'}\n`;
+                        bpText += `   Pseudocode:\n${(f.pseudocode || '').split('\n').map(l => '     ' + l).join('\n')}\n`;
+                    });
+                }
                 document.getElementById('designJsonOutput').innerText = bpText;
                 
                 setVisible('designOutputSection', true);
