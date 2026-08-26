@@ -7,18 +7,15 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument
 
-def generate_requirements(feature_request: str) -> RequirementsDocument:
+def generate_requirements_stream(feature_request: str):
     """
-    Takes a plain text feature request and uses Gemini to generate 
-    a structured RequirementsDocument natively using Pydantic.
-    Implements a fallback to gemini-3.5-flash-lite if gemini-3.6-flash fails.
+    Takes a plain text feature request and yields a stream of JSON text 
+    representing a structured RequirementsDocument.
     """
-    # Fetch the key explicitly from the environment
     api_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS")
     if not api_key:
         raise ValueError("GEMINI_API_KEY_REQUIREMENTS is not set in the environment variables.")
 
-    # Initialize the Gemini client by passing the key directly
     client = genai.Client(api_key=api_key)
 
     system_prompt = """
@@ -31,8 +28,8 @@ def generate_requirements(feature_request: str) -> RequirementsDocument:
     so be precise about edge cases, inputs, and expected outputs.
     """
 
-    def call_model(model_name: str) -> RequirementsDocument:
-        response = client.models.generate_content(
+    def get_stream(model_name: str):
+        return client.models.generate_content_stream(
             model=model_name,
             contents=feature_request,
             config=types.GenerateContentConfig(
@@ -42,22 +39,24 @@ def generate_requirements(feature_request: str) -> RequirementsDocument:
                 response_schema=RequirementsDocument,
             )
         )
-        if hasattr(response, 'parsed') and response.parsed is not None:
-            return response.parsed
-        else:
-            return RequirementsDocument.model_validate_json(response.text)
 
-    print("Agent is thinking and generating structured requirements using Gemini 3.6-flash...")
+    print("Agent is thinking and generating structured requirements stream using Gemini 3.6-flash...")
     
     try:
-        # Try main model first
-        return call_model("gemini-3.6-flash")
+        response = get_stream("gemini-3.6-flash")
+        # Buffer the first chunk to catch immediate failures (like 503/429)
+        iterator = iter(response)
+        first_chunk = next(iterator)
+        yield first_chunk.text
+        for chunk in iterator:
+            yield chunk.text
     except Exception as e:
         print(f"Primary model (3.6-flash) failed: {e}")
         print("Falling back to gemini-3.5-flash-lite...")
         try:
-            # Fallback to secondary model
-            return call_model("gemini-3.5-flash-lite")
+            response = get_stream("gemini-3.5-flash-lite")
+            for chunk in response:
+                yield chunk.text
         except Exception as fallback_error:
             print(f"Fallback model also failed: {fallback_error}")
-            raise Exception(f"Both primary and fallback models failed. Last error: {fallback_error}")
+            yield f'{{"error": "Both primary and fallback models failed. Last error: {fallback_error}"}}'

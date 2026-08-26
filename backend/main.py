@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 import os
 import traceback
 
-from agents.requirements_agent import generate_requirements
 from agents.design_agent import generate_design
 from agents.codegen_agent import generate_code
 from executor import execute_code
@@ -43,30 +42,46 @@ def serve_frontend():
         return FileResponse("index.html")
     return {"error": "index.html not found."}
 
+from fastapi.responses import StreamingResponse
+from agents.requirements_agent import generate_requirements_stream
+
 @app.post("/api/generate-requirements")
 def api_generate_requirements(user_input: FeatureRequestInput):
     try:
-        return generate_requirements(user_input.feature_request)
+        return StreamingResponse(
+            generate_requirements_stream(user_input.feature_request),
+            media_type="text/plain"
+        )
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+from agents.design_agent import generate_design_stream
 
 @app.post("/api/generate-design")
 def api_generate_design(requirements: RequirementsDocument):
     try:
-        return generate_design(requirements)
+        return StreamingResponse(
+            generate_design_stream(requirements),
+            media_type="text/plain"
+        )
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+from agents.codegen_agent import generate_code_stream
+
 @app.post("/api/generate-code")
 def api_generate_code(payload: CodeGenInput):
     try:
-        return generate_code(
-            payload.requirements, 
-            payload.blueprint,
-            payload.previous_codebase,
-            payload.revision_plan
+        return StreamingResponse(
+            generate_code_stream(
+                payload.requirements, 
+                payload.blueprint,
+                payload.previous_codebase,
+                payload.revision_plan
+            ),
+            media_type="text/plain"
         )
     except Exception as e:
         traceback.print_exc()

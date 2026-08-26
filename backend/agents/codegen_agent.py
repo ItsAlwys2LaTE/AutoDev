@@ -6,12 +6,12 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase
 
-def generate_code(
+def generate_code_stream(
     requirements: RequirementsDocument, 
     blueprint: SystemDesignBlueprint,
     previous_codebase: GeneratedCodeBase = None,
     revision_plan: str = None
-) -> GeneratedCodeBase:
+):
     api_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
     if not api_key:
         raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
@@ -52,8 +52,8 @@ def generate_code(
     CRITICAL INSTRUCTION: You are in a SELF-CORRECTION LOOP. The previous codebase failed the AI Critics' evaluation. You MUST rewrite the source code to completely resolve the issues listed in the REVISION PLAN above.
     """
 
-    def _call_gemini(model_name: str) -> GeneratedCodeBase:
-        response = client.models.generate_content(
+    def _get_stream(model_name: str):
+        return client.models.generate_content_stream(
             model=model_name,
             contents=prompt_content,
             config=types.GenerateContentConfig(
@@ -63,18 +63,21 @@ def generate_code(
                 response_schema=GeneratedCodeBase,
             )
         )
-        if hasattr(response, 'parsed') and response.parsed is not None:
-            return response.parsed
-        else:
-            return GeneratedCodeBase.model_validate_json(response.text)
 
-    print("Code Gen Agent is writing source code using Gemini 3.6-flash...")
+    print("Code Gen Agent is writing source code stream using Gemini 3.6-flash...")
 
     try:
-        return _call_gemini("gemini-3.6-flash")
+        response = _get_stream("gemini-3.6-flash")
+        iterator = iter(response)
+        first_chunk = next(iterator)
+        yield first_chunk.text
+        for chunk in iterator:
+            yield chunk.text
     except Exception as e:
         print(f"Primary model (3.6-flash) failed in CodeGen Agent: {e}. Falling back to 3.5-flash-lite...")
         try:
-            return _call_gemini("gemini-3.5-flash-lite")
+            response = _get_stream("gemini-3.5-flash-lite")
+            for chunk in response:
+                yield chunk.text
         except Exception as fallback_error:
-            raise Exception(f"Both models failed in CodeGen Agent: {fallback_error}")
+            yield f'{{"error": "Both models failed in CodeGen Agent: {fallback_error}"}}'

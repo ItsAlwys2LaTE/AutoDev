@@ -7,18 +7,15 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint
 
-def generate_design(requirements: RequirementsDocument) -> SystemDesignBlueprint:
+def generate_design_stream(requirements: RequirementsDocument):
     """
-    Takes a structured RequirementsDocument and uses a secondary Gemini API Key 
-    to generate a SystemDesignBlueprint outlining the file structure and logic.
-    Implements a fallback to gemini-3.5-flash-lite if gemini-3.6-flash fails.
+    Takes a structured RequirementsDocument and yields a stream of JSON text 
+    representing a SystemDesignBlueprint outlining the file structure and logic.
     """
-    # Fetch the SECONDARY key explicitly from the environment to avoid rate limits
     api_key = os.environ.get("GEMINI_API_KEY_DESIGN")
     if not api_key:
         raise ValueError("GEMINI_API_KEY_DESIGN is not set in the environment variables.")
 
-    # Initialize the Gemini client using the second key
     client = genai.Client(api_key=api_key)
 
     system_prompt = """
@@ -37,8 +34,8 @@ def generate_design(requirements: RequirementsDocument) -> SystemDesignBlueprint
 
     prompt_content = f"Generate a system design for these requirements:\n{requirements.model_dump_json(indent=2)}"
 
-    def call_model(model_name: str) -> SystemDesignBlueprint:
-        response = client.models.generate_content(
+    def get_stream(model_name: str):
+        return client.models.generate_content_stream(
             model=model_name,
             contents=prompt_content,
             config=types.GenerateContentConfig(
@@ -48,22 +45,23 @@ def generate_design(requirements: RequirementsDocument) -> SystemDesignBlueprint
                 response_schema=SystemDesignBlueprint,
             )
         )
-        if hasattr(response, 'parsed') and response.parsed is not None:
-            return response.parsed
-        else:
-            return SystemDesignBlueprint.model_validate_json(response.text)
 
-    print("Design Agent is architecting the blueprint using Gemini 3.6-flash (Key 2)...")
+    print("Design Agent is architecting the blueprint stream using Gemini 3.6-flash (Key 2)...")
 
     try:
-        # Try main model first
-        return call_model("gemini-3.6-flash")
+        response = get_stream("gemini-3.6-flash")
+        iterator = iter(response)
+        first_chunk = next(iterator)
+        yield first_chunk.text
+        for chunk in iterator:
+            yield chunk.text
     except Exception as e:
         print(f"Primary model (3.6-flash) failed in Design Agent: {e}")
         print("Falling back to gemini-3.5-flash-lite...")
         try:
-            # Fallback to secondary model
-            return call_model("gemini-3.5-flash-lite")
+            response = get_stream("gemini-3.5-flash-lite")
+            for chunk in response:
+                yield chunk.text
         except Exception as fallback_error:
             print(f"Fallback model also failed: {fallback_error}")
-            raise Exception(f"Both primary and fallback models failed in Design Agent. Last error: {fallback_error}")
+            yield f'{{"error": "Both primary and fallback models failed in Design Agent. Last error: {fallback_error}"}}'

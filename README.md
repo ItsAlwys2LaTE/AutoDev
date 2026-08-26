@@ -59,6 +59,7 @@ AutoDev/
 - **Rich Text Editability:** Replaced raw JSON outputs in Phase 1 (Requirements) and Phase 2 (Architecture) with a highly user-friendly, Word-document-like rich text interface. Users can freely edit the generated specifications. When advancing to the next phase, the backend utilizes Gemini to parse the free-form text back into the strict JSON Pydantic schemas needed by downstream agents.
 - **Interactive Pipeline Stepper:** Added a visual progress stepper to the dashboard that animates sequentially (idle → loading → success/error) as each phase completes, providing real-time visibility into the autonomous workflow.
 - **Download Generated Codebase (.zip):** Added a one-click "Download .zip" button to the Phase 2b output section. It uses JSZip to bundle the AI-generated source files, tests, and a fallback README directly in the browser so users can instantly run their newly generated project locally.
+- **Real-Time Streaming Output (SSE):** Upgraded the LangGraph execution pipelines and frontend fetch calls to utilize Server-Sent Events (SSE). The user now sees the LLM generating the Requirements, Blueprint, and Codebase token-by-token in real-time before it smoothly snaps into the structured rich text formats.
 
 ## Setup & Execution
 

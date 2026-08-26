@@ -367,8 +367,34 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ feature_request: input })
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'API Error');
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'API Error');
+                }
+
+                setVisible('outputSection', true);
+                scrollToSection('outputSection');
+                document.getElementById('jsonOutput').innerText = "Streaming response...";
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullJsonStr = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullJsonStr += chunk;
+                    
+                    // Show raw JSON streaming to the user
+                    document.getElementById('jsonOutput').innerText = fullJsonStr;
+                }
+                
+                // Done streaming. Now parse and format as rich text
+                const data = JSON.parse(fullJsonStr);
+                if (data.error) throw new Error(data.error);
 
                 currentRequirements = data; 
                 // Populate rich text div using actual Pydantic schema fields
@@ -390,8 +416,6 @@
                 }
                 document.getElementById('jsonOutput').innerText = reqText;
                 
-                setVisible('outputSection', true);
-                scrollToSection('outputSection');
                 updateStepper(1, 'success');
 
             } catch (error) {
@@ -439,8 +463,34 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(currentRequirements) 
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'API Error');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'API Error');
+                }
+
+                setVisible('designOutputSection', true);
+                scrollToSection('designOutputSection');
+                document.getElementById('designJsonOutput').innerText = "Streaming response...";
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullJsonStr = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullJsonStr += chunk;
+                    
+                    // Show raw JSON streaming to the user
+                    document.getElementById('designJsonOutput').innerText = fullJsonStr;
+                }
+                
+                // Done streaming. Now parse and format as rich text
+                const data = JSON.parse(fullJsonStr);
+                if (data.error) throw new Error(data.error);
 
                 currentBlueprint = data;
                 // Populate rich text div using actual Pydantic schema fields
@@ -455,8 +505,6 @@
                 }
                 document.getElementById('designJsonOutput').innerText = bpText;
                 
-                setVisible('designOutputSection', true);
-                scrollToSection('designOutputSection');
                 updateStepper(2, 'success');
             } catch (error) {
                 updateStepper(2, 'error');
@@ -519,12 +567,38 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload) 
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || 'API Error');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'API Error');
+                }
+
+                setVisible('codeOutputSection', true);
+                scrollToSection('codeOutputSection');
+                const container = document.getElementById('codeFilesContainer');
+                container.innerHTML = '<div class="text-slate-400 font-mono p-4">Streaming source code...</div>';
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullJsonStr = "";
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullJsonStr += chunk;
+                    
+                    // Show raw JSON streaming to the user
+                    container.innerHTML = `<pre><code class="text-gray-400 text-sm block whitespace-pre-wrap font-mono">${fullJsonStr.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+                }
+                
+                // Done streaming. Now parse and format as UI cards
+                const data = JSON.parse(fullJsonStr);
+                if (data.error) throw new Error(data.error);
 
                 currentCodebase = data;
                 
-                const container = document.getElementById('codeFilesContainer');
                 container.innerHTML = '';
                 data.files.forEach(f => {
                     const fileDiv = document.createElement('div');
@@ -539,8 +613,6 @@
                     container.appendChild(fileDiv);
                 });
                 
-                setVisible('codeOutputSection', true);
-                scrollToSection('codeOutputSection');
                 updateStepper(3, 'success');
 
             } catch (error) {
