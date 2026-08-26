@@ -71,8 +71,13 @@ def generate_code_stream(
         iterator = iter(response)
         first_chunk = next(iterator)
         yield first_chunk.text
+        if first_chunk.usage_metadata:
+            yield f"\n__USAGE__{first_chunk.usage_metadata.prompt_token_count},{first_chunk.usage_metadata.candidates_token_count}"
+            
         for chunk in iterator:
             yield chunk.text
+            if getattr(chunk, 'usage_metadata', None):
+                yield f"\n__USAGE__{chunk.usage_metadata.prompt_token_count},{chunk.usage_metadata.candidates_token_count}"
     except Exception as e:
         print(f"Primary model (3.6-flash) failed in CodeGen Agent: {e}. Falling back to 3.5-flash-lite...")
         try:

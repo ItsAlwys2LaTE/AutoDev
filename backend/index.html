@@ -26,9 +26,15 @@
 <body class="min-h-screen text-slate-800 p-8">
     <div class="max-w-4xl mx-auto space-y-8 pb-20">
         
-        <header class="text-center space-y-2 mb-8">
-            <h1 class="text-3xl font-bold text-slate-900">AutoDev: AI Software Architect</h1>
-            <p class="text-slate-500">Autonomous SDLC Pipeline - Phases 1, 2 & 3</p>
+        <header class="flex justify-between items-end mb-8 border-b border-slate-200 pb-4">
+            <div class="space-y-1">
+                <h1 class="text-3xl font-bold text-slate-900">AutoDev: Autonomous SDLC</h1>
+                <p class="text-slate-500 text-sm font-mono tracking-wider">BUILD SYS.v1.3.0.Alpha</p>
+            </div>
+            <div class="text-right bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
+                <div class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Session Cost</div>
+                <div id="costDisplay" class="text-lg font-mono font-semibold text-emerald-600">$0.0000 <span class="text-xs text-slate-400 ml-1">(0 tokens)</span></div>
+            </div>
         </header>
 
         <!-- PIPELINE STEPPER -->
@@ -75,7 +81,7 @@
             
             <button id="submitBtn" onclick="generateRequirements()" 
                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
-                <span>Phase 1: Generate Requirements</span>
+                <span>Execute SYS.REQ_COMPILER (v1.3.0)</span>
                 <svg id="spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -106,7 +112,7 @@
                 <p class="text-slate-400 text-sm mb-3 text-center">Requirements extracted. Proceed to architectural blueprinting.</p>
                 <button id="designBtn" onclick="generateDesign()" 
                     class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
-                    <span>Phase 2: Generate System Design Blueprint</span>
+                    <span>Execute SYS.ARCH_MAPPER (v1.3.0)</span>
                     <svg id="designSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -134,7 +140,7 @@
                 <p class="text-slate-400 text-sm mb-3 text-center">Blueprint finalized. Ready to synthesize codebase.</p>
                 <button id="codeBtn" onclick="generateCode()" 
                     class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
-                    <span id="codeBtnText">Phase 2b: Generate Codebase</span>
+                    <span id="codeBtnText">Execute SYS.CODE_GEN (v1.3.0)</span>
                     <svg id="codeSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -175,7 +181,7 @@
                 <p class="text-slate-400 text-sm mb-3 text-center">Source code written. Run tests in isolated sandbox.</p>
                 <button id="execBtn" onclick="executeCode()" 
                     class="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
-                    <span>Phase 2c: Run Tests in Sandbox</span>
+                    <span>Execute SYS.SANDBOX_EXEC (v1.3.0)</span>
                     <svg id="execSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -203,7 +209,7 @@
                 <p class="text-slate-400 text-sm mb-3 text-center">Execution complete. Invoke the parallel Arbitration Engine.</p>
                 <button id="criticBtn" onclick="runCritics()" 
                     class="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
-                    <span>Phase 3: Run LangGraph Critics (Parallel)</span>
+                    <span>Execute SYS.ARBITRATION (v1.3.0)</span>
                     <svg id="criticSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -250,6 +256,19 @@
         let currentExecutionResult = null;
         let currentRevisionPlan = null;
         let currentRevisionCount = 0;
+
+        // Session Cost Tracker
+        let sessionUsage = { prompt: 0, completion: 0, cost: 0.0 };
+
+        function updateCost(promptTokens, completionTokens) {
+            sessionUsage.prompt += parseInt(promptTokens) || 0;
+            sessionUsage.completion += parseInt(completionTokens) || 0;
+            // Gemini 1.5 Flash pricing: $0.075 / 1M input, $0.30 / 1M output
+            sessionUsage.cost = (sessionUsage.prompt / 1000000) * 0.075 + (sessionUsage.completion / 1000000) * 0.30;
+            
+            document.getElementById('costDisplay').innerHTML = 
+                `$${sessionUsage.cost.toFixed(4)} <span class="text-xs text-slate-400 ml-1">(${sessionUsage.prompt + sessionUsage.completion} tokens)</span>`;
+        }
         
         // Monaco Editor state
         let editorInstance = null;
@@ -467,6 +486,17 @@
                     
                     const chunk = decoder.decode(value, { stream: true });
                     fullJsonStr += chunk;
+
+                    // Extract __USAGE__ if present
+                    if (fullJsonStr.includes('__USAGE__')) {
+                        const parts = fullJsonStr.split('__USAGE__');
+                        fullJsonStr = parts[0];
+                        const usageStr = parts[1].trim();
+                        if (usageStr) {
+                            const [p, c] = usageStr.split(',');
+                            updateCost(p, c);
+                        }
+                    }
                     
                     // Show raw JSON streaming to the user
                     document.getElementById('jsonOutput').innerText = fullJsonStr;
@@ -563,6 +593,17 @@
                     
                     const chunk = decoder.decode(value, { stream: true });
                     fullJsonStr += chunk;
+
+                    // Extract __USAGE__ if present
+                    if (fullJsonStr.includes('__USAGE__')) {
+                        const parts = fullJsonStr.split('__USAGE__');
+                        fullJsonStr = parts[0];
+                        const usageStr = parts[1].trim();
+                        if (usageStr) {
+                            const [p, c] = usageStr.split(',');
+                            updateCost(p, c);
+                        }
+                    }
                     
                     // Show raw JSON streaming to the user
                     document.getElementById('designJsonOutput').innerText = fullJsonStr;
@@ -672,6 +713,17 @@
                     
                     const chunk = decoder.decode(value, { stream: true });
                     fullJsonStr += chunk;
+
+                    // Extract __USAGE__ if present
+                    if (fullJsonStr.includes('__USAGE__')) {
+                        const parts = fullJsonStr.split('__USAGE__');
+                        fullJsonStr = parts[0];
+                        const usageStr = parts[1].trim();
+                        if (usageStr) {
+                            const [p, c] = usageStr.split(',');
+                            updateCost(p, c);
+                        }
+                    }
                     
                     // Show raw JSON streaming to the user
                     container.innerHTML = `<pre><code class="text-gray-400 text-sm block whitespace-pre-wrap font-mono">${fullJsonStr.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
@@ -700,7 +752,7 @@
                 showError(`Phase 2b Failed: ${error.message}`);
             } finally {
                 setButtonLoading('codeBtn', 'codeSpinner', false);
-                document.getElementById('codeBtnText').textContent = 'Phase 2b: Generate Codebase';
+                document.getElementById('codeBtnText').textContent = 'Execute SYS.CODE_GEN (v1.3.0)';
             }
         }
 

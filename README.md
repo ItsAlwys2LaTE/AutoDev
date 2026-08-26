@@ -1,4 +1,4 @@
-# AutoDev: Autonomous AI Software Architect
+# AutoDev: Autonomous AI Software Architect (BUILD SYS.v1.3.0.Alpha)
 
 AutoDev is an automated, multi-agent Software Development Life Cycle (SDLC) pipeline. It takes a plain-text feature request and autonomously orchestrates the generation of requirements, system architecture, source code, local unit test execution, and rigorous AI peer review.
 
@@ -6,15 +6,15 @@ AutoDev is an automated, multi-agent Software Development Life Cycle (SDLC) pipe
 
 The system currently implements a strict, modular pipeline utilizing Google's Gemini models for structured output generation, a secure local sandbox for code execution, and a LangGraph-powered Arbitration Engine for self-correction.
 
-### Phase 1: Requirements Engineering
+### Phase 1: SYS.REQ_COMPILER (Requirements Engineering)
 - **Agent:** `requirements_agent.py`
 - **Function:** Ingests a plain-text feature request and translates it into a strict JSON `RequirementsDocument` containing User Stories and testable Acceptance Criteria (ACs).
 
-### Phase 2: System Design & Architectural Blueprinting
+### Phase 2: SYS.ARCH_MAPPER (System Design & Architectural Blueprinting)
 - **Agent:** `design_agent.py`
 - **Function:** Ingests the JSON requirements and outputs a structured `SystemDesignBlueprint`. This includes architectural patterns, file ordering, and detailed multi-line pseudocode.
 
-### Phase 2b: Code Generation
+### Phase 2b: SYS.CODE_GEN (Code Generation)
 - **Agent:** `codegen_agent.py`
 - **Function:** Ingests the Blueprint and Requirements to write production-ready Python source code (`.py` files) and comprehensive `pytest` unit test suites.
 
@@ -61,6 +61,7 @@ AutoDev/
 - **Download Generated Codebase (.zip):** Added a one-click "Download .zip" button to the Phase 2b output section. It uses JSZip to bundle the AI-generated source files, tests, and a fallback README directly in the browser so users can instantly run their newly generated project locally.
 - **Real-Time Streaming Output (SSE):** Upgraded the LangGraph execution pipelines and frontend fetch calls to utilize Server-Sent Events (SSE). The user now sees the LLM generating the Requirements, Blueprint, and Codebase token-by-token in real-time before it smoothly snaps into the structured rich text formats.
 - **Embedded Monaco IDE:** Completely revamped the Code Generation output phase to feature a fully interactive IDE powered by Monaco Editor (VS Code's engine). Users can browse generated files in a sidebar and edit the Python code directly in the browser with syntax highlighting. Edits are flushed to the execution sandbox when running tests.
+- **Global Token & Cost Tracker:** Implemented a real-time token tracking widget in the UI header. The streaming backends intercept the `usage_metadata` from the Google GenAI SDK and pass it to the frontend via stream delimiters, calculating the estimated session cost on the fly without breaking the SSE structure.
 
 ## Setup & Execution
 

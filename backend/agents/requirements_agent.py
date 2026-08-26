@@ -44,12 +44,16 @@ def generate_requirements_stream(feature_request: str):
     
     try:
         response = get_stream("gemini-3.6-flash")
-        # Buffer the first chunk to catch immediate failures (like 503/429)
         iterator = iter(response)
         first_chunk = next(iterator)
         yield first_chunk.text
+        if first_chunk.usage_metadata:
+            yield f"\n__USAGE__{first_chunk.usage_metadata.prompt_token_count},{first_chunk.usage_metadata.candidates_token_count}"
+        
         for chunk in iterator:
             yield chunk.text
+            if getattr(chunk, 'usage_metadata', None):
+                yield f"\n__USAGE__{chunk.usage_metadata.prompt_token_count},{chunk.usage_metadata.candidates_token_count}"
     except Exception as e:
         print(f"Primary model (3.6-flash) failed: {e}")
         print("Falling back to gemini-3.5-flash-lite...")
