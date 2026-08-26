@@ -30,7 +30,7 @@ The system currently implements a strict, modular pipeline utilizing Google's Ge
 
 The system utilizes semantic API keys to prevent rate-limit overlaps and distributes the workload across the latest Gemini models:
 
-- **Primary Model:** `gemini-3.7-flash` (Optimized for coding, tool use, and multi-step workflows).
+- **Primary Model:** `gemini-3.6-flash` (Optimized for coding, tool use, and multi-step workflows).
 - **Fallback Model:** `gemini-3.5-flash-lite` (Automatically triggered via robust `try/except` blocks if the primary model fails or rate-limits).
 
 ## Directory Structure
