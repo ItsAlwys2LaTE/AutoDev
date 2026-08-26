@@ -22,6 +22,9 @@ from typing import Optional
 class FeatureRequestInput(BaseModel):
     feature_request: str
 
+class TextUpdateInput(BaseModel):
+    text: str
+
 class CodeGenInput(BaseModel):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
@@ -65,6 +68,53 @@ def api_generate_code(payload: CodeGenInput):
             payload.previous_codebase,
             payload.revision_plan
         )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+from google import genai
+from google.genai import types
+
+@app.post("/api/parse-requirements")
+def api_parse_requirements(payload: TextUpdateInput):
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=RequirementsDocument,
+                temperature=0.1
+            )
+        )
+        if hasattr(response, 'parsed') and response.parsed is not None:
+            return response.parsed
+        else:
+            return RequirementsDocument.model_validate_json(response.text)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/parse-blueprint")
+def api_parse_blueprint(payload: TextUpdateInput):
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=SystemDesignBlueprint,
+                temperature=0.1
+            )
+        )
+        if hasattr(response, 'parsed') and response.parsed is not None:
+            return response.parsed
+        else:
+            return SystemDesignBlueprint.model_validate_json(response.text)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

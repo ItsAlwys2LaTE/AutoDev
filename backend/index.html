@@ -60,9 +60,9 @@
                 <span class="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium border border-green-500/20">Success</span>
             </div>
             
-            <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 mb-6 shadow-inner relative group">
-                <span class="absolute top-2 right-4 text-xs font-bold text-slate-500 uppercase tracking-wide group-focus-within:text-purple-400 transition-colors">EDITABLE YAML</span>
-                <textarea id="jsonOutput" class="w-full h-96 bg-transparent text-green-400 text-sm font-mono focus:outline-none resize-y" spellcheck="false"></textarea>
+            <div class="bg-white p-6 sm:p-10 rounded-lg border border-slate-200 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
+                <span class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-purple-500 transition-colors">RICH TEXT DOCUMENT</span>
+                <div id="jsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap" contenteditable="true" spellcheck="true"></div>
             </div>
             
             <div class="border-t border-slate-700 pt-6">
@@ -88,9 +88,9 @@
                 <span class="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-sm rounded-full font-medium border border-indigo-500/20">Success</span>
             </div>
             
-            <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 mb-6 shadow-inner relative group">
-                <span class="absolute top-2 right-4 text-xs font-bold text-slate-500 uppercase tracking-wide group-focus-within:text-indigo-400 transition-colors">EDITABLE YAML</span>
-                <textarea id="designJsonOutput" class="w-full h-96 bg-transparent text-indigo-300 text-sm font-mono focus:outline-none resize-y" spellcheck="false"></textarea>
+            <div class="bg-white p-6 sm:p-10 rounded-lg border border-slate-200 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
+                <span class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-indigo-500 transition-colors">RICH TEXT DOCUMENT</span>
+                <div id="designJsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap" contenteditable="true" spellcheck="true"></div>
             </div>
 
             <div class="border-t border-slate-700 pt-6">
@@ -265,8 +265,9 @@
                 if (!response.ok) throw new Error(data.detail || 'API Error');
 
                 currentRequirements = data; 
-                // Populate textarea with editable YAML
-                document.getElementById('jsonOutput').value = jsyaml.dump(data, { indent: 2, lineWidth: -1 });
+                // Populate rich text div
+                const reqText = `PROJECT TITLE:\n${data.project_title}\n\nDESCRIPTION:\n${data.description}\n\nTARGET AUDIENCE:\n${data.target_audience}\n\nCORE FEATURES:\n${data.core_features.map(f => `- ${f.feature_title} [${f.priority}]: ${f.description}`).join('\n')}\n\nACCEPTANCE CRITERIA:\n${data.acceptance_criteria.map(a => `- ${a}`).join('\n')}`;
+                document.getElementById('jsonOutput').innerText = reqText;
                 
                 setVisible('outputSection', true);
                 scrollToSection('outputSection');
@@ -279,15 +280,26 @@
         }
 
         async function generateDesign() {
-            // Re-sync currentRequirements from the editable YAML area
+            // Parse edited rich text back to JSON via LLM
+            setButtonLoading('designBtn', 'designSpinner', true);
             try {
-                const yamlText = document.getElementById('jsonOutput').value;
-                currentRequirements = jsyaml.load(yamlText);
+                const text = document.getElementById('jsonOutput').innerText;
+                const parseRes = await fetch('/api/parse-requirements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                if (!parseRes.ok) throw new Error("Failed to parse requirements text.");
+                currentRequirements = await parseRes.json();
             } catch (err) {
-                return showError("Invalid YAML in Requirements. Please fix formatting errors before proceeding: " + err.message);
+                setButtonLoading('designBtn', 'designSpinner', false);
+                return showError("Error parsing Requirements: " + err.message);
             }
 
-            if (!currentRequirements) return showError("Missing requirements data.");
+            if (!currentRequirements) {
+                setButtonLoading('designBtn', 'designSpinner', false);
+                return showError("Missing requirements data.");
+            }
             
             setVisible('errorSection', false);
             setVisible('designOutputSection', false);
@@ -306,8 +318,9 @@
                 if (!response.ok) throw new Error(data.detail || 'API Error');
 
                 currentBlueprint = data;
-                // Populate textarea with editable YAML
-                document.getElementById('designJsonOutput').value = jsyaml.dump(data, { indent: 2, lineWidth: -1 });
+                // Populate rich text div
+                const bpText = `SYSTEM ARCHITECTURE:\n${data.architecture_pattern}\n\nDATABASE SCHEMA:\n${data.database_schema}\n\nAPI ENDPOINTS:\n${data.api_endpoints.map(e => `- ${e}`).join('\n')}\n\nFILES TO GENERATE:\n${data.file_structure.map(f => `\n📄 ${f.file_name}\n   Purpose: ${f.purpose}\n   Dependencies: ${f.dependencies.join(', ')}`).join('\n')}`;
+                document.getElementById('designJsonOutput').innerText = bpText;
                 
                 setVisible('designOutputSection', true);
                 scrollToSection('designOutputSection');
@@ -320,14 +333,23 @@
         }
 
         async function generateCode(isRevision = false) {
-            // Re-sync currentBlueprint from the editable YAML area
-            try {
-                if (document.getElementById('designOutputSection').classList.contains('hidden') === false) {
-                    const yamlText = document.getElementById('designJsonOutput').value;
-                    currentBlueprint = jsyaml.load(yamlText);
+            // Re-sync currentBlueprint from the editable rich text area via LLM
+            if (document.getElementById('designOutputSection').classList.contains('hidden') === false && !isRevision) {
+                setButtonLoading('codeBtn', 'codeSpinner', true);
+                try {
+                    const text = document.getElementById('designJsonOutput').innerText;
+                    const parseRes = await fetch('/api/parse-blueprint', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: text })
+                    });
+                    if (!parseRes.ok) throw new Error("Failed to parse blueprint text.");
+                    currentBlueprint = await parseRes.json();
+                } catch (err) {
+                    setButtonLoading('codeBtn', 'codeSpinner', false);
+                    return showError("Error parsing Blueprint: " + err.message);
                 }
-            } catch (err) {
-                return showError("Invalid YAML in Architecture Blueprint. Please fix formatting errors before proceeding: " + err.message);
+                setButtonLoading('codeBtn', 'codeSpinner', false);
             }
 
             if (!currentRequirements || !currentBlueprint) return showError("Missing prerequisites.");
