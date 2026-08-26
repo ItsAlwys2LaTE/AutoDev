@@ -785,12 +785,27 @@
                 const badge = document.getElementById('execStatusBadge');
                 if (data.success) {
                     badge.textContent = "Tests Passed";
-                    badge.className = "px-3 py-1 text-sm rounded-full font-medium border bg-green-500/20 text-green-400 border-green-500/20";
+                    badge.className = "px-3 py-1 text-sm rounded-full font-medium border bg-emerald-500/20 text-emerald-400 border-emerald-500/20";
                 } else {
                     badge.textContent = "Tests Failed";
-                    badge.className = "px-3 py-1 text-sm rounded-full font-medium border bg-red-500/20 text-red-400 border-red-500/20";
+                    badge.className = "px-3 py-1 text-sm rounded-full font-medium border bg-rose-500/20 text-rose-400 border-rose-500/20";
                 }
-                
+
+                // Check for Coverage Data
+                let covMatch = data.logs.match(/TOTAL\s+\d+\s+\d+\s+(\d+%)/);
+                let covBadge = document.getElementById('covBadge');
+                if (covMatch && covMatch[1]) {
+                    if (!covBadge) {
+                        covBadge = document.createElement('span');
+                        covBadge.id = 'covBadge';
+                        badge.parentNode.insertBefore(covBadge, badge);
+                    }
+                    covBadge.className = "px-3 py-1 text-sm rounded-full font-medium border bg-blue-500/20 text-blue-400 border-blue-500/20 mr-2";
+                    covBadge.textContent = `Coverage: ${covMatch[1]}`;
+                } else if (covBadge) {
+                    covBadge.remove();
+                }
+
                 setVisible('execOutputSection', true);
                 scrollToSection('execOutputSection');
                 updateStepper(4, data.success ? 'success' : 'error'); // Though logically both are valid states, for UI, let's just mark it success since the step finished. Wait, tests failing is an error? Let's use 'success' if the phase itself succeeded.

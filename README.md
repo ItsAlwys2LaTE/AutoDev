@@ -62,6 +62,7 @@ AutoDev/
 - **Real-Time Streaming Output (SSE):** Upgraded the LangGraph execution pipelines and frontend fetch calls to utilize Server-Sent Events (SSE). The user now sees the LLM generating the Requirements, Blueprint, and Codebase token-by-token in real-time before it smoothly snaps into the structured rich text formats.
 - **Embedded Monaco IDE:** Completely revamped the Code Generation output phase to feature a fully interactive IDE powered by Monaco Editor (VS Code's engine). Users can browse generated files in a sidebar and edit the Python code directly in the browser with syntax highlighting. Edits are flushed to the execution sandbox when running tests.
 - **Global Token & Cost Tracker:** Implemented a real-time token tracking widget in the UI header. The streaming backends intercept the `usage_metadata` from the Google GenAI SDK and pass it to the frontend via stream delimiters, calculating the estimated session cost on the fly without breaking the SSE structure.
+- **Test Coverage Analysis:** Integrated `pytest-cov` into the local execution sandbox. When tests are executed, the backend analyzes source code line coverage and automatically surfaces the total coverage percentage directly in the UI alongside the execution logs.
 
 ## Setup & Execution
 

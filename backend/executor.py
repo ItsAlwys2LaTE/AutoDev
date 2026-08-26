@@ -20,11 +20,11 @@ def execute_code(codebase: GeneratedCodeBase) -> ExecutionResult:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(file_obj.source_code)
                 
-        print("Running pytest in the sandbox...")
+        print("Running pytest with coverage analysis in the sandbox...")
         try:
             # We run pytest inside the temp_dir. capture_output grabs stdout/stderr
             process = subprocess.run(
-                [sys.executable, "-m", "pytest", "-v"],
+                [sys.executable, "-m", "pytest", "-v", "--cov=.", "--cov-report=term-missing"],
                 cwd=temp_dir,
                 capture_output=True,
                 text=True,
