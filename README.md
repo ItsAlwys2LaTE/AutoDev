@@ -60,6 +60,7 @@ AutoDev/
 - **Interactive Pipeline Stepper:** Added a visual progress stepper to the dashboard that animates sequentially (idle → loading → success/error) as each phase completes, providing real-time visibility into the autonomous workflow.
 - **Download Generated Codebase (.zip):** Added a one-click "Download .zip" button to the Phase 2b output section. It uses JSZip to bundle the AI-generated source files, tests, and a fallback README directly in the browser so users can instantly run their newly generated project locally.
 - **Real-Time Streaming Output (SSE):** Upgraded the LangGraph execution pipelines and frontend fetch calls to utilize Server-Sent Events (SSE). The user now sees the LLM generating the Requirements, Blueprint, and Codebase token-by-token in real-time before it smoothly snaps into the structured rich text formats.
+- **Embedded Monaco IDE:** Completely revamped the Code Generation output phase to feature a fully interactive IDE powered by Monaco Editor (VS Code's engine). Users can browse generated files in a sidebar and edit the Python code directly in the browser with syntax highlighting. Edits are flushed to the execution sandbox when running tests.
 
 ## Setup & Execution
 
