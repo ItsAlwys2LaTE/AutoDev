@@ -47,13 +47,13 @@ def node_adjudicator(state: GraphState):
     {json.dumps(feedbacks_json, indent=2)}
     
     INSTRUCTIONS:
-    1. If any critic gave a severity_score greater than 0, you MUST output a verdict of 'revise'.
-    2. If the verdict is 'revise', synthesize their issues into a clear, actionable 'revision_plan' for the CodeGen agent.
-    3. If all severity scores are 0, output a verdict of 'pass' and a brief approval message.
+    1. SYSTEM ERRORS: If ANY critic feedback mentions an "API Error", "Rate Limit", or system failure, you MUST output a verdict of 'error' and set the revision_plan to explain that the evaluation failed due to a system error. DO NOT tell the CodeGen agent to revise the code.
+    2. CODE ISSUES: If there are no system errors, and ANY critic gave a severity_score greater than 0, you MUST output a verdict of 'revise', and synthesize their issues into a clear, actionable 'revision_plan' for the CodeGen agent.
+    3. PASS: If all severity scores are 0, output a verdict of 'pass' and a brief approval message.
     """
     
     client = genai.Client(api_key=api_key)
-    system_instruction = "You are the Adjudicator. Output strict JSON containing 'verdict' (pass/revise) and 'revision_plan'."
+    system_instruction = "You are the Adjudicator. Output strict JSON containing 'verdict' (pass/revise/error) and 'revision_plan'."
 
     try:
         response = client.models.generate_content(
@@ -73,7 +73,7 @@ def node_adjudicator(state: GraphState):
         return {"decision": decision}
     except Exception as e:
         print(f"Adjudicator failed: {e}")
-        return {"decision": AdjudicatorDecision(verdict="revise", revision_plan=f"Adjudicator Error: {str(e)}")}
+        return {"decision": AdjudicatorDecision(verdict="error", revision_plan=f"Adjudicator Error: {str(e)}")}
 
 def route_decision(state: GraphState):
     decision = state.get("decision")

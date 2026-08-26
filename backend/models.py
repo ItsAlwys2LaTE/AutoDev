@@ -66,5 +66,5 @@ class CriticFeedback(BaseModel):
 
 class AdjudicatorDecision(BaseModel):
     """The final decision made by the Adjudicator agent based on all critiques."""
-    verdict: str = Field(description="Strictly 'pass' or 'revise'")
-    revision_plan: str = Field(description="Detailed instructions for the CodeGen agent if verdict is 'revise'. If 'pass', a brief approval message.")
+    verdict: str = Field(description="Strictly 'pass', 'revise', or 'error'")
+    revision_plan: str = Field(description="Detailed instructions for the CodeGen agent if verdict is 'revise'. If 'error', describes the system failure. If 'pass', a brief approval message.")
