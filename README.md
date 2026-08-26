@@ -67,9 +67,15 @@ pip install -r requirements.txt
 Create a `.env` file in the `backend/` directory and configure your distinct agent keys:
 
 ```env
+# Phase 1 & 2 Agents
 GEMINI_API_KEY_REQUIREMENTS=your_api_key_here
 GEMINI_API_KEY_DESIGN=your_api_key_here
 GEMINI_API_KEY_CODEGEN=your_api_key_here
+
+# Phase 3 Parallel Critics (Multi-LLM)
+GEMINI_API_KEY_CRITICS=your_api_key_here
+MISTRAL_API_KEY=your_api_key_here
+GROQ_API_KEY=your_api_key_here
 ```
 
 *(You can use the same key for all if you do not need strict quota segmentation).*
@@ -92,9 +98,9 @@ uvicorn main:app --reload
 
 - [x] **Phase 1:** Foundation & Requirements Extraction Agent
 - [x] **Phase 2:** Design Blueprinting, Code Generation Agent, & Local Execution Sandbox
-- [x] **Phase 3:** The Arbitration Engine (Correctness, Architecture, & Completeness Critics via LangGraph)
-- [x] **Phase 4:** The Adjudicator & Self-Correction Loop
-- [ ] **Phase 5:** Deployment Agent (Automated GitHub PR integration) & Advanced Interactive UI
+- [x] **Phase 3:** Arbitration Engine (Correctness, Architecture, & Completeness Critics via LangGraph) & Adjudicator
+- [ ] **Phase 4:** Advanced UI/UX & Creative Feature Incubation
+- [ ] **Phase 5:** Deployment & Final Polish
 
 ## Contributors
 
