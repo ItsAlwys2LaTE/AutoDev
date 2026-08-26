@@ -99,8 +99,8 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
 # 3. COMPLETENESS CRITIC (Groq - Llama 3.3 70B)
 # ---------------------------------------------------------
 def evaluate_completeness(requirements: RequirementsDocument, codebase: GeneratedCodeBase) -> CriticFeedback:
-    print("Running Completeness Critic (Groq Llama 3.3)...")
-    critic_name = "Completeness Critic (Groq Llama)"
+    print("Running Completeness Critic (Groq Llama 4 Scout)...")
+    critic_name = "Completeness Critic (Groq Llama 4 Scout)"
     api_key = os.environ.get("GROQ_API_KEY")
     
     if not api_key:
@@ -121,7 +121,7 @@ def evaluate_completeness(requirements: RequirementsDocument, codebase: Generate
     
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="meta-llama/llama-4-scout-17b-16e-instruct",
             messages=[
                 {"role": "system", "content": f"You are the {critic_name}. You MUST output ONLY a valid JSON object. Ensure it exactly matches this JSON schema structure: {{\"severity_score\": 5, \"issues_list\": [\"issue1\", \"issue2\"], \"overall_comments\": \"Your comment here\"}}"},
                 {"role": "user", "content": prompt}
