@@ -57,6 +57,7 @@ AutoDev/
 - **Self-Correction Loop (Autonomous Self-Healing):** The system now automatically routes Adjudicator "Revise" verdicts back to the CodeGen agent, supplying it with the execution logs and revision plan to regenerate and re-test the code up to 3 times autonomously.
 - **Rate Limit & Infinite Loop Safeguards:** Enhanced the LangGraph Arbitration Engine to distinguish between "Code Issues" and "System/API Errors". If a critic hits a rate limit (e.g. Gemini 429), the Adjudicator outputs a graceful 'error' verdict instead of a blind 'revise', breaking the automation loop to prevent useless code regeneration hallucinations.
 - **Rich Text Editability:** Replaced raw JSON outputs in Phase 1 (Requirements) and Phase 2 (Architecture) with a highly user-friendly, Word-document-like rich text interface. Users can freely edit the generated specifications. When advancing to the next phase, the backend utilizes Gemini to parse the free-form text back into the strict JSON Pydantic schemas needed by downstream agents.
+- **Interactive Pipeline Stepper:** Added a visual progress stepper to the dashboard that animates sequentially (idle → loading → success/error) as each phase completes, providing real-time visibility into the autonomous workflow.
 
 ## Setup & Execution
 

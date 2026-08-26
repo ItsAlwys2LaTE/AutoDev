@@ -24,10 +24,45 @@
 <body class="min-h-screen text-slate-800 p-8">
     <div class="max-w-4xl mx-auto space-y-8 pb-20">
         
-        <header class="text-center space-y-2">
+        <header class="text-center space-y-2 mb-8">
             <h1 class="text-3xl font-bold text-slate-900">AutoDev: AI Software Architect</h1>
             <p class="text-slate-500">Autonomous SDLC Pipeline - Phases 1, 2 & 3</p>
         </header>
+
+        <!-- PIPELINE STEPPER -->
+        <div class="relative max-w-3xl mx-auto mb-12">
+            <!-- Connecting Line -->
+            <div class="absolute top-5 left-0 w-full h-1 bg-slate-200 z-0 rounded-full"></div>
+            <div id="stepperProgress" class="absolute top-5 left-0 w-0 h-1 bg-blue-500 z-0 rounded-full transition-all duration-700 ease-in-out"></div>
+            
+            <div class="flex justify-between items-start relative z-10">
+                <!-- Step 1: Requirements -->
+                <div class="flex flex-col items-center w-24">
+                    <div id="step1-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">1</div>
+                    <span id="step1-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Requirements</span>
+                </div>
+                <!-- Step 2: Architecture -->
+                <div class="flex flex-col items-center w-24">
+                    <div id="step2-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">2</div>
+                    <span id="step2-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Architecture</span>
+                </div>
+                <!-- Step 3: CodeGen -->
+                <div class="flex flex-col items-center w-24">
+                    <div id="step3-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">3</div>
+                    <span id="step3-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">CodeGen</span>
+                </div>
+                <!-- Step 4: Execution -->
+                <div class="flex flex-col items-center w-24">
+                    <div id="step4-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">4</div>
+                    <span id="step4-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Execution</span>
+                </div>
+                <!-- Step 5: Arbitration -->
+                <div class="flex flex-col items-center w-24">
+                    <div id="step5-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">5</div>
+                    <span id="step5-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Arbitration</span>
+                </div>
+            </div>
+        </div>
 
         <!-- INPUT SECTION -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
@@ -223,6 +258,39 @@
             }
         }
 
+        function updateStepper(stepNumber, status) {
+            const icon = document.getElementById(`step${stepNumber}-icon`);
+            const text = document.getElementById(`step${stepNumber}-text`);
+            const progress = document.getElementById('stepperProgress');
+            
+            if (status === 'success' || status === 'error') {
+                const percentage = Math.max(0, (stepNumber - 1) * 25);
+                progress.style.width = `${percentage}%`;
+                if (stepNumber === 5 && status === 'success') progress.style.width = '100%';
+            }
+            
+            icon.className = "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 z-10 ";
+            text.className = "text-xs font-semibold mt-2 text-center transition-colors duration-300 ";
+            
+            if (status === 'idle') {
+                icon.className += "bg-white text-slate-400 border-2 border-slate-200";
+                text.className += "text-slate-400";
+                icon.innerHTML = stepNumber;
+            } else if (status === 'loading') {
+                icon.className += "bg-blue-600 text-white border-2 border-blue-600 animate-pulse shadow-md shadow-blue-500/30";
+                text.className += "text-blue-600";
+                icon.innerHTML = `<svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>`;
+            } else if (status === 'success') {
+                icon.className += "bg-green-500 text-white border-2 border-green-500 shadow-md shadow-green-500/30";
+                text.className += "text-green-600";
+                icon.innerHTML = '✓';
+            } else if (status === 'error') {
+                icon.className += "bg-red-500 text-white border-2 border-red-500 shadow-md shadow-red-500/30";
+                text.className += "text-red-600";
+                icon.innerHTML = '✗';
+            }
+        }
+
         function showError(message) {
             document.getElementById('errorText').textContent = message;
             setVisible('errorSection', true);
@@ -236,6 +304,7 @@
             setVisible('execOutputSection', false);
             setVisible('criticOutputSection', false);
             document.getElementById('adjudicatorSection').classList.add('hidden');
+            for(let i=1; i<=5; i++) updateStepper(i, 'idle');
             currentRequirements = null;
             currentBlueprint = null;
             currentCodebase = null;
@@ -254,6 +323,7 @@
 
             resetUI();
             setButtonLoading('submitBtn', 'spinner', true);
+            updateStepper(1, 'loading');
 
             try {
                 const response = await fetch('/api/generate-requirements', {
@@ -286,17 +356,19 @@
                 
                 setVisible('outputSection', true);
                 scrollToSection('outputSection');
+                updateStepper(1, 'success');
 
             } catch (error) {
+                updateStepper(1, 'error');
                 showError(`Phase 1 Failed: ${error.message}`);
             } finally {
                 setButtonLoading('submitBtn', 'spinner', false);
             }
-        }
 
         async function generateDesign() {
             // Parse edited rich text back to JSON via LLM
             setButtonLoading('designBtn', 'designSpinner', true);
+            updateStepper(2, 'loading');
             try {
                 const text = document.getElementById('jsonOutput').innerText;
                 const parseRes = await fetch('/api/parse-requirements', {
@@ -308,11 +380,13 @@
                 currentRequirements = await parseRes.json();
             } catch (err) {
                 setButtonLoading('designBtn', 'designSpinner', false);
+                updateStepper(2, 'error');
                 return showError("Error parsing Requirements: " + err.message);
             }
 
             if (!currentRequirements) {
                 setButtonLoading('designBtn', 'designSpinner', false);
+                updateStepper(2, 'error');
                 return showError("Missing requirements data.");
             }
             
@@ -321,7 +395,6 @@
             setVisible('codeOutputSection', false);
             setVisible('execOutputSection', false);
             setVisible('criticOutputSection', false);
-            setButtonLoading('designBtn', 'designSpinner', true);
 
             try {
                 const response = await fetch('/api/generate-design', {
@@ -347,8 +420,9 @@
                 
                 setVisible('designOutputSection', true);
                 scrollToSection('designOutputSection');
-
+                updateStepper(2, 'success');
             } catch (error) {
+                updateStepper(2, 'error');
                 showError(`Phase 2 Failed: ${error.message}`);
             } finally {
                 setButtonLoading('designBtn', 'designSpinner', false);
@@ -390,6 +464,7 @@
             }
             
             setButtonLoading('codeBtn', 'codeSpinner', true);
+            updateStepper(3, 'loading');
 
             try {
                 const payload = {
@@ -429,8 +504,10 @@
                 
                 setVisible('codeOutputSection', true);
                 scrollToSection('codeOutputSection');
+                updateStepper(3, 'success');
 
             } catch (error) {
+                updateStepper(3, 'error');
                 showError(`Phase 2b Failed: ${error.message}`);
             } finally {
                 setButtonLoading('codeBtn', 'codeSpinner', false);
@@ -445,6 +522,7 @@
             setVisible('execOutputSection', false);
             setVisible('criticOutputSection', false);
             setButtonLoading('execBtn', 'execSpinner', true);
+            updateStepper(4, 'loading');
 
             try {
                 const response = await fetch('/api/execute-code', {
@@ -469,8 +547,11 @@
                 
                 setVisible('execOutputSection', true);
                 scrollToSection('execOutputSection');
+                updateStepper(4, data.success ? 'success' : 'error'); // Though logically both are valid states, for UI, let's just mark it success since the step finished. Wait, tests failing is an error? Let's use 'success' if the phase itself succeeded.
+                updateStepper(4, 'success');
 
             } catch (error) {
+                updateStepper(4, 'error');
                 showError(`Phase 2c Failed: ${error.message}`);
             } finally {
                 setButtonLoading('execBtn', 'execSpinner', false);
@@ -485,6 +566,7 @@
             setVisible('errorSection', false);
             setVisible('criticOutputSection', false);
             setButtonLoading('criticBtn', 'criticSpinner', true);
+            updateStepper(5, 'loading');
 
             try {
                 const response = await fetch('/api/run-critics', {
@@ -537,9 +619,11 @@
                     adjPlan.textContent = data.decision.revision_plan;
                     
                     if (data.decision.verdict.toLowerCase() === 'pass') {
+                        updateStepper(5, 'success');
                         adjVerdict.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/20";
                         adjCard.className = "p-5 rounded-lg border shadow-sm bg-green-950/30 border-green-900/50";
                     } else {
+                        updateStepper(5, 'error');
                         adjVerdict.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-rose-500/20 text-rose-400 border-rose-500/20";
                         adjCard.className = "p-5 rounded-lg border shadow-sm bg-rose-950/30 border-rose-900/50";
                     }
@@ -572,6 +656,7 @@
                 }
 
             } catch (error) {
+                updateStepper(5, 'error');
                 showError(`Phase 3 Failed: ${error.message}`);
             } finally {
                 setButtonLoading('criticBtn', 'criticSpinner', false);
