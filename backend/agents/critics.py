@@ -121,7 +121,7 @@ def evaluate_completeness(requirements: RequirementsDocument, codebase: Generate
     
     try:
         response = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama3-70b-8192",
             messages=[
                 {"role": "system", "content": f"You are the {critic_name}. You MUST output ONLY a valid JSON object. Ensure it exactly matches this JSON schema structure: {{\"severity_score\": 5, \"issues_list\": [\"issue1\", \"issue2\"], \"overall_comments\": \"Your comment here\"}}"},
                 {"role": "user", "content": prompt}
