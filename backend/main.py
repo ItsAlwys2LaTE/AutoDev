@@ -3,19 +3,20 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+import traceback
 
 from agents.requirements_agent import generate_requirements
 from agents.design_agent import generate_design
 from agents.codegen_agent import generate_code
 from executor import execute_code
-from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase
+from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult
+from orchestrator import arbitration_engine
 
-# Load environment variables (API Key)
+# Load environment variables
 load_dotenv()
 
-app = FastAPI(title="Auto-SDLC Phase 1 & 2 Demo")
+app = FastAPI(title="Auto-SDLC Pipeline")
 
-# Define a Pydantic model for the incoming web request
 class FeatureRequestInput(BaseModel):
     feature_request: str
 
@@ -23,56 +24,69 @@ class CodeGenInput(BaseModel):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
 
+class ArbitrationInput(BaseModel):
+    requirements: RequirementsDocument
+    blueprint: SystemDesignBlueprint
+    codebase: GeneratedCodeBase
+    execution_result: ExecutionResult
+
 @app.get("/")
-async def serve_frontend():
-    """Serves the main HTML page."""
-    # Checks if index.html exists in the same directory
+def serve_frontend():
     if os.path.exists("index.html"):
         return FileResponse("index.html")
-    return {"error": "index.html not found. Please ensure it is in the backend folder."}
+    return {"error": "index.html not found."}
 
 @app.post("/api/generate-requirements")
-async def api_generate_requirements(user_input: FeatureRequestInput):
-    """API endpoint that receives text and returns structured requirements."""
-    if not os.environ.get("GEMINI_API_KEY_REQUIREMENTS"):
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY_REQUIREMENTS is not set in the environment.")
-        
+def api_generate_requirements(user_input: FeatureRequestInput):
     try:
-        structured_output = generate_requirements(user_input.feature_request)
-        return structured_output
+        return generate_requirements(user_input.feature_request)
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-design")
-async def api_generate_design(requirements: RequirementsDocument):
-    """API endpoint that receives requirements and returns a design blueprint."""
-    if not os.environ.get("GEMINI_API_KEY_DESIGN"):
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY_DESIGN is not set in the environment.")
-        
+def api_generate_design(requirements: RequirementsDocument):
     try:
-        # Call the new Design Agent
-        blueprint = generate_design(requirements)
-        return blueprint
+        return generate_design(requirements)
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-code")
-async def api_generate_code(payload: CodeGenInput):
-    """API endpoint that receives requirements and blueprint and returns code."""
-    if not os.environ.get("GEMINI_API_KEY_CODEGEN"):
-        raise HTTPException(status_code=500, detail="GEMINI_API_KEY_CODEGEN is not set in the environment.")
-        
+def api_generate_code(payload: CodeGenInput):
     try:
-        codebase = generate_code(payload.requirements, payload.blueprint)
-        return codebase
+        return generate_code(payload.requirements, payload.blueprint)
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/execute-code")
-async def api_execute_code(codebase: GeneratedCodeBase):
-    """API endpoint that writes code to a sandbox and runs tests."""
+def api_execute_code(codebase: GeneratedCodeBase):
     try:
-        result = execute_code(codebase)
-        return result
+        return execute_code(codebase)
     except Exception as e:
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/run-critics")
+def api_run_critics(payload: ArbitrationInput):
+    try:
+        initial_state = {
+            "requirements": payload.requirements,
+            "blueprint": payload.blueprint,
+            "codebase": payload.codebase,
+            "execution_result": payload.execution_result,
+            "feedbacks": [],
+            "revision_count": 0
+        }
+        
+        final_state = arbitration_engine.invoke(initial_state)
+        return {
+            "feedbacks": final_state.get("feedbacks", []),
+            "decision": final_state.get("decision")
+        }
+    except Exception as e:
+        print("\n=== PHASE 3 CRASH TRACEBACK ===")
+        traceback.print_exc()
+        print("===============================\n")
+        raise HTTPException(status_code=500, detail=f"Server Error during evaluation: {str(e)}")

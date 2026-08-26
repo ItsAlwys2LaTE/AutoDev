@@ -3,15 +3,10 @@ from google.genai import types
 import os
 import sys
 
-# Ensure we can import from the parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase
 
 def generate_code(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint) -> GeneratedCodeBase:
-    """
-    Takes the Requirements and the Blueprint and writes the actual software files.
-    Implements a fallback from gemini-3.6-flash to gemini-3.5-flash-lite.
-    """
     api_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
     if not api_key:
         raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
@@ -27,7 +22,7 @@ def generate_code(requirements: RequirementsDocument, blueprint: SystemDesignBlu
     CRITICAL RULES:
     1. Write COMPLETE code. DO NOT use placeholders like 'pass', 'TODO', or '...'.
     2. One of the files is a test suite (usually test_something.py). You MUST write comprehensive pytest unit tests that test every single Acceptance Criteria from the Requirements.
-    3. Ensure standard imports (like pytest) are included in the test file.
+    3. STRICT RESTRICTION: DO NOT use external or third-party libraries (e.g., bcrypt, requests, pandas). You MUST only use Python's built-in standard libraries (e.g., hashlib, re, os, json). The execution sandbox does not have pip packages installed, so external imports will crash the tests.
     4. The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     """
 

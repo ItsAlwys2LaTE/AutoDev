@@ -52,3 +52,19 @@ class ExecutionResult(BaseModel):
     """The result of running the test suite in the local sandbox."""
     success: bool = Field(description="True if tests passed, False otherwise")
     logs: str = Field(description="Combined stdout and stderr from the test execution")
+
+# --- PHASE 3 MODELS (Arbitration & Critique) ---
+
+class CriticFeedback(BaseModel):
+    """Standardized feedback from a critic agent."""
+    critic_name: str = Field(description="Name of the critic (e.g., 'Correctness Critic')")
+    severity_score: int = Field(description="Score from 0 (perfect) to 10 (critical failure)")
+    issues_list: List[str] = Field(description="List of specific issues found")
+    overall_comments: str = Field(description="Summary of the evaluation")
+
+# --- PHASE 3b MODELS (Adjudication) ---
+
+class AdjudicatorDecision(BaseModel):
+    """The final decision made by the Adjudicator agent based on all critiques."""
+    verdict: str = Field(description="Strictly 'pass' or 'revise'")
+    revision_plan: str = Field(description="Detailed instructions for the CodeGen agent if verdict is 'revise'. If 'pass', a brief approval message.")

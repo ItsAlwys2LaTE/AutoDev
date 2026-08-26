@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto-SDLC Orchestrator</title>
+    <title>AutoDev Orchestrator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -25,9 +25,10 @@
         
         <header class="text-center space-y-2">
             <h1 class="text-3xl font-bold text-slate-900">AutoDev: AI Software Architect</h1>
-            <p class="text-slate-500">Autonomous SDLC Pipeline - Phases 1 & 2</p>
+            <p class="text-slate-500">Autonomous SDLC Pipeline - Phases 1, 2 & 3</p>
         </header>
 
+        <!-- INPUT SECTION -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
             <label for="featureRequest" class="block font-semibold text-slate-700">Enter Feature Request:</label>
             <textarea id="featureRequest" rows="4" 
@@ -48,6 +49,7 @@
             <p id="errorText" class="text-red-700 font-medium"></p>
         </div>
 
+        <!-- PHASE 1 OUTPUT -->
         <div id="outputSection" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-semibold text-slate-200 flex items-center gap-2">
@@ -74,6 +76,7 @@
             </div>
         </div>
 
+        <!-- PHASE 2 OUTPUT -->
         <div id="designOutputSection" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-semibold text-slate-200 flex items-center gap-2">
@@ -100,6 +103,7 @@
             </div>
         </div>
 
+        <!-- PHASE 2B OUTPUT -->
         <div id="codeOutputSection" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-semibold text-slate-200 flex items-center gap-2">
@@ -109,7 +113,7 @@
                 <span class="px-3 py-1 bg-purple-500/20 text-purple-400 text-sm rounded-full font-medium border border-purple-500/20">Success</span>
             </div>
             
-            <div id="codeFilesContainer" class="space-y-4 mb-6 max-h-[500px] overflow-y-auto">
+            <div id="codeFilesContainer" class="space-y-4 mb-6 max-h-[500px] overflow-y-auto pr-2">
                 <!-- Dynamically injected code files -->
             </div>
 
@@ -126,6 +130,7 @@
             </div>
         </div>
 
+        <!-- PHASE 2C OUTPUT -->
         <div id="execOutputSection" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-semibold text-slate-200 flex items-center gap-2">
@@ -135,8 +140,50 @@
                 <span id="execStatusBadge" class="px-3 py-1 text-sm rounded-full font-medium border"></span>
             </div>
             
-            <div class="bg-black p-4 rounded-lg border border-slate-700 max-h-96 overflow-y-auto shadow-inner">
+            <div class="bg-black p-4 rounded-lg border border-slate-700 max-h-96 overflow-y-auto shadow-inner mb-6">
                 <pre><code id="execLogsOutput" class="text-gray-300 text-sm block whitespace-pre-wrap font-mono"></code></pre>
+            </div>
+
+            <!-- THIS IS THE PHASE 3 BUTTON -->
+            <div class="border-t border-slate-700 pt-6">
+                <p class="text-slate-400 text-sm mb-3 text-center">Execution complete. Invoke the parallel Arbitration Engine.</p>
+                <button id="criticBtn" onclick="runCritics()" 
+                    class="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
+                    <span>Phase 3: Run LangGraph Critics (Parallel)</span>
+                    <svg id="criticSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- PHASE 3 OUTPUT -->
+        <div id="criticOutputSection" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+                    <span class="bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                    Arbitration Engine Feedback
+                </h2>
+                <span class="px-3 py-1 bg-rose-500/20 text-rose-400 text-sm rounded-full font-medium border border-rose-500/20">Evaluated</span>
+            </div>
+            
+            <div id="criticCardsContainer" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                <!-- Dynamically injected critic cards -->
+            </div>
+            
+            <div id="adjudicatorSection" class="mt-8 border-t border-slate-700 pt-6 hidden">
+                <h3 class="text-xl font-bold text-slate-200 mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                    Adjudicator Decision
+                </h3>
+                <div id="adjudicatorCard" class="p-5 rounded-lg border shadow-sm">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm text-slate-400 uppercase font-bold tracking-wider">Verdict</span>
+                        <span id="adjudicatorVerdict" class="px-3 py-1 rounded-full text-sm font-bold uppercase border"></span>
+                    </div>
+                    <p id="adjudicatorPlan" class="text-slate-300 text-sm whitespace-pre-wrap"></p>
+                </div>
             </div>
         </div>
 
@@ -146,6 +193,7 @@
         let currentRequirements = null;
         let currentBlueprint = null;
         let currentCodebase = null;
+        let currentExecutionResult = null;
 
         function setVisible(elementId, isVisible) {
             const el = document.getElementById(elementId);
@@ -181,9 +229,12 @@
             setVisible('designOutputSection', false);
             setVisible('codeOutputSection', false);
             setVisible('execOutputSection', false);
+            setVisible('criticOutputSection', false);
+            document.getElementById('adjudicatorSection').classList.add('hidden');
             currentRequirements = null;
             currentBlueprint = null;
             currentCodebase = null;
+            currentExecutionResult = null;
         }
 
         function scrollToSection(elementId) {
@@ -228,6 +279,7 @@
             setVisible('designOutputSection', false);
             setVisible('codeOutputSection', false);
             setVisible('execOutputSection', false);
+            setVisible('criticOutputSection', false);
             setButtonLoading('designBtn', 'designSpinner', true);
 
             try {
@@ -258,6 +310,7 @@
             setVisible('errorSection', false);
             setVisible('codeOutputSection', false);
             setVisible('execOutputSection', false);
+            setVisible('criticOutputSection', false);
             setButtonLoading('codeBtn', 'codeSpinner', true);
 
             try {
@@ -304,6 +357,7 @@
             
             setVisible('errorSection', false);
             setVisible('execOutputSection', false);
+            setVisible('criticOutputSection', false);
             setButtonLoading('execBtn', 'execSpinner', true);
 
             try {
@@ -316,6 +370,7 @@
                 if (!response.ok) throw new Error(data.detail || 'API Error');
 
                 document.getElementById('execLogsOutput').textContent = data.logs || "No logs produced.";
+                currentExecutionResult = data;
                 
                 const badge = document.getElementById('execStatusBadge');
                 if (data.success) {
@@ -333,6 +388,85 @@
                 showError(`Phase 2c Failed: ${error.message}`);
             } finally {
                 setButtonLoading('execBtn', 'execSpinner', false);
+            }
+        }
+
+        async function runCritics() {
+            if (!currentRequirements || !currentBlueprint || !currentCodebase || !currentExecutionResult) {
+                return showError("Missing previous phase data.");
+            }
+            
+            setVisible('errorSection', false);
+            setVisible('criticOutputSection', false);
+            setButtonLoading('criticBtn', 'criticSpinner', true);
+
+            try {
+                const response = await fetch('/api/run-critics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        requirements: currentRequirements,
+                        blueprint: currentBlueprint,
+                        codebase: currentCodebase,
+                        execution_result: currentExecutionResult
+                    }) 
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'API Error');
+
+                const container = document.getElementById('criticCardsContainer');
+                container.innerHTML = '';
+                
+                document.getElementById('adjudicatorSection').classList.add('hidden');
+                
+                const feedbacks = data.feedbacks || [];
+                
+                feedbacks.forEach(fb => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-950 p-5 rounded-lg border border-slate-700 shadow-sm";
+                    
+                    let scoreColor = fb.severity_score > 5 ? 'text-red-400' : (fb.severity_score > 0 ? 'text-amber-400' : 'text-green-400');
+                    
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+                            <h3 class="font-bold text-slate-300 text-lg">${fb.critic_name}</h3>
+                            <span class="text-sm font-semibold ${scoreColor}">Severity: ${fb.severity_score}/10</span>
+                        </div>
+                        <p class="text-slate-400 text-sm mb-4 italic">"${fb.overall_comments}"</p>
+                        <h4 class="text-xs text-slate-500 uppercase font-bold mb-2 tracking-wider">Issues Identified:</h4>
+                        <ul class="list-disc pl-5 space-y-1 text-sm text-slate-300">
+                            ${fb.issues_list.length > 0 ? fb.issues_list.map(issue => `<li>${issue}</li>`).join('') : '<li class="text-green-400">No issues found.</li>'}
+                        </ul>
+                    `;
+                    container.appendChild(card);
+                });
+                
+                if (data.decision) {
+                    const adjSection = document.getElementById('adjudicatorSection');
+                    const adjVerdict = document.getElementById('adjudicatorVerdict');
+                    const adjPlan = document.getElementById('adjudicatorPlan');
+                    const adjCard = document.getElementById('adjudicatorCard');
+                    
+                    adjVerdict.textContent = data.decision.verdict;
+                    adjPlan.textContent = data.decision.revision_plan;
+                    
+                    if (data.decision.verdict.toLowerCase() === 'pass') {
+                        adjVerdict.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/20";
+                        adjCard.className = "p-5 rounded-lg border shadow-sm bg-green-950/30 border-green-900/50";
+                    } else {
+                        adjVerdict.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-rose-500/20 text-rose-400 border-rose-500/20";
+                        adjCard.className = "p-5 rounded-lg border shadow-sm bg-rose-950/30 border-rose-900/50";
+                    }
+                    adjSection.classList.remove('hidden');
+                }
+                
+                setVisible('criticOutputSection', true);
+                scrollToSection('criticOutputSection');
+
+            } catch (error) {
+                showError(`Phase 3 Failed: ${error.message}`);
+            } finally {
+                setButtonLoading('criticBtn', 'criticSpinner', false);
             }
         }
     </script>
