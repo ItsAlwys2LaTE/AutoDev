@@ -88,8 +88,9 @@
                 <span class="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-sm rounded-full font-medium border border-indigo-500/20">Success</span>
             </div>
             
-            <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 max-h-96 overflow-y-auto mb-6 shadow-inner">
-                <pre><code id="designJsonOutput" class="text-indigo-300 text-sm block whitespace-pre-wrap"></code></pre>
+            <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 mb-6 shadow-inner relative group">
+                <span class="absolute top-2 right-4 text-xs font-bold text-slate-500 uppercase tracking-wide group-focus-within:text-indigo-400 transition-colors">EDITABLE YAML</span>
+                <textarea id="designJsonOutput" class="w-full h-96 bg-transparent text-indigo-300 text-sm font-mono focus:outline-none resize-y" spellcheck="false"></textarea>
             </div>
 
             <div class="border-t border-slate-700 pt-6">
@@ -305,7 +306,8 @@
                 if (!response.ok) throw new Error(data.detail || 'API Error');
 
                 currentBlueprint = data;
-                document.getElementById('designJsonOutput').textContent = JSON.stringify(data, null, 2);
+                // Populate textarea with editable YAML
+                document.getElementById('designJsonOutput').value = jsyaml.dump(data, { indent: 2, lineWidth: -1 });
                 
                 setVisible('designOutputSection', true);
                 scrollToSection('designOutputSection');
@@ -318,6 +320,16 @@
         }
 
         async function generateCode(isRevision = false) {
+            // Re-sync currentBlueprint from the editable YAML area
+            try {
+                if (document.getElementById('designOutputSection').classList.contains('hidden') === false) {
+                    const yamlText = document.getElementById('designJsonOutput').value;
+                    currentBlueprint = jsyaml.load(yamlText);
+                }
+            } catch (err) {
+                return showError("Invalid YAML in Architecture Blueprint. Please fix formatting errors before proceeding: " + err.message);
+            }
+
             if (!currentRequirements || !currentBlueprint) return showError("Missing prerequisites.");
             
             setVisible('errorSection', false);
