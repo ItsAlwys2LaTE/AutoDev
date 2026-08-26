@@ -121,9 +121,9 @@ def evaluate_completeness(requirements: RequirementsDocument, codebase: Generate
     
     try:
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": f"You are the {critic_name}. You MUST output ONLY valid JSON matching this exact structure: {{\"severity_score\": int (0-10), \"issues_list\": [\"issue1\"], \"overall_comments\": \"string\"}}"},
+                {"role": "system", "content": f"You are the {critic_name}. You MUST output ONLY a valid JSON object. Ensure it exactly matches this JSON schema structure: {{\"severity_score\": 5, \"issues_list\": [\"issue1\", \"issue2\"], \"overall_comments\": \"Your comment here\"}}"},
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"},
