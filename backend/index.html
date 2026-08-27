@@ -1010,7 +1010,10 @@
                 const response = await fetch('/api/execute-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentCodebase) 
+                    body: JSON.stringify({
+                        codebase: currentCodebase,
+                        run_tests_command: currentBlueprint.run_tests_command || "pytest"
+                    }) 
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || 'API Error');

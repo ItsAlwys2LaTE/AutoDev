@@ -4,10 +4,10 @@ import tempfile
 import sys
 from models import GeneratedCodeBase, ExecutionResult
 
-def execute_code(codebase: GeneratedCodeBase) -> ExecutionResult:
+def execute_code(codebase: GeneratedCodeBase, run_tests_command: str) -> ExecutionResult:
     """
     Creates a temporary directory, writes all generated code files into it,
-    runs pytest against the directory, and captures the results.
+    runs the dynamically provided test command against the directory, and captures the results.
     """
     print("Sandbox Executor is booting up...")
     
@@ -21,15 +21,18 @@ def execute_code(codebase: GeneratedCodeBase) -> ExecutionResult:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(file_obj.source_code)
                 
-        print("Running pytest with coverage analysis in the sandbox...")
+        print(f"Executing sandbox command: {run_tests_command}")
+        if run_tests_command.strip().upper() == "NONE":
+            return ExecutionResult(success=True, logs="Static files generated successfully. No automated unit tests required for this stack.")
+            
         try:
-            # We run pytest inside the temp_dir. capture_output grabs stdout/stderr
             process = subprocess.run(
-                [sys.executable, "-m", "pytest", "-v", "--cov=.", "--cov-report=term-missing"],
+                run_tests_command,
+                shell=True,
                 cwd=temp_dir,
                 capture_output=True,
                 text=True,
-                timeout=15 # Hard timeout to prevent infinite loops from AI code
+                timeout=20
             )
             
             success = process.returncode == 0
@@ -37,8 +40,8 @@ def execute_code(codebase: GeneratedCodeBase) -> ExecutionResult:
             if process.stderr:
                 logs += f"\n\nSTDERR:\n{process.stderr}"
                 
-            if process.returncode == 5:
-                logs += "\n\n[ERROR] Pytest could not find any tests to run. Ensure your test files start with 'test_' and are written in Python."
+            if process.returncode != 0 and not logs.strip():
+                logs = "Command failed with no output."
                 
             print("Execution complete.")
             return ExecutionResult(success=success, logs=logs)

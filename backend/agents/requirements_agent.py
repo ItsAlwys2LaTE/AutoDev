@@ -24,6 +24,8 @@ def generate_requirements_stream(feature_request: str):
     structured Requirements Document.
     Break the request down into logical User Stories and define exhaustive, highly 
     specific, and testable Acceptance Criteria (ACs) for each. 
+    The system supports ANY mainstream programming language (frontend or backend). 
+    Structure the requirements agnostically, or respect any specific tech stack requested by the user.
     The downstream engineering agents will rely ENTIRELY on your ACs to write code, 
     so be precise about edge cases, inputs, and expected outputs.
     CRITICAL INSTRUCTION: You MUST explicitly include Acceptance Criteria for robustness. This includes boundary limits (e.g., maximum input lengths), handling of negative numbers/invalid inputs, error states, and all complex edge cases. Do not assume the downstream team will handle edge cases unless you document them.

@@ -33,6 +33,10 @@ class DocumentationInput(BaseModel):
     blueprint: SystemDesignBlueprint
     codebase: GeneratedCodeBase
 
+class ExecuteInput(BaseModel):
+    codebase: GeneratedCodeBase
+    run_tests_command: str = "pytest"
+
 class ArbitrationInput(BaseModel):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
@@ -152,9 +156,9 @@ def api_parse_blueprint(payload: TextUpdateInput):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/execute-code")
-def api_execute_code(codebase: GeneratedCodeBase):
+def api_execute_code(payload: ExecuteInput):
     try:
-        return execute_code(codebase)
+        return execute_code(payload.codebase, payload.run_tests_command)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

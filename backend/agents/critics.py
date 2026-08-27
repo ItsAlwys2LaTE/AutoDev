@@ -23,7 +23,8 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
 
     prompt = f"""
     Evaluate the CORRECTNESS of the code based on the execution logs.
-    Did the tests pass? Do the tests actually cover the Acceptance Criteria?
+    If the logs indicate "Static files generated successfully", then automated tests were appropriately bypassed for this stack. In that case, evaluate if the files generated match the requirements.
+    Otherwise, did the tests pass? Do the tests actually cover the Acceptance Criteria?
     
     REQUIREMENTS:
     {requirements.model_dump_json(indent=2)}

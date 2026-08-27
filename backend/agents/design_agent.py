@@ -24,15 +24,15 @@ def generate_design_stream(requirements: RequirementsDocument):
     Your job is to design the technical blueprint. 
     
     CRITICAL FORMATTING INSTRUCTIONS FOR YOUR OUTPUT:
-    1. STRICT PYTHON ONLY: You MUST design this system using ONLY Python standard libraries. DO NOT propose JavaScript, Node.js, or external frameworks.
-    2. TEST DRIVEN: You MUST include a test suite file in your file ordering. The test file MUST be named starting with 'test_' (e.g., 'test_main.py') so that pytest can automatically collect it.
-    3. Architecture Overview: Do not write a single block of text. Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
-    4. File Order: Present files in a logical dependency order (e.g., Models first, then Validators, then Services, then Tests).
-    5. Pseudocode: You MUST use proper multi-line formatting, line breaks, and indentation. Write it like clean Python code. Clearly annotate classes, methods, inputs, and return types. Do not compress logic into single lines.
-    6. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
+    1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack` (e.g., ['HTML', 'CSS', 'JavaScript'], ['Python'], or ['Node.js']). Identify the exact terminal `run_tests_command` needed to test the code locally (e.g., 'pytest', 'npm test'). If building a purely static web frontend (HTML/CSS/JS) with no automated test framework needed, set `run_tests_command` strictly to "NONE".
+    2. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt).
+    3. TEST DRIVEN: If `run_tests_command` is not "NONE", you MUST include a comprehensive test suite file in your blueprint (e.g., 'test_main.py' or 'app.test.js').
+    4. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
+    5. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
+    6. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
+    7. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
 
-    Output a structured object detailing the architecture overview and the specific 
-    file-by-file pseudocode blueprint.
+    Output a structured object detailing the architecture overview, the chosen tech stack, and the specific file-by-file pseudocode blueprint.
     """
 
     prompt_content = f"Generate a system design for these requirements:\n{requirements.model_dump_json(indent=2)}"

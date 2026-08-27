@@ -27,14 +27,16 @@ class RequirementsDocument(BaseModel):
 
 class FileBlueprint(BaseModel):
     """A blueprint for a single file to be generated."""
-    file_name: str = Field(description="Name of the file with extension, e.g., 'validator.py'")
+    file_name: str = Field(description="Name of the file with extension, e.g., 'validator.py', 'app.js', 'index.html'")
     purpose: str = Field(description="What this file is responsible for")
-    dependencies: List[str] = Field(description="List of standard libraries needed (e.g., 're', 'os')")
+    dependencies: List[str] = Field(description="List of standard libraries or packages needed (e.g., 're', 'express', 'lodash')")
     pseudocode: str = Field(description="Rough logical sketch of the functions/classes inside")
 
 class SystemDesignBlueprint(BaseModel):
     """The final structured output from the Design Agent."""
     architecture_overview: str = Field(description="High level explanation of the design choice")
+    tech_stack: List[str] = Field(description="The selected languages and frameworks (e.g., ['HTML', 'CSS', 'JavaScript'] or ['Python', 'pytest'])")
+    run_tests_command: str = Field(description="Terminal command to run tests (e.g., 'pytest', 'npm test'). Set to 'NONE' if no tests are needed (e.g., static HTML).")
     files: List[FileBlueprint] = Field(description="List of all files that need to be coded")
 
 # --- PHASE 2b MODELS (Code Generation & Execution) ---
