@@ -93,19 +93,26 @@ def api_parse_requirements(payload: TextUpdateInput):
     try:
         api_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=RequirementsDocument,
-                temperature=0.1
+        def _parse(model_name: str):
+            response = client.models.generate_content(
+                model=model_name,
+                contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=RequirementsDocument,
+                    temperature=0.1
+                )
             )
-        )
-        if hasattr(response, 'parsed') and response.parsed is not None:
-            return response.parsed
-        else:
-            return RequirementsDocument.model_validate_json(response.text)
+            if hasattr(response, 'parsed') and response.parsed is not None:
+                return response.parsed
+            else:
+                return RequirementsDocument.model_validate_json(response.text)
+                
+        try:
+            return _parse("gemini-3.6-flash")
+        except Exception as e:
+            print(f"3.6-flash failed in parse_requirements: {e}. Falling back to gemini-3.5-flash-lite...")
+            return _parse("gemini-3.5-flash-lite")
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -115,19 +122,26 @@ def api_parse_blueprint(payload: TextUpdateInput):
     try:
         api_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=SystemDesignBlueprint,
-                temperature=0.1
+        def _parse(model_name: str):
+            response = client.models.generate_content(
+                model=model_name,
+                contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=SystemDesignBlueprint,
+                    temperature=0.1
+                )
             )
-        )
-        if hasattr(response, 'parsed') and response.parsed is not None:
-            return response.parsed
-        else:
-            return SystemDesignBlueprint.model_validate_json(response.text)
+            if hasattr(response, 'parsed') and response.parsed is not None:
+                return response.parsed
+            else:
+                return SystemDesignBlueprint.model_validate_json(response.text)
+                
+        try:
+            return _parse("gemini-3.6-flash")
+        except Exception as e:
+            print(f"3.6-flash failed in parse_blueprint: {e}. Falling back to gemini-3.5-flash-lite...")
+            return _parse("gemini-3.5-flash-lite")
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
