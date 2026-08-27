@@ -1,4 +1,4 @@
-﻿from google import genai
+from google import genai
 from google.genai import types
 import os
 import sys
@@ -19,7 +19,7 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
 
     client = genai.Client(api_key=api_key)
 
-    system_prompt = \"\"\"
+    system_prompt = """
     You are an Expert Technical Writer and Developer Advocate.
     The engineering team has just finished building a software project. 
     You are provided with the Requirements, Architecture Blueprint, and the Final Codebase.
@@ -32,9 +32,9 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
        - 'USER_GUIDE.md': A detailed user guide explaining how to use the specific features outlined in the requirements.
     2. Format the output STRICTLY as a DocumentationSet JSON object containing a list of 'CodeFile' objects.
     3. Use rich markdown formatting (headers, code blocks, bold text) inside the source_code strings.
-    \"\"\"
+    """
 
-    prompt_content = f\"\"\"
+    prompt_content = f"""
     REQUIREMENTS:
     {requirements.model_dump_json(indent=2)}
 
@@ -43,7 +43,7 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
 
     FINAL CODEBASE:
     {codebase.model_dump_json(indent=2)}
-    \"\"\"
+    """
 
     def get_stream(model_name: str):
         return client.models.generate_content_stream(
