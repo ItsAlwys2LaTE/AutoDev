@@ -111,7 +111,7 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
 # ---------------------------------------------------------
 # 3. COMPLETENESS CRITIC (Groq - Llama 3.3 70B)
 # ---------------------------------------------------------
-def evaluate_completeness(requirements: RequirementsDocument, codebase: GeneratedCodeBase) -> CriticFeedback:
+def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> CriticFeedback:
     print("Running Completeness Critic (Groq GPT-OSS 120B)...")
     critic_name = "Completeness Critic (Groq GPT-OSS)"
     api_key = os.environ.get("GROQ_API_KEY")
@@ -120,11 +120,16 @@ def evaluate_completeness(requirements: RequirementsDocument, codebase: Generate
         return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GROQ_API_KEY is not set.")
     
     prompt = f"""
-    Evaluate the COMPLETENESS of the codebase.
-    Are there any missing edge cases, unhandled exceptions, or security vulnerabilities not explicitly caught by the tests?
+    Evaluate the COMPLETENESS of the codebase against the blueprint and requirements.
+    Are there any missing edge cases (e.g., division by zero), unhandled exceptions, or logical bugs that break the intended system?
+    
+    CRITICAL INSTRUCTION: You MUST ONLY suggest fixes for edge cases or bugs that fit WITHIN the provided BLUEPRINT constraints. DO NOT suggest adding new features, scientific notation, new variables (like MAX_LENGTH), or extending the scope beyond what the blueprint defines. Point out crash-bugs and logical gaps only.
     
     REQUIREMENTS:
     {requirements.model_dump_json(indent=2)}
+
+    BLUEPRINT:
+    {blueprint.model_dump_json(indent=2)}
     
     CODEBASE:
     {codebase.model_dump_json(indent=2)}

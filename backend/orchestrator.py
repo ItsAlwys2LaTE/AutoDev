@@ -28,7 +28,7 @@ def node_architecture(state: GraphState):
     return {"feedbacks": [feedback]}
 
 def node_completeness(state: GraphState):
-    feedback = evaluate_completeness(state["requirements"], state["codebase"])
+    feedback = evaluate_completeness(state["requirements"], state["blueprint"], state["codebase"])
     return {"feedbacks": [feedback]}
 
 def node_adjudicator(state: GraphState):
