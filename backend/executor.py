@@ -37,6 +37,9 @@ def execute_code(codebase: GeneratedCodeBase) -> ExecutionResult:
             if process.stderr:
                 logs += f"\n\nSTDERR:\n{process.stderr}"
                 
+            if process.returncode == 5:
+                logs += "\n\n[ERROR] Pytest could not find any tests to run. Ensure your test files start with 'test_' and are written in Python."
+                
             print("Execution complete.")
             return ExecutionResult(success=success, logs=logs)
             
