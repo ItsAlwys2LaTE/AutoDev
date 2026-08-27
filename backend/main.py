@@ -28,6 +28,11 @@ class CodeGenInput(BaseModel):
     previous_codebase: Optional[GeneratedCodeBase] = None
     revision_plan: Optional[str] = None
 
+class DocumentationInput(BaseModel):
+    requirements: RequirementsDocument
+    blueprint: SystemDesignBlueprint
+    codebase: GeneratedCodeBase
+
 class ArbitrationInput(BaseModel):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
@@ -176,3 +181,18 @@ def api_run_critics(payload: ArbitrationInput):
         traceback.print_exc()
         print("===============================\n")
         raise HTTPException(status_code=500, detail=f"Server Error during evaluation: {str(e)}")
+
+from agents.documentation_agent import generate_documentation_stream
+
+@app.post("/api/generate-documentation")
+def api_generate_documentation(payload: DocumentationInput):
+    try:
+        return StreamingResponse(
+            generate_documentation_stream(payload.requirements, payload.blueprint, payload.codebase),
+            media_type="text/plain"
+        )
+    except Exception as e:
+        print("\n=== DOCS CRASH TRACEBACK ===")
+        traceback.print_exc()
+        print("===============================\n")
+        raise HTTPException(status_code=500, detail=f"Server Error during doc generation: {str(e)}")
