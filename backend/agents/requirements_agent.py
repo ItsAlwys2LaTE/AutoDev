@@ -47,13 +47,17 @@ def generate_requirements_stream(feature_request: str):
         iterator = iter(response)
         first_chunk = next(iterator)
         yield first_chunk.text
-        if first_chunk.usage_metadata:
-            yield f"\n__USAGE__{first_chunk.usage_metadata.prompt_token_count},{first_chunk.usage_metadata.candidates_token_count}"
+        
+        last_usage = first_chunk.usage_metadata
         
         for chunk in iterator:
             yield chunk.text
             if getattr(chunk, 'usage_metadata', None):
-                yield f"\n__USAGE__{chunk.usage_metadata.prompt_token_count},{chunk.usage_metadata.candidates_token_count}"
+                last_usage = chunk.usage_metadata
+                
+        if last_usage:
+            yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
+            
     except Exception as e:
         print(f"Primary model (3.6-flash) failed: {e}")
         print("Falling back to gemini-3.5-flash-lite...")
