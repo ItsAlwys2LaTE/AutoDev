@@ -30,6 +30,7 @@ def generate_code_stream(
     3. STRICT RESTRICTION: DO NOT use external or third-party libraries (e.g., bcrypt, requests, pandas). You MUST only use Python's built-in standard libraries (e.g., hashlib, re, os, json). The execution sandbox does not have pip packages installed, so external imports will crash the tests.
     4. The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     5. EVERY file MUST include ALL necessary import statements at the top. If you use Any, Optional, Tuple, List, Dict, or Union, you MUST add 'from typing import ...' at the top of that file. Missing imports will cause NameError crashes.
+    6. DO NOT import Python builtins from standard library modules. For example, ZeroDivisionError, ValueError, TypeError, KeyError are BUILTINS — never import them from 'decimal' or any other module. Only import module-specific names (e.g., 'from decimal import Decimal, InvalidOperation').
     """
 
     prompt_content = f"""
