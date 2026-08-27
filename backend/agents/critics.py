@@ -70,8 +70,9 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
         return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="MISTRAL_API_KEY is not set.")
 
     prompt = f"""
-    Evaluate the ARCHITECTURE of the codebase.
-    Did the generated code follow the exact file structure and logic defined in the blueprint?
+    Evaluate the ARCHITECTURE of the codebase against the blueprint.
+    Did the generated code follow the exact file structure and structural logic defined in the blueprint?
+    CRITICAL INSTRUCTION: Do NOT flag defensive programming, input validation (e.g., max input lengths), boundary limits, robust error state handling, or edge-case handling as unauthorized "deviations." These are POSITIVE robustness features. You should ONLY flag major structural deviations (e.g., using entirely wrong design patterns, missing required files, or completely ignoring the blueprint's data flow).
     
     BLUEPRINT:
     {blueprint.model_dump_json(indent=2)}

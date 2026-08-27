@@ -31,6 +31,7 @@ def generate_code_stream(
     4. The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     5. EVERY file MUST include ALL necessary import statements at the top. If you use Any, Optional, Tuple, List, Dict, or Union, you MUST add 'from typing import ...' at the top of that file. Missing imports will cause NameError crashes.
     6. DO NOT import Python builtins from standard library modules. For example, ZeroDivisionError, ValueError, TypeError, KeyError are BUILTINS — never import them from 'decimal' or any other module. Only import module-specific names (e.g., 'from decimal import Decimal, InvalidOperation').
+    7. ROBUSTNESS: You MUST implement robust edge-case handling, bounds checking (e.g., max lengths), state management, and error recovery to make the system production-ready. Do not just implement the happy path. If the blueprint implies edge cases (or if a senior engineer would normally handle them), implement them.
     """
 
     prompt_content = f"""

@@ -29,6 +29,7 @@ def generate_design_stream(requirements: RequirementsDocument):
     3. Architecture Overview: Do not write a single block of text. Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     4. File Order: Present files in a logical dependency order (e.g., Models first, then Validators, then Services, then Tests).
     5. Pseudocode: You MUST use proper multi-line formatting, line breaks, and indentation. Write it like clean Python code. Clearly annotate classes, methods, inputs, and return types. Do not compress logic into single lines.
+    6. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
 
     Output a structured object detailing the architecture overview and the specific 
     file-by-file pseudocode blueprint.
