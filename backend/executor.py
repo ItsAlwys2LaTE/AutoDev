@@ -17,6 +17,7 @@ def execute_code(codebase: GeneratedCodeBase) -> ExecutionResult:
         print(f"Writing {len(codebase.files)} files to temporary workspace: {temp_dir}")
         for file_obj in codebase.files:
             file_path = os.path.join(temp_dir, file_obj.file_name)
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(file_obj.source_code)
                 
