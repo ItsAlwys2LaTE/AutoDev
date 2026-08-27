@@ -57,11 +57,19 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
     try:
         return _call("gemini-3.6-flash")
     except Exception as e:
-        print(f"Correctness Critic primary model failed: {e}. Falling back to gemini-3.5-flash-lite with Adjudicator key...")
-        try:
-            return _call("gemini-3.5-flash-lite", use_fallback_key=True)
-        except Exception as fallback_e:
-            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
+        error_msg = str(e).lower()
+        if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
+            print(f"Correctness Critic hit rate limit: {e}. Falling back to Adjudicator key with gemini-3.5-flash-lite...")
+            try:
+                return _call("gemini-3.5-flash-lite", use_fallback_key=True)
+            except Exception as fallback_e:
+                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
+        else:
+            print(f"Correctness Critic primary model failed (busy/error): {e}. Downgrading to gemini-3.5-flash-lite on SAME key...")
+            try:
+                return _call("gemini-3.5-flash-lite", use_fallback_key=False)
+            except Exception as fallback_e:
+                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
 
 def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> CriticFeedback:
     critic_name = "Architecture Critic (Mistral)"
@@ -109,32 +117,36 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
             overall_comments=content.get("overall_comments", "No comments provided.")
         )
     except Exception as e:
-        print(f"Architecture Critic (Mistral) failed: {e}. Falling back to Gemini with Adjudicator key...")
-        fallback_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
-        if not fallback_key:
-            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error: {str(e)}", "No fallback Adjudicator key available."], overall_comments="Failed to evaluate architecture.")
-            
-        try:
-            gemini_client = genai.Client(api_key=fallback_key)
-            system_instruction = f"You are the {critic_name} (Fallback Mode). Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
-            gemini_response = gemini_client.models.generate_content(
-                model="gemini-3.5-flash-lite",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.1,
-                    response_mime_type="application/json",
-                    response_schema=CriticFeedback,
+        error_msg = str(e).lower()
+        if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg or "401" in error_msg or "unauthorized" in error_msg or api_key == "dummy_key_to_force_fallback":
+            print(f"Architecture Critic (Mistral) hit rate limit or missing key: {e}. Falling back to Gemini with Adjudicator key...")
+            fallback_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
+            if not fallback_key:
+                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error: {str(e)}", "No fallback Adjudicator key available."], overall_comments="Failed to evaluate architecture.")
+                
+            try:
+                gemini_client = genai.Client(api_key=fallback_key)
+                system_instruction = f"You are the {critic_name} (Fallback Mode). Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
+                gemini_response = gemini_client.models.generate_content(
+                    model="gemini-3.5-flash-lite",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.1,
+                        response_mime_type="application/json",
+                        response_schema=CriticFeedback,
+                    )
                 )
-            )
-            if hasattr(gemini_response, 'parsed') and gemini_response.parsed is not None:
-                feedback = gemini_response.parsed
-            else:
-                feedback = CriticFeedback.model_validate_json(gemini_response.text)
-            feedback.critic_name = critic_name
-            return feedback
-        except Exception as fallback_e:
-            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral Error: {str(e)}", f"Gemini Fallback Error: {str(fallback_e)}"], overall_comments="Failed to evaluate architecture.")
+                if hasattr(gemini_response, 'parsed') and gemini_response.parsed is not None:
+                    feedback = gemini_response.parsed
+                else:
+                    feedback = CriticFeedback.model_validate_json(gemini_response.text)
+                feedback.critic_name = critic_name
+                return feedback
+            except Exception as fallback_e:
+                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral Error: {str(e)}", f"Gemini Fallback Error: {str(fallback_e)}"], overall_comments="Failed to evaluate architecture.")
+        else:
+            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error (Non-Rate Limit): {str(e)}"], overall_comments="Failed to evaluate architecture.")
 
 # ---------------------------------------------------------
 # 3. COMPLETENESS CRITIC (Gemini)
@@ -188,10 +200,20 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
         feedback.critic_name = critic_name
         return feedback
     except Exception as e:
-        print(f"Completeness Critic primary model failed: {e}. Falling back to gemini-3.5-flash-lite with Adjudicator key...")
-        try:
-            feedback = _call("gemini-3.5-flash-lite", use_fallback_key=True)
-            feedback.critic_name = critic_name
-            return feedback
-        except Exception as fallback_e:
-            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate completeness.")
+        error_msg = str(e).lower()
+        if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg or "exhausted" in error_msg:
+            print(f"Completeness Critic hit rate limit: {e}. Falling back to Adjudicator key with gemini-3.5-flash-lite...")
+            try:
+                feedback = _call("gemini-3.5-flash-lite", use_fallback_key=True)
+                feedback.critic_name = critic_name
+                return feedback
+            except Exception as fallback_e:
+                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate completeness.")
+        else:
+            print(f"Completeness Critic primary model failed (busy/error): {e}. Downgrading to gemini-3.5-flash-lite on SAME key...")
+            try:
+                feedback = _call("gemini-3.5-flash-lite", use_fallback_key=False)
+                feedback.critic_name = critic_name
+                return feedback
+            except Exception as fallback_e:
+                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate completeness.")
