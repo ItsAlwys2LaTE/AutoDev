@@ -1,4 +1,4 @@
-# AutoDev: Autonomous AI Software Architect (BUILD SYS.v1.3.0.Alpha)
+# AutoDev: Autonomous AI Software Architect (BUILD SYS.v1.3.1.Alpha)
 
 AutoDev is an automated, multi-agent Software Development Life Cycle (SDLC) pipeline. It takes a plain-text feature request and autonomously orchestrates the generation of requirements, system architecture, source code, local unit test execution, and rigorous AI peer review.
 
@@ -26,6 +26,10 @@ The system currently implements a strict, modular pipeline utilizing Google's Ge
 - **Modules:** `critics.py`, `orchestrator.py`
 - **Function:** Uses a parallel fan-out/fan-in LangGraph state graph. Three separate AI Critics (Correctness, Architecture, Completeness) evaluate the code and test results. An Adjudicator then reviews the critiques and issues a final verdict (Pass/Revise) along with a detailed revision plan.
 
+### Phase 3.5: SYS.DOC_GEN (Documentation Generation)
+- **Agent:** `documentation_agent.py`
+- **Function:** Ingests the Requirements, Blueprint, and Final Codebase after a successful arbitration pass. It automatically generates a `README.md` and `USER_GUIDE.md` utilizing rich markdown, which are seamlessly injected back into the IDE for review and download.
+
 ## Model Architecture
 
 The system utilizes semantic API keys to prevent rate-limit overlaps and distributes the workload across the latest Gemini models:
@@ -49,11 +53,14 @@ AutoDev/
         ├── requirements_agent.py  # Phase 1: Feature -> Requirements
         ├── design_agent.py        # Phase 2: Requirements -> Blueprint
         ├── codegen_agent.py       # Phase 2b: Blueprint -> Code
+        ├── documentation_agent.py # Phase 3.5: Final Code -> README/Guide
         └── critics.py             # Phase 3: Parallel AI Critics
 ```
 
 ## Recent Features & Enhancements
 
+- **Documentation Generation Agent (Phase 3.5):** Introduced a brand new agent workflow triggered automatically when the Arbitration Engine passes the codebase. It generates rich-markdown `README.md` and `USER_GUIDE.md` files from the context of the blueprint/requirements, which instantly appear in the Monaco IDE for download.
+- **Completeness Critic Migration:** Migrated the Completeness Critic away from Groq's Llama 3 models to Gemini. This fixes an 8k Tokens-Per-Minute (TPM) crash occurring on Groq's free tier by leveraging Gemini's massive 1M+ token context window for large architecture payload analysis.
 - **Self-Correction Loop (Autonomous Self-Healing):** The system now automatically routes Adjudicator "Revise" verdicts back to the CodeGen agent, supplying it with the execution logs and revision plan to regenerate and re-test the code up to 3 times autonomously.
 - **Rate Limit & Infinite Loop Safeguards:** Enhanced the LangGraph Arbitration Engine to distinguish between "Code Issues" and "System/API Errors". If a critic hits a rate limit (e.g. Gemini 429), the Adjudicator outputs a graceful 'error' verdict instead of a blind 'revise', breaking the automation loop to prevent useless code regeneration hallucinations.
 - **Rich Text Editability:** Replaced raw JSON outputs in Phase 1 (Requirements) and Phase 2 (Architecture) with a highly user-friendly, Word-document-like rich text interface. Users can freely edit the generated specifications. When advancing to the next phase, the backend utilizes Gemini to parse the free-form text back into the strict JSON Pydantic schemas needed by downstream agents.
