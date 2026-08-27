@@ -109,15 +109,15 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
         return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error: {str(e)}"], overall_comments="Failed to evaluate architecture.")
 
 # ---------------------------------------------------------
-# 3. COMPLETENESS CRITIC (Groq - Llama 3.3 70B)
+# 3. COMPLETENESS CRITIC (Gemini)
 # ---------------------------------------------------------
 def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> CriticFeedback:
-    print("Running Completeness Critic (Groq GPT-OSS 120B)...")
-    critic_name = "Completeness Critic (Groq GPT-OSS)"
-    api_key = os.environ.get("GROQ_API_KEY")
+    print("Running Completeness Critic (Gemini 3.6-flash)...")
+    critic_name = "Completeness Critic (Gemini)"
+    api_key = os.environ.get("GEMINI_API_KEY_CRITICS")
     
     if not api_key:
-        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GROQ_API_KEY is not set.")
+        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GEMINI_API_KEY_CRITICS is not set.")
     
     prompt = f"""
     Evaluate the COMPLETENESS of the codebase against the blueprint and requirements.
@@ -135,29 +135,34 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
     {codebase.model_dump_json(indent=2)}
     """
     
-    client = Groq(api_key=api_key)
-    
+    client = genai.Client(api_key=api_key)
+    system_instruction = f"You are the {critic_name}. Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
+
+    def _call(model_name: str):
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.1,
+                response_mime_type="application/json",
+                response_schema=CriticFeedback,
+            )
+        )
+        if hasattr(response, 'parsed') and response.parsed is not None:
+            return response.parsed
+        else:
+            return CriticFeedback.model_validate_json(response.text)
+
     try:
-        response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
-            messages=[
-                {"role": "system", "content": f"You are the {critic_name}. You MUST output ONLY a valid JSON object. Ensure it exactly matches this JSON schema structure: {{\"severity_score\": 5, \"issues_list\": [\"issue1\", \"issue2\"], \"overall_comments\": \"Your comment here\"}}"},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.1
-        )
-        content = json.loads(response.choices[0].message.content)
-        
-        # Guard: Groq sometimes wraps the response in a list
-        if isinstance(content, list):
-            content = content[0] if len(content) > 0 else {}
-        
-        return CriticFeedback(
-            critic_name=critic_name,
-            severity_score=content.get("severity_score", 5),
-            issues_list=content.get("issues_list", []),
-            overall_comments=content.get("overall_comments", "No comments provided.")
-        )
+        feedback = _call("gemini-3.6-flash")
+        feedback.critic_name = critic_name
+        return feedback
     except Exception as e:
-        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Groq API Error: {str(e)}"], overall_comments="Failed to evaluate completeness.")
+        print(f"Completeness Critic primary model failed: {e}. Falling back to gemini-3.5-flash-lite...")
+        try:
+            feedback = _call("gemini-3.5-flash-lite")
+            feedback.critic_name = critic_name
+            return feedback
+        except Exception as fallback_e:
+            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate completeness.")
