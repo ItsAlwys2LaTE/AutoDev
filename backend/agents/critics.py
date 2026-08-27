@@ -34,9 +34,9 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
     client = genai.Client(api_key=api_key)
     system_instruction = f"You are the {critic_name}. Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
 
-    try:
+    def _call(model_name: str):
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -51,8 +51,15 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
             feedback = CriticFeedback.model_validate_json(response.text)
         feedback.critic_name = critic_name
         return feedback
+
+    try:
+        return _call("gemini-3.6-flash")
     except Exception as e:
-        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(e)}"], overall_comments="Failed to evaluate correctness.")
+        print(f"Correctness Critic primary model failed: {e}. Falling back to gemini-3.5-flash-lite...")
+        try:
+            return _call("gemini-3.5-flash-lite")
+        except Exception as fallback_e:
+            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
 
 def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> CriticFeedback:
     critic_name = "Architecture Critic (Mistral)"
