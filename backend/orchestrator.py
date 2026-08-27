@@ -33,7 +33,7 @@ def node_completeness(state: GraphState):
 
 def node_adjudicator(state: GraphState):
     print("Running Adjudicator (Gemini 3.6-flash)...")
-    api_key = os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
+    api_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR") or os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
     
     if not api_key:
         return {"decision": AdjudicatorDecision(verdict="revise", revision_plan="API Key Missing for Adjudicator.")}
