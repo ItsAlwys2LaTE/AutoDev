@@ -86,6 +86,11 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
             temperature=0.1
         )
         content = json.loads(response.choices[0].message.content)
+        
+        # Guard: API sometimes wraps the response in a list
+        if isinstance(content, list):
+            content = content[0] if len(content) > 0 else {}
+        
         return CriticFeedback(
             critic_name=critic_name,
             severity_score=content.get("severity_score", 5),
@@ -130,6 +135,11 @@ def evaluate_completeness(requirements: RequirementsDocument, codebase: Generate
             temperature=0.1
         )
         content = json.loads(response.choices[0].message.content)
+        
+        # Guard: Groq sometimes wraps the response in a list
+        if isinstance(content, list):
+            content = content[0] if len(content) > 0 else {}
+        
         return CriticFeedback(
             critic_name=critic_name,
             severity_score=content.get("severity_score", 5),
