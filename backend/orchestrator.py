@@ -55,9 +55,9 @@ def node_adjudicator(state: GraphState):
     client = genai.Client(api_key=api_key)
     system_instruction = "You are the Adjudicator. Output strict JSON containing 'verdict' (pass/revise/error) and 'revision_plan'."
 
-    try:
+    def _call(model_name: str):
         response = client.models.generate_content(
-            model="gemini-3.6-flash",
+            model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -67,13 +67,21 @@ def node_adjudicator(state: GraphState):
             )
         )
         if hasattr(response, 'parsed') and response.parsed is not None:
-            decision = response.parsed
+            return response.parsed
         else:
-            decision = AdjudicatorDecision.model_validate_json(response.text)
+            return AdjudicatorDecision.model_validate_json(response.text)
+
+    try:
+        decision = _call("gemini-3.6-flash")
         return {"decision": decision}
     except Exception as e:
-        print(f"Adjudicator failed: {e}")
-        return {"decision": AdjudicatorDecision(verdict="error", revision_plan=f"Adjudicator Error: {str(e)}")}
+        print(f"Adjudicator primary model failed: {e}. Falling back to gemini-3.5-flash-lite...")
+        try:
+            decision = _call("gemini-3.5-flash-lite")
+            return {"decision": decision}
+        except Exception as fallback_e:
+            print(f"Adjudicator fallback also failed: {fallback_e}")
+            return {"decision": AdjudicatorDecision(verdict="error", revision_plan=f"Adjudicator Error: {str(fallback_e)}")}
 
 def route_decision(state: GraphState):
     decision = state.get("decision")
