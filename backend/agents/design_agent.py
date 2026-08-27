@@ -24,9 +24,9 @@ def generate_design_stream(requirements: RequirementsDocument):
     Your job is to design the technical blueprint. 
     
     CRITICAL FORMATTING INSTRUCTIONS FOR YOUR OUTPUT:
-    1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack` (e.g., ['HTML', 'CSS', 'JavaScript'], ['Python'], or ['Node.js']). Identify the exact terminal `run_tests_command` needed to test the code locally (e.g., 'pytest', 'npm test'). If building a purely static web frontend (HTML/CSS/JS) with no automated test framework needed, set `run_tests_command` strictly to "NONE".
+    1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack`. ALL projects, including static frontends (HTML/CSS/JS), MUST have automated tests. Identify the exact terminal `run_tests_command`. For Node/JS projects, ensure it includes dependency installation (e.g., 'npm install && npm test'). For static frontends, use 'npm install && npm test' with Jest and JSDOM to test DOM logic.
     2. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt).
-    3. TEST DRIVEN: If `run_tests_command` is not "NONE", you MUST include a comprehensive test suite file in your blueprint (e.g., 'test_main.py' or 'app.test.js').
+    3. TEST DRIVEN: You MUST include a comprehensive test suite file in your blueprint (e.g., 'test_main.py' or 'app.test.js') for every single project.
     4. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     5. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     6. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 

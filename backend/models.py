@@ -36,7 +36,7 @@ class SystemDesignBlueprint(BaseModel):
     """The final structured output from the Design Agent."""
     architecture_overview: str = Field(description="High level explanation of the design choice")
     tech_stack: List[str] = Field(description="The selected languages and frameworks (e.g., ['HTML', 'CSS', 'JavaScript'] or ['Python', 'pytest'])")
-    run_tests_command: str = Field(description="Terminal command to run tests (e.g., 'pytest', 'npm test'). Set to 'NONE' if no tests are needed (e.g., static HTML).")
+    run_tests_command: str = Field(description="Terminal command to run tests (e.g., 'npm install && npm test' or 'pytest'). Must not be skipped.")
     files: List[FileBlueprint] = Field(description="List of all files that need to be coded")
 
 # --- PHASE 2b MODELS (Code Generation & Execution) ---

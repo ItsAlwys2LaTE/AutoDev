@@ -29,7 +29,7 @@
         <header class="flex justify-between items-end mb-8 border-b border-slate-200 pb-4">
             <div class="space-y-1">
                 <h1 class="text-3xl font-bold text-slate-900">AutoDev: Autonomous SDLC</h1>
-                <p class="text-slate-500 text-sm font-mono tracking-wider">BUILD SYS.v1.4.0.Alpha</p>
+                <p class="text-slate-500 text-sm font-mono tracking-wider">BUILD SYS.v1.5.0.Alpha</p>
             </div>
             <div class="text-right bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
                 <div class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Session Cost</div>
@@ -186,7 +186,18 @@
                     <div class="p-2 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800 bg-slate-950">Explorer</div>
                     <div id="fileExplorer" class="flex-1 overflow-y-auto py-2"></div>
                 </div>
-                <div id="monacoContainer" class="w-2/3 h-full relative"></div>
+                <div class="w-2/3 h-full relative flex flex-col">
+                    <div class="flex items-center justify-between bg-slate-950 border-b border-slate-700 px-3 py-1.5 h-10">
+                        <div class="flex gap-2">
+                            <button onclick="togglePreview(false)" id="tabCode" class="text-xs font-semibold px-3 py-1 rounded bg-blue-600/20 text-blue-400 border border-blue-500/30 transition-colors">Code Editor</button>
+                            <button onclick="togglePreview(true)" id="tabPreview" class="text-xs font-semibold px-3 py-1 rounded text-slate-400 hover:text-white transition-colors">Live Preview</button>
+                        </div>
+                    </div>
+                    <div id="monacoContainer" class="flex-1 w-full relative"></div>
+                    <div id="previewContainer" class="hidden flex-1 w-full bg-white relative">
+                        <iframe id="livePreviewFrame" class="w-full h-full border-none"></iframe>
+                    </div>
+                </div>
             </div>
 
             <div id="diffContainer" class="hidden border border-slate-700 rounded-lg overflow-hidden h-[500px] mb-6 bg-[#1e1e1e]"></div>
@@ -566,6 +577,54 @@
                 ideContainer.classList.remove('hidden');
                 if (diffEditorInstance) { diffEditorInstance.dispose(); diffEditorInstance = null; }
             }
+        }
+
+
+        function togglePreview(showPreview) {
+            const tabCode = document.getElementById('tabCode');
+            const tabPreview = document.getElementById('tabPreview');
+            const monacoContainer = document.getElementById('monacoContainer');
+            const previewContainer = document.getElementById('previewContainer');
+
+            if (showPreview) {
+                tabPreview.className = "text-xs font-semibold px-3 py-1 rounded bg-blue-600/20 text-blue-400 border border-blue-500/30 transition-colors";
+                tabCode.className = "text-xs font-semibold px-3 py-1 rounded text-slate-400 hover:text-white transition-colors";
+                monacoContainer.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                renderLivePreview();
+            } else {
+                tabCode.className = "text-xs font-semibold px-3 py-1 rounded bg-blue-600/20 text-blue-400 border border-blue-500/30 transition-colors";
+                tabPreview.className = "text-xs font-semibold px-3 py-1 rounded text-slate-400 hover:text-white transition-colors";
+                previewContainer.classList.add('hidden');
+                monacoContainer.classList.remove('hidden');
+            }
+        }
+
+        function renderLivePreview() {
+            if (!currentCodebase || !currentCodebase.files) return;
+            
+            // Find index.html
+            let indexHtml = currentCodebase.files.find(f => f.file_name.toLowerCase() === 'index.html');
+            if (!indexHtml) {
+                document.getElementById('livePreviewFrame').srcdoc = "<html><body style='font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #666;'><h3>No index.html found in the codebase.</h3></body></html>";
+                return;
+            }
+
+            let htmlContent = indexHtml.source_code;
+
+            // Simple replacement for local CSS and JS files
+            currentCodebase.files.forEach(file => {
+                const name = file.file_name;
+                if (name.endsWith('.css')) {
+                    const regex = new RegExp('<link[^>]+href=["\\\'](?:\\\\./)?' + name.replace(/[-\\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&') + '["\\\'][^>]*>', 'gi');
+                    htmlContent = htmlContent.replace(regex, '<style>\\n' + file.source_code + '\\n</style>');
+                } else if (name.endsWith('.js') && name.toLowerCase() !== 'jest.config.js') {
+                    const regex = new RegExp('<script[^>]+src=["\\\'](?:\\\\./)?' + name.replace(/[-\\\/\\\\^$*+?.()|[\\]{}]/g, '\\\\$&') + '["\\\'][^>]*><\\\\/script>', 'gi');
+                    htmlContent = htmlContent.replace(regex, '<script>\\n' + file.source_code + '\\n<\\/script>');
+                }
+            });
+
+            document.getElementById('livePreviewFrame').srcdoc = htmlContent;
         }
 
         function setVisible(elementId, isVisible) {

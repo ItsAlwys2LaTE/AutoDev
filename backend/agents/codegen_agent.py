@@ -26,8 +26,8 @@ def generate_code_stream(
     
     CRITICAL RULES:
     1. Write COMPLETE code. DO NOT use placeholders like 'pass', 'TODO', or '...'.
-    2. TEST SUITE: If the blueprint specifies a `run_tests_command`, you MUST write comprehensive unit tests using the appropriate framework (e.g., pytest, Jest, JUnit) that test every single Acceptance Criteria from the Requirements. If it's a static UI (HTML/CSS) with `run_tests_command: "NONE"`, skip tests.
-    3. EXTERNAL LIBRARIES: If you use external libraries (e.g., React, Express, pandas), you MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) and list them there.
+    2. TEST SUITE: You MUST write comprehensive unit tests using the appropriate framework (e.g., pytest, Jest, JUnit) that test every single Acceptance Criteria from the Requirements. No project is exempt from testing. For HTML/JS apps, test the DOM logic.
+    3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'jest' and 'jest-environment-jsdom' in the package.json.
     4. SCHEMA COMPLIANCE: The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     5. IMPORTS/REQUIRES: EVERY file MUST include ALL necessary import/require statements at the top. Missing imports will cause crashes in the execution sandbox.
     6. IDIOMATIC CODE: Write highly idiomatic code for the chosen language.

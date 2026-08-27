@@ -22,9 +22,7 @@ def execute_code(codebase: GeneratedCodeBase, run_tests_command: str) -> Executi
                 f.write(file_obj.source_code)
                 
         print(f"Executing sandbox command: {run_tests_command}")
-        if run_tests_command.strip().upper() == "NONE":
-            return ExecutionResult(success=True, logs="Static files generated successfully. No automated unit tests required for this stack.")
-            
+        
         try:
             process = subprocess.run(
                 run_tests_command,
@@ -32,7 +30,7 @@ def execute_code(codebase: GeneratedCodeBase, run_tests_command: str) -> Executi
                 cwd=temp_dir,
                 capture_output=True,
                 text=True,
-                timeout=20
+                timeout=90
             )
             
             success = process.returncode == 0
