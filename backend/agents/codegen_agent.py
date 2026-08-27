@@ -29,6 +29,7 @@ def generate_code_stream(
     2. One of the files is a test suite (usually test_something.py). You MUST write comprehensive pytest unit tests that test every single Acceptance Criteria from the Requirements.
     3. STRICT RESTRICTION: DO NOT use external or third-party libraries (e.g., bcrypt, requests, pandas). You MUST only use Python's built-in standard libraries (e.g., hashlib, re, os, json). The execution sandbox does not have pip packages installed, so external imports will crash the tests.
     4. The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
+    5. EVERY file MUST include ALL necessary import statements at the top. If you use Any, Optional, Tuple, List, Dict, or Union, you MUST add 'from typing import ...' at the top of that file. Missing imports will cause NameError crashes.
     """
 
     prompt_content = f"""
