@@ -1452,7 +1452,7 @@
         // --- PIPELINE ORCHESTRATOR ---
         let pipelineQueue = [];
         let activeComponentCount = 0;
-        const MAX_CONCURRENT = 2; // Controlled concurrency
+        const MAX_CONCURRENT = 2;
         
         async function startComponentPipeline() {
             pipelineActive = true;
@@ -1463,7 +1463,12 @@
             pipelineQueue = [...currentDecomposition.components].sort((a, b) => a.priority_order - b.priority_order);
             
             pipelineQueue.forEach(c => {
-                componentStates[c.component_id] = { status: 'queued', revisionCount: 0 };
+                componentStates[c.component_id] = { 
+                    status: 'queued', 
+                    revisionCount: 0,
+                    component: c,
+                    activeFileIndex: 0
+                };
             });
             
             renderPipelineTracks();
@@ -1472,49 +1477,94 @@
         
         function renderPipelineTracks() {
             const container = document.getElementById('pipelineTracks');
-            container.innerHTML = pipelineQueue.map(c => {
-                const state = componentStates[c.component_id];
-                let statusColor = 'bg-slate-700';
-                let statusText = 'Queued';
-                if (state.status === 'designing') { statusColor = 'bg-indigo-600'; statusText = 'Designing...'; }
-                if (state.status === 'coding') { statusColor = 'bg-purple-600'; statusText = 'Coding...'; }
-                if (state.status === 'executing') { statusColor = 'bg-blue-600'; statusText = 'Testing...'; }
-                if (state.status === 'critiquing') { statusColor = 'bg-rose-600'; statusText = 'Critiquing...'; }
-                if (state.status === 'passed') { statusColor = 'bg-emerald-600'; statusText = 'Passed ✓'; }
-                if (state.status === 'revising') { statusColor = 'bg-orange-500'; statusText = 'Revising...'; }
-                if (state.status === 'failed') { statusColor = 'bg-red-600'; statusText = 'Failed ✗'; }
+            
+            pipelineQueue.forEach(c => {
+                const cId = c.component_id;
+                const state = componentStates[cId];
                 
-                return `
-                    <div class="flex items-center gap-4 bg-slate-800 p-3 rounded-lg border border-slate-700">
-                        <div class="w-1/4 font-semibold text-sm text-slate-200 truncate" title="${c.component_name}">${c.component_name}</div>
-                        <div class="flex-grow bg-slate-900 h-2 rounded-full overflow-hidden relative">
-                            <div class="${statusColor} h-full transition-all duration-500" style="width: ${getPipelineProgressWidth(state.status)}%"></div>
+                let workspace = document.getElementById(workspace-+cId);
+                if (!workspace) {
+                    workspace = document.createElement('div');
+                    workspace.id = workspace-+cId;
+                    workspace.className = "bg-slate-800 rounded-lg border border-slate-700 overflow-hidden mb-4 shadow-sm";
+                    workspace.innerHTML = 
+                        <!-- Header -->
+                        <div class="bg-slate-700/50 p-4 flex justify-between items-center cursor-pointer hover:bg-slate-700 transition-colors" onclick="document.getElementById('body-+cId+').classList.toggle('hidden')">
+                            <div class="flex items-center gap-3">
+                                <span class="bg-slate-900 text-slate-300 px-2 py-1 rounded text-xs font-mono border border-slate-600">ID: +cId+</span>
+                                <h3 class="font-bold text-cyan-400 text-lg">+c.component_name+</h3>
+                            </div>
+                            <span id="status-+cId+" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-700">Queued</span>
                         </div>
-                        <div class="w-1/4 text-right text-xs font-mono text-slate-400">${statusText}</div>
-                    </div>
-                `;
-            }).join('');
+                        
+                        <!-- Body -->
+                        <div id="body-+cId+" class="hidden p-5 space-y-6 bg-[#0f172a]/50">
+                            
+                            <!-- Design -->
+                            <div id="design-section-+cId+" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
+                                <h4 class="text-indigo-400 font-bold mb-3 flex items-center gap-2">
+                                    <span class="bg-indigo-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">1</span>
+                                    Design Blueprint
+                                </h4>
+                                <div id="design-text-+cId+" contenteditable="true" class="bg-white text-black p-4 rounded h-64 overflow-y-auto whitespace-pre-wrap text-sm mb-4 shadow-inner border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" spellcheck="false"></div>
+                                <button id="approve-design-+cId+" onclick="approveDesign('+cId+')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                    Approve Design & Generate Code
+                                </button>
+                            </div>
+                            
+                            <!-- Code & Exec -->
+                            <div id="code-section-+cId+" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
+                                <h4 class="text-purple-400 font-bold mb-3 flex items-center gap-2">
+                                    <span class="bg-purple-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">2</span>
+                                    Generated Codebase
+                                </h4>
+                                <div class="flex h-80 border border-slate-700 rounded overflow-hidden mb-4 shadow-inner">
+                                    <div class="w-1/3 bg-slate-950 border-r border-slate-700 p-2 overflow-y-auto" id="file-list-+cId+"></div>
+                                    <textarea id="code-text-+cId+" class="w-2/3 bg-[#1e1e1e] text-slate-300 p-4 font-mono text-sm resize-none focus:outline-none" spellcheck="false" oninput="if(componentStates['+cId+'].codebase) { componentStates['+cId+'].codebase.files[componentStates['+cId+'].activeFileIndex].code_content = this.value; }"></textarea>
+                                </div>
+                                <button id="approve-code-+cId+" onclick="approveCode('+cId+')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                    Execute Code & Run Critics
+                                </button>
+                            </div>
+                            
+                            <!-- Critics -->
+                            <div id="critic-section-+cId+" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
+                                <h4 class="text-rose-400 font-bold mb-3 flex items-center gap-2">
+                                    <span class="bg-rose-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">3</span>
+                                    Arbitration Feedback
+                                </h4>
+                                <div class="bg-black/50 border border-slate-700 p-3 rounded mb-4 max-h-32 overflow-y-auto shadow-inner">
+                                    <pre id="exec-logs-+cId+" class="text-xs font-mono text-slate-400 whitespace-pre-wrap"></pre>
+                                </div>
+                                <div id="critic-cards-+cId+" class="space-y-2 mb-4 max-h-48 overflow-y-auto"></div>
+                                <div id="verdict-box-+cId+" class="p-4 bg-slate-800 rounded border border-slate-600 mb-4 hidden shadow flex justify-between items-center">
+                                    <span class="text-sm uppercase font-bold text-slate-400 tracking-wider">Verdict:</span> 
+                                    <span id="verdict-text-+cId+" class="font-black text-lg"></span>
+                                </div>
+                                <button id="approve-component-+cId+" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors hidden flex items-center justify-center gap-2 shadow-sm"></button>
+                            </div>
+                        </div>
+                    ;
+                    container.appendChild(workspace);
+                }
+                
+                const statusBadge = document.getElementById(status-+cId);
+                if (state.status === 'designing') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'; statusBadge.innerText = 'Designing...'; }
+                if (state.status === 'waiting_design') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
+                if (state.status === 'coding') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30'; statusBadge.innerText = 'Coding...'; }
+                if (state.status === 'waiting_code') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
+                if (state.status === 'executing' || state.status === 'critiquing') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30'; statusBadge.innerText = 'Evaluating...'; }
+                if (state.status === 'waiting_critic') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
+                if (state.status === 'passed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'; statusBadge.innerText = 'Passed ?'; }
+                if (state.status === 'failed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30'; statusBadge.innerText = 'Failed ?'; }
+            });
             
             const passedCount = pipelineQueue.filter(c => componentStates[c.component_id].status === 'passed').length;
-            document.getElementById('pipelineProgress').innerText = `${passedCount} / ${pipelineQueue.length} components complete`;
+            document.getElementById('pipelineProgress').innerText = passedCount + ' / ' + pipelineQueue.length + ' components complete';
             
             if (passedCount === pipelineQueue.length && pipelineQueue.length > 0) {
                 setVisible('integrationSection', true);
                 updateStepper(3, 'active');
-            }
-        }
-        
-        function getPipelineProgressWidth(status) {
-            switch(status) {
-                case 'queued': return 0;
-                case 'designing': return 20;
-                case 'coding': return 40;
-                case 'executing': return 60;
-                case 'critiquing': return 80;
-                case 'revising': return 40;
-                case 'passed': return 100;
-                case 'failed': return 100;
-                default: return 0;
             }
         }
         
@@ -1531,108 +1581,231 @@
                     
                     if (depsPassed) {
                         activeComponentCount++;
-                        runComponentPipeline(c);
+                        startComponentDesign(c);
                     }
                 }
             }
         }
-        
-        async function runComponentPipeline(component) {
-            const state = componentStates[component.component_id];
+
+        async function startComponentDesign(component) {
             const cId = component.component_id;
+            const state = componentStates[cId];
             
             try {
-                // 1. DESIGN
                 state.status = 'designing';
+                document.getElementById(ody-+cId).classList.remove('hidden');
+                document.getElementById(design-section-+cId).classList.remove('hidden');
+                document.getElementById(design-text-+cId).innerText = "Agent is designing blueprint...";
                 renderPipelineTracks();
                 
-                const contextStr = `Tech Stack: ${currentDecomposition.shared_tech_stack.join(', ')}\nDocker Image: ${currentDecomposition.shared_docker_image}\nScoped Requirements:\n${component.scoped_requirements}`;
+                const contextStr = "Tech Stack: " + currentDecomposition.shared_tech_stack.join(', ') + "\\nDocker Image: " + currentDecomposition.shared_docker_image + "\\nScoped Requirements:\\n" + component.scoped_requirements;
                 
                 const designRes = await fetch('/api/generate-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ requirements: currentRequirements, component_context: contextStr })
                 });
-                state.blueprint = await readJsonStream(designRes);
                 
-                // 2. CODEGEN LOOP
-                let pass = false;
-                while (!pass && state.revisionCount < 3) {
-                    state.status = state.revisionCount > 0 ? 'revising' : 'coding';
-                    renderPipelineTracks();
-                    
-                    const codeRes = await fetch('/api/generate-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            requirements: currentRequirements,
-                            blueprint: state.blueprint,
-                            previous_codebase: state.codebase,
-                            revision_plan: state.revisionPlan
-                        })
-                    });
-                    state.codebase = await readJsonStream(codeRes);
-                    
-                    // 3. EXECUTE
-                    state.status = 'executing';
-                    renderPipelineTracks();
-                    
-                    const execRes = await fetch('/api/execute-code', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ codebase: state.codebase, blueprint: state.blueprint })
-                    });
-                    state.executionResult = await execRes.json();
-                    
-                    // 4. CRITICS
-                    state.status = 'critiquing';
-                    renderPipelineTracks();
-                    
-                    const criticRes = await fetch('/api/run-critics', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            requirements: currentRequirements,
-                            blueprint: state.blueprint,
-                            codebase: state.codebase,
-                            execution_result: state.executionResult
-                        })
-                    });
-                    
-                    const arbitration = await criticRes.json();
-                    if (arbitration.decision.verdict === 'pass') {
-                        pass = true;
-                    } else if (arbitration.decision.verdict === 'revise') {
-                        state.revisionCount++;
-                        state.revisionPlan = arbitration.decision.revision_plan;
-                    } else {
-                        throw new Error("System error in critics: " + arbitration.decision.revision_plan);
-                    }
-                }
+                const blueprint = await readJsonStream(designRes);
+                state.blueprint = blueprint;
                 
-                if (pass) {
-                    state.status = 'passed';
-                    componentResults.push({
-                        component_id: cId,
-                        component_name: component.component_name,
-                        blueprint: state.blueprint,
-                        codebase: state.codebase,
-                        execution_result: state.executionResult
-                    });
-                } else {
-                    throw new Error("Failed to pass critics after 3 revisions.");
-                }
-                
-            } catch (err) {
-                console.error(`Component ${cId} failed:`, err);
+                document.getElementById(design-text-+cId).innerText = JSON.stringify(blueprint, null, 2);
+                state.status = 'waiting_design';
+                renderPipelineTracks();
+            } catch(e) {
+                alert("Design Error (" + cId + "): " + e.message);
                 state.status = 'failed';
-            } finally {
                 activeComponentCount--;
                 renderPipelineTracks();
                 processPipeline();
             }
         }
-        
+
+        function approveDesign(cId) {
+            const state = componentStates[cId];
+            try {
+                const edited = JSON.parse(document.getElementById(design-text-+cId).innerText);
+                state.blueprint = edited;
+            } catch(e) {
+                alert("Invalid JSON in Design format.");
+                return;
+            }
+            
+            document.getElementById(pprove-design-+cId).disabled = true;
+            document.getElementById(pprove-design-+cId).innerText = "Approved ?";
+            document.getElementById(pprove-design-+cId).className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
+            
+            startComponentCode(state.component);
+        }
+
+        async function startComponentCode(component) {
+            const cId = component.component_id;
+            const state = componentStates[cId];
+            
+            try {
+                state.status = 'coding';
+                document.getElementById(code-section-+cId).classList.remove('hidden');
+                document.getElementById(code-text-+cId).value = "Agent is writing code...";
+                renderPipelineTracks();
+                
+                const codeRes = await fetch('/api/generate-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        requirements: currentRequirements,
+                        blueprint: state.blueprint,
+                        previous_codebase: state.codebase,
+                        revision_plan: state.revisionPlan
+                    })
+                });
+                
+                const codebase = await readJsonStream(codeRes);
+                state.codebase = codebase;
+                state.activeFileIndex = 0;
+                
+                const listDiv = document.getElementById(ile-list-+cId);
+                listDiv.innerHTML = codebase.files.map((f, i) => 
+                    <div class="text-sm font-mono text-slate-400 py-1.5 px-2 hover:bg-slate-800 hover:text-white cursor-pointer rounded transition-colors" onclick="componentStates['+cId+'].activeFileIndex = +i+; document.getElementById('code-text-+cId+').value = componentStates['+cId+'].codebase.files[+i+].code_content;">+f.file_name+</div>
+                ).join('');
+                
+                if (codebase.files.length > 0) {
+                    document.getElementById(code-text-+cId).value = codebase.files[0].code_content;
+                }
+                
+                state.status = 'waiting_code';
+                document.getElementById(pprove-code-+cId).disabled = false;
+                document.getElementById(pprove-code-+cId).innerText = "Execute Code & Run Critics";
+                document.getElementById(pprove-code-+cId).className = "w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm";
+                renderPipelineTracks();
+            } catch(e) {
+                alert("Code Error (" + cId + "): " + e.message);
+                state.status = 'failed';
+                activeComponentCount--;
+                renderPipelineTracks();
+                processPipeline();
+            }
+        }
+
+        function approveCode(cId) {
+            const state = componentStates[cId];
+            document.getElementById(pprove-code-+cId).disabled = true;
+            document.getElementById(pprove-code-+cId).innerText = "Executed ?";
+            document.getElementById(pprove-code-+cId).className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
+            
+            startComponentExecutionAndCritics(state.component);
+        }
+
+        async function startComponentExecutionAndCritics(component) {
+            const cId = component.component_id;
+            const state = componentStates[cId];
+            
+            try {
+                state.status = 'executing';
+                document.getElementById(critic-section-+cId).classList.remove('hidden');
+                document.getElementById(critic-cards-+cId).innerHTML = '';
+                document.getElementById(exec-logs-+cId).innerText = "Spinning up secure Docker sandbox for tests...";
+                document.getElementById(erdict-box-+cId).classList.add('hidden');
+                document.getElementById(pprove-component-+cId).classList.add('hidden');
+                renderPipelineTracks();
+                
+                const execRes = await fetch('/api/execute-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codebase: state.codebase, blueprint: state.blueprint })
+                });
+                
+                const exec = await execRes.json();
+                state.executionResult = exec;
+                document.getElementById(exec-logs-+cId).innerText = exec.logs;
+                
+                state.status = 'critiquing';
+                document.getElementById(critic-cards-+cId).innerHTML = '<div class="text-sm text-slate-400 font-mono">Arbitration Engine analyzing execution results...</div>';
+                renderPipelineTracks();
+                
+                const criticRes = await fetch('/api/run-critics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        requirements: currentRequirements,
+                        blueprint: state.blueprint,
+                        codebase: state.codebase,
+                        execution_result: state.executionResult
+                    })
+                });
+                
+                const arbitration = await criticRes.json();
+                
+                const cCards = document.getElementById(critic-cards-+cId);
+                cCards.innerHTML = arbitration.feedbacks.map(f => 
+                    <div class="bg-slate-950 p-3 rounded border border-slate-700 text-sm shadow-sm">
+                        <span class="font-bold uppercase tracking-wider text-xs + (f.pass ? 'text-emerald-400' : 'text-red-400') +">+f.critic_name+:</span> <span class="text-slate-300">+f.feedback+</span>
+                    </div>
+                ).join('');
+                
+                const vBox = document.getElementById(erdict-box-+cId);
+                const vText = document.getElementById(erdict-text-+cId);
+                const aBtn = document.getElementById(pprove-component-+cId);
+                vBox.classList.remove('hidden');
+                aBtn.classList.remove('hidden');
+                
+                if (arbitration.decision.verdict === 'pass') {
+                    vText.innerText = 'PASS';
+                    vText.className = 'font-black text-xl text-emerald-400';
+                    aBtn.innerText = "Approve Final Component ?";
+                    aBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center shadow-sm";
+                    aBtn.onclick = () => approveComponent(cId);
+                } else {
+                    vText.innerText = 'REVISE';
+                    vText.className = 'font-black text-xl text-orange-400';
+                    state.revisionPlan = arbitration.decision.revision_plan;
+                    
+                    if (state.revisionCount < 3) {
+                        state.revisionCount++;
+                        aBtn.innerText = "Revise & Regenerate Code (Attempt " + state.revisionCount + "/3)";
+                        aBtn.className = "w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center shadow-sm";
+                        aBtn.onclick = () => { aBtn.classList.add('hidden'); startComponentCode(component); };
+                    } else {
+                        aBtn.innerText = "Max Revisions Reached - Fail";
+                        aBtn.className = "w-full bg-red-600 text-white font-bold py-3 rounded-lg";
+                        aBtn.onclick = () => { state.status = 'failed'; activeComponentCount--; renderPipelineTracks(); processPipeline(); };
+                    }
+                }
+                
+                state.status = 'waiting_critic';
+                renderPipelineTracks();
+            } catch(e) {
+                alert("Critics Error (" + cId + "): " + e.message);
+                state.status = 'failed';
+                activeComponentCount--;
+                renderPipelineTracks();
+                processPipeline();
+            }
+        }
+
+        function approveComponent(cId) {
+            const state = componentStates[cId];
+            state.status = 'passed';
+            
+            const btn = document.getElementById(pprove-component-+cId);
+            btn.disabled = true;
+            btn.innerText = "Completed ?";
+            btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
+            
+            document.getElementById(ody-+cId).classList.add('hidden');
+            
+            componentResults.push({
+                component_id: cId,
+                component_name: state.component.component_name,
+                blueprint: state.blueprint,
+                codebase: state.codebase,
+                execution_result: state.executionResult
+            });
+            
+            activeComponentCount--;
+            renderPipelineTracks();
+            processPipeline();
+        }
+
         // Helper for reading JSON streams
         async function readJsonStream(response) {
             if (!response.ok) throw new Error(await response.text());
