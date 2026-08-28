@@ -76,6 +76,12 @@ AutoDev/
 
 ## Setup & Execution
 
+### 0. Prerequisites: Install Docker
+AutoDev v2.0 utilizes isolated Docker containers for its execution sandbox and Live Preview engine. 
+- **Windows/Mac:** You must have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+- **Linux:** You must have the [Docker Engine](https://docs.docker.com/engine/install/) installed and running.
+*(Ensure the Docker daemon is active in the background before starting the application).*
+
 ### 1. Install Dependencies
 
 Ensure you have Python 3.10+ installed. Navigate to the `backend/` directory and run:
@@ -115,14 +121,6 @@ uvicorn main:app --reload
 1. Open `http://localhost:8000` in your browser.
 2. Enter a feature request (e.g., "Build an email validation utility").
 3. Click through the sequential UI phases (Phase 1 -> Phase 2 -> Phase 2b -> Phase 2c -> Phase 3) to watch the AI build, test, and peer-review the software autonomously.
-
-## Project Roadmap
-
-- [x] **Phase 1:** Foundation & Requirements Extraction Agent
-- [x] **Phase 2:** Design Blueprinting, Code Generation Agent, & Local Execution Sandbox
-- [x] **Phase 3:** Arbitration Engine (Correctness, Architecture, & Completeness Critics via LangGraph) & Adjudicator
-- [ ] **Phase 4:** Advanced UI/UX & Creative Feature Incubation
-- [ ] **Phase 5:** Deployment & Final Polish
 
 ## Contributors
 
