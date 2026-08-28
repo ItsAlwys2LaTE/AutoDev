@@ -35,7 +35,7 @@ class DocumentationInput(BaseModel):
 
 class ExecuteInput(BaseModel):
     codebase: GeneratedCodeBase
-    run_tests_command: str = "pytest"
+    blueprint: SystemDesignBlueprint
 
 class ArbitrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -158,7 +158,7 @@ def api_parse_blueprint(payload: TextUpdateInput):
 @app.post("/api/execute-code")
 def api_execute_code(payload: ExecuteInput):
     try:
-        return execute_code(payload.codebase, payload.run_tests_command)
+        return execute_code(payload.codebase, payload.blueprint)
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -205,44 +205,78 @@ def api_generate_documentation(payload: DocumentationInput):
 import uuid
 from fastapi.responses import Response
 
-preview_store = {}
+import socket
+import docker
+from executor import create_tar_from_codebase
 
-@app.post("/api/preview/host")
-def host_preview(payload: ExecuteInput):
-    preview_id = str(uuid.uuid4())
-    file_map = {f.file_name: f.source_code for f in payload.codebase.files}
-    preview_store[preview_id] = file_map
-    return {"preview_id": preview_id}
+preview_container_id = None
 
-@app.get("/api/preview/{preview_id}/{file_path:path}")
-def get_preview_file(preview_id: str, file_path: str):
-    if preview_id not in preview_store:
-        raise HTTPException(status_code=404, detail="Preview session not found")
-    
-    file_map = preview_store[preview_id]
-    content = None
-    
-    if file_path in file_map:
-        content = file_map[file_path]
-    elif f"/{file_path}" in file_map:
-        content = file_map[f"/{file_path}"]
-    elif f"./{file_path}" in file_map:
-        content = file_map[f"./{file_path}"]
-    else:
-        base_name = os.path.basename(file_path)
-        found = next((v for k, v in file_map.items() if os.path.basename(k) == base_name), None)
-        if found:
-            content = found
-        else:
-            raise HTTPException(status_code=404, detail="File not found in preview")
+def get_free_port():
+    s = socket.socket()
+    s.bind(('', 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+@app.post("/api/preview/start")
+def start_preview(payload: ExecuteInput):
+    global preview_container_id
+    try:
+        client = docker.from_env()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cannot connect to Docker Daemon. Error: {e}")
+        
+    # Kill existing preview container if any
+    if preview_container_id:
+        try:
+            old_c = client.containers.get(preview_container_id)
+            old_c.stop(timeout=1)
+            old_c.remove(force=True)
+        except Exception:
+            pass
+        preview_container_id = None
+
+    image = payload.blueprint.docker_image
+    cmd = payload.blueprint.dev_server_command
+    internal_port = payload.blueprint.dev_server_port
+
+    if cmd == "NONE" or internal_port == 0:
+        cmd = "python -m http.server 8080 --bind 0.0.0.0"
+        internal_port = 8080
+        if "node" in image.lower():
+            # If it's a node container, use python? No, node doesn't have python by default.
+            # We can use npx serve instead
+            cmd = "npx serve -p 8080 -H 0.0.0.0"
+
+    host_port = get_free_port()
+
+    try:
+        try:
+            client.images.get(image)
+        except docker.errors.ImageNotFound:
+            client.images.pull(image)
             
-    ext = os.path.splitext(file_path)[1].lower()
-    media_type = "text/plain"
-    if ext == ".html": media_type = "text/html"
-    elif ext == ".css": media_type = "text/css"
-    elif ext == ".js": media_type = "application/javascript"
-    elif ext == ".json": media_type = "application/json"
-    elif ext == ".svg": media_type = "image/svg+xml"
-    
-    return Response(content=content, media_type=media_type)
+        # Inject auto-install if package.json exists and it's a node/npm command
+        has_package = any(f.file_name.lower() == 'package.json' for f in payload.codebase.files)
+        if has_package and "npm install" not in cmd and "npm " in cmd:
+            cmd = f"npm install --no-audit --no-fund && {cmd}"
+
+        # Create container mapping internal port to the dynamically found host port
+        container = client.containers.create(
+            image=image,
+            command=["sh", "-c", cmd],
+            working_dir="/workspace",
+            ports={f"{internal_port}/tcp": host_port}
+        )
+        
+        # Inject the source code before starting
+        tar_data = create_tar_from_codebase(payload.codebase)
+        container.put_archive("/workspace", tar_data)
+        
+        container.start()
+        preview_container_id = container.id
+        
+        return {"url": f"http://localhost:{host_port}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 

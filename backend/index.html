@@ -29,7 +29,7 @@
         <header class="flex justify-between items-end mb-8 border-b border-slate-200 pb-4">
             <div class="space-y-1">
                 <h1 class="text-3xl font-bold text-slate-900">AutoDev: Autonomous SDLC</h1>
-                <p class="text-slate-500 text-sm font-mono tracking-wider">BUILD SYS.v1.5.0.Alpha</p>
+                <p class="text-slate-500 text-sm font-mono tracking-wider">BUILD SYS.v2.0.0.Alpha</p>
             </div>
             <div class="text-right bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
                 <div class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Session Cost</div>
@@ -603,32 +603,36 @@
         async function renderLivePreview() {
             if (!currentCodebase || !currentCodebase.files) return;
             
-            let indexHtml = currentCodebase.files.find(f => f.file_name.toLowerCase() === 'index.html');
-            if (!indexHtml) {
-                document.getElementById('livePreviewFrame').srcdoc = "<html><body style='font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #666;'><h3>No index.html found in the codebase.</h3></body></html>";
-                return;
-            }
-
             try {
-                // Clear any existing srcdoc to prevent conflicts with src
+                // Display loading UI in the iframe
                 document.getElementById('livePreviewFrame').removeAttribute('srcdoc');
+                document.getElementById('livePreviewFrame').srcdoc = "<html><body style='font-family: sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; color: #666;'><h3>Spinning up Docker Container...</h3><p>Installing dependencies and starting dev server...</p></body></html>";
                 
-                const response = await fetch('/api/preview/host', {
+                const response = await fetch('/api/preview/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         codebase: currentCodebase,
-                        run_tests_command: currentBlueprint ? currentBlueprint.run_tests_command : "NONE"
+                        blueprint: currentBlueprint
                     })
                 });
                 
-                if (!response.ok) throw new Error("Preview server error");
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || "Preview server error");
+                }
                 
                 const data = await response.json();
-                document.getElementById('livePreviewFrame').src = `/api/preview/${data.preview_id}/index.html`;
+                
+                // We need to wait a few seconds for the dev server (like Vite or npm install) to actually bind to the port
+                setTimeout(() => {
+                    document.getElementById('livePreviewFrame').removeAttribute('srcdoc');
+                    document.getElementById('livePreviewFrame').src = data.url;
+                }, 5000); // 5 seconds grace period for npm install / dev server
+                
             } catch(e) {
                 console.error("Live Preview Error:", e);
-                document.getElementById('livePreviewFrame').srcdoc = "<html><body style='font-family: sans-serif; color: red;'><h3>Failed to host live preview securely. Check console.</h3></body></html>";
+                document.getElementById('livePreviewFrame').srcdoc = "<html><body style='font-family: sans-serif; color: red; text-align: center; margin-top: 50px;'><h3>Failed to host live preview in Docker.</h3><p>Ensure Docker Desktop is running.</p><p>Check console for errors.</p></body></html>";
             }
         }
 

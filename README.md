@@ -1,4 +1,4 @@
-# AutoDev: Autonomous AI Software Architect (BUILD SYS.v1.5.0.Alpha)
+# AutoDev: Autonomous AI Software Architect (BUILD SYS.v2.0.0.Alpha)
 
 AutoDev is an automated, multi-agent Software Development Life Cycle (SDLC) pipeline. It takes a plain-text feature request and autonomously orchestrates the generation of requirements, system architecture, source code, local unit test execution, and rigorous AI peer review.
 
@@ -59,6 +59,7 @@ AutoDev/
 
 ## Recent Features & Enhancements
 
+- **Dockerized Execution & Preview Engine (v2.0.0):** Completely overhauled the sandbox and preview architecture to use Docker containers. AutoDev now dynamically pulls isolated Docker images (like `node:20-alpine`) to execute test suites securely. The Live Preview tab now supports complex bundled applications (React/Vite/Next.js) by dynamically forwarding dev server ports (e.g., `npm run dev`) from the isolated container directly to your browser iframe.
 - **Embedded Live Preview UI & Universal Testing Engine (v1.5.0):** Added a Live Preview toggle to the IDE that dynamically compiles and renders static web apps (HTML/CSS/JS) into a secure iframe for real-time visualization alongside the generated code. Upgraded the sandbox executor and agents to enforce test generation and execution for *all* tech stacks—including utilizing Jest and JSDOM to strictly test static frontends instead of bypassing them.
 - **Polyglot & Multi-Language Support (v1.4.0):** The SDLC pipeline now supports any mainstream programming language and framework (e.g., Node.js, HTML/CSS/JS web apps, Java, Python). The sandbox dynamically determines the stack, builds the appropriate execution commands, and intelligently bypasses testing for static frontend projects.
 - **Documentation Generation Agent (Phase 3.5):** Introduced a brand new agent workflow triggered automatically when the Arbitration Engine passes the codebase. It generates rich-markdown `README.md` and `USER_GUIDE.md` files from the context of the blueprint/requirements, which instantly appear in the Monaco IDE for download.

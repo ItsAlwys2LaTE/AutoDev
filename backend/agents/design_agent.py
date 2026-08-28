@@ -25,8 +25,9 @@ def generate_design_stream(requirements: RequirementsDocument):
     
     CRITICAL FORMATTING INSTRUCTIONS FOR YOUR OUTPUT:
     1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack`. ALL projects, including static frontends (HTML/CSS/JS), MUST have automated tests. Identify the exact terminal `run_tests_command`. For Node/JS projects, ensure it includes dependency installation (e.g., 'npm install && npm test'). For static frontends, use 'npm install && npm test' with Jest and JSDOM to test DOM logic.
-    2. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt).
-    3. TEST DRIVEN: You MUST include a comprehensive test suite file in your blueprint (e.g., 'test_main.py' or 'app.test.js') for every single project.
+    2. DOCKER ENVIRONMENT: You must specify a lightweight `docker_image` (e.g., 'node:20-alpine' for React/JS, 'python:3.11-slim' for Python) that contains the necessary runtime. Specify the `dev_server_command` to run the app (e.g., 'npm run dev -- --host 0.0.0.0' for Vite, 'python -m http.server 8080' for static HTML) and the internal `dev_server_port` it listens on (e.g., 5173, 8080). Dev servers MUST bind to 0.0.0.0 to allow port forwarding.
+    3. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt, vite.config.js).
+    4. TEST DRIVEN: You MUST include a comprehensive test suite file in your blueprint (e.g., 'test_main.py' or 'app.test.js') for every single project.
     4. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     5. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     6. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 

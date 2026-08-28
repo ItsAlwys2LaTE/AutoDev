@@ -7,4 +7,4 @@ groq
 langgraph
 SQLAlchemy
 python-dotenv
-pytest
+pytestdocker
