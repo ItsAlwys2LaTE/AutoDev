@@ -2026,7 +2026,11 @@
                 };
                 
                 setVisible('pipelineDashboard', false);
-                setVisible('monacoSection', true);
+                setVisible('codeOutputSection', true);
+                document.getElementById('codeOutputTitle').innerText = 'Unified Integrated Codebase';
+                document.getElementById('codeFilesContainer').classList.add('hidden');
+                document.getElementById('ideContainer').classList.remove('hidden');
+                
                 buildFileExplorer();
                 if (currentCodebase.files.length > 0) initMonaco(0);
                 
@@ -2037,8 +2041,8 @@
                 });
                 currentExecutionResult = await execRes.json();
                 
-                document.getElementById('execLogs').innerText = currentExecutionResult.logs;
-                const statusBadge = document.getElementById('execStatus');
+                document.getElementById('execLogsOutput').innerText = currentExecutionResult.logs;
+                const statusBadge = document.getElementById('execStatusBadge');
                 if (currentExecutionResult.success) {
                     statusBadge.innerText = "Passed";
                     statusBadge.className = "px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm rounded-full font-medium border border-emerald-500/20";
@@ -2046,7 +2050,7 @@
                     statusBadge.innerText = "Failed";
                     statusBadge.className = "px-3 py-1 bg-red-500/20 text-red-400 text-sm rounded-full font-medium border border-red-500/20";
                 }
-                setVisible('executionOutputSection', true);
+                setVisible('execOutputSection', true);
                 
                 setVisible('docGenerationSection', true);
                 updateStepper(4, 'active');
