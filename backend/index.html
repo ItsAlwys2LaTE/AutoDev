@@ -32,8 +32,8 @@
                 <p class="text-slate-500 text-sm font-mono tracking-wider">BUILD SYS.v2.0.0.Alpha</p>
             </div>
             <div class="text-right bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-                <div class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Session Cost</div>
-                <div id="costDisplay" class="text-lg font-mono font-semibold text-emerald-600">$0.0000 <span class="text-xs text-slate-400 ml-1">(0 tokens)</span></div>
+                <div class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Session Cost (INR)</div>
+                <div id="costDisplay" class="text-lg font-mono font-semibold text-emerald-600">₹0.0000 <span class="text-xs text-slate-400 ml-1">(0 tokens)</span></div>
             </div>
         </header>
 
@@ -308,11 +308,12 @@
         function updateCost(promptTokens, completionTokens) {
             sessionUsage.prompt += parseInt(promptTokens) || 0;
             sessionUsage.completion += parseInt(completionTokens) || 0;
-            // Gemini 1.5 Flash pricing: $0.075 / 1M input, $0.30 / 1M output
-            sessionUsage.cost = (sessionUsage.prompt / 1000000) * 0.075 + (sessionUsage.completion / 1000000) * 0.30;
+            // Gemini 1.5 Flash pricing: $0.075 / 1M input, $0.30 / 1M output (USD)
+            const usdCost = (sessionUsage.prompt / 1000000) * 0.075 + (sessionUsage.completion / 1000000) * 0.30;
+            sessionUsage.cost = usdCost * 84.0; // Convert USD to INR (~84 INR/USD)
             
             document.getElementById('costDisplay').innerHTML = 
-                `$${sessionUsage.cost.toFixed(4)} <span class="text-xs text-slate-400 ml-1">(${sessionUsage.prompt + sessionUsage.completion} tokens)</span>`;
+                `₹${sessionUsage.cost.toFixed(4)} <span class="text-xs text-slate-400 ml-1">(${sessionUsage.prompt + sessionUsage.completion} tokens)</span>`;
         }
         
         // Monaco Editor state
