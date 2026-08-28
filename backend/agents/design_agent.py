@@ -7,10 +7,13 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint
 
-def generate_design_stream(requirements: RequirementsDocument):
+def generate_design_stream(requirements: RequirementsDocument, component_context: str = None):
     """
     Takes a structured RequirementsDocument and yields a stream of JSON text 
     representing a SystemDesignBlueprint outlining the file structure and logic.
+    
+    If component_context is provided, the agent will design a scoped blueprint
+    for a single component within a larger system.
     """
     api_key = os.environ.get("GEMINI_API_KEY_DESIGN")
     if not api_key:
@@ -28,15 +31,27 @@ def generate_design_stream(requirements: RequirementsDocument):
     2. DOCKER ENVIRONMENT: You must specify a lightweight `docker_image` (e.g., 'node:20-alpine' for React/JS, 'python:3.11-slim' for Python) that contains the necessary runtime. Specify the `dev_server_command` to run the app (e.g., 'npm run dev -- --host 0.0.0.0' for Vite, 'python -m http.server 8080' for static HTML) and the internal `dev_server_port` it listens on (e.g., 5173, 8080). Dev servers MUST bind to 0.0.0.0 to allow port forwarding.
     3. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt, vite.config.js). Do NOT place the project inside a root subdirectory; output all files relative to the workspace root (e.g. use 'manage.py' instead of 'my_project/manage.py').
     4. TEST DRIVEN: You MUST include a comprehensive test suite file in your blueprint. For Python (pytest), files MUST start with `test_` (e.g., 'test_main.py', NOT 'tests.py') for auto-discovery to work. For JS/HTML, use 'app.test.js'. Every single project must have tests.
-    4. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
-    5. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
-    6. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
-    7. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
+    5. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
+    6. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
+    7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
+    8. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
+    """
 
-    Output a structured object detailing the architecture overview, the chosen tech stack, and the specific file-by-file pseudocode blueprint.
+    if component_context:
+        system_prompt += """
+    
+    COMPONENT MODE: You are designing a SINGLE COMPONENT that is part of a larger system. 
+    The component context below specifies the tech stack and Docker image you MUST use.
+    Design ONLY the files relevant to this specific component. Keep it self-contained and testable.
+    Prefix file names with the component identifier if they might conflict with other components 
+    during integration (e.g., 'auth-styles.css' instead of 'styles.css'), EXCEPT for package.json 
+    and configuration files.
     """
 
     prompt_content = f"Generate a system design for these requirements:\n{requirements.model_dump_json(indent=2)}"
+    
+    if component_context:
+        prompt_content += f"\n\nCOMPONENT CONTEXT:\n{component_context}"
 
     def get_stream(model_name: str):
         return client.models.generate_content_stream(

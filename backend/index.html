@@ -109,11 +109,65 @@
             </div>
             
             <div class="border-t border-slate-700 pt-6">
-                <p class="text-slate-400 text-sm mb-3 text-center">Requirements extracted. Proceed to architectural blueprinting.</p>
-                <button id="designBtn" onclick="generateDesign()" 
-                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
-                    <span>Execute SYS.ARCH_MAPPER (v1.3.0)</span>
-                    <svg id="designSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <p class="text-slate-400 text-sm mb-3 text-center">Requirements extracted. Proceed to Component Decomposition.</p>
+                <button id="decomposeBtn" onclick="runDecomposition()" 
+                    class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
+                    <span>Execute SYS.DECOMPOSER (v2.1.0)</span>
+                    <svg id="decomposeSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- PHASE 1.5: DECOMPOSITION OUTPUT -->
+        <div id="decomposeSection" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+                    <span class="bg-cyan-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">⚙</span>
+                    Master Architect — Component Decomposition
+                </h2>
+                <span id="decomposeStatus" class="px-3 py-1 bg-cyan-500/20 text-cyan-400 text-sm rounded-full font-medium border border-cyan-500/20">Analyzing...</span>
+            </div>
+            <div id="decomposeCards" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <!-- Dynamically injected component cards -->
+            </div>
+            <div id="decomposeSimpleMsg" class="text-center text-slate-400 py-4 hidden">
+                <p class="text-lg font-semibold text-emerald-400 mb-1">✓ Simple Product Detected</p>
+                <p>No decomposition needed. Proceeding with single-pass pipeline...</p>
+            </div>
+            <div id="decomposeActions" class="border-t border-slate-700 pt-6 hidden">
+                <p class="text-slate-400 text-sm mb-3 text-center">Review the component breakdown above, then start the pipeline.</p>
+                <button id="pipelineBtn" onclick="startComponentPipeline()" 
+                    class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
+                    <span>🚀 Launch Component Pipeline</span>
+                    <svg id="pipelineSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- COMPONENT PIPELINE DASHBOARD -->
+        <div id="pipelineDashboard" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-cyan-500 to-purple-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">⧫</span>
+                    Component Pipeline Dashboard
+                </h2>
+                <span id="pipelineProgress" class="text-sm text-slate-400 font-mono">0 / 0 components complete</span>
+            </div>
+            <div id="pipelineTracks" class="space-y-3">
+                <!-- Dynamically injected component tracks -->
+            </div>
+            <div id="integrationSection" class="border-t border-slate-700 pt-6 mt-6 hidden">
+                <p class="text-slate-400 text-sm mb-3 text-center">All components passed! Ready to integrate into the final product.</p>
+                <button id="integrateBtn" onclick="runIntegration()" 
+                    class="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
+                    <span>🔗 Integrate All Components</span>
+                    <svg id="integrateSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -301,6 +355,13 @@
         // Revision History: each entry = { codebase, executionResult, feedbacks, decision }
         let revisionHistory = [];
         let activeRevisionIndex = -1;
+
+        // Component Pipeline State
+        let currentDecomposition = null;       // ComponentDecomposition object
+        let componentResults = [];             // Array of ComponentResult objects (completed components)
+        let componentStates = {};              // Map: componentId -> { status, blueprint, codebase, executionResult, revisionCount }
+        let isComponentMode = false;           // Whether we are in multi-component mode
+        let pipelineActive = false;            // Whether the pipeline is currently running
 
         // Session Cost Tracker
         let sessionUsage = { prompt: 0, completion: 0, cost: 0.0 };
@@ -870,7 +931,7 @@
                 const response = await fetch('/api/generate-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(currentRequirements) 
+                    body: JSON.stringify({ requirements: currentRequirements }) 
                 });
                 
                 if (!response.ok) {
@@ -1320,6 +1381,345 @@
                 document.getElementById('docBtn').innerHTML = `<span>Phase 3.5: Generate Documentation</span>`;
             } finally {
                 setButtonLoading('docBtn', 'docSpinner', false);
+            }
+        }
+        // --- PHASE 1.5: DECOMPOSITION ---
+        async function runDecomposition() {
+            setButtonLoading('decomposeBtn', 'decomposeSpinner', true);
+            setVisible('errorSection', false);
+            setVisible('decomposeSection', true);
+            document.getElementById('decomposeStatus').innerText = "Analyzing...";
+            
+            try {
+                // Ensure requirements are parsed
+                const parseReqRes = await fetch('/api/parse-requirements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: document.getElementById('jsonOutput').innerText })
+                });
+                if (!parseReqRes.ok) throw new Error("Failed to parse requirements.");
+                currentRequirements = await parseReqRes.json();
+                
+                const response = await fetch('/api/decompose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentRequirements)
+                });
+                if (!response.ok) throw new Error(await response.text());
+                
+                const data = await readJsonStream(response);
+                currentDecomposition = data;
+                
+                document.getElementById('decomposeStatus').innerText = "Decomposed";
+                
+                if (!currentDecomposition.is_complex) {
+                    setVisible('decomposeSimpleMsg', true);
+                    isComponentMode = false;
+                    // Proceed to single-pass Phase 2
+                    setVisible('designOutputSection', true);
+                    updateStepper(2, 'active');
+                    // We need a fallback button if it's simple since we hijacked Phase 1's button
+                    if (!document.getElementById('simpleDesignBtn')) {
+                        document.getElementById('decomposeSimpleMsg').innerHTML += `
+                            <button id="simpleDesignBtn" onclick="generateDesign()" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg flex justify-center items-center gap-2">
+                                <span>Execute SYS.ARCH_MAPPER (Single Pass)</span>
+                            </button>
+                        `;
+                    }
+                } else {
+                    isComponentMode = true;
+                    // Render component cards
+                    const container = document.getElementById('decomposeCards');
+                    container.innerHTML = currentDecomposition.components.map(c => `
+                        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 relative">
+                            <span class="absolute top-2 right-2 text-xs font-mono bg-slate-700 px-2 py-1 rounded text-slate-300">Order: ${c.priority_order}</span>
+                            <h4 class="font-bold text-cyan-400 mb-1">${c.component_name}</h4>
+                            <p class="text-xs text-slate-400 mb-2">${c.description}</p>
+                            <div class="text-xs text-slate-500">Depends on: ${c.dependencies_on.join(', ') || 'None'}</div>
+                        </div>
+                    `).join('');
+                    setVisible('decomposeActions', true);
+                }
+                
+            } catch (error) {
+                showError("Decomposition Error: " + error.message);
+                setVisible('decomposeSection', false);
+            } finally {
+                setButtonLoading('decomposeBtn', 'decomposeSpinner', false);
+            }
+        }
+
+        // --- PIPELINE ORCHESTRATOR ---
+        let pipelineQueue = [];
+        let activeComponentCount = 0;
+        const MAX_CONCURRENT = 2; // Controlled concurrency
+        
+        async function startComponentPipeline() {
+            pipelineActive = true;
+            setVisible('decomposeActions', false);
+            setVisible('pipelineDashboard', true);
+            updateStepper(2, 'active'); 
+            
+            pipelineQueue = [...currentDecomposition.components].sort((a, b) => a.priority_order - b.priority_order);
+            
+            pipelineQueue.forEach(c => {
+                componentStates[c.component_id] = { status: 'queued', revisionCount: 0 };
+            });
+            
+            renderPipelineTracks();
+            processPipeline();
+        }
+        
+        function renderPipelineTracks() {
+            const container = document.getElementById('pipelineTracks');
+            container.innerHTML = pipelineQueue.map(c => {
+                const state = componentStates[c.component_id];
+                let statusColor = 'bg-slate-700';
+                let statusText = 'Queued';
+                if (state.status === 'designing') { statusColor = 'bg-indigo-600'; statusText = 'Designing...'; }
+                if (state.status === 'coding') { statusColor = 'bg-purple-600'; statusText = 'Coding...'; }
+                if (state.status === 'executing') { statusColor = 'bg-blue-600'; statusText = 'Testing...'; }
+                if (state.status === 'critiquing') { statusColor = 'bg-rose-600'; statusText = 'Critiquing...'; }
+                if (state.status === 'passed') { statusColor = 'bg-emerald-600'; statusText = 'Passed ✓'; }
+                if (state.status === 'revising') { statusColor = 'bg-orange-500'; statusText = 'Revising...'; }
+                if (state.status === 'failed') { statusColor = 'bg-red-600'; statusText = 'Failed ✗'; }
+                
+                return `
+                    <div class="flex items-center gap-4 bg-slate-800 p-3 rounded-lg border border-slate-700">
+                        <div class="w-1/4 font-semibold text-sm text-slate-200 truncate" title="${c.component_name}">${c.component_name}</div>
+                        <div class="flex-grow bg-slate-900 h-2 rounded-full overflow-hidden relative">
+                            <div class="${statusColor} h-full transition-all duration-500" style="width: ${getPipelineProgressWidth(state.status)}%"></div>
+                        </div>
+                        <div class="w-1/4 text-right text-xs font-mono text-slate-400">${statusText}</div>
+                    </div>
+                `;
+            }).join('');
+            
+            const passedCount = pipelineQueue.filter(c => componentStates[c.component_id].status === 'passed').length;
+            document.getElementById('pipelineProgress').innerText = `${passedCount} / ${pipelineQueue.length} components complete`;
+            
+            if (passedCount === pipelineQueue.length && pipelineQueue.length > 0) {
+                setVisible('integrationSection', true);
+                updateStepper(3, 'active');
+            }
+        }
+        
+        function getPipelineProgressWidth(status) {
+            switch(status) {
+                case 'queued': return 0;
+                case 'designing': return 20;
+                case 'coding': return 40;
+                case 'executing': return 60;
+                case 'critiquing': return 80;
+                case 'revising': return 40;
+                case 'passed': return 100;
+                case 'failed': return 100;
+                default: return 0;
+            }
+        }
+        
+        async function processPipeline() {
+            if (!pipelineActive) return;
+            
+            for (const c of pipelineQueue) {
+                if (activeComponentCount >= MAX_CONCURRENT) break;
+                
+                if (componentStates[c.component_id].status === 'queued') {
+                    const depsPassed = c.dependencies_on.every(depId => 
+                        !componentStates[depId] || componentStates[depId].status === 'passed'
+                    );
+                    
+                    if (depsPassed) {
+                        activeComponentCount++;
+                        runComponentPipeline(c);
+                    }
+                }
+            }
+        }
+        
+        async function runComponentPipeline(component) {
+            const state = componentStates[component.component_id];
+            const cId = component.component_id;
+            
+            try {
+                // 1. DESIGN
+                state.status = 'designing';
+                renderPipelineTracks();
+                
+                const contextStr = `Tech Stack: ${currentDecomposition.shared_tech_stack.join(', ')}\nDocker Image: ${currentDecomposition.shared_docker_image}\nScoped Requirements:\n${component.scoped_requirements}`;
+                
+                const designRes = await fetch('/api/generate-design', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requirements: currentRequirements, component_context: contextStr })
+                });
+                state.blueprint = await readJsonStream(designRes);
+                
+                // 2. CODEGEN LOOP
+                let pass = false;
+                while (!pass && state.revisionCount < 3) {
+                    state.status = state.revisionCount > 0 ? 'revising' : 'coding';
+                    renderPipelineTracks();
+                    
+                    const codeRes = await fetch('/api/generate-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            requirements: currentRequirements,
+                            blueprint: state.blueprint,
+                            previous_codebase: state.codebase,
+                            revision_plan: state.revisionPlan
+                        })
+                    });
+                    state.codebase = await readJsonStream(codeRes);
+                    
+                    // 3. EXECUTE
+                    state.status = 'executing';
+                    renderPipelineTracks();
+                    
+                    const execRes = await fetch('/api/execute-code', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ codebase: state.codebase, blueprint: state.blueprint })
+                    });
+                    state.executionResult = await execRes.json();
+                    
+                    // 4. CRITICS
+                    state.status = 'critiquing';
+                    renderPipelineTracks();
+                    
+                    const criticRes = await fetch('/api/run-critics', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            requirements: currentRequirements,
+                            blueprint: state.blueprint,
+                            codebase: state.codebase,
+                            execution_result: state.executionResult
+                        })
+                    });
+                    
+                    const arbitration = await criticRes.json();
+                    if (arbitration.decision.verdict === 'pass') {
+                        pass = true;
+                    } else if (arbitration.decision.verdict === 'revise') {
+                        state.revisionCount++;
+                        state.revisionPlan = arbitration.decision.revision_plan;
+                    } else {
+                        throw new Error("System error in critics: " + arbitration.decision.revision_plan);
+                    }
+                }
+                
+                if (pass) {
+                    state.status = 'passed';
+                    componentResults.push({
+                        component_id: cId,
+                        component_name: component.component_name,
+                        blueprint: state.blueprint,
+                        codebase: state.codebase,
+                        execution_result: state.executionResult
+                    });
+                } else {
+                    throw new Error("Failed to pass critics after 3 revisions.");
+                }
+                
+            } catch (err) {
+                console.error(`Component ${cId} failed:`, err);
+                state.status = 'failed';
+            } finally {
+                activeComponentCount--;
+                renderPipelineTracks();
+                processPipeline();
+            }
+        }
+        
+        // Helper for reading JSON streams
+        async function readJsonStream(response) {
+            if (!response.ok) throw new Error(await response.text());
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let fullJsonStr = "";
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                const textChunk = decoder.decode(value, { stream: true });
+                const parts = textChunk.split("__USAGE__");
+                fullJsonStr += parts[0];
+                if (parts.length > 1) {
+                    const usageStr = parts[1].trim();
+                    if (usageStr) {
+                        const [p, c] = usageStr.split(',');
+                        updateCost(p, c);
+                    }
+                }
+            }
+            
+            const data = JSON.parse(fullJsonStr);
+            if (data.error) throw new Error(data.error);
+            return data;
+        }
+
+        // --- INTEGRATION PHASE ---
+        async function runIntegration() {
+            setButtonLoading('integrateBtn', 'integrateSpinner', true);
+            
+            try {
+                const res = await fetch('/api/integrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        requirements: currentRequirements,
+                        decomposition: currentDecomposition,
+                        component_results: componentResults
+                    })
+                });
+                
+                const finalCodebase = await readJsonStream(res);
+                currentCodebase = finalCodebase;
+                
+                currentBlueprint = {
+                    architecture_overview: "Unified Integrated Architecture",
+                    tech_stack: currentDecomposition.shared_tech_stack,
+                    docker_image: currentDecomposition.shared_docker_image,
+                    dev_server_command: "NONE", 
+                    dev_server_port: 0,
+                    run_tests_command: "pytest", 
+                    files: currentCodebase.files.map(f => ({ file_name: f.file_name, purpose: "Integrated file", dependencies: [], pseudocode: "" }))
+                };
+                
+                setVisible('pipelineDashboard', false);
+                setVisible('monacoSection', true);
+                buildFileExplorer();
+                if (currentCodebase.files.length > 0) initMonaco(0);
+                
+                // Final Integration Test Pass
+                const execRes = await fetch('/api/execute-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codebase: currentCodebase, blueprint: currentBlueprint })
+                });
+                currentExecutionResult = await execRes.json();
+                
+                document.getElementById('execLogs').innerText = currentExecutionResult.logs;
+                const statusBadge = document.getElementById('execStatus');
+                if (currentExecutionResult.success) {
+                    statusBadge.innerText = "Passed";
+                    statusBadge.className = "px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm rounded-full font-medium border border-emerald-500/20";
+                } else {
+                    statusBadge.innerText = "Failed";
+                    statusBadge.className = "px-3 py-1 bg-red-500/20 text-red-400 text-sm rounded-full font-medium border border-red-500/20";
+                }
+                setVisible('executionOutputSection', true);
+                
+                setVisible('docGenerationSection', true);
+                updateStepper(4, 'active');
+                
+            } catch (err) {
+                showError("Integration Error: " + err.message);
+            } finally {
+                setButtonLoading('integrateBtn', 'integrateSpinner', false);
             }
         }
     </script>

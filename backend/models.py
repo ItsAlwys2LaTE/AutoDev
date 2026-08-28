@@ -73,3 +73,31 @@ class AdjudicatorDecision(BaseModel):
     """The final decision made by the Adjudicator agent based on all critiques."""
     verdict: str = Field(description="Strictly 'pass', 'revise', or 'error'")
     revision_plan: str = Field(description="Detailed instructions for the CodeGen agent if verdict is 'revise'. If 'error', describes the system failure. If 'pass', a brief approval message.")
+
+# --- PHASE 0 MODELS (Component Decomposition) ---
+
+class ComponentSpec(BaseModel):
+    """A single decomposed component from the Master Architect."""
+    component_id: str = Field(description="Unique kebab-case identifier, e.g., 'auth-system', 'product-catalog'")
+    component_name: str = Field(description="Human-readable name, e.g., 'User Authentication System'")
+    description: str = Field(description="What this component does and its scope boundaries")
+    scoped_requirements: str = Field(description="Focused requirements text for this component only, containing enough detail for the Design Agent to independently produce a complete blueprint")
+    dependencies_on: List[str] = Field(description="IDs of components this depends on (empty list if none). Used for pipeline ordering.")
+    priority_order: int = Field(description="Pipeline execution order (1 = first). Components with no dependencies should have lower numbers.")
+
+class ComponentDecomposition(BaseModel):
+    """Output of the Master Architect Agent."""
+    is_complex: bool = Field(description="If False, the product is simple enough for the single-pass pipeline. If True, decompose into components.")
+    project_overview: str = Field(description="High-level product vision describing the overall system")
+    shared_tech_stack: List[str] = Field(description="Common tech stack that all components must use (e.g., ['HTML', 'CSS', 'JavaScript', 'Node.js'])")
+    shared_docker_image: str = Field(description="Base Docker image all components should use (e.g., 'node:20-alpine')")
+    components: List[ComponentSpec] = Field(description="The decomposed component list. Empty if is_complex is False.")
+    integration_strategy: str = Field(description="How to merge components: describes routing, shared state, navigation, and cross-component wiring approach")
+
+class ComponentResult(BaseModel):
+    """The fully tested output of a single component after passing Critics."""
+    component_id: str = Field(description="The component_id this result belongs to")
+    component_name: str = Field(description="Human-readable component name")
+    blueprint: SystemDesignBlueprint = Field(description="The design blueprint used for this component")
+    codebase: GeneratedCodeBase = Field(description="The tested and approved source code for this component")
+    execution_result: ExecutionResult = Field(description="The passing test execution result")

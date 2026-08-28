@@ -6,7 +6,7 @@ import os
 import traceback
 
 from executor import execute_code
-from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult
+from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, ComponentDecomposition, ComponentResult
 from orchestrator import arbitration_engine
 
 # Load environment variables
@@ -43,6 +43,11 @@ class ArbitrationInput(BaseModel):
     codebase: GeneratedCodeBase
     execution_result: ExecutionResult
 
+class IntegrationInput(BaseModel):
+    requirements: RequirementsDocument
+    decomposition: ComponentDecomposition
+    component_results: list  # List of ComponentResult dicts
+
 @app.get("/")
 def serve_frontend():
     if os.path.exists("index.html"):
@@ -63,13 +68,47 @@ def api_generate_requirements(user_input: FeatureRequestInput):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-from agents.design_agent import generate_design_stream
+from agents.master_architect import decompose_requirements_stream
 
-@app.post("/api/generate-design")
-def api_generate_design(requirements: RequirementsDocument):
+@app.post("/api/decompose")
+def api_decompose(requirements: RequirementsDocument):
     try:
         return StreamingResponse(
-            generate_design_stream(requirements),
+            decompose_requirements_stream(requirements),
+            media_type="text/plain"
+        )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+from agents.integrator_agent import generate_integration_stream
+
+@app.post("/api/integrate")
+def api_integrate(payload: IntegrationInput):
+    try:
+        return StreamingResponse(
+            generate_integration_stream(
+                payload.requirements,
+                payload.decomposition,
+                payload.component_results
+            ),
+            media_type="text/plain"
+        )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+from agents.design_agent import generate_design_stream
+
+class DesignInput(BaseModel):
+    requirements: RequirementsDocument
+    component_context: Optional[str] = None
+
+@app.post("/api/generate-design")
+def api_generate_design(payload: DesignInput):
+    try:
+        return StreamingResponse(
+            generate_design_stream(payload.requirements, payload.component_context),
             media_type="text/plain"
         )
     except Exception as e:
