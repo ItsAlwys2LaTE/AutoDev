@@ -200,3 +200,49 @@ def api_generate_documentation(payload: DocumentationInput):
         traceback.print_exc()
         print("===============================\n")
         raise HTTPException(status_code=500, detail=f"Server Error during doc generation: {str(e)}")
+
+
+import uuid
+from fastapi.responses import Response
+
+preview_store = {}
+
+@app.post("/api/preview/host")
+def host_preview(payload: ExecuteInput):
+    preview_id = str(uuid.uuid4())
+    file_map = {f.file_name: f.source_code for f in payload.codebase.files}
+    preview_store[preview_id] = file_map
+    return {"preview_id": preview_id}
+
+@app.get("/api/preview/{preview_id}/{file_path:path}")
+def get_preview_file(preview_id: str, file_path: str):
+    if preview_id not in preview_store:
+        raise HTTPException(status_code=404, detail="Preview session not found")
+    
+    file_map = preview_store[preview_id]
+    content = None
+    
+    if file_path in file_map:
+        content = file_map[file_path]
+    elif f"/{file_path}" in file_map:
+        content = file_map[f"/{file_path}"]
+    elif f"./{file_path}" in file_map:
+        content = file_map[f"./{file_path}"]
+    else:
+        base_name = os.path.basename(file_path)
+        found = next((v for k, v in file_map.items() if os.path.basename(k) == base_name), None)
+        if found:
+            content = found
+        else:
+            raise HTTPException(status_code=404, detail="File not found in preview")
+            
+    ext = os.path.splitext(file_path)[1].lower()
+    media_type = "text/plain"
+    if ext == ".html": media_type = "text/html"
+    elif ext == ".css": media_type = "text/css"
+    elif ext == ".js": media_type = "application/javascript"
+    elif ext == ".json": media_type = "application/json"
+    elif ext == ".svg": media_type = "image/svg+xml"
+    
+    return Response(content=content, media_type=media_type)
+
