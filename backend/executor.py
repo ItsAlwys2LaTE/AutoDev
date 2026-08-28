@@ -9,9 +9,14 @@ def create_tar_from_codebase(codebase: GeneratedCodeBase) -> bytes:
     tar_stream = io.BytesIO()
     with tarfile.open(fileobj=tar_stream, mode='w') as tar:
         for file_obj in codebase.files:
-            # We must handle paths with subdirectories carefully
+            # Sanitize path to prevent absolute path extraction issues in Docker
+            safe_name = file_obj.file_name.replace('\\', '/')
+            if safe_name.startswith('./'):
+                safe_name = safe_name[2:]
+            safe_name = safe_name.lstrip('/')
+            
             file_data = file_obj.source_code.encode('utf-8')
-            tarinfo = tarfile.TarInfo(name=file_obj.file_name)
+            tarinfo = tarfile.TarInfo(name=safe_name)
             tarinfo.size = len(file_data)
             tar.addfile(tarinfo, io.BytesIO(file_data))
     tar_stream.seek(0)

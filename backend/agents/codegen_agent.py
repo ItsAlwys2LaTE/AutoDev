@@ -30,8 +30,9 @@ def generate_code_stream(
     3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'jest' and 'jest-environment-jsdom' in the package.json.
     4. SCHEMA COMPLIANCE: The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     5. IMPORTS/REQUIRES: EVERY file MUST include ALL necessary import/require statements at the top. Missing imports will cause crashes in the execution sandbox.
-    6. IDIOMATIC CODE: Write highly idiomatic code for the chosen language.
-    7. ROBUSTNESS: You MUST implement robust edge-case handling, bounds checking (e.g., max lengths), state management, and error recovery to make the system production-ready. Do not just implement the happy path. If the blueprint implies edge cases (or if a senior engineer would normally handle them), implement them.
+    6. NO ROOT SUBDIRECTORIES: Do NOT place the project inside an arbitrary root subdirectory. Output all files relative to the workspace root (e.g. `manage.py`, not `my_project/manage.py`).
+    7. IDIOMATIC CODE: Write highly idiomatic code for the chosen language.
+    8. ROBUSTNESS: You MUST implement robust edge-case handling, bounds checking (e.g., max lengths), state management, and error recovery to make the system production-ready. Do not just implement the happy path. If the blueprint implies edge cases (or if a senior engineer would normally handle them), implement them.
     """
 
     prompt_content = f"""

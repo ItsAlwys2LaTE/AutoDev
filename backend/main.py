@@ -260,6 +260,10 @@ def start_preview(payload: ExecuteInput):
         has_package = any(f.file_name.lower() == 'package.json' for f in payload.codebase.files)
         if has_package and "npm install" not in cmd and "npm " in cmd:
             cmd = f"npm install --no-audit --no-fund && {cmd}"
+            
+        has_requirements = any(f.file_name.lower() == 'requirements.txt' for f in payload.codebase.files)
+        if has_requirements and "pip install" not in cmd and "python " in cmd:
+            cmd = f"pip install -r requirements.txt && {cmd}"
 
         # Create container mapping internal port to the dynamically found host port
         container = client.containers.create(
