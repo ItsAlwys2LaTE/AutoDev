@@ -1081,7 +1081,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         codebase: currentCodebase,
-                        run_tests_command: currentBlueprint.run_tests_command || "pytest"
+                        blueprint: currentBlueprint
                     }) 
                 });
                 const data = await response.json();
