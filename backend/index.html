@@ -159,7 +159,7 @@
                 </h2>
                 <span id="pipelineProgress" class="text-sm text-slate-400 font-mono">0 / 0 components complete</span>
             </div>
-            <div id="pipelineTracks" class="space-y-3">
+            <div id="pipelineTracks" class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
                 <!-- Dynamically injected component tracks -->
             </div>
             <div id="integrationSection" class="border-t border-slate-700 pt-6 mt-6 hidden">
@@ -1452,6 +1452,7 @@
         // --- PIPELINE ORCHESTRATOR ---
         let pipelineQueue = [];
         let pipelineLocks = { design: false, code: false, critic: false };
+        let componentEditors = {};
         
         async function startComponentPipeline() {
             pipelineActive = true;
@@ -1466,12 +1467,83 @@
                     status: 'queued', 
                     revisionCount: 0,
                     component: c,
-                    activeFileIndex: 0
+                    activeFileIndex: 0,
+                    revisionHistory: [],
+                    activeRevisionIndex: -1
                 };
             });
             
             renderPipelineTracks();
             processPipeline();
+        }
+        
+        function initComponentMonaco(cId) {
+            if (!componentEditors[cId]) {
+                require(['vs/editor/editor.main'], function () {
+                    componentEditors[cId] = monaco.editor.create(document.getElementById(`monaco-${cId}`), {
+                        value: '',
+                        language: 'python',
+                        theme: 'vs-dark',
+                        automaticLayout: true,
+                        minimap: { enabled: false }
+                    });
+                    
+                    componentEditors[cId].onDidChangeModelContent(() => {
+                        const state = componentStates[cId];
+                        if (state && state.codebase && state.activeFileIndex >= 0) {
+                            if (state.revisionHistory && state.activeRevisionIndex >= 0) {
+                                state.revisionHistory[state.activeRevisionIndex].codebase.files[state.activeFileIndex].source_code = componentEditors[cId].getValue();
+                            }
+                            state.codebase.files[state.activeFileIndex].source_code = componentEditors[cId].getValue();
+                        }
+                    });
+                });
+            }
+        }
+        
+        function switchComponentFile(cId, index, revIndex = -1) {
+            const state = componentStates[cId];
+            if (revIndex !== -1) {
+                state.activeRevisionIndex = revIndex;
+                state.codebase = state.revisionHistory[revIndex].codebase;
+                renderComponentRevTabs(cId);
+            }
+            
+            state.activeFileIndex = index;
+            
+            const container = document.getElementById(`file-list-${cId}`);
+            if (container && state.codebase && state.codebase.files) {
+                container.innerHTML = state.codebase.files.map((f, i) => `
+                    <div class="text-sm font-mono flex items-center gap-2 ${i === index ? 'bg-slate-800 text-white border-l-2 border-purple-500' : 'text-slate-400 hover:bg-slate-800 hover:text-white'} py-2 px-3 cursor-pointer transition-colors" onclick="switchComponentFile('${cId}', ${i})">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        ${f.file_name}
+                    </div>
+                `).join('');
+            }
+            
+            if (componentEditors[cId] && state.codebase.files[index]) {
+                const model = componentEditors[cId].getModel();
+                if (model) {
+                    const ext = state.codebase.files[index].file_name.split('.').pop();
+                    const langMap = { 'js': 'javascript', 'html': 'html', 'css': 'css', 'py': 'python', 'json': 'json', 'md': 'markdown', 'sh': 'shell' };
+                    monaco.editor.setModelLanguage(model, langMap[ext] || 'plaintext');
+                }
+                componentEditors[cId].setValue(state.codebase.files[index].source_code);
+            }
+        }
+        
+        function renderComponentRevTabs(cId) {
+            const state = componentStates[cId];
+            if (!state.revisionHistory || state.revisionHistory.length === 0) return;
+            
+            const container = document.getElementById(`rev-tabs-${cId}`);
+            if (container) {
+                container.innerHTML = state.revisionHistory.map((rev, i) => `
+                    <button class="px-3 py-1 rounded-t-lg transition-colors border-b-2 ${state.activeRevisionIndex === i ? 'bg-purple-600/20 text-purple-300 border-purple-500 font-bold' : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'}" onclick="switchComponentFile('${cId}', 0, ${i})">
+                        ${i === 0 ? 'Initial' : 'Rev ' + i}
+                    </button>
+                `).join('');
+            }
         }
         
         function renderPipelineTracks() {
@@ -1485,82 +1557,106 @@
                 if (!workspace) {
                     workspace = document.createElement('div');
                     workspace.id = `workspace-${cId}`;
-                    workspace.className = "bg-slate-800 rounded-lg border border-slate-700 overflow-hidden mb-4 shadow-sm";
+                    workspace.className = "bg-slate-900 rounded-xl border border-slate-700 overflow-hidden mb-4 shadow-lg w-full flex flex-col";
                     workspace.innerHTML = `
                         <!-- Header -->
-                        <div class="bg-slate-700/50 p-4 flex justify-between items-center cursor-pointer hover:bg-slate-700 transition-colors" onclick="document.getElementById('body-${cId}').classList.toggle('hidden')">
+                        <div class="bg-slate-800/80 p-4 border-b border-slate-700 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors" onclick="document.getElementById('body-${cId}').classList.toggle('hidden')">
                             <div class="flex items-center gap-3">
-                                <span class="bg-slate-900 text-slate-300 px-2 py-1 rounded text-xs font-mono border border-slate-600">ID: ${cId}</span>
-                                <h3 class="font-bold text-cyan-400 text-lg">${c.component_name}</h3>
+                                <span class="bg-slate-950 text-cyan-400 px-2 py-1 rounded text-xs font-mono border border-slate-700 shadow-inner">ID: ${cId}</span>
+                                <h3 class="font-bold text-white text-lg tracking-wide">${c.component_name}</h3>
                             </div>
-                            <span id="status-${cId}" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-700">Queued</span>
+                            <span id="status-${cId}" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-700 shadow-sm">Queued</span>
                         </div>
                         
                         <!-- Body -->
-                        <div id="body-${cId}" class="hidden p-5 space-y-6 bg-[#0f172a]/50">
+                        <div id="body-${cId}" class="hidden p-6 space-y-8 bg-[#0b1120]">
                             
                             <!-- Design -->
-                            <div id="design-section-${cId}" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
-                                <h4 class="text-indigo-400 font-bold mb-3 flex items-center gap-2">
-                                    <span class="bg-indigo-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">1</span>
-                                    Design Blueprint
+                            <div id="design-section-${cId}" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm relative group">
+                                <span class="absolute top-4 right-5 text-xs font-bold text-slate-500 uppercase tracking-wide group-focus-within:text-indigo-400 transition-colors">RICH TEXT BLUEPRINT</span>
+                                <h4 class="text-indigo-400 font-bold mb-4 flex items-center gap-2 text-lg">
+                                    <span class="bg-indigo-500 text-white w-7 h-7 rounded-full flex justify-center items-center text-sm shadow">1</span>
+                                    Architectural Blueprint
                                 </h4>
-                                <textarea id="design-text-${cId}" class="w-full bg-[#1e1e1e] text-slate-300 font-mono p-4 rounded h-64 overflow-y-auto text-sm mb-4 shadow-inner border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" spellcheck="false"></textarea>
-                                <button id="approve-design-${cId}" onclick="approveDesign('${cId}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                <textarea id="design-text-${cId}" class="w-full bg-[#161b22] text-slate-300 font-mono p-5 rounded-lg h-72 overflow-y-auto text-sm mb-5 shadow-inner border border-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none leading-relaxed" spellcheck="false"></textarea>
+                                <button id="approve-design-${cId}" onclick="approveDesign('${cId}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                     Approve Design & Generate Code
                                 </button>
                             </div>
                             
                             <!-- Code & Exec -->
-                            <div id="code-section-${cId}" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
-                                <h4 class="text-purple-400 font-bold mb-3 flex items-center gap-2">
-                                    <span class="bg-purple-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">2</span>
-                                    Generated Codebase
-                                </h4>
-                                <div class="flex h-80 border border-slate-700 rounded overflow-hidden mb-4 shadow-inner">
-                                    <div class="w-1/3 bg-slate-950 border-r border-slate-700 p-2 overflow-y-auto" id="file-list-${cId}"></div>
-                                    <textarea id="code-text-${cId}" class="w-2/3 bg-[#1e1e1e] text-slate-300 p-4 font-mono text-sm resize-none focus:outline-none" spellcheck="false" oninput="if(componentStates['${cId}'].codebase) { componentStates['${cId}'].codebase.files[componentStates['${cId}'].activeFileIndex].source_code = this.value; }"></textarea>
+                            <div id="code-section-${cId}" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+                                <div class="flex justify-between items-end mb-4 border-b border-slate-800 pb-2">
+                                    <h4 class="text-purple-400 font-bold flex items-center gap-2 text-lg">
+                                        <span class="bg-purple-500 text-white w-7 h-7 rounded-full flex justify-center items-center text-sm shadow">2</span>
+                                        Generated Codebase
+                                    </h4>
+                                    <div id="rev-tabs-${cId}" class="flex gap-1"></div>
                                 </div>
-                                <button id="approve-code-${cId}" class="w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg hidden">
+                                <div class="flex h-[450px] border border-slate-700 rounded-lg overflow-hidden mb-5 shadow-inner bg-[#1e1e1e]">
+                                    <div class="w-1/3 bg-[#111827] border-r border-slate-700 overflow-y-auto py-2" id="file-list-${cId}"></div>
+                                    <div class="w-2/3 relative">
+                                        <div id="monaco-${cId}" class="absolute inset-0"></div>
+                                    </div>
+                                </div>
+                                <button id="approve-code-${cId}" class="w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-lg hidden shadow-sm border border-slate-700">
                                     Executed
                                 </button>
                             </div>
                             
                             <!-- Critics -->
-                            <div id="critic-section-${cId}" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
-                                <h4 class="text-rose-400 font-bold mb-3 flex items-center gap-2">
-                                    <span class="bg-rose-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">3</span>
+                            <div id="critic-section-${cId}" class="hidden bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-sm">
+                                <h4 class="text-rose-400 font-bold mb-4 flex items-center gap-2 text-lg">
+                                    <span class="bg-rose-500 text-white w-7 h-7 rounded-full flex justify-center items-center text-sm shadow">3</span>
                                     Arbitration Feedback
                                 </h4>
-                                <div class="bg-black/50 border border-slate-700 p-3 rounded mb-4 max-h-32 overflow-y-auto shadow-inner">
+                                
+                                <h5 class="text-xs uppercase font-bold text-slate-500 mb-2 tracking-wider">Execution Logs</h5>
+                                <div class="bg-[#0b1120] border border-slate-700 p-4 rounded-lg mb-6 max-h-40 overflow-y-auto shadow-inner">
                                     <pre id="exec-logs-${cId}" class="text-xs font-mono text-slate-400 whitespace-pre-wrap"></pre>
                                 </div>
-                                <div id="critic-cards-${cId}" class="space-y-2 mb-4 max-h-48 overflow-y-auto"></div>
-                                <div id="verdict-box-${cId}" class="p-4 bg-slate-800 rounded border border-slate-600 mb-4 hidden shadow flex justify-between items-center">
-                                    <span class="text-sm uppercase font-bold text-slate-400 tracking-wider">Verdict:</span> 
-                                    <span id="verdict-text-${cId}" class="font-black text-lg"></span>
+                                
+                                <h5 class="text-xs uppercase font-bold text-slate-500 mb-2 tracking-wider">Critic Reports</h5>
+                                <div id="critic-cards-${cId}" class="grid grid-cols-1 gap-3 mb-6 max-h-60 overflow-y-auto pr-2"></div>
+                                
+                                <!-- ADJUDICATOR BOX -->
+                                <div id="verdict-box-${cId}" class="p-5 bg-slate-950 rounded-xl border border-slate-700 mb-5 hidden shadow-lg relative overflow-hidden">
+                                    <div class="absolute top-0 left-0 w-1 h-full bg-orange-500" id="verdict-strip-${cId}"></div>
+                                    <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-3">
+                                        <span class="text-sm uppercase font-bold text-slate-300 tracking-wider flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                                            Master Adjudicator
+                                        </span> 
+                                        <span id="verdict-text-${cId}" class="font-black text-xl tracking-tight"></span>
+                                    </div>
+                                    <div id="verdict-reasoning-${cId}" class="text-sm text-slate-400 whitespace-pre-wrap leading-relaxed font-mono bg-slate-900/50 p-3 rounded border border-slate-800"></div>
                                 </div>
-                                <button id="approve-component-${cId}" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors hidden flex items-center justify-center gap-2 shadow-sm"></button>
+                                
+                                <button id="approve-component-${cId}" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-lg transition-colors hidden flex items-center justify-center gap-2 shadow-md"></button>
                             </div>
                         </div>
                     `;
                     container.appendChild(workspace);
+                    
+                    // Init monaco early so it's ready
+                    setTimeout(() => initComponentMonaco(cId), 100);
                 }
                 
                 const statusBadge = document.getElementById(`status-${cId}`);
-                if (state.status === 'queued') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-slate-500/20 text-slate-400 border border-slate-500/30'; statusBadge.innerText = 'Queued for Design'; }
-                if (state.status === 'designing') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'; statusBadge.innerText = 'Designing...'; }
-                if (state.status === 'waiting_design') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
+                if (state.status === 'queued') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700'; statusBadge.innerText = 'Queued for Design'; }
+                if (state.status === 'designing') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'; statusBadge.innerText = 'Designing...'; }
+                if (state.status === 'waiting_design') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 animate-pulse'; statusBadge.innerText = 'Action Required'; }
                 
-                if (state.status === 'coding_queued') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-slate-500/20 text-slate-400 border border-slate-500/30'; statusBadge.innerText = 'Queued for Code'; }
-                if (state.status === 'coding') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30'; statusBadge.innerText = 'Coding...'; }
+                if (state.status === 'coding_queued') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700'; statusBadge.innerText = 'Queued for Code'; }
+                if (state.status === 'coding') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-purple-500/20 text-purple-400 border border-purple-500/30'; statusBadge.innerText = 'Coding...'; }
                 
-                if (state.status === 'critic_queued') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-slate-500/20 text-slate-400 border border-slate-500/30'; statusBadge.innerText = 'Queued for Tests'; }
-                if (state.status === 'executing' || state.status === 'critiquing') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30'; statusBadge.innerText = 'Evaluating...'; }
-                if (state.status === 'waiting_critic') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
+                if (state.status === 'critic_queued') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700'; statusBadge.innerText = 'Queued for Tests'; }
+                if (state.status === 'executing' || state.status === 'critiquing') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30'; statusBadge.innerText = 'Evaluating...'; }
+                if (state.status === 'waiting_critic') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 animate-pulse'; statusBadge.innerText = 'Action Required'; }
                 
-                if (state.status === 'passed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'; statusBadge.innerText = 'Passed ?'; }
-                if (state.status === 'failed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30'; statusBadge.innerText = 'Failed ?'; }
+                if (state.status === 'passed') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]'; statusBadge.innerText = 'Passed ✓'; }
+                if (state.status === 'failed') { statusBadge.className = 'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-red-500/20 text-red-400 border border-red-500/30'; statusBadge.innerText = 'Failed ✗'; }
             });
             
             const passedCount = pipelineQueue.filter(c => componentStates[c.component_id].status === 'passed').length;
@@ -1575,13 +1671,10 @@
         async function processPipeline() {
             if (!pipelineActive) return;
             
-            // 1. Process Design Queue
             if (!pipelineLocks.design) {
                 const c = pipelineQueue.find(c => componentStates[c.component_id].status === 'queued');
                 if (c) {
-                    const depsPassed = c.dependencies_on.every(depId => 
-                        !componentStates[depId] || componentStates[depId].status === 'passed'
-                    );
+                    const depsPassed = true;
                     if (depsPassed) {
                         pipelineLocks.design = true;
                         startComponentDesign(c);
@@ -1589,7 +1682,6 @@
                 }
             }
             
-            // 2. Process Code Queue
             if (!pipelineLocks.code) {
                 const c = pipelineQueue.find(c => componentStates[c.component_id].status === 'coding_queued');
                 if (c) {
@@ -1598,7 +1690,6 @@
                 }
             }
             
-            // 3. Process Critic Queue
             if (!pipelineLocks.critic) {
                 const c = pipelineQueue.find(c => componentStates[c.component_id].status === 'critic_queued');
                 if (c) {
@@ -1633,7 +1724,7 @@
                 let bpText = `ARCHITECTURE OVERVIEW:\n${blueprint.architecture_overview || 'N/A'}\n\nTECH STACK: ${(blueprint.tech_stack || []).join(', ')}\nDOCKER IMAGE: ${blueprint.docker_image}\nDEV SERVER COMMAND: ${blueprint.dev_server_command}\nDEV SERVER PORT: ${blueprint.dev_server_port}\nRUN TESTS COMMAND: ${blueprint.run_tests_command}\n\nFILES TO GENERATE:`;
                 if (blueprint.files && Array.isArray(blueprint.files)) {
                     blueprint.files.forEach((f, i) => {
-                        bpText += `\n\n?? ${i + 1}. ${f.file_name}\n`;
+                        bpText += `\n\n📄 ${i + 1}. ${f.file_name}\n`;
                         bpText += `   Purpose: ${f.purpose}\n`;
                         bpText += `   Dependencies: ${(f.dependencies || []).join(', ') || 'None'}\n`;
                         bpText += `   Pseudocode:\n${(f.pseudocode || '').split('\n').map(l => '     ' + l).join('\n')}`;
@@ -1661,7 +1752,7 @@
             const btn = document.getElementById(`approve-design-${cId}`);
             btn.disabled = true;
             btn.innerText = "Parsing Design...";
-            btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg flex items-center justify-center shadow-sm";
+            btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3.5 rounded-lg flex items-center justify-center gap-2 shadow-sm";
             
             try {
                 const text = document.getElementById(`design-text-${cId}`).value;
@@ -1676,11 +1767,11 @@
                 alert("Error parsing Design: " + e.message);
                 btn.disabled = false;
                 btn.innerText = "Approve Design & Generate Code";
-                btn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center shadow-sm";
+                btn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
                 return;
             }
             
-            btn.innerText = "Approved ?";
+            btn.innerText = "Approved ✓";
             state.status = 'coding_queued';
             renderPipelineTracks();
             processPipeline();
@@ -1693,7 +1784,10 @@
             try {
                 state.status = 'coding';
                 document.getElementById(`code-section-${cId}`).classList.remove('hidden');
-                document.getElementById(`code-text-${cId}`).value = "Agent is writing code...";
+                
+                const container = document.getElementById(`file-list-${cId}`);
+                container.innerHTML = '<div class="text-slate-500 font-mono p-4 text-sm animate-pulse">Synthesizing codebase...</div>';
+                if (componentEditors[cId]) componentEditors[cId].setValue("Agent is writing code...");
                 renderPipelineTracks();
                 
                 const codeRes = await fetch('/api/generate-code', {
@@ -1708,17 +1802,11 @@
                 });
                 
                 const codebase = await readJsonStream(codeRes);
-                state.codebase = codebase;
-                state.activeFileIndex = 0;
+                state.codebase = JSON.parse(JSON.stringify(codebase)); // deep copy
+                if (!state.revisionHistory) state.revisionHistory = [];
+                state.revisionHistory.push({ codebase: JSON.parse(JSON.stringify(codebase)) });
                 
-                const listDiv = document.getElementById(`file-list-${cId}`);
-                listDiv.innerHTML = codebase.files.map((f, i) => `
-                    <div class="text-sm font-mono text-slate-400 py-1.5 px-2 hover:bg-slate-800 hover:text-white cursor-pointer rounded transition-colors" onclick="componentStates['${cId}'].activeFileIndex = ${i}; document.getElementById('code-text-${cId}').value = componentStates['${cId}'].codebase.files[${i}].source_code;">${f.file_name}</div>
-                `).join('');
-                
-                if (codebase.files.length > 0) {
-                    document.getElementById(`code-text-${cId}`).value = codebase.files[0].source_code;
-                }
+                switchComponentFile(cId, 0, state.revisionHistory.length - 1);
                 
                 state.status = 'critic_queued';
                 pipelineLocks.code = false;
@@ -1757,7 +1845,7 @@
                 document.getElementById(`exec-logs-${cId}`).innerText = exec.logs;
                 
                 state.status = 'critiquing';
-                document.getElementById(`critic-cards-${cId}`).innerHTML = '<div class="text-sm text-slate-400 font-mono">Arbitration Engine analyzing execution results...</div>';
+                document.getElementById(`critic-cards-${cId}`).innerHTML = '<div class="text-sm text-slate-500 font-mono animate-pulse">Arbitration Engine analyzing execution results...</div>';
                 renderPipelineTracks();
                 
                 const criticRes = await fetch('/api/run-critics', {
@@ -1773,24 +1861,43 @@
                 
                 const arbitration = await criticRes.json();
                 
+                // Render old-ui style critic cards
                 const cCards = document.getElementById(`critic-cards-${cId}`);
-                cCards.innerHTML = arbitration.feedbacks.map(f => `
-                    <div class="bg-slate-950 p-3 rounded border border-slate-700 text-sm shadow-sm">
-                        <span class="font-bold uppercase tracking-wider text-xs ${f.severity_score === 0 ? 'text-emerald-400' : 'text-red-400'}">${f.critic_name}:</span> <span class="text-slate-300">${f.overall_comments}</span>
+                cCards.innerHTML = arbitration.feedbacks.map(f => {
+                    const isPass = f.severity_score === 0;
+                    return `
+                    <div class="bg-slate-900/80 p-4 rounded-lg border ${isPass ? 'border-emerald-500/30' : 'border-red-500/30'} shadow-sm relative overflow-hidden">
+                        <div class="absolute left-0 top-0 bottom-0 w-1 ${isPass ? 'bg-emerald-500' : 'bg-red-500'}"></div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-bold uppercase tracking-wider text-xs ${isPass ? 'text-emerald-400' : 'text-red-400'} flex items-center gap-2">
+                                ${isPass ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'}
+                                ${f.critic_name}
+                            </span>
+                            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${isPass ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}">Sev: ${f.severity_score}/10</span>
+                        </div>
+                        <p class="text-slate-300 text-sm leading-relaxed mb-2">${f.overall_comments}</p>
+                        ${f.issues_list && f.issues_list.length > 0 ? `<ul class="list-disc pl-5 text-xs text-slate-400 space-y-1">${f.issues_list.map(i => `<li>${i}</li>`).join('')}</ul>` : ''}
                     </div>
-                `).join('');
+                `}).join('');
                 
                 const vBox = document.getElementById(`verdict-box-${cId}`);
                 const vText = document.getElementById(`verdict-text-${cId}`);
+                const vReas = document.getElementById(`verdict-reasoning-${cId}`);
+                const vStrip = document.getElementById(`verdict-strip-${cId}`);
                 const aBtn = document.getElementById(`approve-component-${cId}`);
+                
                 vBox.classList.remove('hidden');
                 aBtn.classList.remove('hidden');
                 
                 if (arbitration.decision.verdict === 'pass') {
-                    vText.innerText = 'PASS';
-                    vText.className = 'font-black text-xl text-emerald-400';
-                    aBtn.innerText = "Approve Final Component ?";
-                    aBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center shadow-sm";
+                    vText.innerText = 'APPROVED';
+                    vText.className = 'font-black text-xl tracking-tight text-emerald-400';
+                    vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-emerald-500';
+                    vReas.innerText = arbitration.decision.revision_plan || 'All critics passed successfully. Ready for deployment integration.';
+                    vReas.className = 'text-sm text-emerald-200/70 whitespace-pre-wrap leading-relaxed font-mono bg-emerald-950/30 p-3 rounded border border-emerald-900/50';
+                    
+                    aBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Lock Final Component';
+                    aBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
                     aBtn.onclick = () => approveComponent(cId);
                     
                     state.status = 'waiting_critic';
@@ -1798,14 +1905,18 @@
                     renderPipelineTracks();
                     processPipeline();
                 } else {
-                    vText.innerText = 'REVISE';
-                    vText.className = 'font-black text-xl text-orange-400';
+                    vText.innerText = 'REVISION REQUIRED';
+                    vText.className = 'font-black text-xl tracking-tight text-orange-400';
+                    vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-orange-500';
+                    vReas.innerText = arbitration.decision.revision_plan;
+                    vReas.className = 'text-sm text-orange-200/70 whitespace-pre-wrap leading-relaxed font-mono bg-orange-950/30 p-3 rounded border border-orange-900/50';
+                    
                     state.revisionPlan = arbitration.decision.revision_plan;
                     
                     if (state.revisionCount < 3) {
                         state.revisionCount++;
                         aBtn.innerText = "Auto-Revising (Attempt " + state.revisionCount + "/3)...";
-                        aBtn.className = "w-full bg-orange-600/50 text-white font-bold py-3 rounded-lg cursor-not-allowed transition-colors flex items-center justify-center shadow-sm";
+                        aBtn.className = "w-full bg-orange-600/20 text-orange-400 font-bold py-3.5 rounded-lg cursor-not-allowed transition-colors flex items-center justify-center border border-orange-500/30 shadow-sm animate-pulse";
                         aBtn.onclick = null;
                         
                         state.status = 'coding_queued';
@@ -1819,7 +1930,7 @@
                         
                     } else {
                         aBtn.innerText = "Max Revisions Reached - Inspect & Force Approve";
-                        aBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition-colors";
+                        aBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md";
                         aBtn.onclick = () => approveComponent(cId);
                         
                         state.status = 'waiting_critic';
@@ -1843,8 +1954,8 @@
             
             const btn = document.getElementById(`approve-component-${cId}`);
             btn.disabled = true;
-            btn.innerText = "Completed ?";
-            btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
+            btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Locked';
+            btn.className = "w-full bg-slate-800 text-slate-500 font-bold py-3.5 rounded-lg flex justify-center items-center gap-2 border border-slate-700 shadow-inner";
             
             document.getElementById(`body-${cId}`).classList.add('hidden');
             
