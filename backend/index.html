@@ -1482,81 +1482,81 @@
                 const cId = c.component_id;
                 const state = componentStates[cId];
                 
-                let workspace = document.getElementById(workspace-+cId);
+                let workspace = document.getElementById(`workspace-${cId}`);
                 if (!workspace) {
                     workspace = document.createElement('div');
-                    workspace.id = workspace-+cId;
+                    workspace.id = `workspace-${cId}`;
                     workspace.className = "bg-slate-800 rounded-lg border border-slate-700 overflow-hidden mb-4 shadow-sm";
-                    workspace.innerHTML = 
+                    workspace.innerHTML = `
                         <!-- Header -->
-                        <div class="bg-slate-700/50 p-4 flex justify-between items-center cursor-pointer hover:bg-slate-700 transition-colors" onclick="document.getElementById('body-+cId+').classList.toggle('hidden')">
+                        <div class="bg-slate-700/50 p-4 flex justify-between items-center cursor-pointer hover:bg-slate-700 transition-colors" onclick="document.getElementById('body-${cId}').classList.toggle('hidden')">
                             <div class="flex items-center gap-3">
-                                <span class="bg-slate-900 text-slate-300 px-2 py-1 rounded text-xs font-mono border border-slate-600">ID: +cId+</span>
-                                <h3 class="font-bold text-cyan-400 text-lg">+c.component_name+</h3>
+                                <span class="bg-slate-900 text-slate-300 px-2 py-1 rounded text-xs font-mono border border-slate-600">ID: ${cId}</span>
+                                <h3 class="font-bold text-cyan-400 text-lg">${c.component_name}</h3>
                             </div>
-                            <span id="status-+cId+" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-700">Queued</span>
+                            <span id="status-${cId}" class="text-xs font-mono px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-700">Queued</span>
                         </div>
                         
                         <!-- Body -->
-                        <div id="body-+cId+" class="hidden p-5 space-y-6 bg-[#0f172a]/50">
+                        <div id="body-${cId}" class="hidden p-5 space-y-6 bg-[#0f172a]/50">
                             
                             <!-- Design -->
-                            <div id="design-section-+cId+" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
+                            <div id="design-section-${cId}" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
                                 <h4 class="text-indigo-400 font-bold mb-3 flex items-center gap-2">
                                     <span class="bg-indigo-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">1</span>
                                     Design Blueprint
                                 </h4>
-                                <div id="design-text-+cId+" contenteditable="true" class="bg-white text-black p-4 rounded h-64 overflow-y-auto whitespace-pre-wrap text-sm mb-4 shadow-inner border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" spellcheck="false"></div>
-                                <button id="approve-design-+cId+" onclick="approveDesign('+cId+')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                <div id="design-text-${cId}" contenteditable="true" class="bg-white text-black p-4 rounded h-64 overflow-y-auto whitespace-pre-wrap text-sm mb-4 shadow-inner border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500" spellcheck="false"></div>
+                                <button id="approve-design-${cId}" onclick="approveDesign('${cId}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
                                     Approve Design & Generate Code
                                 </button>
                             </div>
                             
                             <!-- Code & Exec -->
-                            <div id="code-section-+cId+" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
+                            <div id="code-section-${cId}" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
                                 <h4 class="text-purple-400 font-bold mb-3 flex items-center gap-2">
                                     <span class="bg-purple-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">2</span>
                                     Generated Codebase
                                 </h4>
                                 <div class="flex h-80 border border-slate-700 rounded overflow-hidden mb-4 shadow-inner">
-                                    <div class="w-1/3 bg-slate-950 border-r border-slate-700 p-2 overflow-y-auto" id="file-list-+cId+"></div>
-                                    <textarea id="code-text-+cId+" class="w-2/3 bg-[#1e1e1e] text-slate-300 p-4 font-mono text-sm resize-none focus:outline-none" spellcheck="false" oninput="if(componentStates['+cId+'].codebase) { componentStates['+cId+'].codebase.files[componentStates['+cId+'].activeFileIndex].code_content = this.value; }"></textarea>
+                                    <div class="w-1/3 bg-slate-950 border-r border-slate-700 p-2 overflow-y-auto" id="file-list-${cId}"></div>
+                                    <textarea id="code-text-${cId}" class="w-2/3 bg-[#1e1e1e] text-slate-300 p-4 font-mono text-sm resize-none focus:outline-none" spellcheck="false" oninput="if(componentStates['${cId}'].codebase) { componentStates['${cId}'].codebase.files[componentStates['${cId}'].activeFileIndex].code_content = this.value; }"></textarea>
                                 </div>
-                                <button id="approve-code-+cId+" onclick="approveCode('+cId+')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
+                                <button id="approve-code-${cId}" onclick="approveCode('${cId}')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm">
                                     Execute Code & Run Critics
                                 </button>
                             </div>
                             
                             <!-- Critics -->
-                            <div id="critic-section-+cId+" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
+                            <div id="critic-section-${cId}" class="hidden border border-slate-700 rounded-lg p-5 bg-slate-900 shadow-inner">
                                 <h4 class="text-rose-400 font-bold mb-3 flex items-center gap-2">
                                     <span class="bg-rose-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow">3</span>
                                     Arbitration Feedback
                                 </h4>
                                 <div class="bg-black/50 border border-slate-700 p-3 rounded mb-4 max-h-32 overflow-y-auto shadow-inner">
-                                    <pre id="exec-logs-+cId+" class="text-xs font-mono text-slate-400 whitespace-pre-wrap"></pre>
+                                    <pre id="exec-logs-${cId}" class="text-xs font-mono text-slate-400 whitespace-pre-wrap"></pre>
                                 </div>
-                                <div id="critic-cards-+cId+" class="space-y-2 mb-4 max-h-48 overflow-y-auto"></div>
-                                <div id="verdict-box-+cId+" class="p-4 bg-slate-800 rounded border border-slate-600 mb-4 hidden shadow flex justify-between items-center">
+                                <div id="critic-cards-${cId}" class="space-y-2 mb-4 max-h-48 overflow-y-auto"></div>
+                                <div id="verdict-box-${cId}" class="p-4 bg-slate-800 rounded border border-slate-600 mb-4 hidden shadow flex justify-between items-center">
                                     <span class="text-sm uppercase font-bold text-slate-400 tracking-wider">Verdict:</span> 
-                                    <span id="verdict-text-+cId+" class="font-black text-lg"></span>
+                                    <span id="verdict-text-${cId}" class="font-black text-lg"></span>
                                 </div>
-                                <button id="approve-component-+cId+" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors hidden flex items-center justify-center gap-2 shadow-sm"></button>
+                                <button id="approve-component-${cId}" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors hidden flex items-center justify-center gap-2 shadow-sm"></button>
                             </div>
                         </div>
-                    ;
+                    `;
                     container.appendChild(workspace);
                 }
                 
-                const statusBadge = document.getElementById(status-+cId);
+                const statusBadge = document.getElementById(`status-${cId}`);
                 if (state.status === 'designing') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'; statusBadge.innerText = 'Designing...'; }
                 if (state.status === 'waiting_design') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
                 if (state.status === 'coding') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30'; statusBadge.innerText = 'Coding...'; }
                 if (state.status === 'waiting_code') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
                 if (state.status === 'executing' || state.status === 'critiquing') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30'; statusBadge.innerText = 'Evaluating...'; }
                 if (state.status === 'waiting_critic') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'; statusBadge.innerText = 'Action Required'; }
-                if (state.status === 'passed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'; statusBadge.innerText = 'Passed ?'; }
-                if (state.status === 'failed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30'; statusBadge.innerText = 'Failed ?'; }
+                if (state.status === 'passed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'; statusBadge.innerText = 'Passed ✓'; }
+                if (state.status === 'failed') { statusBadge.className = 'text-xs font-mono px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/30'; statusBadge.innerText = 'Failed ✗'; }
             });
             
             const passedCount = pipelineQueue.filter(c => componentStates[c.component_id].status === 'passed').length;
@@ -1593,12 +1593,12 @@
             
             try {
                 state.status = 'designing';
-                document.getElementById(ody-+cId).classList.remove('hidden');
-                document.getElementById(design-section-+cId).classList.remove('hidden');
-                document.getElementById(design-text-+cId).innerText = "Agent is designing blueprint...";
+                document.getElementById(`body-${cId}`).classList.remove('hidden');
+                document.getElementById(`design-section-${cId}`).classList.remove('hidden');
+                document.getElementById(`design-text-${cId}`).innerText = "Agent is designing blueprint...";
                 renderPipelineTracks();
                 
-                const contextStr = "Tech Stack: " + currentDecomposition.shared_tech_stack.join(', ') + "\\nDocker Image: " + currentDecomposition.shared_docker_image + "\\nScoped Requirements:\\n" + component.scoped_requirements;
+                const contextStr = "Tech Stack: " + currentDecomposition.shared_tech_stack.join(', ') + "\nDocker Image: " + currentDecomposition.shared_docker_image + "\nScoped Requirements:\n" + component.scoped_requirements;
                 
                 const designRes = await fetch('/api/generate-design', {
                     method: 'POST',
@@ -1609,7 +1609,7 @@
                 const blueprint = await readJsonStream(designRes);
                 state.blueprint = blueprint;
                 
-                document.getElementById(design-text-+cId).innerText = JSON.stringify(blueprint, null, 2);
+                document.getElementById(`design-text-${cId}`).innerText = JSON.stringify(blueprint, null, 2);
                 state.status = 'waiting_design';
                 renderPipelineTracks();
             } catch(e) {
@@ -1624,16 +1624,16 @@
         function approveDesign(cId) {
             const state = componentStates[cId];
             try {
-                const edited = JSON.parse(document.getElementById(design-text-+cId).innerText);
+                const edited = JSON.parse(document.getElementById(`design-text-${cId}`).innerText);
                 state.blueprint = edited;
             } catch(e) {
                 alert("Invalid JSON in Design format.");
                 return;
             }
             
-            document.getElementById(pprove-design-+cId).disabled = true;
-            document.getElementById(pprove-design-+cId).innerText = "Approved ?";
-            document.getElementById(pprove-design-+cId).className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
+            document.getElementById(`approve-design-${cId}`).disabled = true;
+            document.getElementById(`approve-design-${cId}`).innerText = "Approved ✓";
+            document.getElementById(`approve-design-${cId}`).className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
             
             startComponentCode(state.component);
         }
@@ -1644,8 +1644,8 @@
             
             try {
                 state.status = 'coding';
-                document.getElementById(code-section-+cId).classList.remove('hidden');
-                document.getElementById(code-text-+cId).value = "Agent is writing code...";
+                document.getElementById(`code-section-${cId}`).classList.remove('hidden');
+                document.getElementById(`code-text-${cId}`).value = "Agent is writing code...";
                 renderPipelineTracks();
                 
                 const codeRes = await fetch('/api/generate-code', {
@@ -1663,19 +1663,19 @@
                 state.codebase = codebase;
                 state.activeFileIndex = 0;
                 
-                const listDiv = document.getElementById(ile-list-+cId);
-                listDiv.innerHTML = codebase.files.map((f, i) => 
-                    <div class="text-sm font-mono text-slate-400 py-1.5 px-2 hover:bg-slate-800 hover:text-white cursor-pointer rounded transition-colors" onclick="componentStates['+cId+'].activeFileIndex = +i+; document.getElementById('code-text-+cId+').value = componentStates['+cId+'].codebase.files[+i+].code_content;">+f.file_name+</div>
-                ).join('');
+                const listDiv = document.getElementById(`file-list-${cId}`);
+                listDiv.innerHTML = codebase.files.map((f, i) => `
+                    <div class="text-sm font-mono text-slate-400 py-1.5 px-2 hover:bg-slate-800 hover:text-white cursor-pointer rounded transition-colors" onclick="componentStates['${cId}'].activeFileIndex = ${i}; document.getElementById('code-text-${cId}').value = componentStates['${cId}'].codebase.files[${i}].code_content;">${f.file_name}</div>
+                `).join('');
                 
                 if (codebase.files.length > 0) {
-                    document.getElementById(code-text-+cId).value = codebase.files[0].code_content;
+                    document.getElementById(`code-text-${cId}`).value = codebase.files[0].code_content;
                 }
                 
                 state.status = 'waiting_code';
-                document.getElementById(pprove-code-+cId).disabled = false;
-                document.getElementById(pprove-code-+cId).innerText = "Execute Code & Run Critics";
-                document.getElementById(pprove-code-+cId).className = "w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm";
+                document.getElementById(`approve-code-${cId}`).disabled = false;
+                document.getElementById(`approve-code-${cId}`).innerText = "Execute Code & Run Critics";
+                document.getElementById(`approve-code-${cId}`).className = "w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm";
                 renderPipelineTracks();
             } catch(e) {
                 alert("Code Error (" + cId + "): " + e.message);
@@ -1688,9 +1688,9 @@
 
         function approveCode(cId) {
             const state = componentStates[cId];
-            document.getElementById(pprove-code-+cId).disabled = true;
-            document.getElementById(pprove-code-+cId).innerText = "Executed ?";
-            document.getElementById(pprove-code-+cId).className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
+            document.getElementById(`approve-code-${cId}`).disabled = true;
+            document.getElementById(`approve-code-${cId}`).innerText = "Executed ✓";
+            document.getElementById(`approve-code-${cId}`).className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
             
             startComponentExecutionAndCritics(state.component);
         }
@@ -1701,11 +1701,11 @@
             
             try {
                 state.status = 'executing';
-                document.getElementById(critic-section-+cId).classList.remove('hidden');
-                document.getElementById(critic-cards-+cId).innerHTML = '';
-                document.getElementById(exec-logs-+cId).innerText = "Spinning up secure Docker sandbox for tests...";
-                document.getElementById(erdict-box-+cId).classList.add('hidden');
-                document.getElementById(pprove-component-+cId).classList.add('hidden');
+                document.getElementById(`critic-section-${cId}`).classList.remove('hidden');
+                document.getElementById(`critic-cards-${cId}`).innerHTML = '';
+                document.getElementById(`exec-logs-${cId}`).innerText = "Spinning up secure Docker sandbox for tests...";
+                document.getElementById(`verdict-box-${cId}`).classList.add('hidden');
+                document.getElementById(`approve-component-${cId}`).classList.add('hidden');
                 renderPipelineTracks();
                 
                 const execRes = await fetch('/api/execute-code', {
@@ -1716,10 +1716,10 @@
                 
                 const exec = await execRes.json();
                 state.executionResult = exec;
-                document.getElementById(exec-logs-+cId).innerText = exec.logs;
+                document.getElementById(`exec-logs-${cId}`).innerText = exec.logs;
                 
                 state.status = 'critiquing';
-                document.getElementById(critic-cards-+cId).innerHTML = '<div class="text-sm text-slate-400 font-mono">Arbitration Engine analyzing execution results...</div>';
+                document.getElementById(`critic-cards-${cId}`).innerHTML = '<div class="text-sm text-slate-400 font-mono">Arbitration Engine analyzing execution results...</div>';
                 renderPipelineTracks();
                 
                 const criticRes = await fetch('/api/run-critics', {
@@ -1735,23 +1735,23 @@
                 
                 const arbitration = await criticRes.json();
                 
-                const cCards = document.getElementById(critic-cards-+cId);
-                cCards.innerHTML = arbitration.feedbacks.map(f => 
+                const cCards = document.getElementById(`critic-cards-${cId}`);
+                cCards.innerHTML = arbitration.feedbacks.map(f => `
                     <div class="bg-slate-950 p-3 rounded border border-slate-700 text-sm shadow-sm">
-                        <span class="font-bold uppercase tracking-wider text-xs + (f.pass ? 'text-emerald-400' : 'text-red-400') +">+f.critic_name+:</span> <span class="text-slate-300">+f.feedback+</span>
+                        <span class="font-bold uppercase tracking-wider text-xs ${f.pass ? 'text-emerald-400' : 'text-red-400'}">${f.critic_name}:</span> <span class="text-slate-300">${f.feedback}</span>
                     </div>
-                ).join('');
+                `).join('');
                 
-                const vBox = document.getElementById(erdict-box-+cId);
-                const vText = document.getElementById(erdict-text-+cId);
-                const aBtn = document.getElementById(pprove-component-+cId);
+                const vBox = document.getElementById(`verdict-box-${cId}`);
+                const vText = document.getElementById(`verdict-text-${cId}`);
+                const aBtn = document.getElementById(`approve-component-${cId}`);
                 vBox.classList.remove('hidden');
                 aBtn.classList.remove('hidden');
                 
                 if (arbitration.decision.verdict === 'pass') {
                     vText.innerText = 'PASS';
                     vText.className = 'font-black text-xl text-emerald-400';
-                    aBtn.innerText = "Approve Final Component ?";
+                    aBtn.innerText = "Approve Final Component ✓";
                     aBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center shadow-sm";
                     aBtn.onclick = () => approveComponent(cId);
                 } else {
@@ -1786,12 +1786,12 @@
             const state = componentStates[cId];
             state.status = 'passed';
             
-            const btn = document.getElementById(pprove-component-+cId);
+            const btn = document.getElementById(`approve-component-${cId}`);
             btn.disabled = true;
-            btn.innerText = "Completed ?";
+            btn.innerText = "Completed ✓";
             btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3 rounded-lg";
             
-            document.getElementById(ody-+cId).classList.add('hidden');
+            document.getElementById(`body-${cId}`).classList.add('hidden');
             
             componentResults.push({
                 component_id: cId,
