@@ -39,13 +39,11 @@ def print_queue_status():
         if queue:
             stage_counts[f"QUEUED FOR {stage.name}"] += len(queue)
             
-    print("
---------------------------------------------------")
+    print("\n--------------------------------------------------")
     print("?? PIPELINE QUEUE STATUS:")
     for k, v in stage_counts.items():
         print(f"  - {k}: {v}")
-    print("--------------------------------------------------
-")
+    print("--------------------------------------------------\n")
 
 @router.post("/api/pipeline/init")
 def pipeline_init(payload: PipelineInitInput):
