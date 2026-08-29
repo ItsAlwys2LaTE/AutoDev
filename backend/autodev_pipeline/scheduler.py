@@ -243,15 +243,29 @@ class PipelineScheduler:
 
     def tick_schedule(self) -> List[Tuple[str, StageEnum, int]]:
         """
-        Runs a scheduling tick and returns list of dispatched (component_id, stage, epoch) tuples.
-        Provides compatibility with test harnesses.
+        Runs a scheduling tick and returns list of dispatched and active (component_id, stage, epoch) tuples.
+        Provides compatibility with test harnesses and polling UI clients.
         """
         summary = self.step()
-        dispatched: List[Tuple[str, StageEnum, int]] = []
-        for stage_val, cid in summary["dispatched_stages"].items():
+        assignments_map: Dict[StageEnum, Tuple[str, int]] = {}
+
+        # 1. Active stage leases currently held in lock manager
+        for stage in StageEnum.linear_order():
+            if self.lock_manager.is_stage_occupied(stage):
+                holder = self.lock_manager.get_stage_holder(stage)
+                epoch = self.lock_manager.get_stage_epoch(stage)
+                if holder:
+                    assignments_map[stage] = (holder, epoch)
+
+        # 2. Newly dispatched stages from this tick
+        for stage_val, cid in summary.get("dispatched_stages", {}).items():
             stg = _normalize_stage(stage_val)
             epoch = self.lock_manager.get_stage_epoch(stg)
-            dispatched.append((cid, stg, epoch))
+            assignments_map[stg] = (cid, epoch)
+
+        dispatched: List[Tuple[str, StageEnum, int]] = [
+            (cid, stg, epoch) for stg, (cid, epoch) in assignments_map.items()
+        ]
         return dispatched
 
     def complete_stage_execution(
@@ -356,8 +370,12 @@ class PipelineScheduler:
                         )
                     return True
 
-            # Standard sequential progression
-            next_stg = norm_stage.next_stage()
+            # Standard sequential progression: CRITICS passing concludes the per-component unit lifecycle
+            if norm_stage == StageEnum.CRITICS:
+                next_stg = None
+            else:
+                next_stg = norm_stage.next_stage()
+
             StageHandoverProtocol.execute_handover(
                 component=comp,
                 current_stage=norm_stage,

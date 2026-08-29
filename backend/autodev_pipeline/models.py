@@ -243,10 +243,12 @@ class ComponentStateRecord:
             ComponentStatus.STALLED: {
                 ComponentStatus.READY,
                 ComponentStatus.PENDING_DEPS,
+                ComponentStatus.COMPLETED,
                 ComponentStatus.FAILED,
             },
             ComponentStatus.QUARANTINED: {
                 ComponentStatus.READY,
+                ComponentStatus.COMPLETED,
                 ComponentStatus.FAILED,
             },
             ComponentStatus.COMPLETED: set(),  # Terminal state

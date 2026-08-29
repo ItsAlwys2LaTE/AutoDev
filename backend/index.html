@@ -166,6 +166,12 @@
                 </h2>
                 <span id="pipelineProgress" class="text-sm text-slate-400 font-mono">0 / 0 components complete</span>
             </div>
+            <!-- Component Scroller Toggle Bar -->
+            <div class="flex justify-center mb-6">
+                <div id="componentToggler" class="inline-flex bg-slate-800 p-1.5 rounded-full shadow-inner overflow-x-auto max-w-full custom-scrollbar items-center gap-1">
+                    <!-- Dynamically injected pills -->
+                </div>
+            </div>
             <div id="pipelineTracks" class="flex flex-row overflow-x-auto snap-x snap-mandatory gap-6 items-start pb-6 custom-scrollbar">
                 <!-- Dynamically injected component tracks -->
             </div>
@@ -1671,6 +1677,19 @@
         
         function renderPipelineTracks() {
             const container = document.getElementById('pipelineTracks');
+            const toggler = document.getElementById('componentToggler');
+            if (toggler && toggler.children.length === 0) {
+                pipelineQueue.forEach((c, idx) => {
+                    let pill = document.createElement('button');
+                    pill.className = "px-4 py-1.5 rounded-full text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700 transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-slate-700 focus:text-white";
+                    pill.innerText = c.component_name;
+                    pill.onclick = () => {
+                        const ws = document.getElementById(`workspace-${c.component_id}`);
+                        if (ws) ws.scrollIntoView({behavior: 'smooth', inline: 'center', block: 'nearest'});
+                    };
+                    toggler.appendChild(pill);
+                });
+            }
             
             pipelineQueue.forEach(c => {
                 const cId = c.component_id;

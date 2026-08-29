@@ -385,9 +385,9 @@ class StageQueueManager:
                 return False  # Already queued in this stage
 
             self._sequence_counter += 1
-            # Revisions get a 1000-point priority boost to clear feedback loops fast
-            effective_priority = int(priority_order) + (1000 if is_revision else 0)
-            score = -effective_priority  # Inverted for min-heap
+            # Min-heap priority: lower priority_order number = higher dispatch priority (e.g. 0 or 1 before 2).
+            # Revisions get a -10000 score bonus to pop before new items.
+            score = int(priority_order) - (10000 if is_revision else 0)
 
             item = QueueItem(
                 priority_score=score,
@@ -529,19 +529,8 @@ class StageHandoverProtocol:
                 priority_order=component.priority_order,
                 is_revision=is_revision,
             )
-            # Attempt immediate dispatch if target stage is free and component is at head of queue
-            if (
-                not lock_manager.is_stage_occupied(norm_next)
-                and queue_manager.peek(norm_next) == component.component_id
-            ):
-                new_lease = lock_manager.try_acquire_stage(norm_next, component.component_id)
-                if new_lease:
-                    queue_manager.dequeue(norm_next)
-                    component.transition_to(
-                        ComponentStatus.IN_STAGE, stage=norm_next, lease=new_lease
-                    )
         else:
-            # Reached terminal progression (e.g. documentation stage completed)
+            # Reached terminal progression (e.g. documentation stage completed or critics passed)
             component.transition_to(ComponentStatus.COMPLETED)
 
         return True

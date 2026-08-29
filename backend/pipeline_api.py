@@ -3,10 +3,16 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
 from autodev_pipeline.scheduler import PipelineScheduler
-from autodev_pipeline.models import ComponentStateRecord, StageEnum, ComponentStatus
+from autodev_pipeline.models import (
+    ComponentStateRecord,
+    StageEnum,
+    ComponentStatus,
+    PipelineConfig,
+    CycleResolutionPolicy,
+)
 
 router = APIRouter()
-scheduler = PipelineScheduler()
+scheduler = PipelineScheduler(config=PipelineConfig(cycle_policy=CycleResolutionPolicy.ABORT))
 
 class PipelineInitInput(BaseModel):
     components: List[Dict[str, Any]]
@@ -18,12 +24,14 @@ class CompleteStageInput(BaseModel):
 
 @router.post("/api/pipeline/init")
 def pipeline_init(payload: PipelineInitInput):
+    global scheduler
+    scheduler = PipelineScheduler(config=PipelineConfig(cycle_policy=CycleResolutionPolicy.ABORT))
     records = []
     for c in payload.components:
         records.append(ComponentStateRecord(
             component_id=c.get("component_id", ""),
             name=c.get("component_name", c.get("component_id", "Unnamed")),
-            dependencies=c.get("dependencies", []),
+            dependencies=c.get("dependencies") or c.get("dependencies_on") or [],
             priority_order=c.get("priority_order", 0)
         ))
     success = scheduler.register_components(records)
@@ -38,7 +46,7 @@ def pipeline_tick():
     for comp_id, stage, epoch in dispatched:
         assignments.append({
             "component_id": comp_id,
-            "stage": stage.value,
+            "stage": stage.value if isinstance(stage, StageEnum) else str(stage),
             "epoch": epoch
         })
     return {"assignments": assignments}
