@@ -22,6 +22,26 @@ class CompleteStageInput(BaseModel):
     stage: str
     verdict: Optional[str] = "pass"
 
+
+def print_queue_status():
+    from collections import defaultdict
+    stage_counts = defaultdict(int)
+    for c in scheduler.components.values():
+        if c.status == ComponentStatus.COMPLETED:
+            stage_counts["COMPLETED"] += 1
+        elif c.status == ComponentStatus.QUEUED:
+            stage_counts[f"QUEUED FOR {c.stage.name}"] += 1
+        elif c.status == ComponentStatus.ACTIVE:
+            stage_counts[f"ACTIVE IN {c.stage.name}"] += 1
+            
+    print("
+--------------------------------------------------")
+    print("?? PIPELINE QUEUE STATUS:")
+    for k, v in stage_counts.items():
+        print(f"  - {k}: {v}")
+    print("--------------------------------------------------
+")
+
 @router.post("/api/pipeline/init")
 def pipeline_init(payload: PipelineInitInput):
     global scheduler
@@ -49,6 +69,8 @@ def pipeline_tick():
             "stage": stage.value if isinstance(stage, StageEnum) else str(stage),
             "epoch": epoch
         })
+    if dispatched:
+        print_queue_status()
     return {"assignments": assignments}
 
 @router.post("/api/pipeline/complete")
@@ -58,4 +80,5 @@ def pipeline_complete(payload: CompleteStageInput):
         stage=payload.stage,
         adjudication_verdict=payload.verdict
     )
+    print_queue_status()
     return {"success": success}

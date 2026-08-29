@@ -1887,7 +1887,7 @@
                 const designRes = await fetch('/api/generate-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ requirements: currentRequirements, component_context: contextStr })
+                    body: JSON.stringify({ requirements: currentRequirements, component_context: contextStr, component_name: component.component_name })
                 });
                 
                 const blueprint = await readJsonStream(designRes);
@@ -2030,7 +2030,8 @@
                         blueprint: state.blueprint,
                         codebase: state.codebase,
                         execution_result: state.executionResult,
-                        master_decomposition: currentDecomposition
+                        master_decomposition: currentDecomposition,
+                        component_name: component.component_name
                     })
                 });
                 
