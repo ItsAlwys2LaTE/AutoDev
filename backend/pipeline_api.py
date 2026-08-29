@@ -29,10 +29,15 @@ def print_queue_status():
     for c in scheduler.components.values():
         if c.status == ComponentStatus.COMPLETED:
             stage_counts["COMPLETED"] += 1
-        elif c.status == ComponentStatus.QUEUED:
-            stage_counts[f"QUEUED FOR {c.stage.name}"] += 1
-        elif c.status == ComponentStatus.ACTIVE:
-            stage_counts[f"ACTIVE IN {c.stage.name}"] += 1
+        elif c.status == ComponentStatus.IN_STAGE:
+            stage_name = c.current_stage.name if c.current_stage else "UNKNOWN"
+            stage_counts[f"ACTIVE IN {stage_name}"] += 1
+    
+    # Check queues
+    for stage in StageEnum.linear_order():
+        norm_stage, queue, _ = scheduler.queue_manager._get_stage_queue(stage)
+        if queue:
+            stage_counts[f"QUEUED FOR {stage.name}"] += len(queue)
             
     print("
 --------------------------------------------------")
