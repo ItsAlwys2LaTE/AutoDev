@@ -33,6 +33,8 @@ class CodeGenInput(BaseModel):
     blueprint: SystemDesignBlueprint
     previous_codebase: Optional[GeneratedCodeBase] = None
     revision_plan: Optional[str] = None
+    revision_count: Optional[int] = 0
+    component_name: Optional[str] = None
 
 class DocumentationInput(BaseModel):
     requirements: RequirementsDocument
@@ -134,8 +136,9 @@ from agents.codegen_agent import generate_code_stream
 @app.post("/api/generate-code")
 def api_generate_code(payload: CodeGenInput):
     comp_name = payload.component_name or "Global"
+    rev_str = f" (REVISION ATTEMPT {payload.revision_count})" if payload.revision_count and payload.revision_count > 0 else ""
     print(f"
-[Component: {comp_name}] [Agent: CODEGEN] Using API Key: GEMINI_API_KEY_CODEGEN (Model: gemini-3.6-flash)")
+[Component: {comp_name}] [Agent: CODEGEN]{rev_str} Using API Key: GEMINI_API_KEY_CODEGEN (Model: gemini-3.6-flash)")
     try:
         return StreamingResponse(
             generate_code_stream(

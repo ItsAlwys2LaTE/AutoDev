@@ -1970,7 +1970,9 @@
                         requirements: currentRequirements,
                         blueprint: state.blueprint,
                         previous_codebase: state.codebase,
-                        revision_plan: state.revisionPlan
+                        revision_plan: state.revisionPlan,
+                        component_name: component.component_name,
+                        revision_count: state.revisionCount || 0
                     })
                 });
                 
@@ -2031,7 +2033,8 @@
                         codebase: state.codebase,
                         execution_result: state.executionResult,
                         master_decomposition: currentDecomposition,
-                        component_name: component.component_name
+                        component_name: component.component_name,
+                        revision_count: state.revisionCount || 0
                     })
                 });
                 
