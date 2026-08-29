@@ -17,6 +17,9 @@ app = FastAPI(title="Auto-SDLC Pipeline")
 from pipeline_api import router as pipeline_router
 app.include_router(pipeline_router)
 
+from log_stream import router as log_router
+app.include_router(log_router)
+
 from typing import Optional
 
 class FeatureRequestInput(BaseModel):
