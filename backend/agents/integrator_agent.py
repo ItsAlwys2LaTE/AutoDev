@@ -14,9 +14,9 @@ def generate_integration_stream(
     decomposition: ComponentDecomposition,
     component_results: list  # List[ComponentResult]
 ):
-    api_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
+    api_key = os.environ.get("GEMINI_API_KEY_INTEGRATION")
     if not api_key:
-        raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
+        raise ValueError("GEMINI_API_KEY_INTEGRATION is not set in the environment variables.")
 
     client = genai.Client(api_key=api_key)
 

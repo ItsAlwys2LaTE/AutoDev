@@ -7,9 +7,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, ComponentDecomposition
 
 def decompose_requirements_stream(requirements: RequirementsDocument):
-    api_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS")
+    api_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
     if not api_key:
-        raise ValueError("GEMINI_API_KEY_REQUIREMENTS is not set in the environment variables.")
+        raise ValueError("GEMINI_API_KEY_ADJUDICATOR is not set in the environment variables.")
 
     client = genai.Client(api_key=api_key)
 

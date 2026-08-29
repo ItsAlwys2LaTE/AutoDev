@@ -1454,6 +1454,7 @@
         let pipelineLocks = { design: false, code: false, critic: false };
         let componentEditors = {};
         
+        let pipelineInterval = null;
         async function startComponentPipeline() {
             pipelineActive = true;
             setVisible('decomposeActions', false);
@@ -1461,6 +1462,14 @@
             updateStepper(2, 'active'); 
             
             pipelineQueue = [...currentDecomposition.components].sort((a, b) => a.priority_order - b.priority_order);
+            
+            try {
+                await fetch('/api/pipeline/init', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ components: pipelineQueue })
+                });
+            } catch(e) { console.error("Init Error", e); }
             
             pipelineQueue.forEach(c => {
                 componentStates[c.component_id] = { 
@@ -1474,6 +1483,7 @@
             });
             
             renderPipelineTracks();
+            pipelineInterval = setInterval(processPipeline, 2000);
             processPipeline();
         }
         
@@ -1669,34 +1679,28 @@
         }
         
         async function processPipeline() {
-            if (!pipelineActive) return;
-            
-            if (!pipelineLocks.design) {
-                const c = pipelineQueue.find(c => componentStates[c.component_id].status === 'queued');
-                if (c) {
-                    const depsPassed = true;
-                    if (depsPassed) {
-                        pipelineLocks.design = true;
-                        startComponentDesign(c);
-                    }
-                }
+            if (!pipelineActive) {
+                if (pipelineInterval) clearInterval(pipelineInterval);
+                return;
             }
-            
-            if (!pipelineLocks.code) {
-                const c = pipelineQueue.find(c => componentStates[c.component_id].status === 'coding_queued');
-                if (c) {
-                    pipelineLocks.code = true;
-                    startComponentCode(c);
+            try {
+                const res = await fetch('/api/pipeline/tick');
+                const data = await res.json();
+                if (data.assignments) {
+                    data.assignments.forEach(assign => {
+                        const state = componentStates[assign.component_id];
+                        if (!state) return;
+                        
+                        if (assign.stage === 'DESIGN' && state.status === 'queued') {
+                            startComponentDesign(state.component);
+                        } else if (assign.stage === 'CODEGEN' && state.status === 'coding_queued') {
+                            startComponentCode(state.component);
+                        } else if (assign.stage === 'CRITICS' && state.status === 'critic_queued') {
+                            startComponentExecutionAndCritics(state.component);
+                        }
+                    });
                 }
-            }
-            
-            if (!pipelineLocks.critic) {
-                const c = pipelineQueue.find(c => componentStates[c.component_id].status === 'critic_queued');
-                if (c) {
-                    pipelineLocks.critic = true;
-                    startComponentExecutionAndCritics(c);
-                }
-            }
+            } catch(e) { console.error("Tick error", e); }
         }
 
         async function startComponentDesign(component) {
@@ -1734,13 +1738,13 @@
                 document.getElementById(`design-text-${cId}`).value = bpText;
                 
                 state.status = 'waiting_design';
-                pipelineLocks.design = false;
+                // pipelineLocks.design = false;
                 renderPipelineTracks();
                 processPipeline();
             } catch(e) {
                 alert("Design Error (" + cId + "): " + e.message);
                 state.status = 'failed';
-                pipelineLocks.design = false;
+                // pipelineLocks.design = false;
                 renderPipelineTracks();
                 processPipeline();
             }
@@ -1809,13 +1813,14 @@
                 switchComponentFile(cId, 0, state.revisionHistory.length - 1);
                 
                 state.status = 'critic_queued';
-                pipelineLocks.code = false;
+                fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'CODEGEN', verdict: 'pass' }) });
+                // pipelineLocks.code = false;
                 renderPipelineTracks();
                 processPipeline();
             } catch(e) {
                 alert("Code Error (" + cId + "): " + e.message);
                 state.status = 'failed';
-                pipelineLocks.code = false;
+                // pipelineLocks.code = false;
                 renderPipelineTracks();
                 processPipeline();
             }
@@ -1901,7 +1906,7 @@
                     aBtn.onclick = () => approveComponent(cId);
                     
                     state.status = 'waiting_critic';
-                    pipelineLocks.critic = false;
+                    // pipelineLocks.critic = false;
                     renderPipelineTracks();
                     processPipeline();
                 } else {
@@ -1920,7 +1925,7 @@
                         aBtn.onclick = null;
                         
                         state.status = 'coding_queued';
-                        pipelineLocks.critic = false;
+                        fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'CRITICS', verdict: 'revise' }) });
                         renderPipelineTracks();
                         
                         setTimeout(() => {
@@ -1934,7 +1939,7 @@
                         aBtn.onclick = () => approveComponent(cId);
                         
                         state.status = 'waiting_critic';
-                        pipelineLocks.critic = false;
+                        // pipelineLocks.critic = false;
                         renderPipelineTracks();
                         processPipeline();
                     }
@@ -1942,7 +1947,7 @@
             } catch(e) {
                 alert("Critics Error (" + cId + "): " + e.message);
                 state.status = 'failed';
-                pipelineLocks.critic = false;
+                // pipelineLocks.critic = false;
                 renderPipelineTracks();
                 processPipeline();
             }
@@ -1951,7 +1956,7 @@
         function approveComponent(cId) {
             const state = componentStates[cId];
             state.status = 'passed';
-            
+            fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'CRITICS', verdict: 'pass' }) });
             const btn = document.getElementById(`approve-component-${cId}`);
             btn.disabled = true;
             btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Locked';
