@@ -1777,6 +1777,7 @@
             
             btn.innerText = "Approved ✓";
             state.status = 'coding_queued';
+            fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'DESIGN', verdict: 'pass' }) });
             renderPipelineTracks();
             processPipeline();
         }
