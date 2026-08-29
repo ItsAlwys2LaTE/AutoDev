@@ -62,15 +62,19 @@ def serve_frontend():
     return {"error": "index.html not found."}
 
 from fastapi.responses import StreamingResponse
+from prompt_guard import validate_prompt, PromptGuardError
 from agents.requirements_agent import generate_requirements_stream
 
 @app.post("/api/generate-requirements")
 def api_generate_requirements(user_input: FeatureRequestInput):
     try:
+        validate_prompt(user_input.feature_request)
         return StreamingResponse(
             generate_requirements_stream(user_input.feature_request),
             media_type="text/plain"
         )
+    except PromptGuardError as pe:
+        raise HTTPException(status_code=400, detail=str(pe))
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
