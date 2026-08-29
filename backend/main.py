@@ -51,6 +51,8 @@ class ArbitrationInput(BaseModel):
     codebase: GeneratedCodeBase
     execution_result: ExecutionResult
     master_decomposition: Optional[ComponentDecomposition] = None
+    component_name: Optional[str] = None
+    revision_count: Optional[int] = 0
 
 class IntegrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -116,6 +118,8 @@ from agents.design_agent import generate_design_stream
 class DesignInput(BaseModel):
     requirements: RequirementsDocument
     component_context: Optional[str] = None
+    component_name: Optional[str] = None
+    revision_count: Optional[int] = 0
 
 @app.post("/api/generate-design")
 def api_generate_design(payload: DesignInput):
