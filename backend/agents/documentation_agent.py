@@ -7,6 +7,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, CodeFile
 from retry import with_exponential_backoff
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -14,11 +15,12 @@ class DocumentationSet(BaseModel):
     files: List[CodeFile] = Field(description="List of documentation files")
 
 def generate_documentation_stream(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase):
-    api_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS")
-    if not api_key:
+    keys = get_gemini_keys_for_stage("DOCUMENTATION")
+    primary_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS")
+    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
+        keys = [primary_key.strip()] + keys
+    if not keys:
         raise ValueError("GEMINI_API_KEY_REQUIREMENTS is not set in the environment variables.")
-
-    client = genai.Client(api_key=api_key)
 
     system_prompt = """
     You are an Expert Technical Writer and Developer Advocate.
@@ -46,39 +48,70 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
     {codebase.model_dump_json(indent=2)}
     """
 
-    @with_exponential_backoff
-    def get_stream(model_name: str):
-        return client.models.generate_content_stream(
-            model=model_name,
-            contents=prompt_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.3,
-                response_mime_type="application/json",
-                response_schema=DocumentationSet,
-            )
-        )
+    for idx, key in enumerate(keys):
+        client = genai.Client(api_key=key)
 
-    last_usage = None
-    try:
-        stream = get_stream("gemini-3.6-flash")
-        for chunk in stream:
-            if chunk.text:
-                yield chunk.text
-            if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata is not None:
-                last_usage = chunk.usage_metadata
-        if last_usage:
-            yield f"__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
-    except Exception as e:
-        print(f"Documentation Agent failed: {e}. Falling back to gemini-3.5-flash-lite...")
+        @with_exponential_backoff
+        def get_stream(model_name: str):
+            return client.models.generate_content_stream(
+                model=model_name,
+                contents=prompt_content,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.3,
+                    response_mime_type="application/json",
+                    response_schema=DocumentationSet,
+                )
+            )
+
+        print(f"Documentation Agent is generating documentation using Gemini 3.6-flash (key {idx+1}/{len(keys)})...")
         try:
-            fallback_stream = get_stream("gemini-3.5-flash-lite")
-            for chunk in fallback_stream:
+            stream = get_stream("gemini-3.6-flash")
+            last_usage = None
+            for chunk in stream:
                 if chunk.text:
                     yield chunk.text
                 if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata is not None:
                     last_usage = chunk.usage_metadata
             if last_usage:
-                yield f"__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
-        except Exception as fallback_e:
-            yield f'{{"error": "API Error during documentation generation: {str(fallback_e)}" }}'
+                yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
+            return
+        except Exception as e:
+            print(f"Documentation Agent failed on key {idx+1} ({e})")
+            if is_rate_limit_error(e) and idx + 1 < len(keys):
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                continue
+            else:
+                print("Falling back to gemini-3.5-flash-lite in Documentation Agent...")
+                for fb_idx, fb_key in enumerate(keys):
+                    fb_client = genai.Client(api_key=fb_key)
+
+                    @with_exponential_backoff
+                    def get_fallback_stream(model_name: str):
+                        return fb_client.models.generate_content_stream(
+                            model=model_name,
+                            contents=prompt_content,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_prompt,
+                                temperature=0.3,
+                                response_mime_type="application/json",
+                                response_schema=DocumentationSet,
+                            )
+                        )
+                    try:
+                        fallback_stream = get_fallback_stream("gemini-3.5-flash-lite")
+                        last_usage = None
+                        for chunk in fallback_stream:
+                            if chunk.text:
+                                yield chunk.text
+                            if hasattr(chunk, 'usage_metadata') and chunk.usage_metadata is not None:
+                                last_usage = chunk.usage_metadata
+                        if last_usage:
+                            yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
+                        return
+                    except Exception as fallback_e:
+                        print(f"Fallback model on key {fb_idx+1} failed: {fallback_e}")
+                        if fb_idx + 1 < len(keys):
+                            continue
+                        yield f'{{"error": "API Error during documentation generation: {str(fallback_e)}" }}'
+                        return

@@ -2217,23 +2217,42 @@
             return data;
         }
 
-        async function runIntegration() {
+        let integrationRevisionCount = 0;
+        let integrationRevisionPlan = null;
+
+        async function runIntegration(isRevision = false) {
+            if (!isRevision) {
+                integrationRevisionCount = 0;
+                integrationRevisionPlan = null;
+            }
             setButtonLoading('integrateBtn', 'integrateSpinner', true);
             updateStepper(5, 'loading');
             
             try {
+                const integratePayload = {
+                    requirements: currentRequirements,
+                    decomposition: currentDecomposition,
+                    component_results: componentResults,
+                    previous_codebase: (integrationRevisionCount > 0) ? currentCodebase : null,
+                    revision_plan: integrationRevisionPlan,
+                    revision_count: integrationRevisionCount
+                };
+                
                 const res = await fetch('/api/integrate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        requirements: currentRequirements,
-                        decomposition: currentDecomposition,
-                        component_results: componentResults
-                    })
+                    body: JSON.stringify(integratePayload)
                 });
                 
                 const finalCodebase = await readJsonStream(res);
                 currentCodebase = finalCodebase;
+                
+                let dynamicTestCmd = "pytest";
+                const stack = (currentDecomposition.shared_tech_stack || []).map(s => String(s).toLowerCase());
+                const isNode = stack.some(s => s.includes('node') || s.includes('javascript') || s.includes('typescript') || s.includes('jest') || s.includes('html') || s.includes('react') || s.includes('vue')) || (currentDecomposition.shared_docker_image || '').includes('node');
+                if (isNode) {
+                    dynamicTestCmd = "npm test";
+                }
                 
                 currentBlueprint = {
                     architecture_overview: "Unified Integrated Architecture",
@@ -2241,13 +2260,15 @@
                     docker_image: currentDecomposition.shared_docker_image,
                     dev_server_command: "NONE", 
                     dev_server_port: 0,
-                    run_tests_command: "pytest", 
+                    run_tests_command: dynamicTestCmd, 
                     files: currentCodebase.files.map(f => ({ file_name: f.file_name, purpose: "Integrated file", dependencies: [], pseudocode: "" }))
                 };
                 
                 setVisible('pipelineDashboard', false);
                 setVisible('codeOutputSection', true);
-                document.getElementById('codeOutputTitle').innerText = 'Unified Integrated Codebase';
+                document.getElementById('codeOutputTitle').innerText = integrationRevisionCount > 0 
+                    ? `Unified Integrated Codebase (Revision ${integrationRevisionCount}/3)`
+                    : 'Unified Integrated Codebase';
                 document.getElementById('codeFilesContainer').classList.add('hidden');
                 document.getElementById('ideContainer').classList.remove('hidden');
                 
@@ -2272,8 +2293,67 @@
                 }
                 setVisible('execOutputSection', true);
                 
-                setVisible('docGenerationSection', true);
-                updateStepper(4, 'success');
+                // --- Integration Phase Arbitration (Adjudicator) ---
+                const criticsRes = await fetch('/api/run-critics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        requirements: currentRequirements,
+                        blueprint: currentBlueprint,
+                        codebase: currentCodebase,
+                        execution_result: currentExecutionResult,
+                        master_decomposition: currentDecomposition,
+                        component_name: "Integration",
+                        revision_count: integrationRevisionCount
+                    })
+                });
+                const arbitration = await criticsRes.json();
+                const verdict = (arbitration?.decision?.verdict || 'pass').toLowerCase();
+                
+                const card = document.getElementById('adjudicatorCard');
+                const verdictBadge = document.getElementById('adjudicatorVerdict');
+                const planText = document.getElementById('adjudicatorPlan');
+                
+                if (verdict === 'pass') {
+                    if (verdictBadge) {
+                        verdictBadge.textContent = "PASSED";
+                        verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
+                    }
+                    if (planText) planText.textContent = arbitration?.decision?.revision_plan || "Integration verified and passed by Adjudicator.";
+                    if (card) card.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
+                    
+                    setVisible('docGenerationSection', true);
+                    setVisible('finalDownloadBtn', true);
+                    updateStepper(4, 'success');
+                } else {
+                    // Verdict is 'revise' or 'error'
+                    integrationRevisionPlan = arbitration?.decision?.revision_plan || "Adjudicator requested fixes for integration issues.";
+                    if (integrationRevisionCount < 3) {
+                        integrationRevisionCount++;
+                        if (verdictBadge) {
+                            verdictBadge.textContent = `REVISION ${integrationRevisionCount}/3`;
+                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-orange-500/20 text-orange-400 border-orange-500/30 animate-pulse";
+                        }
+                        if (planText) planText.textContent = `Auto-correcting integration (${integrationRevisionCount}/3):\n${integrationRevisionPlan}`;
+                        if (card) card.className = "p-5 rounded-lg border shadow-sm bg-orange-950/20 border-orange-800";
+                        
+                        setTimeout(() => {
+                            runIntegration(true);
+                        }, 1500);
+                        return;
+                    } else {
+                        if (verdictBadge) {
+                            verdictBadge.textContent = "MAX REVISIONS (3/3)";
+                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-red-500/20 text-red-400 border-red-500/30";
+                        }
+                        if (planText) planText.textContent = `Max integration revisions reached. Last verdict: ${verdict.toUpperCase()}\n${integrationRevisionPlan}`;
+                        if (card) card.className = "p-5 rounded-lg border shadow-sm bg-red-950/20 border-red-800";
+                        
+                        setVisible('docGenerationSection', true);
+                        setVisible('finalDownloadBtn', true);
+                        updateStepper(4, 'success');
+                    }
+                }
                 
             } catch (err) {
                 showError("Integration Error: " + err.message);

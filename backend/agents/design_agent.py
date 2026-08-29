@@ -7,6 +7,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint
 from retry import with_exponential_backoff
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
 
 def generate_design_stream(requirements: RequirementsDocument, component_context: str = None):
     """
@@ -16,11 +17,12 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     If component_context is provided, the agent will design a scoped blueprint
     for a single component within a larger system.
     """
-    api_key = os.environ.get("GEMINI_API_KEY_DESIGN")
-    if not api_key:
+    keys = get_gemini_keys_for_stage("DESIGN")
+    primary_key = os.environ.get("GEMINI_API_KEY_DESIGN")
+    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
+        keys = [primary_key.strip()] + keys
+    if not keys:
         raise ValueError("GEMINI_API_KEY_DESIGN is not set in the environment variables.")
-
-    client = genai.Client(api_key=api_key)
 
     system_prompt = """
     You are an Expert Software Architect. You receive strict Requirements containing 
@@ -54,44 +56,68 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     if component_context:
         prompt_content += f"\n\nCOMPONENT CONTEXT:\n{component_context}"
 
-    @with_exponential_backoff
-    def get_stream(model_name: str):
-        return client.models.generate_content_stream(
-            model=model_name,
-            contents=prompt_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.2,
-                response_mime_type="application/json",
-                response_schema=SystemDesignBlueprint,
+    for idx, key in enumerate(keys):
+        client = genai.Client(api_key=key)
+
+        @with_exponential_backoff
+        def get_stream(model_name: str):
+            return client.models.generate_content_stream(
+                model=model_name,
+                contents=prompt_content,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.2,
+                    response_mime_type="application/json",
+                    response_schema=SystemDesignBlueprint,
+                )
             )
-        )
 
-    print("Design Agent is architecting the blueprint stream using Gemini 3.6-flash (Key 2)...")
-
-    try:
-        response = get_stream("gemini-3.6-flash")
-        iterator = iter(response)
-        first_chunk = next(iterator)
-        yield first_chunk.text
-        
-        last_usage = first_chunk.usage_metadata
-            
-        for chunk in iterator:
-            yield chunk.text
-            if getattr(chunk, 'usage_metadata', None):
-                last_usage = chunk.usage_metadata
-                
-        if last_usage:
-            yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
-            
-    except Exception as e:
-        print(f"Primary model (3.6-flash) failed in Design Agent: {e}")
-        print("Falling back to gemini-3.5-flash-lite...")
+        print(f"Design Agent is architecting blueprint stream using Gemini 3.6-flash (key {idx+1}/{len(keys)})...")
         try:
-            response = get_stream("gemini-3.5-flash-lite")
-            for chunk in response:
+            response = get_stream("gemini-3.6-flash")
+            iterator = iter(response)
+            first_chunk = next(iterator)
+            yield first_chunk.text
+            
+            last_usage = first_chunk.usage_metadata
+            for chunk in iterator:
                 yield chunk.text
-        except Exception as fallback_error:
-            print(f"Fallback model also failed: {fallback_error}")
-            yield f'{{"error": "Both primary and fallback models failed in Design Agent. Last error: {fallback_error}"}}'
+                if getattr(chunk, 'usage_metadata', None):
+                    last_usage = chunk.usage_metadata
+                    
+            if last_usage:
+                yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
+            return
+        except Exception as e:
+            print(f"Primary model (3.6-flash) failed on key {idx+1} in Design Agent: {e}")
+            if is_rate_limit_error(e) and idx + 1 < len(keys):
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                continue
+            else:
+                print("Falling back to gemini-3.5-flash-lite...")
+                for fb_idx, fb_key in enumerate(keys):
+                    fb_client = genai.Client(api_key=fb_key)
+
+                    @with_exponential_backoff
+                    def get_fallback_stream(model_name: str):
+                        return fb_client.models.generate_content_stream(
+                            model=model_name,
+                            contents=prompt_content,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_prompt,
+                                temperature=0.2,
+                                response_mime_type="application/json",
+                                response_schema=SystemDesignBlueprint,
+                            )
+                        )
+                    try:
+                        response = get_fallback_stream("gemini-3.5-flash-lite")
+                        for chunk in response:
+                            yield chunk.text
+                        return
+                    except Exception as fallback_error:
+                        print(f"Fallback model on key {fb_idx+1} failed in Design Agent: {fallback_error}")
+                        if fb_idx + 1 < len(keys):
+                            continue
+                        yield f'{{"error": "Both primary and fallback models failed in Design Agent. Last error: {fallback_error}"}}'
+                        return

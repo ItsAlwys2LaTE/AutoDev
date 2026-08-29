@@ -58,6 +58,9 @@ class IntegrationInput(BaseModel):
     requirements: RequirementsDocument
     decomposition: ComponentDecomposition
     component_results: list  # List of ComponentResult dicts
+    previous_codebase: Optional[GeneratedCodeBase] = None
+    revision_plan: Optional[str] = None
+    revision_count: Optional[int] = 0
 
 @app.get("/")
 def serve_frontend():
@@ -105,7 +108,9 @@ def api_integrate(payload: IntegrationInput):
             generate_integration_stream(
                 payload.requirements,
                 payload.decomposition,
-                payload.component_results
+                payload.component_results,
+                payload.previous_codebase,
+                payload.revision_plan
             ),
             media_type="text/plain"
         )
@@ -158,34 +163,68 @@ def api_generate_code(payload: CodeGenInput):
 from google import genai
 from google.genai import types
 from retry import with_exponential_backoff
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
 
 @app.post("/api/parse-requirements")
 def api_parse_requirements(payload: TextUpdateInput):
     try:
-        api_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
-        client = genai.Client(api_key=api_key)
+        primary_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
+        keys = get_gemini_keys_for_stage("PARSE_REQUIREMENTS")
+        if primary_key and primary_key.strip() and primary_key.strip() not in keys:
+            keys = [primary_key.strip()] + keys
 
-        @with_exponential_backoff
-        def _parse(model_name: str):
-            response = client.models.generate_content(
-                model=model_name,
-                contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=RequirementsDocument,
-                    temperature=0.1
+        for idx, key in enumerate(keys):
+            client = genai.Client(api_key=key)
+
+            @with_exponential_backoff
+            def _parse_primary():
+                response = client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=RequirementsDocument,
+                        temperature=0.1
+                    )
                 )
-            )
-            if hasattr(response, 'parsed') and response.parsed is not None:
-                return response.parsed
-            else:
-                return RequirementsDocument.model_validate_json(response.text)
-                
-        try:
-            return _parse("gemini-3.6-flash")
-        except Exception as e:
-            print(f"3.6-flash failed in parse_requirements: {e}. Falling back to gemini-3.5-flash-lite...")
-            return _parse("gemini-3.5-flash-lite")
+                if hasattr(response, 'parsed') and response.parsed is not None:
+                    return response.parsed
+                else:
+                    return RequirementsDocument.model_validate_json(response.text)
+
+            try:
+                return _parse_primary()
+            except Exception as e:
+                print(f"3.6-flash failed on key {idx+1} in parse_requirements: {e}")
+                if is_rate_limit_error(e) and idx + 1 < len(keys):
+                    continue
+                else:
+                    print("Falling back to gemini-3.5-flash-lite...")
+                    for fb_idx, fb_key in enumerate(keys):
+                        fb_client = genai.Client(api_key=fb_key)
+
+                        @with_exponential_backoff
+                        def _parse_fallback():
+                            response = fb_client.models.generate_content(
+                                model="gemini-3.5-flash-lite",
+                                contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+                                config=types.GenerateContentConfig(
+                                    response_mime_type="application/json",
+                                    response_schema=RequirementsDocument,
+                                    temperature=0.1
+                                )
+                            )
+                            if hasattr(response, 'parsed') and response.parsed is not None:
+                                return response.parsed
+                            else:
+                                return RequirementsDocument.model_validate_json(response.text)
+
+                        try:
+                            return _parse_fallback()
+                        except Exception as fb_err:
+                            if fb_idx + 1 < len(keys):
+                                continue
+                            raise fb_err
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -194,30 +233,63 @@ def api_parse_requirements(payload: TextUpdateInput):
 def api_parse_blueprint(payload: TextUpdateInput):
     print("\n[Status] parsing design blueprint...\n")
     try:
-        api_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
-        client = genai.Client(api_key=api_key)
+        primary_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
+        keys = get_gemini_keys_for_stage("PARSE_BLUEPRINT")
+        if primary_key and primary_key.strip() and primary_key.strip() not in keys:
+            keys = [primary_key.strip()] + keys
 
-        @with_exponential_backoff
-        def _parse(model_name: str):
-            response = client.models.generate_content(
-                model=model_name,
-                contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=SystemDesignBlueprint,
-                    temperature=0.1
+        for idx, key in enumerate(keys):
+            client = genai.Client(api_key=key)
+
+            @with_exponential_backoff
+            def _parse_primary():
+                response = client.models.generate_content(
+                    model="gemini-3.6-flash",
+                    contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=SystemDesignBlueprint,
+                        temperature=0.1
+                    )
                 )
-            )
-            if hasattr(response, 'parsed') and response.parsed is not None:
-                return response.parsed
-            else:
-                return SystemDesignBlueprint.model_validate_json(response.text)
-                
-        try:
-            return _parse("gemini-3.6-flash")
-        except Exception as e:
-            print(f"3.6-flash failed in parse_blueprint: {e}. Falling back to gemini-3.5-flash-lite...")
-            return _parse("gemini-3.5-flash-lite")
+                if hasattr(response, 'parsed') and response.parsed is not None:
+                    return response.parsed
+                else:
+                    return SystemDesignBlueprint.model_validate_json(response.text)
+
+            try:
+                return _parse_primary()
+            except Exception as e:
+                print(f"3.6-flash failed on key {idx+1} in parse_blueprint: {e}")
+                if is_rate_limit_error(e) and idx + 1 < len(keys):
+                    continue
+                else:
+                    print("Falling back to gemini-3.5-flash-lite...")
+                    for fb_idx, fb_key in enumerate(keys):
+                        fb_client = genai.Client(api_key=fb_key)
+
+                        @with_exponential_backoff
+                        def _parse_fallback():
+                            response = fb_client.models.generate_content(
+                                model="gemini-3.5-flash-lite",
+                                contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
+                                config=types.GenerateContentConfig(
+                                    response_mime_type="application/json",
+                                    response_schema=SystemDesignBlueprint,
+                                    temperature=0.1
+                                )
+                            )
+                            if hasattr(response, 'parsed') and response.parsed is not None:
+                                return response.parsed
+                            else:
+                                return SystemDesignBlueprint.model_validate_json(response.text)
+
+                        try:
+                            return _parse_fallback()
+                        except Exception as fb_err:
+                            if fb_idx + 1 < len(keys):
+                                continue
+                            raise fb_err
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

@@ -6,6 +6,7 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase
 from retry import with_exponential_backoff
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
 
 def generate_code_stream(
     requirements: RequirementsDocument, 
@@ -13,11 +14,12 @@ def generate_code_stream(
     previous_codebase: GeneratedCodeBase = None,
     revision_plan: str = None
 ):
-    api_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
-    if not api_key:
+    keys = get_gemini_keys_for_stage("CODEGEN")
+    primary_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
+    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
+        keys = [primary_key.strip()] + keys
+    if not keys:
         raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
-
-    client = genai.Client(api_key=api_key)
 
     system_prompt = """
     You are an Expert Senior Software Engineer. You are provided with a strict Requirements Document (JSON) 
@@ -57,42 +59,68 @@ def generate_code_stream(
     CRITICAL INSTRUCTION: You are in a SELF-CORRECTION LOOP. The previous codebase failed the AI Critics' evaluation. You MUST rewrite the source code to completely resolve the issues listed in the REVISION PLAN above.
     """
 
-    @with_exponential_backoff
-    def _get_stream(model_name: str):
-        return client.models.generate_content_stream(
-            model=model_name,
-            contents=prompt_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.3,
-                response_mime_type="application/json",
-                response_schema=GeneratedCodeBase,
+    for idx, key in enumerate(keys):
+        client = genai.Client(api_key=key)
+
+        @with_exponential_backoff
+        def _get_stream(model_name: str):
+            return client.models.generate_content_stream(
+                model=model_name,
+                contents=prompt_content,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.3,
+                    response_mime_type="application/json",
+                    response_schema=GeneratedCodeBase,
+                )
             )
-        )
 
-    print("Code Gen Agent is writing source code stream using Gemini 3.6-flash...")
-
-    try:
-        response = _get_stream("gemini-3.6-flash")
-        iterator = iter(response)
-        first_chunk = next(iterator)
-        yield first_chunk.text
-        
-        last_usage = first_chunk.usage_metadata
-            
-        for chunk in iterator:
-            yield chunk.text
-            if getattr(chunk, 'usage_metadata', None):
-                last_usage = chunk.usage_metadata
-                
-        if last_usage:
-            yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
-            
-    except Exception as e:
-        print(f"Primary model (3.6-flash) failed in CodeGen Agent: {e}. Falling back to 3.5-flash-lite...")
+        print(f"Code Gen Agent is writing source code stream using Gemini 3.6-flash (key {idx+1}/{len(keys)})...")
         try:
-            response = _get_stream("gemini-3.5-flash-lite")
-            for chunk in response:
+            response = _get_stream("gemini-3.6-flash")
+            iterator = iter(response)
+            first_chunk = next(iterator)
+            yield first_chunk.text
+            
+            last_usage = first_chunk.usage_metadata
+            for chunk in iterator:
                 yield chunk.text
-        except Exception as fallback_error:
-            yield f'{{"error": "Both models failed in CodeGen Agent: {fallback_error}"}}'
+                if getattr(chunk, 'usage_metadata', None):
+                    last_usage = chunk.usage_metadata
+                    
+            if last_usage:
+                yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
+            return
+        except Exception as e:
+            print(f"Primary model (3.6-flash) failed on key {idx+1} in CodeGen Agent: {e}")
+            if is_rate_limit_error(e) and idx + 1 < len(keys):
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                continue
+            else:
+                print("Falling back to gemini-3.5-flash-lite...")
+                for fb_idx, fb_key in enumerate(keys):
+                    fb_client = genai.Client(api_key=fb_key)
+
+                    @with_exponential_backoff
+                    def _get_fallback_stream(model_name: str):
+                        return fb_client.models.generate_content_stream(
+                            model=model_name,
+                            contents=prompt_content,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_prompt,
+                                temperature=0.3,
+                                response_mime_type="application/json",
+                                response_schema=GeneratedCodeBase,
+                            )
+                        )
+                    try:
+                        response = _get_fallback_stream("gemini-3.5-flash-lite")
+                        for chunk in response:
+                            yield chunk.text
+                        return
+                    except Exception as fallback_error:
+                        print(f"Fallback model on key {fb_idx+1} failed in CodeGen Agent: {fallback_error}")
+                        if fb_idx + 1 < len(keys):
+                            continue
+                        yield f'{{"error": "Both models failed in CodeGen Agent: {fallback_error}"}}'
+                        return

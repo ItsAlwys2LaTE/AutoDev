@@ -22,11 +22,84 @@ def create_tar_from_codebase(codebase: GeneratedCodeBase) -> bytes:
     tar_stream.seek(0)
     return tar_stream.read()
 
+def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> str:
+    """
+    Dynamically determines the appropriate test runner command based on the
+    project's tech stack, file extensions, and Docker image, avoiding hardcoded mismatches.
+    """
+    raw_cmd = (blueprint.run_tests_command or "").strip()
+    
+    # Normalize tech stack keywords
+    tech_stack_lower = [str(s).lower() for s in (blueprint.tech_stack or [])]
+    docker_image_lower = (blueprint.docker_image or "").lower()
+    
+    has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase.files)
+    has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase.files)
+    has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase.files)
+    has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase.files)
+    has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
+    has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
+    
+    is_node_stack = (
+        any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "npm", "react", "vue", "next", "express", "html", "css"))
+        or "node" in docker_image_lower
+        or (has_package_json and not has_py_files)
+        or (has_js_files and not has_py_files)
+    )
+    
+    is_python_stack = (
+        any(k in s for s in tech_stack_lower for k in ("python", "pytest", "django", "flask", "fastapi"))
+        or "python" in docker_image_lower
+        or (has_requirements_txt and not has_js_files)
+        or (has_py_files and not has_js_files)
+    )
+    
+    is_go_stack = (
+        any(k in s for s in tech_stack_lower for k in ("go", "golang"))
+        or "golang" in docker_image_lower
+        or has_go_files
+    )
+
+    is_rust_stack = (
+        any(k in s for s in tech_stack_lower for k in ("rust", "cargo"))
+        or "rust" in docker_image_lower
+        or has_rust_files
+    )
+
+    # Determine base runner
+    if is_node_stack and (not raw_cmd or raw_cmd.lower() == "pytest" or raw_cmd == "NONE"):
+        base_cmd = "npm test"
+    elif is_python_stack and (not raw_cmd or raw_cmd.lower() in ("npm test", "jest") or raw_cmd == "NONE"):
+        base_cmd = "pytest"
+    elif is_go_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
+        base_cmd = "go test ./..."
+    elif is_rust_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
+        base_cmd = "cargo test"
+    elif raw_cmd and raw_cmd != "NONE":
+        base_cmd = raw_cmd
+    elif is_node_stack or has_package_json:
+        base_cmd = "npm test"
+    elif is_python_stack or has_requirements_txt or has_py_files:
+        base_cmd = "pytest"
+    else:
+        base_cmd = "pytest"
+
+    # Auto-inject dependency installation
+    if has_package_json and "npm install" not in base_cmd:
+        base_cmd = f"npm install --no-audit --no-fund && {base_cmd}"
+    elif has_package_json and "npm install" in base_cmd and "--no-audit" not in base_cmd:
+        base_cmd = base_cmd.replace("npm install", "npm install --no-audit --no-fund")
+
+    if has_requirements_txt and "pip install" not in base_cmd:
+        base_cmd = f"pip install -r requirements.txt && {base_cmd}"
+
+    return base_cmd
+
 def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) -> ExecutionResult:
     """
     Spins up an isolated Docker container based on the blueprint,
-    injects the generated source code into memory, executes tests,
-    and returns the logs safely.
+    injects the generated source code into memory, executes tests dynamically
+    based on the tech stack, and returns the logs safely.
     """
     print(f"Docker Executor is booting up image: {blueprint.docker_image}...")
     
@@ -58,20 +131,8 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
             tar_data = create_tar_from_codebase(codebase)
             container.put_archive("/workspace", tar_data)
             
-            # Format the test command
-            run_tests_command = blueprint.run_tests_command
-            
-            # Auto-inject dependency installation to prevent 'command not found' errors
-            has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase.files)
-            has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase.files)
-            
-            if has_package_json and "npm install" not in run_tests_command:
-                run_tests_command = f"npm install --no-audit --no-fund && {run_tests_command}"
-            elif has_package_json:
-                run_tests_command = run_tests_command.replace("npm install", "npm install --no-audit --no-fund")
-                
-            if has_requirements_txt and "pip install" not in run_tests_command:
-                run_tests_command = f"pip install -r requirements.txt && {run_tests_command}"
+            # Format the test command dynamically based on the project's tech stack
+            run_tests_command = resolve_test_runner_command(blueprint, codebase)
                 
             print(f"Executing docker command: {run_tests_command}")
             

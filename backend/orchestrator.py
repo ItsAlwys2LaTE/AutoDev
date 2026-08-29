@@ -33,11 +33,16 @@ def node_completeness(state: GraphState):
     feedback = evaluate_completeness(state["requirements"], state["blueprint"], state["codebase"], state.get("master_decomposition"))
     return {"feedbacks": [feedback]}
 
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
+
 def node_adjudicator(state: GraphState):
     print("Running Adjudicator (Gemini 3.6-flash)...")
-    api_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR") or os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
+    primary_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR") or os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
+    keys = get_gemini_keys_for_stage("ADJUDICATOR")
+    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
+        keys = [primary_key.strip()] + keys
     
-    if not api_key:
+    if not keys:
         return {"decision": AdjudicatorDecision(verdict="revise", revision_plan="API Key Missing for Adjudicator.")}
 
     # Convert the pydantic feedback objects to JSON strings for the prompt
@@ -54,37 +59,66 @@ def node_adjudicator(state: GraphState):
     3. PASS: If all severity scores are 0, output a verdict of 'pass' and a brief approval message.
     """
     
-    client = genai.Client(api_key=api_key)
     system_instruction = "You are the Adjudicator. Output strict JSON containing 'verdict' (pass/revise/error) and 'revision_plan'."
 
-    @with_exponential_backoff
-    def _call(model_name: str):
-        response = client.models.generate_content(
-            model=model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.1,
-                response_mime_type="application/json",
-                response_schema=AdjudicatorDecision,
-            )
-        )
-        if hasattr(response, 'parsed') and response.parsed is not None:
-            return response.parsed
-        else:
-            return AdjudicatorDecision.model_validate_json(response.text)
+    for idx, key in enumerate(keys):
+        client = genai.Client(api_key=key)
 
-    try:
-        decision = _call("gemini-3.6-flash")
-        return {"decision": decision}
-    except Exception as e:
-        print(f"Adjudicator primary model failed: {e}. Falling back to gemini-3.5-flash-lite...")
+        @with_exponential_backoff
+        def _call_primary():
+            response = client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                    response_schema=AdjudicatorDecision,
+                )
+            )
+            if hasattr(response, 'parsed') and response.parsed is not None:
+                return response.parsed
+            else:
+                return AdjudicatorDecision.model_validate_json(response.text)
+
         try:
-            decision = _call("gemini-3.5-flash-lite")
+            decision = _call_primary()
             return {"decision": decision}
-        except Exception as fallback_e:
-            print(f"Adjudicator fallback also failed: {fallback_e}")
-            return {"decision": AdjudicatorDecision(verdict="error", revision_plan=f"Adjudicator Error: {str(fallback_e)}")}
+        except Exception as e:
+            print(f"Adjudicator primary model failed on key {idx+1}/{len(keys)}: {e}")
+            if is_rate_limit_error(e) and idx + 1 < len(keys):
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                continue
+            else:
+                print("Falling back to gemini-3.5-flash-lite in Adjudicator...")
+                for fb_idx, fb_key in enumerate(keys):
+                    fb_client = genai.Client(api_key=fb_key)
+
+                    @with_exponential_backoff
+                    def _call_fallback():
+                        response = fb_client.models.generate_content(
+                            model="gemini-3.5-flash-lite",
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_instruction,
+                                temperature=0.1,
+                                response_mime_type="application/json",
+                                response_schema=AdjudicatorDecision,
+                            )
+                        )
+                        if hasattr(response, 'parsed') and response.parsed is not None:
+                            return response.parsed
+                        else:
+                            return AdjudicatorDecision.model_validate_json(response.text)
+
+                    try:
+                        decision = _call_fallback()
+                        return {"decision": decision}
+                    except Exception as fallback_e:
+                        print(f"Adjudicator fallback failed on key {fb_idx+1}: {fallback_e}")
+                        if fb_idx + 1 < len(keys):
+                            continue
+                        return {"decision": AdjudicatorDecision(verdict="error", revision_plan=f"Adjudicator Error: {str(fallback_e)}")}
 
 def route_decision(state: GraphState):
     decision = state.get("decision")
