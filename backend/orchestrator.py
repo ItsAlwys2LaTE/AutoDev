@@ -8,6 +8,7 @@ from google.genai import types
 
 from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback, AdjudicatorDecision
 from agents.critics import evaluate_correctness, evaluate_architecture, evaluate_completeness
+from retry import with_exponential_backoff
 
 class GraphState(TypedDict):
     requirements: RequirementsDocument
@@ -56,6 +57,7 @@ def node_adjudicator(state: GraphState):
     client = genai.Client(api_key=api_key)
     system_instruction = "You are the Adjudicator. Output strict JSON containing 'verdict' (pass/revise/error) and 'revision_plan'."
 
+    @with_exponential_backoff
     def _call(model_name: str):
         response = client.models.generate_content(
             model=model_name,

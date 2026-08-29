@@ -5,6 +5,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, ComponentDecomposition
+from retry import with_exponential_backoff
 
 def decompose_requirements_stream(requirements: RequirementsDocument):
     api_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
@@ -51,6 +52,7 @@ def decompose_requirements_stream(requirements: RequirementsDocument):
     Analyze this product and produce the ComponentDecomposition.
     """
 
+    @with_exponential_backoff
     def _get_stream(model_name: str):
         return client.models.generate_content_stream(
             model=model_name,

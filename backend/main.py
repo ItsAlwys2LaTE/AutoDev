@@ -146,12 +146,15 @@ def api_generate_code(payload: CodeGenInput):
 
 from google import genai
 from google.genai import types
+from retry import with_exponential_backoff
 
 @app.post("/api/parse-requirements")
 def api_parse_requirements(payload: TextUpdateInput):
     try:
         api_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         client = genai.Client(api_key=api_key)
+
+        @with_exponential_backoff
         def _parse(model_name: str):
             response = client.models.generate_content(
                 model=model_name,
@@ -181,6 +184,8 @@ def api_parse_blueprint(payload: TextUpdateInput):
     try:
         api_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         client = genai.Client(api_key=api_key)
+
+        @with_exponential_backoff
         def _parse(model_name: str):
             response = client.models.generate_content(
                 model=model_name,
