@@ -120,8 +120,7 @@ class DesignInput(BaseModel):
 @app.post("/api/generate-design")
 def api_generate_design(payload: DesignInput):
     comp_name = payload.component_name or "Global"
-    print(f"
-[Component: {comp_name}] [Agent: DESIGN] Using API Key: GEMINI_API_KEY_DESIGN (Model: gemini-3.6-flash)")
+    print(f"\n[Component: {comp_name}] [Agent: DESIGN] Using API Key: GEMINI_API_KEY_DESIGN (Model: gemini-3.6-flash)")
     try:
         return StreamingResponse(
             generate_design_stream(payload.requirements, payload.component_context),
@@ -137,8 +136,7 @@ from agents.codegen_agent import generate_code_stream
 def api_generate_code(payload: CodeGenInput):
     comp_name = payload.component_name or "Global"
     rev_str = f" (REVISION ATTEMPT {payload.revision_count})" if payload.revision_count and payload.revision_count > 0 else ""
-    print(f"
-[Component: {comp_name}] [Agent: CODEGEN]{rev_str} Using API Key: GEMINI_API_KEY_CODEGEN (Model: gemini-3.6-flash)")
+    print(f"\n[Component: {comp_name}] [Agent: CODEGEN]{rev_str} Using API Key: GEMINI_API_KEY_CODEGEN (Model: gemini-3.6-flash)")
     try:
         return StreamingResponse(
             generate_code_stream(
@@ -190,9 +188,7 @@ def api_parse_requirements(payload: TextUpdateInput):
 
 @app.post("/api/parse-blueprint")
 def api_parse_blueprint(payload: TextUpdateInput):
-    print("
-[Status] parsing design blueprint...
-")
+    print("\n[Status] parsing design blueprint...\n")
     try:
         api_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         client = genai.Client(api_key=api_key)
