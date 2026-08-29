@@ -45,6 +45,7 @@ class ArbitrationInput(BaseModel):
     blueprint: SystemDesignBlueprint
     codebase: GeneratedCodeBase
     execution_result: ExecutionResult
+    master_decomposition: Optional[ComponentDecomposition] = None
 
 class IntegrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -214,7 +215,8 @@ def api_run_critics(payload: ArbitrationInput):
             "codebase": payload.codebase,
             "execution_result": payload.execution_result,
             "feedbacks": [],
-            "revision_count": 0
+            "revision_count": 0,
+            "master_decomposition": payload.master_decomposition
         }
         
         final_state = arbitration_engine.invoke(initial_state)

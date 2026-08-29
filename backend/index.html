@@ -1210,7 +1210,8 @@
                         requirements: currentRequirements,
                         blueprint: currentBlueprint,
                         codebase: currentCodebase,
-                        execution_result: currentExecutionResult
+                        execution_result: currentExecutionResult,
+                        master_decomposition: currentDecomposition
                     }) 
                 });
                 const data = await response.json();
@@ -1861,7 +1862,8 @@
                         requirements: currentRequirements,
                         blueprint: state.blueprint,
                         codebase: state.codebase,
-                        execution_result: state.executionResult
+                        execution_result: state.executionResult,
+                        master_decomposition: currentDecomposition
                     })
                 });
                 
@@ -1970,7 +1972,8 @@
                 component_name: state.component.component_name,
                 blueprint: state.blueprint,
                 codebase: state.codebase,
-                execution_result: state.executionResult
+                execution_result: state.executionResult,
+                        master_decomposition: currentDecomposition
             });
             
             renderPipelineTracks();

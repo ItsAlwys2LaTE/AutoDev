@@ -1,4 +1,4 @@
-from typing import TypedDict, Annotated, List
+from typing import TypedDict, Annotated, List, Optional
 import operator
 import os
 import json
@@ -6,7 +6,7 @@ from langgraph.graph import StateGraph, END
 from google import genai
 from google.genai import types
 
-from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback, AdjudicatorDecision
+from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback, AdjudicatorDecision
 from agents.critics import evaluate_correctness, evaluate_architecture, evaluate_completeness
 
 class GraphState(TypedDict):
@@ -14,6 +14,7 @@ class GraphState(TypedDict):
     blueprint: SystemDesignBlueprint
     codebase: GeneratedCodeBase
     execution_result: ExecutionResult
+    master_decomposition: Optional[ComponentDecomposition]
     # operator.add ensures that when parallel nodes return lists, they are concatenated together
     feedbacks: Annotated[List[CriticFeedback], operator.add]
     decision: AdjudicatorDecision
@@ -24,11 +25,11 @@ def node_correctness(state: GraphState):
     return {"feedbacks": [feedback]}
 
 def node_architecture(state: GraphState):
-    feedback = evaluate_architecture(state["blueprint"], state["codebase"])
+    feedback = evaluate_architecture(state["blueprint"], state["codebase"], state.get("master_decomposition"))
     return {"feedbacks": [feedback]}
 
 def node_completeness(state: GraphState):
-    feedback = evaluate_completeness(state["requirements"], state["blueprint"], state["codebase"])
+    feedback = evaluate_completeness(state["requirements"], state["blueprint"], state["codebase"], state.get("master_decomposition"))
     return {"feedbacks": [feedback]}
 
 def node_adjudicator(state: GraphState):

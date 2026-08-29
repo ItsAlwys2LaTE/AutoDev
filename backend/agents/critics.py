@@ -10,7 +10,7 @@ import sys
 import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback
+from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback
 
 def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult) -> CriticFeedback:
     critic_name = "Correctness Critic (Gemini)"
@@ -71,7 +71,7 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
             except Exception as fallback_e:
                 return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
 
-def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> CriticFeedback:
+def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None) -> CriticFeedback:
     critic_name = "Architecture Critic (Mistral)"
     print(f"Running {critic_name}...")
     
@@ -87,7 +87,17 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
     
     BLUEPRINT:
     {blueprint.model_dump_json(indent=2)}
+
+    MASTER ARCHITECTURE PLAN:
+    {master_decomposition.model_dump_json(indent=2) if master_decomposition else 'None'}
     
+    NOTE: The current codebase is only a single component of this master plan. DO NOT flag missing functionality if it logically belongs to a different component described in the master plan!
+    
+    MASTER ARCHITECTURE PLAN:
+    {master_decomposition.model_dump_json(indent=2) if master_decomposition else 'None'}
+    
+    NOTE: The current codebase is only a single component of this master plan. DO NOT flag missing files or missing endpoints if they belong to a different component described in the master plan!
+        
     CODEBASE:
     {codebase.model_dump_json(indent=2)}
     """
@@ -151,7 +161,7 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
 # ---------------------------------------------------------
 # 3. COMPLETENESS CRITIC (Gemini)
 # ---------------------------------------------------------
-def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> CriticFeedback:
+def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None) -> CriticFeedback:
     print("Running Completeness Critic (Gemini 3.6-flash)...")
     critic_name = "Completeness Critic (Gemini)"
     primary_key = os.environ.get("GEMINI_API_KEY_CRITICS")
@@ -170,7 +180,17 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
 
     BLUEPRINT:
     {blueprint.model_dump_json(indent=2)}
+
+    MASTER ARCHITECTURE PLAN:
+    {master_decomposition.model_dump_json(indent=2) if master_decomposition else 'None'}
     
+    NOTE: The current codebase is only a single component of this master plan. DO NOT flag missing functionality if it logically belongs to a different component described in the master plan!
+    
+    MASTER ARCHITECTURE PLAN:
+    {master_decomposition.model_dump_json(indent=2) if master_decomposition else 'None'}
+    
+    NOTE: The current codebase is only a single component of this master plan. DO NOT flag missing files or missing endpoints if they belong to a different component described in the master plan!
+        
     CODEBASE:
     {codebase.model_dump_json(indent=2)}
     """

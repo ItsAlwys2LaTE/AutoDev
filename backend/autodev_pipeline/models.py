@@ -359,10 +359,10 @@ class PipelineConfig:
     Global configuration parameters for pipeline execution, timeouts, and resilience policies.
     """
     max_revisions: int = 3                          # Maximum critic revision cycles before quarantine
-    lease_duration_sec: float = 30.0               # Lease TTL per stage acquisition
+    lease_duration_sec: float = 3600.0               # Lease TTL per stage acquisition
     lease_heartbeat_interval_sec: float = 10.0      # Heartbeat cadence (tau = Delta t / 3)
-    stage_timeout_sec: float = 120.0               # Global stage execution timeout
-    docker_timeout_sec: float = 45.0               # Sandbox container execution timeout
+    stage_timeout_sec: float = 3600.0               # Global stage execution timeout
+    docker_timeout_sec: float = 300.0               # Sandbox container execution timeout
     llm_timeout_sec: float = 60.0                  # LLM call timeout
     cycle_policy: CycleResolutionPolicy = CycleResolutionPolicy.SAFE_STALL
     enable_wass: bool = True                       # Enable Write-Ahead State Store logging
