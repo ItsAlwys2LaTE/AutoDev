@@ -21,8 +21,10 @@ def pipeline_init(payload: PipelineInitInput):
     records = []
     for c in payload.components:
         records.append(ComponentStateRecord(
-            component_id=c["component_id"],
-            dependencies=c.get("dependencies", [])
+            component_id=c.get("component_id", ""),
+            name=c.get("component_name", c.get("component_id", "Unnamed")),
+            dependencies=c.get("dependencies", []),
+            priority_order=c.get("priority_order", 0)
         ))
     success = scheduler.register_components(records)
     if not success:
