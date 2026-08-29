@@ -5,6 +5,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase
+from retry import with_exponential_backoff
 
 def generate_code_stream(
     requirements: RequirementsDocument, 
@@ -56,6 +57,7 @@ def generate_code_stream(
     CRITICAL INSTRUCTION: You are in a SELF-CORRECTION LOOP. The previous codebase failed the AI Critics' evaluation. You MUST rewrite the source code to completely resolve the issues listed in the REVISION PLAN above.
     """
 
+    @with_exponential_backoff
     def _get_stream(model_name: str):
         return client.models.generate_content_stream(
             model=model_name,

@@ -8,6 +8,7 @@ from models import (
     RequirementsDocument, ComponentDecomposition, ComponentResult,
     GeneratedCodeBase, SystemDesignBlueprint
 )
+from retry import with_exponential_backoff
 
 def generate_integration_stream(
     requirements: RequirementsDocument,
@@ -89,6 +90,7 @@ def generate_integration_stream(
     to wire everything together with proper routing/navigation, shared dependencies, and integration tests.
     """
 
+    @with_exponential_backoff
     def _get_stream(model_name: str):
         return client.models.generate_content_stream(
             model=model_name,

@@ -6,6 +6,7 @@ import sys
 # Ensure we can import from the parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, CodeFile
+from retry import with_exponential_backoff
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -45,6 +46,7 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
     {codebase.model_dump_json(indent=2)}
     """
 
+    @with_exponential_backoff
     def get_stream(model_name: str):
         return client.models.generate_content_stream(
             model=model_name,

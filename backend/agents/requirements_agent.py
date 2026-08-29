@@ -6,6 +6,7 @@ import sys
 # Ensure we can import from the parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument
+from retry import with_exponential_backoff
 
 def generate_requirements_stream(feature_request: str):
     """
@@ -31,6 +32,7 @@ def generate_requirements_stream(feature_request: str):
     CRITICAL INSTRUCTION: You MUST explicitly include Acceptance Criteria for robustness. This includes boundary limits (e.g., maximum input lengths), handling of negative numbers/invalid inputs, error states, and all complex edge cases. Do not assume the downstream team will handle edge cases unless you document them.
     """
 
+    @with_exponential_backoff
     def get_stream(model_name: str):
         return client.models.generate_content_stream(
             model=model_name,

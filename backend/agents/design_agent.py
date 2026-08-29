@@ -6,6 +6,7 @@ import sys
 # Ensure we can import from the parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint
+from retry import with_exponential_backoff
 
 def generate_design_stream(requirements: RequirementsDocument, component_context: str = None):
     """
@@ -53,6 +54,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     if component_context:
         prompt_content += f"\n\nCOMPONENT CONTEXT:\n{component_context}"
 
+    @with_exponential_backoff
     def get_stream(model_name: str):
         return client.models.generate_content_stream(
             model=model_name,

@@ -11,6 +11,7 @@ import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback
+from retry import with_exponential_backoff
 
 def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult) -> CriticFeedback:
     critic_name = "Correctness Critic (Gemini)"
@@ -34,6 +35,7 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
     
     system_instruction = f"You are the {critic_name}. Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
 
+    @with_exponential_backoff
     def _call(model_name: str, use_fallback_key: bool = False):
         key = fallback_key if use_fallback_key else primary_key
         client = genai.Client(api_key=key)
@@ -104,8 +106,9 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
     
     client = Mistral(api_key=api_key)
     
-    try:
-        response = client.chat.complete(
+    @with_exponential_backoff
+    def _call_mistral():
+        return client.chat.complete(
             model="mistral-small-latest",
             messages=[
                 {"role": "system", "content": f"You are the {critic_name}. You MUST output ONLY valid JSON matching this exact structure: {{\"severity_score\": int, \"issues_list\": [\"issue1\"], \"overall_comments\": \"string\"}}"},
@@ -114,6 +117,9 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
             response_format={"type": "json_object"},
             temperature=0.1
         )
+
+    try:
+        response = _call_mistral()
         content = json.loads(response.choices[0].message.content)
         
         # Guard: API sometimes wraps the response in a list
@@ -137,16 +143,20 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
             try:
                 gemini_client = genai.Client(api_key=fallback_key)
                 system_instruction = f"You are the {critic_name} (Fallback Mode). Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
-                gemini_response = gemini_client.models.generate_content(
-                    model="gemini-3.5-flash-lite",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        temperature=0.1,
-                        response_mime_type="application/json",
-                        response_schema=CriticFeedback,
+                
+                @with_exponential_backoff
+                def _call_gemini_fallback():
+                    return gemini_client.models.generate_content(
+                        model="gemini-3.5-flash-lite",
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_instruction,
+                            temperature=0.1,
+                            response_mime_type="application/json",
+                            response_schema=CriticFeedback,
+                        )
                     )
-                )
+                gemini_response = _call_gemini_fallback()
                 if hasattr(gemini_response, 'parsed') and gemini_response.parsed is not None:
                     feedback = gemini_response.parsed
                 else:
@@ -197,6 +207,7 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
     
     system_instruction = f"You are the {critic_name}. Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
 
+    @with_exponential_backoff
     def _call(model_name: str, use_fallback_key: bool = False):
         key = fallback_key if use_fallback_key else primary_key
         client = genai.Client(api_key=key)
