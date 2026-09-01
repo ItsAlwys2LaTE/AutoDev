@@ -89,6 +89,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                 yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
             return
         except Exception as e:
+            yield '\n__RESET__\n'
             print(f"Primary model (3.6-flash) failed on key {idx+1} in Design Agent: {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
@@ -116,6 +117,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                             yield chunk.text
                         return
                     except Exception as fallback_error:
+                        yield '\n__RESET__\n'
                         print(f"Fallback model on key {fb_idx+1} failed in Design Agent: {fallback_error}")
                         if fb_idx + 1 < len(keys):
                             continue

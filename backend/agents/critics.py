@@ -62,6 +62,7 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
         try:
             return _call_primary()
         except Exception as e:
+            yield '\n__RESET__\n'
             print(f"Correctness Critic failed on key {idx+1}/{len(keys)} (model: 3.6-flash): {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
@@ -301,6 +302,7 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
         try:
             return _call_primary()
         except Exception as e:
+            yield '\n__RESET__\n'
             print(f"Completeness Critic failed on key {idx+1}/{len(keys)} (model: 3.6-flash): {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")

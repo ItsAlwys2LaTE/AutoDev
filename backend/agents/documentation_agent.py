@@ -77,6 +77,7 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
                 yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
             return
         except Exception as e:
+            yield '\n__RESET__\n'
             print(f"Documentation Agent failed on key {idx+1} ({e})")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")

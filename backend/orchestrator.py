@@ -85,6 +85,7 @@ def node_adjudicator(state: GraphState):
             decision = _call_primary()
             return {"decision": decision}
         except Exception as e:
+            yield '\n__RESET__\n'
             print(f"Adjudicator primary model failed on key {idx+1}/{len(keys)}: {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")

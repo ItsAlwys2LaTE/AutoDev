@@ -949,6 +949,10 @@
                     
                     const chunk = decoder.decode(value, { stream: true });
                     fullJsonStr += chunk;
+                    if (fullJsonStr.includes('__RESET__')) {
+                        const r_parts = fullJsonStr.split('__RESET__');
+                        fullJsonStr = r_parts[r_parts.length - 1];
+                    }
 
                     // Extract __USAGE__ if present
                     if (fullJsonStr.includes('__USAGE__')) {
@@ -1061,6 +1065,10 @@
                     
                     const chunk = decoder.decode(value, { stream: true });
                     fullJsonStr += chunk;
+                    if (fullJsonStr.includes('__RESET__')) {
+                        const r_parts = fullJsonStr.split('__RESET__');
+                        fullJsonStr = r_parts[r_parts.length - 1];
+                    }
 
                     // Extract __USAGE__ if present
                     if (fullJsonStr.includes('__USAGE__')) {
@@ -1189,6 +1197,10 @@
                     
                     const chunk = decoder.decode(value, { stream: true });
                     fullJsonStr += chunk;
+                    if (fullJsonStr.includes('__RESET__')) {
+                        const r_parts = fullJsonStr.split('__RESET__');
+                        fullJsonStr = r_parts[r_parts.length - 1];
+                    }
 
                     // Extract __USAGE__ if present
                     if (fullJsonStr.includes('__USAGE__')) {
@@ -1463,6 +1475,10 @@
                     
                     const chunk = decoder.decode(value, { stream: true });
                     fullJsonStr += chunk;
+                    if (fullJsonStr.includes('__RESET__')) {
+                        const r_parts = fullJsonStr.split('__RESET__');
+                        fullJsonStr = r_parts[r_parts.length - 1];
+                    }
 
                     // Extract __USAGE__ if present
                     if (fullJsonStr.includes('__USAGE__')) {
@@ -2164,6 +2180,10 @@
                 const textChunk = decoder.decode(value, { stream: true });
                 const parts = textChunk.split("__USAGE__");
                 fullJsonStr += parts[0];
+                if (fullJsonStr.includes('__RESET__')) {
+                    const r_parts = fullJsonStr.split('__RESET__');
+                    fullJsonStr = r_parts[r_parts.length - 1];
+                }
                 if (parts.length > 1) {
                     const usageStr = parts[1].trim();
                     if (usageStr) {
