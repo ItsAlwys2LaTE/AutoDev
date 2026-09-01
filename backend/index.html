@@ -2033,6 +2033,9 @@
                 });
                 
                 const exec = await execRes.json();
+                if (!execRes.ok) {
+                    throw new Error("Execute API Failed: " + JSON.stringify(exec));
+                }
                 state.executionResult = exec;
                 document.getElementById(`exec-logs-${cId}`).innerText = exec.logs;
                 
@@ -2055,6 +2058,11 @@
                 });
                 
                 const arbitration = await criticRes.json();
+                if (!criticRes.ok) {
+                    const errMsg = arbitration.detail || arbitration.error || JSON.stringify(arbitration);
+                    document.getElementById(`critic-cards-${cId}`).innerHTML = `<div class="text-red-500 font-bold p-4">Critics API Failed: ${errMsg}</div>`;
+                    throw new Error("Critics API Failed: " + errMsg);
+                }
                 
                 // Render old-ui style critic cards
                 const cCards = document.getElementById(`critic-cards-${cId}`);
