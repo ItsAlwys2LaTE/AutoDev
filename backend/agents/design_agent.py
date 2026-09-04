@@ -7,9 +7,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint
 from retry import with_exponential_backoff
-from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
-def generate_design_stream(requirements: RequirementsDocument, component_context: str = None):
+def generate_design_stream(requirements: RequirementsDocument, component_context: str = None, mode: str = None):
     """
     Takes a structured RequirementsDocument and yields a stream of JSON text 
     representing a SystemDesignBlueprint outlining the file structure and logic.
@@ -17,12 +17,14 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     If component_context is provided, the agent will design a scoped blueprint
     for a single component within a larger system.
     """
-    keys = get_gemini_keys_for_stage("DESIGN")
+    primary_model, secondary_model = resolve_models_for_mode(mode)
+    keys = get_gemini_keys_for_stage("DESIGN", mode=mode)
     primary_key = os.environ.get("GEMINI_API_KEY_DESIGN")
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
         keys = [primary_key.strip()] + keys
     if not keys:
         raise ValueError("GEMINI_API_KEY_DESIGN is not set in the environment variables.")
+
 
     system_prompt = """
     You are an Expert Software Architect. You receive strict Requirements containing 
@@ -72,16 +74,18 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                 )
             )
 
-        print(f"Design Agent is architecting blueprint stream using Gemini 3.6-flash (key {idx+1}/{len(keys)})...")
+        print(f"Design Agent is architecting blueprint stream using {primary_model} (Model: {primary_model}) (key {idx+1}/{len(keys)})...")
         try:
-            response = get_stream("gemini-3.6-flash")
+            response = get_stream(primary_model)
             iterator = iter(response)
             first_chunk = next(iterator)
-            yield first_chunk.text
+            if getattr(first_chunk, 'text', None):
+                yield first_chunk.text
             
             last_usage = first_chunk.usage_metadata
             for chunk in iterator:
-                yield chunk.text
+                if getattr(chunk, 'text', None):
+                    yield chunk.text
                 if getattr(chunk, 'usage_metadata', None):
                     last_usage = chunk.usage_metadata
                     
@@ -90,12 +94,12 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
             return
         except Exception as e:
             yield '\n__RESET__\n'
-            print(f"Primary model (3.6-flash) failed on key {idx+1} in Design Agent: {e}")
+            print(f"Primary model ({primary_model}) failed on key {idx+1} in Design Agent: {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
-                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
             else:
-                print("Falling back to gemini-3.5-flash-lite...")
+                print(f"Falling back to {secondary_model} (Model: {secondary_model})...")
                 for fb_idx, fb_key in enumerate(keys):
                     fb_client = genai.Client(api_key=fb_key)
 
@@ -112,14 +116,16 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                             )
                         )
                     try:
-                        response = get_fallback_stream("gemini-3.5-flash-lite")
+                        response = get_fallback_stream(secondary_model)
                         for chunk in response:
-                            yield chunk.text
+                            if getattr(chunk, 'text', None):
+                                yield chunk.text
                         return
                     except Exception as fallback_error:
                         yield '\n__RESET__\n'
-                        print(f"Fallback model on key {fb_idx+1} failed in Design Agent: {fallback_error}")
+                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Design Agent: {fallback_error}")
                         if fb_idx + 1 < len(keys):
                             continue
                         yield f'{{"error": "Both primary and fallback models failed in Design Agent. Last error: {fallback_error}"}}'
                         return
+

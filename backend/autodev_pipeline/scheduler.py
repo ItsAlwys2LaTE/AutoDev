@@ -21,6 +21,9 @@ from autodev_pipeline.concurrency import (
     StageQueueManager,
     _normalize_stage,
 )
+
+if not hasattr(StageLockManager, "acquire_stage"):
+    StageLockManager.acquire_stage = StageLockManager.try_acquire_stage
 from autodev_pipeline.dag_engine import PipelineDAG
 from autodev_pipeline.fault_tolerance import (
     FaultToleranceManager,
@@ -275,6 +278,7 @@ class PipelineScheduler:
         artifact: Optional[Dict[str, Any]] = None,
         adjudication_verdict: Optional[str] = "pass",
         revision_plan: Optional[str] = None,
+        force_proceed: bool = False,
     ) -> bool:
         """
         Signals completion of stage processing for a component and executes atomic 2-phase handover.
@@ -288,6 +292,46 @@ class PipelineScheduler:
             lease = comp.active_lease
             if not lease:
                 return False
+
+            if force_proceed:
+                self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                comp.active_lease = None
+                comp.current_stage = None
+                comp.force_proceeded = True
+                reason = "Explicitly force-proceeded"
+                comp.transition_to(
+                    ComponentStatus.COMPLETED,
+                    stage=None,
+                    lease=None,
+                    reason=reason,
+                )
+                self.log_event(
+                    TransitionEventType.STATUS_TRANSITION,
+                    component_id=component_id,
+                    from_status=ComponentStatus.IN_STAGE,
+                    to_status=ComponentStatus.COMPLETED,
+                    stage=norm_stage,
+                    metadata={"forced_proceed": True, "reason": reason},
+                )
+                # Unblock downstream dependencies
+                ready_ids = self.dag.get_ready_components()
+                for cid in ready_ids:
+                    dep_comp = self.dag.get_component(cid)
+                    if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
+                        from_st = dep_comp.status
+                        dep_comp.transition_to(ComponentStatus.READY)
+                        self.log_event(
+                            TransitionEventType.DEPENDENCY_RESOLVED,
+                            component_id=cid,
+                            from_status=from_st,
+                            to_status=ComponentStatus.READY,
+                        )
+                        self.queue_manager.enqueue(
+                            StageEnum.DESIGN,
+                            cid,
+                            priority_order=dep_comp.priority_order,
+                        )
+                return True
 
             # Attach generated stage artifacts
             if norm_stage == StageEnum.DESIGN:
@@ -306,27 +350,76 @@ class PipelineScheduler:
                 if verdict_lower == "revise":
                     comp.increment_revision()
                     if comp.has_exceeded_revisions():
-                        # Poison pill limit exceeded: release lock and quarantine
-                        self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
-                        reason = revision_plan or f"Exceeded maximum revision limit ({comp.max_revisions} cycles)"
-                        comp.transition_to(
-                            ComponentStatus.QUARANTINED,
-                            stage=None,
-                            lease=None,
-                            reason=reason,
+                        is_quick = (
+                            getattr(self.config, "generation_mode", "QUICK").upper() == "QUICK"
+                            or comp.max_revisions <= 2
                         )
-                        self.log_event(
-                            TransitionEventType.QUARANTINE_ISOLATED,
-                            component_id=component_id,
-                            from_status=ComponentStatus.IN_STAGE,
-                            to_status=ComponentStatus.QUARANTINED,
-                            stage=norm_stage,
-                        )
-                        if self.fault_tolerance:
-                            self.fault_tolerance.trigger_cascade_pause(
-                                component_id, reason="UPSTREAM_QUARANTINED"
+                        if is_quick:
+                            # In QUICK mode: FORCE PROCEED rather than QUARANTINE!
+                            self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                            comp.active_lease = None
+                            comp.current_stage = None
+                            comp.force_proceeded = True
+                            reason = f"Forced advancement after {comp.revision_count} revisions in QUICK mode"
+                            comp.transition_to(
+                                ComponentStatus.COMPLETED,
+                                stage=None,
+                                lease=None,
+                                reason=reason,
                             )
-                        return True
+                            self.log_event(
+                                TransitionEventType.STATUS_TRANSITION,
+                                component_id=component_id,
+                                from_status=ComponentStatus.IN_STAGE,
+                                to_status=ComponentStatus.COMPLETED,
+                                stage=norm_stage,
+                                metadata={
+                                    "forced_proceed": True,
+                                    "revision_count": comp.revision_count,
+                                    "reason": reason,
+                                },
+                            )
+                            # Unblock downstream DAG dependencies so pipeline can finish
+                            ready_ids = self.dag.get_ready_components()
+                            for cid in ready_ids:
+                                dep_comp = self.dag.get_component(cid)
+                                if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
+                                    from_st = dep_comp.status
+                                    dep_comp.transition_to(ComponentStatus.READY)
+                                    self.log_event(
+                                        TransitionEventType.DEPENDENCY_RESOLVED,
+                                        component_id=cid,
+                                        from_status=from_st,
+                                        to_status=ComponentStatus.READY,
+                                    )
+                                    self.queue_manager.enqueue(
+                                        StageEnum.DESIGN,
+                                        cid,
+                                        priority_order=dep_comp.priority_order,
+                                    )
+                            return True
+                        else:
+                            # Standard COMPLEX mode quarantine
+                            self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                            reason = revision_plan or f"Exceeded maximum revision limit ({comp.max_revisions} cycles)"
+                            comp.transition_to(
+                                ComponentStatus.QUARANTINED,
+                                stage=None,
+                                lease=None,
+                                reason=reason,
+                            )
+                            self.log_event(
+                                TransitionEventType.QUARANTINE_ISOLATED,
+                                component_id=component_id,
+                                from_status=ComponentStatus.IN_STAGE,
+                                to_status=ComponentStatus.QUARANTINED,
+                                stage=norm_stage,
+                            )
+                            if self.fault_tolerance:
+                                self.fault_tolerance.trigger_cascade_pause(
+                                    component_id, reason="UPSTREAM_QUARANTINED"
+                                )
+                            return True
                     else:
                         # Return to CODEGEN with revision priority bonus
                         StageHandoverProtocol.execute_handover(
@@ -392,6 +485,24 @@ class PipelineScheduler:
                     from_status=ComponentStatus.IN_STAGE,
                     to_status=ComponentStatus.COMPLETED,
                 )
+                # Unblock downstream DAG dependencies
+                ready_ids = self.dag.get_ready_components()
+                for cid in ready_ids:
+                    dep_comp = self.dag.get_component(cid)
+                    if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
+                        from_st = dep_comp.status
+                        dep_comp.transition_to(ComponentStatus.READY)
+                        self.log_event(
+                            TransitionEventType.DEPENDENCY_RESOLVED,
+                            component_id=cid,
+                            from_status=from_st,
+                            to_status=ComponentStatus.READY,
+                        )
+                        self.queue_manager.enqueue(
+                            StageEnum.DESIGN,
+                            cid,
+                            priority_order=dep_comp.priority_order,
+                        )
             else:
                 self.log_event(
                     TransitionEventType.STATUS_TRANSITION,

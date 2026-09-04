@@ -6,15 +6,17 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, ComponentDecomposition
 from retry import with_exponential_backoff
-from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
-def decompose_requirements_stream(requirements: RequirementsDocument):
-    keys = get_gemini_keys_for_stage("DECOMPOSITION")
-    primary_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
+def decompose_requirements_stream(requirements: RequirementsDocument, mode: str = None):
+    primary_model, secondary_model = resolve_models_for_mode(mode)
+    keys = get_gemini_keys_for_stage("DECOMPOSITION", mode=mode)
+    primary_key = os.environ.get("GEMINI_API_KEY_MASTER_ARCHITECT") or os.environ.get("GEMINI_API_KEY_2") or os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
         keys = [primary_key.strip()] + keys
     if not keys:
-        raise ValueError("GEMINI_API_KEY_ADJUDICATOR is not set in the environment variables.")
+        raise ValueError("GEMINI_API_KEY_MASTER_ARCHITECT is not set in the environment variables.")
+
 
     system_prompt = """
     You are a Master Software Architect with decades of experience decomposing large-scale systems. 
@@ -70,17 +72,19 @@ def decompose_requirements_stream(requirements: RequirementsDocument):
                 )
             )
 
-        print(f"Master Architect is analyzing product complexity using Gemini 3.6-flash (key {idx+1}/{len(keys)})...")
+        print(f"Master Architect is analyzing product complexity using {primary_model} (Model: {primary_model}) (key {idx+1}/{len(keys)})...")
         try:
-            response = _get_stream("gemini-3.6-flash")
+            response = _get_stream(primary_model)
             iterator = iter(response)
             first_chunk = next(iterator)
-            yield first_chunk.text
+            if getattr(first_chunk, 'text', None):
+                yield first_chunk.text
 
             last_usage = first_chunk.usage_metadata
 
             for chunk in iterator:
-                yield chunk.text
+                if getattr(chunk, 'text', None):
+                    yield chunk.text
                 if getattr(chunk, 'usage_metadata', None):
                     last_usage = chunk.usage_metadata
 
@@ -89,12 +93,12 @@ def decompose_requirements_stream(requirements: RequirementsDocument):
             return
         except Exception as e:
             yield '\n__RESET__\n'
-            print(f"Primary model (3.6-flash) on key {idx+1} failed in Master Architect: {e}")
+            print(f"Primary model ({primary_model}) on key {idx+1} failed in Master Architect: {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
-                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
             else:
-                print("Falling back to gemini-3.5-flash-lite...")
+                print(f"Falling back to {secondary_model} (Model: {secondary_model})...")
                 for fb_idx, fb_key in enumerate(keys):
                     fb_client = genai.Client(api_key=fb_key)
 
@@ -111,13 +115,14 @@ def decompose_requirements_stream(requirements: RequirementsDocument):
                             )
                         )
                     try:
-                        response = _get_fallback_stream("gemini-3.5-flash-lite")
+                        response = _get_fallback_stream(secondary_model)
                         for chunk in response:
-                            yield chunk.text
+                            if getattr(chunk, 'text', None):
+                                yield chunk.text
                         return
                     except Exception as fallback_error:
                         yield '\n__RESET__\n'
-                        print(f"Fallback model on key {fb_idx+1} failed: {fallback_error}")
+                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Master Architect: {fallback_error}")
                         if fb_idx + 1 < len(keys):
                             continue
                         yield f'{{"error": "Both models failed in Master Architect: {fallback_error}"}}'

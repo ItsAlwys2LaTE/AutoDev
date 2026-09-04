@@ -9,14 +9,15 @@ from groq import Groq
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback
 from retry import with_exponential_backoff
-from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
+from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
-def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult) -> CriticFeedback:
+def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult, mode: str = None) -> CriticFeedback:
     critic_name = "Correctness Critic (Gemini)"
-    print(f"Running {critic_name}...")
+    primary_model, secondary_model = resolve_models_for_mode(mode)
+    print(f"Running {critic_name} (Model: {primary_model})...")
     
     primary_key = os.environ.get("GEMINI_API_KEY_CRITICS")
-    keys = get_gemini_keys_for_stage("CRITIC_CORRECTNESS")
+    keys = get_gemini_keys_for_stage("CRITIC_CORRECTNESS", mode=mode)
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
         keys = [primary_key.strip()] + keys
     
@@ -36,14 +37,14 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
     
     system_instruction = f"You are the {critic_name}. Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
 
-    # Try all primary keys with gemini-3.6-flash
+    # Try all primary keys with resolved primary model
     for idx, key in enumerate(keys):
         client = genai.Client(api_key=key)
 
         @with_exponential_backoff
         def _call_primary():
             response = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=primary_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
@@ -62,20 +63,19 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
         try:
             return _call_primary()
         except Exception as e:
-            yield '\n__RESET__\n'
-            print(f"Correctness Critic failed on key {idx+1}/{len(keys)} (model: 3.6-flash): {e}")
+            print(f"Correctness Critic failed on key {idx+1}/{len(keys)} (Model: {primary_model}): {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
-                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
             else:
-                print(f"Falling back to gemini-3.5-flash-lite...")
+                print(f"Falling back to {secondary_model} (Model: {secondary_model})...")
                 for fb_idx, fb_key in enumerate(keys):
                     fb_client = genai.Client(api_key=fb_key)
 
                     @with_exponential_backoff
                     def _call_fallback():
                         response = fb_client.models.generate_content(
-                            model="gemini-3.5-flash-lite",
+                            model=secondary_model,
                             contents=prompt,
                             config=types.GenerateContentConfig(
                                 system_instruction=system_instruction,
@@ -94,14 +94,16 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
                     try:
                         return _call_fallback()
                     except Exception as fallback_e:
-                        print(f"Correctness Critic fallback on key {fb_idx+1} failed: {fallback_e}")
+                        print(f"Correctness Critic fallback on key {fb_idx+1} failed (Model: {secondary_model}): {fallback_e}")
                         if fb_idx + 1 < len(keys):
                             continue
                         return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
 
 
-def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None) -> CriticFeedback:
+
+def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None) -> CriticFeedback:
     critic_name = "Architecture Critic (Mistral)"
+    primary_model, secondary_model = resolve_models_for_mode(mode)
     print(f"Running {critic_name}...")
     
     api_key = os.environ.get("MISTRAL_API_KEY")
@@ -162,8 +164,8 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
     except Exception as e:
         error_msg = str(e).lower()
         if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg or "401" in error_msg or "unauthorized" in error_msg or api_key == "dummy_key_to_force_fallback":
-            print(f"Architecture Critic (Mistral) hit rate limit or missing key: {e}. Falling back to Gemini...")
-            gemini_keys = get_gemini_keys_for_stage("CRITIC_ARCHITECTURE")
+            print(f"Architecture Critic (Mistral) hit rate limit or missing key: {e}. Falling back to Gemini (Model: {primary_model})...")
+            gemini_keys = get_gemini_keys_for_stage("CRITIC_ARCHITECTURE", mode=mode)
             adjudicator_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
             if adjudicator_key and adjudicator_key.strip() and adjudicator_key.strip() not in gemini_keys:
                 gemini_keys = [adjudicator_key.strip()] + gemini_keys
@@ -172,14 +174,14 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
                 
             system_instruction = f"You are the {critic_name} (Fallback Mode). Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
 
-            # Try primary model gemini-3.6-flash across available keys
+            # Try primary model across available keys
             for g_idx, g_key in enumerate(gemini_keys):
                 gemini_client = genai.Client(api_key=g_key)
 
                 @with_exponential_backoff
                 def _call_gemini_primary():
                     res = gemini_client.models.generate_content(
-                        model="gemini-3.6-flash",
+                        model=primary_model,
                         contents=prompt,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
@@ -198,19 +200,19 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
                 try:
                     return _call_gemini_primary()
                 except Exception as g_err:
-                    print(f"Gemini fallback (3.6-flash) on key {g_idx+1} failed: {g_err}")
+                    print(f"Gemini fallback ({primary_model}) on key {g_idx+1} failed: {g_err}")
                     if is_rate_limit_error(g_err) and g_idx + 1 < len(gemini_keys):
                         continue
 
-            # If all primary keys fail on 3.6-flash, try 3.5-flash-lite
-            print(f"Falling back to gemini-3.5-flash-lite for Architecture Critic...")
+            # If all primary keys fail, try secondary model
+            print(f"Falling back to {secondary_model} (Model: {secondary_model}) for Architecture Critic...")
             for g_idx, g_key in enumerate(gemini_keys):
                 gemini_client = genai.Client(api_key=g_key)
 
                 @with_exponential_backoff
                 def _call_gemini_fallback():
                     res = gemini_client.models.generate_content(
-                        model="gemini-3.5-flash-lite",
+                        model=secondary_model,
                         contents=prompt,
                         config=types.GenerateContentConfig(
                             system_instruction=system_instruction,
@@ -229,7 +231,7 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
                 try:
                     return _call_gemini_fallback()
                 except Exception as fallback_e:
-                    print(f"Gemini fallback (3.5-flash-lite) on key {g_idx+1} failed: {fallback_e}")
+                    print(f"Gemini fallback ({secondary_model}) on key {g_idx+1} failed: {fallback_e}")
                     if g_idx + 1 < len(gemini_keys):
                         continue
                     return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral Error: {str(e)}", f"Gemini Fallback Error: {str(fallback_e)}"], overall_comments="Failed to evaluate architecture.")
@@ -237,12 +239,13 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
             return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error (Non-Rate Limit): {str(e)}"], overall_comments="Failed to evaluate architecture.")
 
 
-def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None) -> CriticFeedback:
-    print("Running Completeness Critic (Gemini 3.6-flash)...")
+def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None) -> CriticFeedback:
+    primary_model, secondary_model = resolve_models_for_mode(mode)
+    print(f"Running Completeness Critic (Gemini) (Model: {primary_model})...")
     critic_name = "Completeness Critic (Gemini)"
     
     primary_key = os.environ.get("GEMINI_API_KEY_CRITICS")
-    keys = get_gemini_keys_for_stage("CRITIC_COMPLETENESS")
+    keys = get_gemini_keys_for_stage("CRITIC_COMPLETENESS", mode=mode)
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
         keys = [primary_key.strip()] + keys
     
@@ -283,7 +286,7 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
         @with_exponential_backoff
         def _call_primary():
             response = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=primary_model,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
@@ -302,20 +305,19 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
         try:
             return _call_primary()
         except Exception as e:
-            yield '\n__RESET__\n'
-            print(f"Completeness Critic failed on key {idx+1}/{len(keys)} (model: 3.6-flash): {e}")
+            print(f"Completeness Critic failed on key {idx+1}/{len(keys)} (Model: {primary_model}): {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
-                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
             else:
-                print(f"Falling back to gemini-3.5-flash-lite...")
+                print(f"Falling back to {secondary_model} (Model: {secondary_model})...")
                 for fb_idx, fb_key in enumerate(keys):
                     fb_client = genai.Client(api_key=fb_key)
 
                     @with_exponential_backoff
                     def _call_fallback():
                         response = fb_client.models.generate_content(
-                            model="gemini-3.5-flash-lite",
+                            model=secondary_model,
                             contents=prompt,
                             config=types.GenerateContentConfig(
                                 system_instruction=system_instruction,
@@ -334,8 +336,9 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
                     try:
                         return _call_fallback()
                     except Exception as fallback_e:
-                        print(f"Completeness Critic fallback on key {fb_idx+1} failed: {fallback_e}")
+                        print(f"Completeness Critic fallback on key {fb_idx+1} failed (Model: {secondary_model}): {fallback_e}")
                         if fb_idx + 1 < len(keys):
                             continue
                         return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate completeness.")
+
 

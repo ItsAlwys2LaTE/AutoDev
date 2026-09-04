@@ -10,7 +10,7 @@ from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlu
 from agents.critics import evaluate_correctness, evaluate_architecture, evaluate_completeness
 from retry import with_exponential_backoff
 
-class GraphState(TypedDict):
+class GraphState(TypedDict, total=False):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
     codebase: GeneratedCodeBase
@@ -20,6 +20,8 @@ class GraphState(TypedDict):
     feedbacks: Annotated[List[CriticFeedback], operator.add]
     decision: AdjudicatorDecision
     revision_count: int
+    generation_mode: Optional[str]
+    mode: Optional[str]
 
 def node_correctness(state: GraphState):
     feedback = evaluate_correctness(state["requirements"], state["execution_result"])
@@ -85,7 +87,6 @@ def node_adjudicator(state: GraphState):
             decision = _call_primary()
             return {"decision": decision}
         except Exception as e:
-            yield '\n__RESET__\n'
             print(f"Adjudicator primary model failed on key {idx+1}/{len(keys)}: {e}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
@@ -124,10 +125,19 @@ def node_adjudicator(state: GraphState):
 def route_decision(state: GraphState):
     decision = state.get("decision")
     revision_count = state.get("revision_count", 0)
+    gen_mode = str(state.get("generation_mode") or state.get("mode") or "QUICK").upper()
+    max_revisions = 2 if gen_mode == "QUICK" else 3
     
-    print(f"Adjudicator Verdict: {decision.verdict.upper()} (Revision: {revision_count}/3)")
+    verdict = decision.verdict.upper() if decision and getattr(decision, "verdict", None) else "UNKNOWN"
+    print(f"Adjudicator Verdict: {verdict} (Revision: {revision_count}/{max_revisions}, Mode: {gen_mode})")
     
-    if decision.verdict.lower() == "pass" or revision_count >= 3:
+    verdict_lower = decision.verdict.lower() if decision and getattr(decision, "verdict", None) else ""
+    if verdict_lower == "pass" or revision_count >= max_revisions:
+        if gen_mode == "QUICK" and revision_count >= max_revisions and verdict_lower != "pass":
+            print(f"[QUICK MODE] Component exceeded {max_revisions} revisions. Forcing proceed.")
+            if decision:
+                decision.verdict = "pass"
+                decision.revision_plan = f"Forced proceed after {max_revisions} revisions in QUICK mode."
         return END
     else:
         # In a fully autonomous loop, this would route to a 'node_codegen_revise'

@@ -1,12 +1,15 @@
 import sys
 import queue
 import asyncio
+import threading
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
 log_listeners = []
+_log_lock = threading.RLock()
+_is_logging = threading.local()
 
 class LogInterceptor:
     def __init__(self, original_stream):
@@ -14,13 +17,21 @@ class LogInterceptor:
 
     def write(self, message):
         self.original_stream.write(message)
-        msg = message.strip()
-        if msg:
-            for q in list(log_listeners):
-                try:
-                    q.put_nowait(msg)
-                except Exception:
-                    pass
+        if getattr(_is_logging, 'active', False):
+            return
+        _is_logging.active = True
+        try:
+            msg = message.strip()
+            if msg:
+                with _log_lock:
+                    listeners = list(log_listeners)
+                for q in listeners:
+                    try:
+                        q.put_nowait(msg)
+                    except Exception:
+                        pass
+        finally:
+            _is_logging.active = False
 
     def flush(self):
         self.original_stream.flush()
@@ -32,7 +43,8 @@ sys.stderr = LogInterceptor(sys.stderr)
 @router.get("/api/logs/stream")
 async def stream_logs():
     q = queue.Queue(maxsize=1000)
-    log_listeners.append(q)
+    with _log_lock:
+        log_listeners.append(q)
     
     async def log_generator():
         try:
@@ -51,7 +63,10 @@ async def stream_logs():
                     
                 await asyncio.sleep(0.5)
         except asyncio.CancelledError:
-            if q in log_listeners:
-                log_listeners.remove(q)
+            pass
+        finally:
+            with _log_lock:
+                if q in log_listeners:
+                    log_listeners.remove(q)
             
     return StreamingResponse(log_generator(), media_type="text/event-stream")

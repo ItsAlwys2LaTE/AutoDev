@@ -1,6 +1,7 @@
 import os
 import tarfile
 import io
+import threading
 import docker
 from models import GeneratedCodeBase, ExecutionResult, SystemDesignBlueprint
 
@@ -95,6 +96,30 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
 
     return base_cmd
 
+def _exec_with_timeout(container, cmd: str, workdir: str = "/workspace", timeout_sec: float = 60.0):
+    """Executes a command inside the container with a strict timeout limit to avoid blocking indefinitely."""
+    result_holder = {}
+    error_holder = []
+
+    def target():
+        try:
+            result_holder["res"] = container.exec_run(cmd=cmd, workdir=workdir)
+        except Exception as e:
+            error_holder.append(e)
+
+    th = threading.Thread(target=target, daemon=True)
+    th.start()
+    th.join(timeout=timeout_sec)
+
+    if th.is_alive():
+        return 124, b"TIMEOUT: Sandbox test execution exceeded timeout limit (60s)."
+    if error_holder:
+        raise error_holder[0]
+    res = result_holder.get("res")
+    if res is None:
+        return 1, b"Execution error: No response from container execution."
+    return res.exit_code, res.output
+
 def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) -> ExecutionResult:
     """
     Spins up an isolated Docker container based on the blueprint,
@@ -136,14 +161,19 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
                 
             print(f"Executing docker command: {run_tests_command}")
             
-            # Run the tests inside the isolated container
+            # Run the tests inside the isolated container with timeout protection
             # We use sh -c to ensure the whole logical string (&&) works
-            exit_code, output = container.exec_run(
+            exit_code, output = _exec_with_timeout(
+                container,
                 cmd=f"sh -c '{run_tests_command}'",
-                workdir="/workspace"
+                workdir="/workspace",
+                timeout_sec=60.0
             )
             
-            logs = output.decode('utf-8', errors='replace')
+            if isinstance(output, bytes):
+                logs = output.decode('utf-8', errors='replace')
+            else:
+                logs = str(output or "")
             success = (exit_code == 0)
             
             print("Execution complete.")

@@ -21,12 +21,49 @@ from log_stream import router as log_router
 app.include_router(log_router)
 
 from typing import Optional
+import key_balancer
+
+CURRENT_GENERATION_MODE: str = "QUICK"
+
+def set_current_generation_mode(mode: Optional[str]) -> str:
+    global CURRENT_GENERATION_MODE
+    if mode and str(mode).upper() in ("QUICK", "COMPLEX"):
+        CURRENT_GENERATION_MODE = str(mode).upper()
+    if hasattr(key_balancer, "set_generation_mode"):
+        try:
+            key_balancer.set_generation_mode(CURRENT_GENERATION_MODE)
+        except Exception:
+            pass
+    return CURRENT_GENERATION_MODE
+
+def get_current_generation_mode() -> str:
+    if hasattr(key_balancer, "get_generation_mode"):
+        try:
+            return key_balancer.get_generation_mode()
+        except Exception:
+            pass
+    return CURRENT_GENERATION_MODE
+
+def resolve_model_for_mode(mode: Optional[str] = None) -> str:
+    active_mode = (mode or get_current_generation_mode()).upper()
+    if hasattr(key_balancer, "resolve_models_for_mode"):
+        try:
+            primary, _ = key_balancer.resolve_models_for_mode(active_mode)
+            return primary
+        except Exception:
+            pass
+    return "gemini-3.5-flash-lite" if active_mode == "QUICK" else "gemini-3.6-flash"
+
 
 class FeatureRequestInput(BaseModel):
     feature_request: str
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 class TextUpdateInput(BaseModel):
     text: str
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 class CodeGenInput(BaseModel):
     requirements: RequirementsDocument
@@ -35,15 +72,21 @@ class CodeGenInput(BaseModel):
     revision_plan: Optional[str] = None
     revision_count: Optional[int] = 0
     component_name: Optional[str] = None
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 class DocumentationInput(BaseModel):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
     codebase: GeneratedCodeBase
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 class ExecuteInput(BaseModel):
     codebase: GeneratedCodeBase
     blueprint: SystemDesignBlueprint
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 class ArbitrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -53,6 +96,8 @@ class ArbitrationInput(BaseModel):
     master_decomposition: Optional[ComponentDecomposition] = None
     component_name: Optional[str] = None
     revision_count: Optional[int] = 0
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 class IntegrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -61,6 +106,8 @@ class IntegrationInput(BaseModel):
     previous_codebase: Optional[GeneratedCodeBase] = None
     revision_plan: Optional[str] = None
     revision_count: Optional[int] = 0
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 @app.get("/")
 def serve_frontend():
@@ -75,6 +122,8 @@ from agents.requirements_agent import generate_requirements_stream
 @app.post("/api/generate-requirements")
 def api_generate_requirements(user_input: FeatureRequestInput):
     try:
+        mode = user_input.mode or getattr(user_input, "generation_mode", None) or "QUICK"
+        set_current_generation_mode(mode)
         validate_prompt(user_input.feature_request)
         return StreamingResponse(
             generate_requirements_stream(user_input.feature_request),
@@ -125,11 +174,15 @@ class DesignInput(BaseModel):
     component_context: Optional[str] = None
     component_name: Optional[str] = None
     revision_count: Optional[int] = 0
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 @app.post("/api/generate-design")
 def api_generate_design(payload: DesignInput):
     comp_name = payload.component_name or "Global"
-    print(f"\n[Component: {comp_name}] [Agent: DESIGN] Using API Key: GEMINI_API_KEY_DESIGN (Model: gemini-3.6-flash)")
+    mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
+    active_model = resolve_model_for_mode(mode)
+    print(f"\n[Component: {comp_name}] [Agent: DESIGN] Using API Key: GEMINI_API_KEY_DESIGN (Model: {active_model})")
     try:
         return StreamingResponse(
             generate_design_stream(payload.requirements, payload.component_context),
@@ -144,8 +197,10 @@ from agents.codegen_agent import generate_code_stream
 @app.post("/api/generate-code")
 def api_generate_code(payload: CodeGenInput):
     comp_name = payload.component_name or "Global"
+    mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
+    active_model = resolve_model_for_mode(mode)
     rev_str = f" (REVISION ATTEMPT {payload.revision_count})" if payload.revision_count and payload.revision_count > 0 else ""
-    print(f"\n[Component: {comp_name}] [Agent: CODEGEN]{rev_str} Using API Key: GEMINI_API_KEY_CODEGEN (Model: gemini-3.6-flash)")
+    print(f"\n[Component: {comp_name}] [Agent: CODEGEN]{rev_str} Using API Key: GEMINI_API_KEY_CODEGEN (Model: {active_model})")
     try:
         return StreamingResponse(
             generate_code_stream(
@@ -232,6 +287,24 @@ def api_parse_requirements(payload: TextUpdateInput):
 @app.post("/api/parse-blueprint")
 def api_parse_blueprint(payload: TextUpdateInput):
     print("\n[Status] parsing design blueprint...\n")
+    # Fast path: check if text is already valid JSON matching SystemDesignBlueprint
+    stripped = payload.text.strip()
+    if (stripped.startswith("{") and stripped.endswith("}")) or (stripped.startswith("```json") and "{" in stripped):
+        clean_text = stripped
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+        clean_text = clean_text.strip()
+        try:
+            validated = SystemDesignBlueprint.model_validate_json(clean_text)
+            print("[Status] Fast-path validated blueprint JSON without LLM call.")
+            return validated
+        except Exception:
+            pass
+
     try:
         primary_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         keys = get_gemini_keys_for_stage("PARSE_BLUEPRINT")
@@ -305,14 +378,18 @@ def api_execute_code(payload: ExecuteInput):
 @app.post("/api/run-critics")
 def api_run_critics(payload: ArbitrationInput):
     try:
+        rev_count = payload.revision_count if hasattr(payload, 'revision_count') and payload.revision_count is not None else 0
+        gen_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
         initial_state = {
             "requirements": payload.requirements,
             "blueprint": payload.blueprint,
             "codebase": payload.codebase,
             "execution_result": payload.execution_result,
             "feedbacks": [],
-            "revision_count": 0,
-            "master_decomposition": payload.master_decomposition
+            "revision_count": rev_count,
+            "master_decomposition": payload.master_decomposition,
+            "generation_mode": gen_mode,
+            "mode": gen_mode,
         }
         
         final_state = arbitration_engine.invoke(initial_state)

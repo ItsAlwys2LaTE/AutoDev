@@ -632,7 +632,25 @@ The application client dashboard will be live at `http://localhost:8000`.
 5. Click **Launch Parallel Pipeline** to watch the DAG engine concurrently schedule and execute component tracks (`DESIGN` $\to$ `CODEGEN` $\to$ `CRITICS`).
 6. Inspect generated code inside the embedded Monaco IDE, view live Docker sandbox test logs, and download the final project `.zip`.
 
-### 12.6 Verification & Test Suite Execution
+### 12.6 Generation Modes (QUICK vs COMPLEX)
+
+At the start of the pipeline, users can toggle between two primary operational modes:
+
+1. **QUICK Mode (Default):**
+   - Designed for high-speed, fully autonomous project execution.
+   - Phases progress seamlessly without pausing for human review.
+   - User Interface (text areas) are set to read-only.
+   - Backend logic bypasses the parse-blueprint endpoint to save time.
+   - API Keys strictly isolate generation to gemini-3.5-flash-lite models to maximize throughput.
+   - Max arbitration revisions are capped at 2 (forcing advancement if verification still fails).
+
+2. **COMPLEX Mode:**
+   - Designed for deeper, iterative software design involving human-in-the-loop oversight.
+   - Implements a **30-second CountdownManager**. If no input is detected, the pipeline auto-advances.
+   - If a user clicks into a text box to edit constraints or architecture, the countdown instantly pauses.
+   - Restores standard 3-iteration self-healing and uses the more powerful gemini-3.6-flash as primary logic model.
+
+### 12.7 Verification & Test Suite Execution
 
 AutoDev includes an automated verification suite covering end-to-end integration flows, adversarial DAG stress tests, and balancer backoff mechanics:
 

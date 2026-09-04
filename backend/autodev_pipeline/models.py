@@ -64,6 +64,7 @@ class ComponentStatus(str, Enum):
     """
     CREATED = "CREATED"                     # Initial state post-decomposition
     PENDING_DEPS = "PENDING_DEPS"           # Waiting for upstream DAG dependencies to complete
+    WAITING_DEP = "WAITING_DEP"             # Alias for PENDING_DEPS
     READY = "READY"                         # All dependencies passed; queued for stage acquisition
     IN_STAGE = "IN_STAGE"                   # Actively holding a stage lease and executing
     STALLED = "STALLED"                     # Halted due to dependency failure, cycle, or cascade pause
@@ -197,7 +198,8 @@ class ComponentStateRecord:
     current_stage: Optional[StageEnum] = None
     active_lease: Optional[LeaseToken] = None
     revision_count: int = 0
-    max_revisions: int = 3
+    max_revisions: int = 2
+    force_proceeded: bool = False
 
     # Generated Artifacts & Metadata
     blueprint_artifact: Optional[Dict[str, Any]] = None
@@ -218,11 +220,17 @@ class ComponentStateRecord:
         default_factory=lambda: {
             ComponentStatus.CREATED: {
                 ComponentStatus.PENDING_DEPS,
+                ComponentStatus.WAITING_DEP,
                 ComponentStatus.READY,
                 ComponentStatus.STALLED,
                 ComponentStatus.FAILED,
             },
             ComponentStatus.PENDING_DEPS: {
+                ComponentStatus.READY,
+                ComponentStatus.STALLED,
+                ComponentStatus.FAILED,
+            },
+            ComponentStatus.WAITING_DEP: {
                 ComponentStatus.READY,
                 ComponentStatus.STALLED,
                 ComponentStatus.FAILED,
@@ -243,6 +251,7 @@ class ComponentStateRecord:
             ComponentStatus.STALLED: {
                 ComponentStatus.READY,
                 ComponentStatus.PENDING_DEPS,
+                ComponentStatus.WAITING_DEP,
                 ComponentStatus.COMPLETED,
                 ComponentStatus.FAILED,
             },
@@ -317,6 +326,7 @@ class ComponentStateRecord:
             "active_lease": self.active_lease.to_dict() if self.active_lease else None,
             "revision_count": self.revision_count,
             "max_revisions": self.max_revisions,
+            "force_proceeded": self.force_proceeded,
             "blueprint_artifact": self.blueprint_artifact,
             "codebase_artifact": self.codebase_artifact,
             "execution_result": self.execution_result,
@@ -341,7 +351,8 @@ class ComponentStateRecord:
             current_stage=StageEnum(data["current_stage"]) if data.get("current_stage") else None,
             active_lease=LeaseToken.from_dict(data["active_lease"]) if data.get("active_lease") else None,
             revision_count=int(data.get("revision_count", 0)),
-            max_revisions=int(data.get("max_revisions", 3)),
+            max_revisions=int(data.get("max_revisions", 2)),
+            force_proceeded=bool(data.get("force_proceeded", False)),
             blueprint_artifact=data.get("blueprint_artifact"),
             codebase_artifact=data.get("codebase_artifact"),
             execution_result=data.get("execution_result"),
@@ -360,7 +371,8 @@ class PipelineConfig:
     """
     Global configuration parameters for pipeline execution, timeouts, and resilience policies.
     """
-    max_revisions: int = 3                          # Maximum critic revision cycles before quarantine
+    max_revisions: Optional[int] = None                          # Maximum critic revision cycles before quarantine
+    generation_mode: str = "QUICK"
     lease_duration_sec: float = 3600.0               # Lease TTL per stage acquisition
     lease_heartbeat_interval_sec: float = 10.0      # Heartbeat cadence (tau = Delta t / 3)
     stage_timeout_sec: float = 3600.0               # Global stage execution timeout
@@ -371,10 +383,16 @@ class PipelineConfig:
     state_log_path: str = "pipeline_state.json"    # Persistence path
     quarantine_on_poison_pill: bool = True          # Auto-isolate failing nodes
 
+    def __post_init__(self):
+        if self.max_revisions is None:
+            default_revs = 2 if str(self.generation_mode).upper() == "QUICK" else 3
+            object.__setattr__(self, "max_revisions", default_revs)
+
     def to_dict(self) -> Dict[str, Any]:
         """Serializes the configuration into a primitive dictionary."""
         return {
             "max_revisions": self.max_revisions,
+            "generation_mode": self.generation_mode,
             "lease_duration_sec": self.lease_duration_sec,
             "lease_heartbeat_interval_sec": self.lease_heartbeat_interval_sec,
             "stage_timeout_sec": self.stage_timeout_sec,
@@ -389,8 +407,11 @@ class PipelineConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> PipelineConfig:
         """Deserializes a dictionary into a PipelineConfig instance."""
+        gen_mode = str(data.get("generation_mode", "QUICK"))
+        default_max_revs = 2 if gen_mode.upper() == "QUICK" else 3
         return cls(
-            max_revisions=int(data.get("max_revisions", 3)),
+            max_revisions=int(data["max_revisions"]) if "max_revisions" in data and data["max_revisions"] is not None else default_max_revs,
+            generation_mode=gen_mode,
             lease_duration_sec=float(data.get("lease_duration_sec", 30.0)),
             lease_heartbeat_interval_sec=float(data.get("lease_heartbeat_interval_sec", 10.0)),
             stage_timeout_sec=float(data.get("stage_timeout_sec", 120.0)),

@@ -81,7 +81,37 @@
 
         <!-- INPUT SECTION -->
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-            <label for="featureRequest" class="block font-semibold text-slate-700">Enter Feature Request:</label>
+            <!-- TOP HEADER WITH GENERATION MODE TOGGLE -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-4 border-b border-slate-100">
+                <div>
+                    <label for="featureRequest" class="block font-bold text-slate-800 text-base">Enter Feature Request:</label>
+                    <p id="modeHelperText" class="text-xs text-slate-500 font-medium mt-1">
+                        ⚡ <span class="font-semibold text-slate-700">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, max 2 revisions.
+                    </p>
+                </div>
+                
+                <!-- PILL-SHAPED TOGGLE -->
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Mode:</span>
+                    <div class="inline-flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner" id="generationModeToggle" role="radiogroup" aria-label="Generation Mode">
+                        <button type="button" id="toggleModeQuick" onclick="setGenerationMode('QUICK')" role="radio" aria-checked="true"
+                            class="px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 bg-blue-600 text-white shadow-sm flex items-center gap-1.5 focus:outline-none">
+                            <svg class="w-3.5 h-3.5 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"></path>
+                            </svg>
+                            QUICK
+                        </button>
+                        <button type="button" id="toggleModeComplex" onclick="setGenerationMode('COMPLEX')" role="radio" aria-checked="false"
+                            class="px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 text-slate-600 hover:text-slate-900 flex items-center gap-1.5 focus:outline-none">
+                            <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            COMPLEX
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <textarea id="featureRequest" rows="4" 
                 class="w-full rounded-lg border border-slate-300 p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 placeholder="E.g., Build an email notification system for successful purchases..."></textarea>
@@ -111,8 +141,8 @@
             </div>
             
             <div class="bg-white p-6 sm:p-10 rounded-lg border border-slate-200 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
-                <span class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-purple-500 transition-colors">RICH TEXT DOCUMENT</span>
-                <div id="jsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap" contenteditable="true" spellcheck="true"></div>
+                <span id="jsonOutputBadge" class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-purple-500 transition-colors">READ-ONLY DOCUMENT</span>
+                <div id="jsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap bg-slate-50 cursor-default select-text" contenteditable="false" spellcheck="true"></div>
             </div>
             
             <div class="border-t border-slate-700 pt-6">
@@ -199,8 +229,8 @@
             </div>
             
             <div class="bg-white p-6 sm:p-10 rounded-lg border border-slate-200 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
-                <span class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-indigo-500 transition-colors">RICH TEXT DOCUMENT</span>
-                <div id="designJsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap" contenteditable="true" spellcheck="true"></div>
+                <span id="designJsonOutputBadge" class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-indigo-500 transition-colors">READ-ONLY BLUEPRINT</span>
+                <div id="designJsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap bg-slate-50 cursor-default select-text" contenteditable="false" spellcheck="true"></div>
             </div>
 
             <div class="border-t border-slate-700 pt-6">
@@ -441,7 +471,233 @@
             };
         }
         
-        window.addEventListener('DOMContentLoaded', initLogStream);
+        // Generation Modes State & Management
+        let currentMode = 'QUICK'; // Default mode MUST be QUICK
+
+        function setGenerationMode(mode) {
+            if (pipelineActive) return; // Prevent mid-flight mode corruption
+            currentMode = mode;
+            const quickBtn = document.getElementById('toggleModeQuick');
+            const complexBtn = document.getElementById('toggleModeComplex');
+            const helperText = document.getElementById('modeHelperText');
+
+            if (mode === 'QUICK') {
+                if (quickBtn) {
+                    quickBtn.className = "px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 bg-blue-600 text-white shadow-sm flex items-center gap-1.5 focus:outline-none";
+                    quickBtn.setAttribute('aria-checked', 'true');
+                }
+                if (complexBtn) {
+                    complexBtn.className = "px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 text-slate-600 hover:text-slate-900 flex items-center gap-1.5 focus:outline-none";
+                    complexBtn.setAttribute('aria-checked', 'false');
+                }
+                if (helperText) {
+                    helperText.innerHTML = '⚡ <span class="font-semibold text-slate-700">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, max 2 revisions.';
+                }
+                CountdownManager.cancelAll();
+            } else {
+                if (quickBtn) {
+                    quickBtn.className = "px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 text-slate-600 hover:text-slate-900 flex items-center gap-1.5 focus:outline-none";
+                    quickBtn.setAttribute('aria-checked', 'false');
+                }
+                if (complexBtn) {
+                    complexBtn.className = "px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 bg-indigo-600 text-white shadow-sm flex items-center gap-1.5 focus:outline-none";
+                    complexBtn.setAttribute('aria-checked', 'true');
+                }
+                if (helperText) {
+                    helperText.innerHTML = '🧠 <span class="font-semibold text-slate-700">COMPLEX Mode:</span> Interactive 30s auto-proceed timer, click text to pause and edit, standard 3 revisions.';
+                }
+            }
+            applyModeUIRules();
+        }
+
+        const CountdownManager = {
+            timers: {}, // buttonId -> { intervalId, remaining, base, targetSpan, btn, callback, isPaused }
+
+            start(buttonId, baseHtml, callback, durationSeconds = 30) {
+                if (currentMode !== 'COMPLEX') return;
+                this.cancel(buttonId);
+
+                const btn = document.getElementById(buttonId);
+                if (!btn) return;
+
+                const targetSpan = btn.querySelector('span') || btn;
+                const base = (baseHtml !== undefined && baseHtml !== null) ? baseHtml : targetSpan.innerHTML;
+
+                let remaining = durationSeconds;
+                const updateDisplay = () => {
+                    targetSpan.innerHTML = `${base} <span class="countdown-badge ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-white/25 text-white border border-white/30 shadow-sm animate-pulse">⏳ ${remaining}s</span>`;
+                };
+                updateDisplay();
+
+                const intervalId = setInterval(() => {
+                    remaining--;
+                    if (remaining <= 0) {
+                        this.cancel(buttonId);
+                        console.log(`[CountdownManager] Timer expired on #${buttonId}. Auto-proceeding.`);
+                        if (typeof callback === 'function') {
+                            callback();
+                        } else {
+                            btn.click();
+                        }
+                    } else {
+                        updateDisplay();
+                    }
+                }, 1000);
+
+                this.timers[buttonId] = {
+                    intervalId,
+                    remaining,
+                    base,
+                    targetSpan,
+                    btn,
+                    callback,
+                    isPaused: false
+                };
+            },
+
+            pausePermanently(buttonId, reason = "User edit detected") {
+                const timer = this.timers[buttonId];
+                if (timer && !timer.isPaused) {
+                    clearInterval(timer.intervalId);
+                    timer.isPaused = true;
+                    const targetSpan = timer.targetSpan || (timer.btn ? (timer.btn.querySelector('span') || timer.btn) : null);
+                    if (targetSpan) {
+                        targetSpan.innerHTML = `${timer.base} <span class="countdown-badge ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-sans font-medium bg-amber-500/25 text-amber-200 border border-amber-500/30">✏️ Timer stopped (editing)</span>`;
+                    }
+                    console.log(`[CountdownManager] Permanently stopped #${buttonId}: ${reason}`);
+                }
+            },
+
+            pauseAll(reason = "User edit detected") {
+                Object.keys(this.timers).forEach(id => this.pausePermanently(id, reason));
+            },
+
+            cancel(buttonId) {
+                const timer = this.timers[buttonId];
+                if (timer) {
+                    clearInterval(timer.intervalId);
+                    const targetSpan = timer.targetSpan || (timer.btn ? (timer.btn.querySelector('span') || timer.btn) : null);
+                    if (targetSpan) {
+                        targetSpan.innerHTML = timer.base;
+                    }
+                    delete this.timers[buttonId];
+                }
+            },
+
+            cancelAll() {
+                Object.keys(this.timers).forEach(id => this.cancel(id));
+            }
+        };
+
+        function applyModeUIRules() {
+            const isReadOnly = (currentMode === 'QUICK');
+
+            // 1. Phase 1 Requirements div
+            const reqDiv = document.getElementById('jsonOutput');
+            const reqBadge = document.getElementById('jsonOutputBadge');
+            if (reqDiv) {
+                reqDiv.setAttribute('contenteditable', (!isReadOnly).toString());
+                if (isReadOnly) {
+                    reqDiv.classList.add('bg-slate-50', 'cursor-default', 'select-text');
+                } else {
+                    reqDiv.classList.remove('bg-slate-50', 'cursor-default');
+                }
+            }
+            if (reqBadge) {
+                reqBadge.textContent = isReadOnly ? "READ-ONLY DOCUMENT" : "RICH TEXT DOCUMENT (CLICK TO EDIT)";
+            }
+
+            // 2. Phase 2 Design Blueprint div (Single-Pass)
+            const designDiv = document.getElementById('designJsonOutput');
+            const designBadge = document.getElementById('designJsonOutputBadge');
+            if (designDiv) {
+                designDiv.setAttribute('contenteditable', (!isReadOnly).toString());
+                if (isReadOnly) {
+                    designDiv.classList.add('bg-slate-50', 'cursor-default', 'select-text');
+                } else {
+                    designDiv.classList.remove('bg-slate-50', 'cursor-default');
+                }
+            }
+            if (designBadge) {
+                designBadge.textContent = isReadOnly ? "READ-ONLY BLUEPRINT" : "RICH TEXT BLUEPRINT (CLICK TO EDIT)";
+            }
+
+            // 3. Component Pipeline Blueprint textareas
+            if (typeof componentStates !== 'undefined' && componentStates) {
+                Object.keys(componentStates).forEach(cId => {
+                    const txtArea = document.getElementById(`design-text-${cId}`);
+                    if (txtArea) {
+                        txtArea.readOnly = isReadOnly;
+                        txtArea.disabled = isReadOnly;
+                        if (isReadOnly) {
+                            txtArea.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-600');
+                            txtArea.classList.remove('focus:border-blue-500', 'focus:ring-1', 'focus:ring-blue-500');
+                        } else {
+                            txtArea.classList.remove('bg-slate-100', 'cursor-not-allowed', 'text-slate-600');
+                            txtArea.classList.add('focus:border-blue-500', 'focus:ring-1', 'focus:ring-blue-500');
+                        }
+                    }
+                });
+            }
+
+            // 4. Monaco Editors
+            if (typeof editorInstance !== 'undefined' && editorInstance) {
+                editorInstance.updateOptions({ readOnly: isReadOnly });
+            }
+            if (typeof componentEditors !== 'undefined' && componentEditors) {
+                Object.values(componentEditors).forEach(ed => {
+                    if (ed) ed.updateOptions({ readOnly: isReadOnly });
+                });
+            }
+        }
+
+        function attachEditableClickHandlers() {
+            const jsonOut = document.getElementById('jsonOutput');
+            if (jsonOut) {
+                ['click', 'focus', 'input'].forEach(evt => {
+                    jsonOut.addEventListener(evt, () => {
+                        if (currentMode === 'COMPLEX') {
+                            CountdownManager.pausePermanently('decomposeBtn', 'Requirements document clicked/edited');
+                        }
+                    });
+                });
+            }
+
+            const designJsonOut = document.getElementById('designJsonOutput');
+            if (designJsonOut) {
+                ['click', 'focus', 'input'].forEach(evt => {
+                    designJsonOut.addEventListener(evt, () => {
+                        if (currentMode === 'COMPLEX') {
+                            CountdownManager.pausePermanently('codeBtn', 'Design blueprint clicked/edited');
+                        }
+                    });
+                });
+            }
+        }
+
+        function attachComponentEditableHandler(cId) {
+            const txt = document.getElementById(`design-text-${cId}`);
+            if (txt && !txt._editHandlerAttached) {
+                txt._editHandlerAttached = true;
+                ['click', 'focus', 'input'].forEach(evt => {
+                    txt.addEventListener(evt, () => {
+                        if (currentMode === 'COMPLEX') {
+                            CountdownManager.pausePermanently(`approve-design-${cId}`, `Component ${cId} blueprint clicked/edited`);
+                        }
+                    });
+                });
+            }
+        }
+
+        function initGenerationModes() {
+            applyModeUIRules();
+            attachEditableClickHandlers();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initLogStream();
+            initGenerationModes();
+        });
 
         let currentRequirements = null;
         let currentBlueprint = null;
@@ -489,11 +745,23 @@
                         language: 'python',
                         theme: 'vs-dark',
                         automaticLayout: true,
-                        minimap: { enabled: false }
+                        minimap: { enabled: false },
+                        readOnly: (currentMode === 'QUICK')
+                    });
+                    editorInstance.onDidFocusEditorText(() => {
+                        if (currentMode === 'COMPLEX') {
+                            CountdownManager.pausePermanently('execBtn', 'Monaco editor clicked/focused');
+                        }
+                    });
+                    editorInstance.onDidChangeModelContent(() => {
+                        if (currentMode === 'COMPLEX') {
+                            CountdownManager.pausePermanently('execBtn', 'Monaco editor edited');
+                        }
                     });
                     switchFile(fileIndex);
                 });
             } else {
+                editorInstance.updateOptions({ readOnly: (currentMode === 'QUICK') });
                 switchFile(fileIndex);
             }
         }
@@ -887,6 +1155,8 @@
         }
 
         function resetUI() {
+            CountdownManager.cancelAll();
+            window._quickIntegrationTriggered = false;
             setVisible('errorSection', false);
             setVisible('outputSection', false);
             setVisible('designOutputSection', false);
@@ -922,7 +1192,10 @@
                 const response = await fetch('/api/generate-requirements', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ feature_request: input })
+                    body: JSON.stringify({ 
+                        feature_request: input,
+                        mode: currentMode 
+                    })
                 });
 
                 if (!response.ok) {
@@ -994,6 +1267,14 @@
                 document.getElementById('jsonOutput').innerText = reqText;
                 
                 updateStepper(1, 'success');
+                applyModeUIRules();
+
+                if (currentMode === 'QUICK') {
+                    console.log("[QUICK Mode] Auto-progressing: Requirements -> Decomposition");
+                    runDecomposition();
+                } else {
+                    CountdownManager.start('decomposeBtn', '<span>Execute SYS.DECOMPOSER (v2.1.0)</span>', () => runDecomposition(), 30);
+                }
 
             } catch (error) {
                 updateStepper(1, 'error');
@@ -1004,22 +1285,24 @@
         }
 
         async function generateDesign() {
-            // Parse edited rich text back to JSON via LLM
+            CountdownManager.cancel('simpleDesignBtn');
             setButtonLoading('designBtn', 'designSpinner', true);
             updateStepper(2, 'loading');
-            try {
-                const text = document.getElementById('jsonOutput').innerText;
-                const parseRes = await fetch('/api/parse-requirements', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
-                });
-                if (!parseRes.ok) throw new Error("Failed to parse requirements text.");
-                currentRequirements = await parseRes.json();
-            } catch (err) {
-                setButtonLoading('designBtn', 'designSpinner', false);
-                updateStepper(2, 'error');
-                return showError("Error parsing Requirements: " + err.message);
+            if (currentMode !== 'QUICK') {
+                try {
+                    const text = document.getElementById('jsonOutput').innerText;
+                    const parseRes = await fetch('/api/parse-requirements', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: text })
+                    });
+                    if (!parseRes.ok) throw new Error("Failed to parse requirements text.");
+                    currentRequirements = await parseRes.json();
+                } catch (err) {
+                    setButtonLoading('designBtn', 'designSpinner', false);
+                    updateStepper(2, 'error');
+                    return showError("Error parsing Requirements: " + err.message);
+                }
             }
 
             if (!currentRequirements) {
@@ -1103,6 +1386,14 @@
                 document.getElementById('designJsonOutput').innerText = bpText;
                 
                 updateStepper(2, 'success');
+                applyModeUIRules();
+
+                if (currentMode === 'QUICK') {
+                    console.log("[QUICK Mode] Auto-progressing: Design -> Code Generation");
+                    generateCode();
+                } else {
+                    CountdownManager.start('codeBtn', '<span id="codeBtnText">Execute SYS.CODE_GEN (v1.3.0)</span>', () => generateCode(), 30);
+                }
             } catch (error) {
                 updateStepper(2, 'error');
                 showError(`Phase 2 Failed: ${error.message}`);
@@ -1112,23 +1403,28 @@
         }
 
         async function generateCode(isRevision = false) {
+            CountdownManager.cancel('codeBtn');
             // Re-sync currentBlueprint from the editable rich text area via LLM
             if (document.getElementById('designOutputSection').classList.contains('hidden') === false && !isRevision) {
-                setButtonLoading('codeBtn', 'codeSpinner', true);
-                try {
-                    const text = document.getElementById('designJsonOutput').innerText;
-                    const parseRes = await fetch('/api/parse-blueprint', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: text })
-                    });
-                    if (!parseRes.ok) throw new Error("Failed to parse blueprint text.");
-                    currentBlueprint = await parseRes.json();
-                } catch (err) {
+                if (currentMode === 'QUICK') {
+                    console.log("[QUICK Mode] Skipping /api/parse-blueprint round-trip; using currentBlueprint directly.");
+                } else {
+                    setButtonLoading('codeBtn', 'codeSpinner', true);
+                    try {
+                        const text = document.getElementById('designJsonOutput').innerText;
+                        const parseRes = await fetch('/api/parse-blueprint', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: text })
+                        });
+                        if (!parseRes.ok) throw new Error("Failed to parse blueprint text.");
+                        currentBlueprint = await parseRes.json();
+                    } catch (err) {
+                        setButtonLoading('codeBtn', 'codeSpinner', false);
+                        return showError("Error parsing Blueprint: " + err.message);
+                    }
                     setButtonLoading('codeBtn', 'codeSpinner', false);
-                    return showError("Error parsing Blueprint: " + err.message);
                 }
-                setButtonLoading('codeBtn', 'codeSpinner', false);
             }
 
             if (!currentRequirements || !currentBlueprint) return showError("Missing prerequisites.");
@@ -1237,6 +1533,16 @@
                 snapshotRevision();
                 
                 updateStepper(3, 'success');
+                applyModeUIRules();
+
+                if (!isRevision) {
+                    if (currentMode === 'QUICK') {
+                        console.log("[QUICK Mode] Auto-progressing: Code -> Sandbox Execution");
+                        executeCode();
+                    } else {
+                        CountdownManager.start('execBtn', '<span>Execute SYS.SANDBOX_EXEC (v1.3.0)</span>', () => executeCode(), 30);
+                    }
+                }
 
             } catch (error) {
                 updateStepper(3, 'error');
@@ -1248,6 +1554,7 @@
         }
 
         async function executeCode() {
+            CountdownManager.cancel('execBtn');
             if (!currentCodebase) return showError("Missing codebase.");
             
             // Flush active editor edits back to the codebase payload before sending!
@@ -1306,8 +1613,16 @@
                 // Save execution results to active revision
                 saveCurrentRevisionMeta(null, null);
                 
-                updateStepper(4, data.success ? 'success' : 'error'); // Though logically both are valid states, for UI, let's just mark it success since the step finished. Wait, tests failing is an error? Let's use 'success' if the phase itself succeeded.
                 updateStepper(4, 'success');
+
+                if (currentRevisionCount === 0) {
+                    if (currentMode === 'QUICK') {
+                        console.log("[QUICK Mode] Auto-progressing: Execution -> Critics");
+                        runCritics();
+                    } else {
+                        CountdownManager.start('criticBtn', '<span>Execute SYS.ARBITRATION (v1.3.0)</span>', () => runCritics(), 30);
+                    }
+                }
 
             } catch (error) {
                 updateStepper(4, 'error');
@@ -1318,6 +1633,7 @@
         }
 
         async function runCritics() {
+            CountdownManager.cancel('criticBtn');
             if (!currentRequirements || !currentBlueprint || !currentCodebase || !currentExecutionResult) {
                 return showError("Missing previous phase data.");
             }
@@ -1388,9 +1704,16 @@
                         adjCard.className = "p-5 rounded-lg border shadow-sm bg-rose-950/30 border-rose-900/50";
                     }
                     
-                    const isLoopFinished = (data.decision.verdict.toLowerCase() === 'pass') || (currentRevisionCount >= 3) || (data.decision.verdict.toLowerCase() === 'error');
+                    const maxRevs = (currentMode === 'QUICK') ? 2 : 3;
+                    const isLoopFinished = (data.decision.verdict.toLowerCase() === 'pass') || (currentRevisionCount >= maxRevs) || (data.decision.verdict.toLowerCase() === 'error');
                     if (isLoopFinished) {
                         document.getElementById('docGenerationSection').classList.remove('hidden');
+                        if (currentMode === 'QUICK') {
+                            console.log("[QUICK Mode] Arbitration complete. Auto-generating documentation.");
+                            generateDocs();
+                        } else {
+                            CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
+                        }
                     } else {
                         document.getElementById('docGenerationSection').classList.add('hidden');
                     }
@@ -1405,13 +1728,14 @@
                 saveCurrentRevisionMeta(feedbacks, data.decision);
 
                 // AUTOMATIC SELF-CORRECTION LOOP
-                if (data.decision && data.decision.verdict.toLowerCase() === 'revise' && currentRevisionCount < 3) {
+                const maxRevs = (currentMode === 'QUICK') ? 2 : 3;
+                if (data.decision && data.decision.verdict.toLowerCase() === 'revise' && currentRevisionCount < maxRevs) {
                     currentRevisionCount++;
                     currentRevisionPlan = data.decision.revision_plan;
                     
                     // Show a toast or update UI to indicate loop
                     const badge = document.getElementById('adjudicatorVerdict');
-                    badge.textContent = `REVISE (Loop ${currentRevisionCount}/3 starting...)`;
+                    badge.textContent = `REVISE (Loop ${currentRevisionCount}/${maxRevs} starting...)`;
                     badge.classList.add('animate-pulse');
 
                     // Wait 3 seconds so user can read the critique, then start the loop
@@ -1435,6 +1759,7 @@
         }
 
         async function generateDocs() {
+            CountdownManager.cancel('docBtn');
             if (!currentRequirements || !currentBlueprint || !currentCodebase) {
                 return showError("Missing previous phase data.");
             }
@@ -1520,20 +1845,23 @@
         }
         // --- PHASE 1.5: DECOMPOSITION ---
         async function runDecomposition() {
+            CountdownManager.cancel('decomposeBtn');
             setButtonLoading('decomposeBtn', 'decomposeSpinner', true);
             setVisible('errorSection', false);
             setVisible('decomposeSection', true);
             document.getElementById('decomposeStatus').innerText = "Analyzing...";
             
             try {
-                // Ensure requirements are parsed
-                const parseReqRes = await fetch('/api/parse-requirements', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: document.getElementById('jsonOutput').innerText })
-                });
-                if (!parseReqRes.ok) throw new Error("Failed to parse requirements.");
-                currentRequirements = await parseReqRes.json();
+                // Ensure requirements are parsed if in complex/interactive mode
+                if (currentMode !== 'QUICK') {
+                    const parseReqRes = await fetch('/api/parse-requirements', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: document.getElementById('jsonOutput').innerText })
+                    });
+                    if (!parseReqRes.ok) throw new Error("Failed to parse requirements.");
+                    currentRequirements = await parseReqRes.json();
+                }
                 
                 const response = await fetch('/api/decompose', {
                     method: 'POST',
@@ -1561,6 +1889,12 @@
                             </button>
                         `;
                     }
+                    if (currentMode === 'QUICK') {
+                        console.log("[QUICK Mode] Auto-progressing: Simple decomposition -> Single-pass Design");
+                        generateDesign();
+                    } else {
+                        CountdownManager.start('simpleDesignBtn', '<span>Execute SYS.ARCH_MAPPER (Single Pass)</span>', () => generateDesign(), 30);
+                    }
                 } else {
                     isComponentMode = true;
                     // Render component cards
@@ -1574,6 +1908,12 @@
                         </div>
                     `).join('');
                     setVisible('decomposeActions', true);
+                    if (currentMode === 'QUICK') {
+                        console.log("[QUICK Mode] Auto-progressing: Complex decomposition -> Component Pipeline");
+                        startComponentPipeline();
+                    } else {
+                        CountdownManager.start('pipelineBtn', '<span>🚀 Launch Component Pipeline</span>', () => startComponentPipeline(), 30);
+                    }
                 }
                 
             } catch (error) {
@@ -1591,6 +1931,8 @@
         
         let pipelineInterval = null;
         async function startComponentPipeline() {
+            CountdownManager.cancel('pipelineBtn');
+            window._quickIntegrationTriggered = false;
             pipelineActive = true;
             setVisible('decomposeActions', false);
             setVisible('pipelineDashboard', true);
@@ -1630,10 +1972,20 @@
                         language: 'python',
                         theme: 'vs-dark',
                         automaticLayout: true,
-                        minimap: { enabled: false }
+                        minimap: { enabled: false },
+                        readOnly: (currentMode === 'QUICK')
+                    });
+
+                    componentEditors[cId].onDidFocusEditorText(() => {
+                        if (currentMode === 'COMPLEX') {
+                            CountdownManager.pauseAll('Component Monaco editor clicked/focused');
+                        }
                     });
                     
                     componentEditors[cId].onDidChangeModelContent(() => {
+                        if (currentMode === 'COMPLEX') {
+                            CountdownManager.pauseAll('Component Monaco editor edited');
+                        }
                         const state = componentStates[cId];
                         if (state && state.codebase && state.activeFileIndex >= 0) {
                             if (state.revisionHistory && state.activeRevisionIndex >= 0) {
@@ -1643,6 +1995,8 @@
                         }
                     });
                 });
+            } else {
+                componentEditors[cId].updateOptions({ readOnly: (currentMode === 'QUICK') });
             }
         }
         
@@ -1736,10 +2090,10 @@
                                     <span class="bg-blue-600 text-white w-7 h-7 rounded-full flex justify-center items-center text-sm shadow">1</span>
                                     Architectural Blueprint
                                 </h4>
-                                <textarea id="design-text-${cId}" class="w-full bg-slate-50 text-slate-800 font-mono p-5 rounded-lg h-72 overflow-y-auto text-sm mb-5 shadow-inner border border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none leading-relaxed" spellcheck="false"></textarea>
+                                <textarea id="design-text-${cId}" class="w-full font-mono p-5 rounded-lg h-72 overflow-y-auto text-sm mb-5 shadow-inner border border-slate-200 focus:outline-none resize-none leading-relaxed ${currentMode === 'QUICK' ? 'bg-slate-100 cursor-not-allowed text-slate-600' : 'bg-slate-50 text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}" ${currentMode === 'QUICK' ? 'readonly disabled' : ''} spellcheck="false"></textarea>
                                 <button id="approve-design-${cId}" onclick="approveDesign('${cId}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                    Approve Design & Generate Code
+                                    <span>Approve Design & Generate Code</span>
                                 </button>
                             </div>
                             
@@ -1796,6 +2150,7 @@
                         </div>
                     `;
                     container.appendChild(workspace);
+                    attachComponentEditableHandler(cId);
                     
                     // Init monaco early so it's ready
                     setTimeout(() => initComponentMonaco(cId), 100);
@@ -1823,6 +2178,15 @@
             if (passedCount === pipelineQueue.length && pipelineQueue.length > 0) {
                 setVisible('integrationSection', true);
                 updateStepper(3, 'success');
+                if (currentMode === 'QUICK') {
+                    if (!window._quickIntegrationTriggered) {
+                        window._quickIntegrationTriggered = true;
+                        console.log("[QUICK Mode] All components passed. Auto-launching Integration.");
+                        runIntegration();
+                    }
+                } else {
+                    CountdownManager.start('integrateBtn', '<span>🔗 Integrate All Components</span>', () => runIntegration(), 30);
+                }
             }
         }
         
@@ -1921,10 +2285,27 @@
                 
                 document.getElementById(`design-text-${cId}`).value = bpText;
                 
-                state.status = 'waiting_design';
-                // pipelineLocks.design = false;
-                renderPipelineTracks();
-                processPipeline();
+                if (currentMode === 'QUICK') {
+                    console.log(`[QUICK Mode] Skipping blueprint parse for component ${cId}; auto-approving design.`);
+                    state.status = 'coding_queued';
+                    fetch('/api/pipeline/complete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ component_id: cId, stage: 'DESIGN', verdict: 'pass' })
+                    });
+                    renderPipelineTracks();
+                    processPipeline();
+                } else {
+                    state.status = 'waiting_design';
+                    renderPipelineTracks();
+                    processPipeline();
+                    CountdownManager.start(
+                        `approve-design-${cId}`,
+                        '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Approve Design & Generate Code</span>',
+                        () => approveDesign(cId),
+                        30
+                    );
+                }
             } catch(e) {
                 alert("Design Error (" + cId + "): " + e.message);
                 state.status = 'failed';
@@ -1935,6 +2316,7 @@
         }
 
         async function approveDesign(cId) {
+            CountdownManager.cancel(`approve-design-${cId}`);
             const state = componentStates[cId];
             
             const btn = document.getElementById(`approve-design-${cId}`);
@@ -1942,21 +2324,25 @@
             btn.innerText = "Parsing Design...";
             btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3.5 rounded-lg flex items-center justify-center gap-2 shadow-sm";
             
-            try {
-                const text = document.getElementById(`design-text-${cId}`).value;
-                const parseRes = await fetch('/api/parse-blueprint', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
-                });
-                if (!parseRes.ok) throw new Error("Failed to parse blueprint text.");
-                state.blueprint = await parseRes.json();
-            } catch(e) {
-                alert("Error parsing Design: " + e.message);
-                btn.disabled = false;
-                btn.innerText = "Approve Design & Generate Code";
-                btn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
-                return;
+            if (currentMode === 'QUICK') {
+                console.log(`[QUICK Mode] Bypassing parse-blueprint in approveDesign for component ${cId}`);
+            } else {
+                try {
+                    const text = document.getElementById(`design-text-${cId}`).value;
+                    const parseRes = await fetch('/api/parse-blueprint', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: text })
+                    });
+                    if (!parseRes.ok) throw new Error("Failed to parse blueprint text.");
+                    state.blueprint = await parseRes.json();
+                } catch(e) {
+                    alert("Error parsing Design: " + e.message);
+                    btn.disabled = false;
+                    btn.innerText = "Approve Design & Generate Code";
+                    btn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
+                    return;
+                }
             }
             
             btn.innerText = "Approved ✓";
@@ -2099,7 +2485,7 @@
                     vReas.innerText = arbitration.decision.revision_plan || 'All critics passed successfully. Ready for deployment integration.';
                     vReas.className = 'text-sm text-emerald-200/70 whitespace-pre-wrap leading-relaxed font-mono bg-emerald-950/30 p-3 rounded border border-emerald-900/50';
                     
-                    aBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Lock Final Component';
+                    aBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Lock Final Component</span>';
                     aBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
                     aBtn.onclick = () => approveComponent(cId);
                     
@@ -2107,6 +2493,18 @@
                     // pipelineLocks.critic = false;
                     renderPipelineTracks();
                     processPipeline();
+
+                    if (currentMode === 'QUICK') {
+                        console.log(`[QUICK Mode] Component ${cId} passed. Auto-locking component.`);
+                        approveComponent(cId);
+                    } else {
+                        CountdownManager.start(
+                            `approve-component-${cId}`,
+                            '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Lock Final Component</span>',
+                            () => approveComponent(cId),
+                            30
+                        );
+                    }
                 } else {
                     vText.innerText = 'REVISION REQUIRED';
                     vText.className = 'font-black text-xl tracking-tight text-orange-400';
@@ -2116,9 +2514,10 @@
                     
                     state.revisionPlan = arbitration.decision.revision_plan;
                     
-                    if (state.revisionCount < 3) {
+                    const maxCompRevs = (currentMode === 'QUICK') ? 2 : 3;
+                    if (state.revisionCount < maxCompRevs) {
                         state.revisionCount++;
-                        aBtn.innerText = "Auto-Revising (Attempt " + state.revisionCount + "/3)...";
+                        aBtn.innerText = "Auto-Revising (Attempt " + state.revisionCount + "/" + maxCompRevs + ")...";
                         aBtn.className = "w-full bg-orange-600/20 text-orange-400 font-bold py-3.5 rounded-lg cursor-not-allowed transition-colors flex items-center justify-center border border-orange-500/30 shadow-sm animate-pulse";
                         aBtn.onclick = null;
                         
@@ -2132,14 +2531,26 @@
                         }, 1500);
                         
                     } else {
-                        aBtn.innerText = "Max Revisions Reached - Inspect & Force Approve";
-                        aBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md";
-                        aBtn.onclick = () => approveComponent(cId);
-                        
-                        state.status = 'waiting_critic';
-                        // pipelineLocks.critic = false;
-                        renderPipelineTracks();
-                        processPipeline();
+                        if (currentMode === 'QUICK') {
+                            console.log(`[QUICK Mode] Component ${cId} failed after revision ${state.revisionCount} (max ${maxCompRevs}). Force proceeding component.`);
+                            approveComponent(cId);
+                        } else {
+                            aBtn.innerText = "Max Revisions Reached - Inspect & Force Approve";
+                            aBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md";
+                            aBtn.onclick = () => approveComponent(cId);
+                            
+                            state.status = 'waiting_critic';
+                            // pipelineLocks.critic = false;
+                            renderPipelineTracks();
+                            processPipeline();
+
+                            CountdownManager.start(
+                                `approve-component-${cId}`,
+                                '<span>Max Revisions Reached - Inspect & Force Approve</span>',
+                                () => approveComponent(cId),
+                                30
+                            );
+                        }
                     }
                 }
             } catch(e) {
@@ -2152,6 +2563,7 @@
         }
 
         function approveComponent(cId) {
+            CountdownManager.cancel(`approve-component-${cId}`);
             const state = componentStates[cId];
             state.status = 'passed';
             fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'CRITICS', verdict: 'pass' }) });
@@ -2249,6 +2661,7 @@
         let integrationRevisionPlan = null;
 
         async function runIntegration(isRevision = false) {
+            CountdownManager.cancel('integrateBtn');
             if (!isRevision) {
                 integrationRevisionCount = 0;
                 integrationRevisionPlan = null;
@@ -2342,6 +2755,8 @@
                 const verdictBadge = document.getElementById('adjudicatorVerdict');
                 const planText = document.getElementById('adjudicatorPlan');
                 
+                const maxIntegrationRevs = (currentMode === 'QUICK') ? 2 : 3;
+
                 if (verdict === 'pass') {
                     if (verdictBadge) {
                         verdictBadge.textContent = "PASSED";
@@ -2353,16 +2768,23 @@
                     setVisible('docGenerationSection', true);
                     setVisible('finalDownloadBtn', true);
                     updateStepper(4, 'success');
+
+                    if (currentMode === 'QUICK') {
+                        console.log("[QUICK Mode] Integration passed. Auto-generating documentation.");
+                        generateDocs();
+                    } else {
+                        CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
+                    }
                 } else {
                     // Verdict is 'revise' or 'error'
                     integrationRevisionPlan = arbitration?.decision?.revision_plan || "Adjudicator requested fixes for integration issues.";
-                    if (integrationRevisionCount < 3) {
+                    if (integrationRevisionCount < maxIntegrationRevs) {
                         integrationRevisionCount++;
                         if (verdictBadge) {
-                            verdictBadge.textContent = `REVISION ${integrationRevisionCount}/3`;
+                            verdictBadge.textContent = `REVISION ${integrationRevisionCount}/${maxIntegrationRevs}`;
                             verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-orange-500/20 text-orange-400 border-orange-500/30 animate-pulse";
                         }
-                        if (planText) planText.textContent = `Auto-correcting integration (${integrationRevisionCount}/3):\n${integrationRevisionPlan}`;
+                        if (planText) planText.textContent = `Auto-correcting integration (${integrationRevisionCount}/${maxIntegrationRevs}):\n${integrationRevisionPlan}`;
                         if (card) card.className = "p-5 rounded-lg border shadow-sm bg-orange-950/20 border-orange-800";
                         
                         setTimeout(() => {
@@ -2371,7 +2793,7 @@
                         return;
                     } else {
                         if (verdictBadge) {
-                            verdictBadge.textContent = "MAX REVISIONS (3/3)";
+                            verdictBadge.textContent = `MAX REVISIONS (${maxIntegrationRevs}/${maxIntegrationRevs})`;
                             verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-red-500/20 text-red-400 border-red-500/30";
                         }
                         if (planText) planText.textContent = `Max integration revisions reached. Last verdict: ${verdict.toUpperCase()}\n${integrationRevisionPlan}`;
@@ -2380,6 +2802,13 @@
                         setVisible('docGenerationSection', true);
                         setVisible('finalDownloadBtn', true);
                         updateStepper(4, 'success');
+
+                        if (currentMode === 'QUICK') {
+                            console.log("[QUICK Mode] Max integration revisions reached. Auto-generating documentation.");
+                            generateDocs();
+                        } else {
+                            CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
+                        }
                     }
                 }
                 
