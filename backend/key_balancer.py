@@ -13,26 +13,29 @@ from google import genai
 import google.api_core.exceptions as g_exc
 
 # Thread-safe and async-safe context variable tracking active generation mode ('QUICK' or 'COMPLEX')
-# Defaults to None internally, but get_generation_mode() defaults to "QUICK"
+# Defaults to None internally, but get_generation_mode() defaults to _GLOBAL_MODE ("QUICK")
 _CURRENT_MODE: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("autodev_generation_mode", default=None)
+_GLOBAL_MODE: str = "QUICK"
 
 
 def set_generation_mode(mode: str) -> None:
     """Sets the active generation mode: 'QUICK' or 'COMPLEX'."""
-    if not mode or mode.upper() != "COMPLEX":
-        _CURRENT_MODE.set("QUICK")
-    else:
-        _CURRENT_MODE.set("COMPLEX")
+    global _GLOBAL_MODE
+    val = "COMPLEX" if (mode and str(mode).upper() == "COMPLEX") else "QUICK"
+    _GLOBAL_MODE = val
+    _CURRENT_MODE.set(val)
 
 
 def get_generation_mode() -> str:
     """Gets the active generation mode: 'QUICK' or 'COMPLEX' (defaults to 'QUICK')."""
     val = _CURRENT_MODE.get()
-    return val if val is not None else "QUICK"
+    return val if val is not None else _GLOBAL_MODE
 
 
 def reset_generation_mode() -> None:
     """Resets the active generation mode to default (None)."""
+    global _GLOBAL_MODE
+    _GLOBAL_MODE = "QUICK"
     _CURRENT_MODE.set(None)
 
 

@@ -298,6 +298,8 @@ class PipelineScheduler:
                 comp.active_lease = None
                 comp.current_stage = None
                 comp.force_proceeded = True
+                if comp.revision_count == 0:
+                    comp.revision_count = 1
                 reason = "Explicitly force-proceeded"
                 comp.transition_to(
                     ComponentStatus.COMPLETED,
@@ -344,15 +346,14 @@ class PipelineScheduler:
                     "revision_plan": revision_plan,
                 }
 
-            # Handle CRITICS stage adjudication
-            if norm_stage == StageEnum.CRITICS:
+            # Handle CRITICS and INTEGRATION stage adjudication
+            if norm_stage in (StageEnum.CRITICS, StageEnum.INTEGRATION):
                 verdict_lower = str(adjudication_verdict).lower() if adjudication_verdict else "pass"
                 if verdict_lower == "revise":
                     comp.increment_revision()
                     if comp.has_exceeded_revisions():
                         is_quick = (
                             getattr(self.config, "generation_mode", "QUICK").upper() == "QUICK"
-                            or comp.max_revisions <= 2
                         )
                         if is_quick:
                             # In QUICK mode: FORCE PROCEED rather than QUARANTINE!
@@ -360,6 +361,8 @@ class PipelineScheduler:
                             comp.active_lease = None
                             comp.current_stage = None
                             comp.force_proceeded = True
+                            if comp.revision_count == 0:
+                                comp.revision_count = 1
                             reason = f"Forced advancement after {comp.revision_count} revisions in QUICK mode"
                             comp.transition_to(
                                 ComponentStatus.COMPLETED,
@@ -421,14 +424,15 @@ class PipelineScheduler:
                                 )
                             return True
                     else:
-                        # Return to CODEGEN with revision priority bonus
+                        # Return to CODEGEN (or INTEGRATION) with revision priority bonus
+                        rev_stage = StageEnum.INTEGRATION if norm_stage == StageEnum.INTEGRATION else StageEnum.CODEGEN
                         StageHandoverProtocol.execute_handover(
                             component=comp,
                             current_stage=norm_stage,
                             lease_token=lease,
                             lock_manager=self.lock_manager,
                             queue_manager=self.queue_manager,
-                            next_stage=StageEnum.CODEGEN,
+                            next_stage=rev_stage,
                             is_revision=True,
                         )
                         self.log_event(
@@ -436,35 +440,88 @@ class PipelineScheduler:
                             component_id=component_id,
                             from_status=ComponentStatus.IN_STAGE,
                             to_status=comp.status,
-                            stage=StageEnum.CODEGEN,
+                            stage=rev_stage,
                             metadata={"revision": comp.revision_count},
                         )
                         return True
 
                 elif verdict_lower == "fail":
-                    # Terminal critic failure
-                    self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
-                    comp.transition_to(
-                        ComponentStatus.FAILED,
-                        stage=None,
-                        lease=None,
-                        reason=revision_plan or "Critic evaluation failed",
+                    is_quick = (
+                        getattr(self.config, "generation_mode", "QUICK").upper() == "QUICK"
                     )
-                    self.log_event(
-                        TransitionEventType.STATUS_TRANSITION,
-                        component_id=component_id,
-                        from_status=ComponentStatus.IN_STAGE,
-                        to_status=ComponentStatus.FAILED,
-                        stage=norm_stage,
-                    )
-                    if self.fault_tolerance:
-                        self.fault_tolerance.trigger_cascade_pause(
-                            component_id, reason="UPSTREAM_FAILED"
+                    if is_quick:
+                        # In QUICK mode: zero retries, force-proceed immediately!
+                        self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                        comp.active_lease = None
+                        comp.current_stage = None
+                        comp.force_proceeded = True
+                        if comp.revision_count == 0:
+                            comp.revision_count = 1
+                        reason = "Forced advancement after failed critics in QUICK mode"
+                        comp.transition_to(
+                            ComponentStatus.COMPLETED,
+                            stage=None,
+                            lease=None,
+                            reason=reason,
                         )
-                    return True
+                        self.log_event(
+                            TransitionEventType.STATUS_TRANSITION,
+                            component_id=component_id,
+                            from_status=ComponentStatus.IN_STAGE,
+                            to_status=ComponentStatus.COMPLETED,
+                            stage=norm_stage,
+                            metadata={
+                                "forced_proceed": True,
+                                "revision_count": comp.revision_count,
+                                "reason": reason,
+                            },
+                        )
+                        ready_ids = self.dag.get_ready_components()
+                        for cid in ready_ids:
+                            dep_comp = self.dag.get_component(cid)
+                            if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
+                                from_st = dep_comp.status
+                                dep_comp.transition_to(ComponentStatus.READY)
+                                self.log_event(
+                                    TransitionEventType.DEPENDENCY_RESOLVED,
+                                    component_id=cid,
+                                    from_status=from_st,
+                                    to_status=ComponentStatus.READY,
+                                )
+                                self.queue_manager.enqueue(
+                                    StageEnum.DESIGN,
+                                    cid,
+                                    priority_order=dep_comp.priority_order,
+                                )
+                        return True
+                    else:
+                        # Terminal critic failure
+                        self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                        comp.transition_to(
+                            ComponentStatus.FAILED,
+                            stage=None,
+                            lease=None,
+                            reason=revision_plan or "Critic evaluation failed",
+                        )
+                        self.log_event(
+                            TransitionEventType.STATUS_TRANSITION,
+                            component_id=component_id,
+                            from_status=ComponentStatus.IN_STAGE,
+                            to_status=ComponentStatus.FAILED,
+                            stage=norm_stage,
+                        )
+                        if self.fault_tolerance:
+                            self.fault_tolerance.trigger_cascade_pause(
+                                component_id, reason="UPSTREAM_FAILED"
+                            )
+                        return True
 
             # Standard sequential progression: CRITICS passing concludes the per-component unit lifecycle
+            # In QUICK mode, INTEGRATION passing completely bypasses DOCUMENTATION
+            is_quick_mode = getattr(self.config, "generation_mode", "QUICK").upper() == "QUICK"
             if norm_stage == StageEnum.CRITICS:
+                next_stg = None
+            elif norm_stage == StageEnum.INTEGRATION and is_quick_mode:
                 next_stg = None
             else:
                 next_stg = norm_stage.next_stage()
@@ -561,12 +618,16 @@ class PipelineScheduler:
         component_id: str,
         epoch: Optional[int] = None,
         artifact: Optional[Dict[str, Any]] = None,
+        verdict: Optional[str] = "pass",
+        revision_plan: Optional[str] = None,
     ) -> bool:
         """Convenience method to complete INTEGRATION stage."""
         return self.complete_stage_execution(
             component_id=component_id,
             stage=StageEnum.INTEGRATION,
             artifact=artifact,
+            adjudication_verdict=verdict,
+            revision_plan=revision_plan,
         )
 
     def complete_stage_documentation(

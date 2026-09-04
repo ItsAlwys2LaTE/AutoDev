@@ -126,7 +126,7 @@ def route_decision(state: GraphState):
     decision = state.get("decision")
     revision_count = state.get("revision_count", 0)
     gen_mode = str(state.get("generation_mode") or state.get("mode") or "QUICK").upper()
-    max_revisions = 2 if gen_mode == "QUICK" else 3
+    max_revisions = 1 if gen_mode == "QUICK" else 3
     
     verdict = decision.verdict.upper() if decision and getattr(decision, "verdict", None) else "UNKNOWN"
     print(f"Adjudicator Verdict: {verdict} (Revision: {revision_count}/{max_revisions}, Mode: {gen_mode})")
@@ -143,6 +143,7 @@ def route_decision(state: GraphState):
         # In a fully autonomous loop, this would route to a 'node_codegen_revise'
         # For our FastAPI setup, we return END so the backend can pause and return the revision plan to the UI.
         return END
+
 
 def build_arbitration_graph():
     """Builds the LangGraph that runs critics in parallel and funnels them to the Adjudicator."""

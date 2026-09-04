@@ -16,7 +16,7 @@ scheduler = PipelineScheduler(config=PipelineConfig(cycle_policy=CycleResolution
 
 class PipelineInitInput(BaseModel):
     components: List[Dict[str, Any]]
-    generation_mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
     mode: Optional[str] = None
 
 PipelineInitRequest = PipelineInitInput
@@ -26,7 +26,7 @@ class CompleteStageInput(BaseModel):
     stage: str
     verdict: Optional[str] = "pass"
     force_proceed: Optional[bool] = False
-    generation_mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
     mode: Optional[str] = None
 
 CompleteStageRequest = CompleteStageInput
@@ -57,8 +57,10 @@ def print_queue_status():
 @router.post("/api/pipeline/init")
 def pipeline_init(payload: PipelineInitInput):
     global scheduler
-    mode = (payload.generation_mode or payload.mode or "QUICK").upper()
-    max_revs = 2 if mode == "QUICK" else 3
+    from key_balancer import get_generation_mode
+    active_mode = payload.generation_mode or payload.mode or get_generation_mode() or "QUICK"
+    mode = str(active_mode).upper()
+    max_revs = 1 if mode == "QUICK" else 3
     scheduler = PipelineScheduler(
         config=PipelineConfig(
             max_revisions=max_revs,

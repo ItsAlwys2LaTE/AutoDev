@@ -198,7 +198,7 @@ class ComponentStateRecord:
     current_stage: Optional[StageEnum] = None
     active_lease: Optional[LeaseToken] = None
     revision_count: int = 0
-    max_revisions: int = 2
+    max_revisions: int = 1
     force_proceeded: bool = False
 
     # Generated Artifacts & Metadata
@@ -266,6 +266,10 @@ class ComponentStateRecord:
         init=False,
         repr=False,
     )
+
+    def __post_init__(self):
+        if self.max_revisions is None:
+            self.max_revisions = 1
 
     def can_transition_to(self, target: ComponentStatus) -> bool:
         """Validates if target status is reachable from current status."""
@@ -351,7 +355,7 @@ class ComponentStateRecord:
             current_stage=StageEnum(data["current_stage"]) if data.get("current_stage") else None,
             active_lease=LeaseToken.from_dict(data["active_lease"]) if data.get("active_lease") else None,
             revision_count=int(data.get("revision_count", 0)),
-            max_revisions=int(data.get("max_revisions", 2)),
+            max_revisions=int(data["max_revisions"]) if data.get("max_revisions") is not None else 1,
             force_proceeded=bool(data.get("force_proceeded", False)),
             blueprint_artifact=data.get("blueprint_artifact"),
             codebase_artifact=data.get("codebase_artifact"),
@@ -385,7 +389,7 @@ class PipelineConfig:
 
     def __post_init__(self):
         if self.max_revisions is None:
-            default_revs = 2 if str(self.generation_mode).upper() == "QUICK" else 3
+            default_revs = 1 if str(self.generation_mode).upper() == "QUICK" else 3
             object.__setattr__(self, "max_revisions", default_revs)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -408,7 +412,7 @@ class PipelineConfig:
     def from_dict(cls, data: Dict[str, Any]) -> PipelineConfig:
         """Deserializes a dictionary into a PipelineConfig instance."""
         gen_mode = str(data.get("generation_mode", "QUICK"))
-        default_max_revs = 2 if gen_mode.upper() == "QUICK" else 3
+        default_max_revs = 1 if gen_mode.upper() == "QUICK" else 3
         return cls(
             max_revisions=int(data["max_revisions"]) if "max_revisions" in data and data["max_revisions"] is not None else default_max_revs,
             generation_mode=gen_mode,

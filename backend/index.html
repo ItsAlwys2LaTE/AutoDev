@@ -86,7 +86,7 @@
                 <div>
                     <label for="featureRequest" class="block font-bold text-slate-800 text-base">Enter Feature Request:</label>
                     <p id="modeHelperText" class="text-xs text-slate-500 font-medium mt-1">
-                        ⚡ <span class="font-semibold text-slate-700">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, max 2 revisions.
+                        ⚡ <span class="font-semibold text-slate-700">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, max 1 revision, skips documentation.
                     </p>
                 </div>
                 
@@ -491,7 +491,7 @@
                     complexBtn.setAttribute('aria-checked', 'false');
                 }
                 if (helperText) {
-                    helperText.innerHTML = '⚡ <span class="font-semibold text-slate-700">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, max 2 revisions.';
+                    helperText.innerHTML = '⚡ <span class="font-semibold text-slate-700">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, max 1 revision, skips documentation.';
                 }
                 CountdownManager.cancelAll();
             } else {
@@ -1652,7 +1652,10 @@
                         blueprint: currentBlueprint,
                         codebase: currentCodebase,
                         execution_result: currentExecutionResult,
-                        master_decomposition: currentDecomposition
+                        master_decomposition: currentDecomposition,
+                        revision_count: currentRevisionCount,
+                        mode: currentMode,
+                        generation_mode: currentMode
                     }) 
                 });
                 const data = await response.json();
@@ -1704,14 +1707,16 @@
                         adjCard.className = "p-5 rounded-lg border shadow-sm bg-rose-950/30 border-rose-900/50";
                     }
                     
-                    const maxRevs = (currentMode === 'QUICK') ? 2 : 3;
-                    const isLoopFinished = (data.decision.verdict.toLowerCase() === 'pass') || (currentRevisionCount >= maxRevs) || (data.decision.verdict.toLowerCase() === 'error');
+                    const maxRevs = (currentMode === 'QUICK') ? 1 : 3;
+                    const isLoopFinished = (data.decision.verdict.toLowerCase() === 'pass') || (currentMode === 'QUICK') || (currentRevisionCount >= maxRevs) || (data.decision.verdict.toLowerCase() === 'error');
                     if (isLoopFinished) {
-                        document.getElementById('docGenerationSection').classList.remove('hidden');
                         if (currentMode === 'QUICK') {
-                            console.log("[QUICK Mode] Arbitration complete. Auto-generating documentation.");
-                            generateDocs();
+                            console.log("[QUICK Mode] Arbitration complete. Run complete (documentation skipped).");
+                            document.getElementById('docGenerationSection').classList.add('hidden');
+                            setVisible('finalDownloadBtn', true);
+                            updateStepper(5, 'success');
                         } else {
+                            document.getElementById('docGenerationSection').classList.remove('hidden');
                             CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
                         }
                     } else {
@@ -1728,26 +1733,37 @@
                 saveCurrentRevisionMeta(feedbacks, data.decision);
 
                 // AUTOMATIC SELF-CORRECTION LOOP
-                const maxRevs = (currentMode === 'QUICK') ? 2 : 3;
-                if (data.decision && data.decision.verdict.toLowerCase() === 'revise' && currentRevisionCount < maxRevs) {
-                    currentRevisionCount++;
-                    currentRevisionPlan = data.decision.revision_plan;
-                    
-                    // Show a toast or update UI to indicate loop
-                    const badge = document.getElementById('adjudicatorVerdict');
-                    badge.textContent = `REVISE (Loop ${currentRevisionCount}/${maxRevs} starting...)`;
-                    badge.classList.add('animate-pulse');
+                const maxRevs = (currentMode === 'QUICK') ? 1 : 3;
+                if (data.decision && data.decision.verdict.toLowerCase() === 'revise') {
+                    if (currentMode === 'QUICK') {
+                        currentRevisionCount = 1;
+                        console.log("[QUICK Mode] Critic failed. Revision counter maxes out at 1. Auto-approving without retry.");
+                        const badge = document.getElementById('adjudicatorVerdict');
+                        badge.textContent = "FORCE-PROCEED (1/1 Max Revision in QUICK mode)";
+                        badge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-amber-500/20 text-amber-400 border-amber-500/30";
+                        document.getElementById('docGenerationSection').classList.add('hidden');
+                        setVisible('finalDownloadBtn', true);
+                        updateStepper(5, 'success');
+                    } else if (currentRevisionCount < maxRevs) {
+                        currentRevisionCount++;
+                        currentRevisionPlan = data.decision.revision_plan;
+                        
+                        // Show a toast or update UI to indicate loop
+                        const badge = document.getElementById('adjudicatorVerdict');
+                        badge.textContent = `REVISE (Loop ${currentRevisionCount}/${maxRevs} starting...)`;
+                        badge.classList.add('animate-pulse');
 
-                    // Wait 3 seconds so user can read the critique, then start the loop
-                    setTimeout(async () => {
-                        try {
-                            await generateCode(true); // Generate code as a revision
-                            await executeCode();      // Execute the revised code
-                            await runCritics();       // Re-run critics
-                        } catch (err) {
-                            console.error("Self-correction loop failed", err);
-                        }
-                    }, 3000);
+                        // Wait 3 seconds so user can read the critique, then start the loop
+                        setTimeout(async () => {
+                            try {
+                                await generateCode(true); // Generate code as a revision
+                                await executeCode();      // Execute the revised code
+                                await runCritics();       // Re-run critics
+                            } catch (err) {
+                                console.error("Self-correction loop failed", err);
+                            }
+                        }, 3000);
+                    }
                 }
 
             } catch (error) {
@@ -1760,6 +1776,10 @@
 
         async function generateDocs() {
             CountdownManager.cancel('docBtn');
+            if (currentMode === 'QUICK') {
+                console.log("[QUICK Mode] Documentation generation is bypassed in QUICK mode.");
+                return;
+            }
             if (!currentRequirements || !currentBlueprint || !currentCodebase) {
                 return showError("Missing previous phase data.");
             }
@@ -1774,7 +1794,9 @@
                     body: JSON.stringify({ 
                         requirements: currentRequirements,
                         blueprint: currentBlueprint,
-                        codebase: currentCodebase
+                        codebase: currentCodebase,
+                        mode: currentMode,
+                        generation_mode: currentMode
                     }) 
                 });
                 
@@ -1944,7 +1966,11 @@
                 await fetch('/api/pipeline/init', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ components: pipelineQueue })
+                    body: JSON.stringify({ 
+                        components: pipelineQueue,
+                        mode: currentMode,
+                        generation_mode: currentMode
+                    })
                 });
             } catch(e) { console.error("Init Error", e); }
             
@@ -2439,7 +2465,9 @@
                         execution_result: state.executionResult,
                         master_decomposition: currentDecomposition,
                         component_name: component.component_name,
-                        revision_count: state.revisionCount || 0
+                        revision_count: state.revisionCount || 0,
+                        mode: currentMode,
+                        generation_mode: currentMode
                     })
                 });
                 
@@ -2514,8 +2542,14 @@
                     
                     state.revisionPlan = arbitration.decision.revision_plan;
                     
-                    const maxCompRevs = (currentMode === 'QUICK') ? 2 : 3;
-                    if (state.revisionCount < maxCompRevs) {
+                    const maxCompRevs = (currentMode === 'QUICK') ? 1 : 3;
+                    if (currentMode === 'QUICK') {
+                        // In QUICK mode, when a component fails the execution/critic phase, it does not retry.
+                        // The revision counter maxes out at 1 and automatically approves the component to proceed.
+                        state.revisionCount = 1;
+                        console.log(`[QUICK Mode] Component ${cId} failed execution/critic phase. Revision count maxed out at 1. Auto-approving component to proceed.`);
+                        approveComponent(cId, true);
+                    } else if (state.revisionCount < maxCompRevs) {
                         state.revisionCount++;
                         aBtn.innerText = "Auto-Revising (Attempt " + state.revisionCount + "/" + maxCompRevs + ")...";
                         aBtn.className = "w-full bg-orange-600/20 text-orange-400 font-bold py-3.5 rounded-lg cursor-not-allowed transition-colors flex items-center justify-center border border-orange-500/30 shadow-sm animate-pulse";
@@ -2531,26 +2565,21 @@
                         }, 1500);
                         
                     } else {
-                        if (currentMode === 'QUICK') {
-                            console.log(`[QUICK Mode] Component ${cId} failed after revision ${state.revisionCount} (max ${maxCompRevs}). Force proceeding component.`);
-                            approveComponent(cId);
-                        } else {
-                            aBtn.innerText = "Max Revisions Reached - Inspect & Force Approve";
-                            aBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md";
-                            aBtn.onclick = () => approveComponent(cId);
-                            
-                            state.status = 'waiting_critic';
-                            // pipelineLocks.critic = false;
-                            renderPipelineTracks();
-                            processPipeline();
+                        aBtn.innerText = "Max Revisions Reached - Inspect & Force Approve";
+                        aBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md";
+                        aBtn.onclick = () => approveComponent(cId, true);
+                        
+                        state.status = 'waiting_critic';
+                        // pipelineLocks.critic = false;
+                        renderPipelineTracks();
+                        processPipeline();
 
-                            CountdownManager.start(
-                                `approve-component-${cId}`,
-                                '<span>Max Revisions Reached - Inspect & Force Approve</span>',
-                                () => approveComponent(cId),
-                                30
-                            );
-                        }
+                        CountdownManager.start(
+                            `approve-component-${cId}`,
+                            '<span>Max Revisions Reached - Inspect & Force Approve</span>',
+                            () => approveComponent(cId, true),
+                            30
+                        );
                     }
                 }
             } catch(e) {
@@ -2562,11 +2591,23 @@
             }
         }
 
-        function approveComponent(cId) {
+        function approveComponent(cId, isForced) {
             CountdownManager.cancel(`approve-component-${cId}`);
             const state = componentStates[cId];
             state.status = 'passed';
-            fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'CRITICS', verdict: 'pass' }) });
+            const forced = Boolean(isForced || (currentMode === 'QUICK' && state.revisionCount >= 1));
+            fetch('/api/pipeline/complete', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ 
+                    component_id: cId, 
+                    stage: 'CRITICS', 
+                    verdict: forced ? 'revise' : 'pass',
+                    force_proceed: forced,
+                    mode: currentMode,
+                    generation_mode: currentMode
+                }) 
+            });
             const btn = document.getElementById(`approve-component-${cId}`);
             btn.disabled = true;
             btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Locked';
@@ -2676,7 +2717,9 @@
                     component_results: componentResults,
                     previous_codebase: (integrationRevisionCount > 0) ? currentCodebase : null,
                     revision_plan: integrationRevisionPlan,
-                    revision_count: integrationRevisionCount
+                    revision_count: integrationRevisionCount,
+                    mode: currentMode,
+                    generation_mode: currentMode
                 };
                 
                 const res = await fetch('/api/integrate', {
@@ -2745,7 +2788,9 @@
                         execution_result: currentExecutionResult,
                         master_decomposition: currentDecomposition,
                         component_name: "Integration",
-                        revision_count: integrationRevisionCount
+                        revision_count: integrationRevisionCount,
+                        mode: currentMode,
+                        generation_mode: currentMode
                     })
                 });
                 const arbitration = await criticsRes.json();
@@ -2755,7 +2800,7 @@
                 const verdictBadge = document.getElementById('adjudicatorVerdict');
                 const planText = document.getElementById('adjudicatorPlan');
                 
-                const maxIntegrationRevs = (currentMode === 'QUICK') ? 2 : 3;
+                const maxIntegrationRevs = (currentMode === 'QUICK') ? 1 : 3;
 
                 if (verdict === 'pass') {
                     if (verdictBadge) {
@@ -2765,20 +2810,34 @@
                     if (planText) planText.textContent = arbitration?.decision?.revision_plan || "Integration verified and passed by Adjudicator.";
                     if (card) card.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
                     
-                    setVisible('docGenerationSection', true);
                     setVisible('finalDownloadBtn', true);
-                    updateStepper(4, 'success');
+                    updateStepper(5, 'success');
 
                     if (currentMode === 'QUICK') {
-                        console.log("[QUICK Mode] Integration passed. Auto-generating documentation.");
-                        generateDocs();
+                        console.log("[QUICK Mode] Integration passed. Pipeline run complete (documentation skipped).");
+                        setVisible('docGenerationSection', false);
                     } else {
+                        setVisible('docGenerationSection', true);
                         CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
                     }
                 } else {
                     // Verdict is 'revise' or 'error'
                     integrationRevisionPlan = arbitration?.decision?.revision_plan || "Adjudicator requested fixes for integration issues.";
-                    if (integrationRevisionCount < maxIntegrationRevs) {
+                    if (currentMode === 'QUICK') {
+                        // Zero self-healing retries in QUICK mode
+                        integrationRevisionCount = 1;
+                        if (verdictBadge) {
+                            verdictBadge.textContent = "PASSED (FORCED QUICK MODE)";
+                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
+                        }
+                        if (planText) planText.textContent = `Forced integration proceed after 1 attempt in QUICK mode.\n${integrationRevisionPlan}`;
+                        if (card) card.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
+
+                        setVisible('docGenerationSection', false);
+                        setVisible('finalDownloadBtn', true);
+                        updateStepper(5, 'success');
+                        console.log("[QUICK Mode] Integration failed first pass. Run force-completed without retries and documentation bypassed.");
+                    } else if (integrationRevisionCount < maxIntegrationRevs) {
                         integrationRevisionCount++;
                         if (verdictBadge) {
                             verdictBadge.textContent = `REVISION ${integrationRevisionCount}/${maxIntegrationRevs}`;
@@ -2801,14 +2860,9 @@
                         
                         setVisible('docGenerationSection', true);
                         setVisible('finalDownloadBtn', true);
-                        updateStepper(4, 'success');
+                        updateStepper(5, 'success');
 
-                        if (currentMode === 'QUICK') {
-                            console.log("[QUICK Mode] Max integration revisions reached. Auto-generating documentation.");
-                            generateDocs();
-                        } else {
-                            CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
-                        }
+                        CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
                     }
                 }
                 

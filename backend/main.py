@@ -79,7 +79,7 @@ class DocumentationInput(BaseModel):
     requirements: RequirementsDocument
     blueprint: SystemDesignBlueprint
     codebase: GeneratedCodeBase
-    mode: Optional[str] = "QUICK"
+    mode: Optional[str] = None
     generation_mode: Optional[str] = None
 
 class ExecuteInput(BaseModel):
@@ -96,7 +96,7 @@ class ArbitrationInput(BaseModel):
     master_decomposition: Optional[ComponentDecomposition] = None
     component_name: Optional[str] = None
     revision_count: Optional[int] = 0
-    mode: Optional[str] = "QUICK"
+    mode: Optional[str] = None
     generation_mode: Optional[str] = None
 
 class IntegrationInput(BaseModel):
@@ -106,7 +106,7 @@ class IntegrationInput(BaseModel):
     previous_codebase: Optional[GeneratedCodeBase] = None
     revision_plan: Optional[str] = None
     revision_count: Optional[int] = 0
-    mode: Optional[str] = "QUICK"
+    mode: Optional[str] = None
     generation_mode: Optional[str] = None
 
 @app.get("/")
@@ -153,13 +153,15 @@ from agents.integrator_agent import generate_integration_stream
 @app.post("/api/integrate")
 def api_integrate(payload: IntegrationInput):
     try:
+        active_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
         return StreamingResponse(
             generate_integration_stream(
                 payload.requirements,
                 payload.decomposition,
                 payload.component_results,
                 payload.previous_codebase,
-                payload.revision_plan
+                payload.revision_plan,
+                mode=active_mode,
             ),
             media_type="text/plain"
         )
@@ -395,7 +397,8 @@ def api_run_critics(payload: ArbitrationInput):
         final_state = arbitration_engine.invoke(initial_state)
         return {
             "feedbacks": final_state.get("feedbacks", []),
-            "decision": final_state.get("decision")
+            "decision": final_state.get("decision"),
+            "revision_count": final_state.get("revision_count", rev_count),
         }
     except Exception as e:
         print("\n=== PHASE 3 CRASH TRACEBACK ===")
@@ -408,6 +411,12 @@ from agents.documentation_agent import generate_documentation_stream
 @app.post("/api/generate-documentation")
 def api_generate_documentation(payload: DocumentationInput):
     try:
+        explicit_mode = payload.generation_mode or (payload.mode if payload.mode is not None else None)
+        if explicit_mode and explicit_mode.upper() == "QUICK":
+            def empty_stream():
+                yield "Documentation generation bypassed in QUICK mode.\n"
+            return StreamingResponse(empty_stream(), media_type="text/plain")
+
         return StreamingResponse(
             generate_documentation_stream(payload.requirements, payload.blueprint, payload.codebase),
             media_type="text/plain"
