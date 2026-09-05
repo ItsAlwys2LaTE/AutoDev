@@ -367,6 +367,21 @@
                     <p id="adjudicatorPlan" class="text-slate-300 text-sm whitespace-pre-wrap"></p>
                 </div>
                 
+                <!-- Run Guide for QUICK mode -->
+                <div id="quickRunGuideSection" class="mt-6 p-5 rounded-lg border border-indigo-500/30 bg-slate-950 shadow-md hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <h4 class="font-bold text-slate-200 text-base">Guide to run the project</h4>
+                        </div>
+                        <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono font-medium border border-indigo-500/30">QUICK Mode</span>
+                    </div>
+                    <p class="text-slate-400 text-sm mb-4">Follow these basic commands to run your newly generated project:</p>
+                    <div id="quickRunGuideCommands" class="space-y-3 font-mono text-xs text-slate-300">
+                        <!-- Commands injected dynamically -->
+                    </div>
+                </div>
+
                 <div id="docGenerationSection" class="mt-6 hidden">
                     <button id="docBtn" onclick="generateDocs()" 
                         class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm mb-3">
@@ -376,6 +391,8 @@
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
                     </button>
+                </div>
+                <div class="mt-4">
                     <button id="finalDownloadBtn" onclick="downloadZip()" 
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm hidden">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -506,6 +523,7 @@
                 if (helperText) {
                     helperText.innerHTML = '🧠 <span class="font-semibold text-slate-700">COMPLEX Mode:</span> Interactive 30s auto-proceed timer, click text to pause and edit, standard 3 revisions.';
                 }
+                setVisible('quickRunGuideSection', false);
             }
             applyModeUIRules();
         }
@@ -1708,14 +1726,23 @@
                     }
                     
                     const maxRevs = (currentMode === 'QUICK') ? 1 : 3;
-                    const isLoopFinished = (data.decision.verdict.toLowerCase() === 'pass') || (currentMode === 'QUICK') || (currentRevisionCount >= maxRevs) || (data.decision.verdict.toLowerCase() === 'error');
+                    const verdictLower = (data.decision.verdict || '').toLowerCase();
+                    const isLoopFinished = (verdictLower === 'pass') || (currentRevisionCount >= maxRevs) || (currentMode !== 'QUICK' && verdictLower === 'error');
                     if (isLoopFinished) {
                         if (currentMode === 'QUICK') {
                             console.log("[QUICK Mode] Arbitration complete. Run complete (documentation skipped).");
                             document.getElementById('docGenerationSection').classList.add('hidden');
                             setVisible('finalDownloadBtn', true);
                             updateStepper(5, 'success');
+                            if (verdictLower !== 'pass') {
+                                currentRevisionCount = 2;
+                                adjVerdict.textContent = "PASSED (FORCED QUICK MODE)";
+                                adjVerdict.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
+                                adjCard.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
+                            }
+                            renderRunGuide();
                         } else {
+                            setVisible('quickRunGuideSection', false);
                             document.getElementById('docGenerationSection').classList.remove('hidden');
                             CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
                         }
@@ -1733,18 +1760,10 @@
                 saveCurrentRevisionMeta(feedbacks, data.decision);
 
                 // AUTOMATIC SELF-CORRECTION LOOP
-                const maxRevs = (currentMode === 'QUICK') ? 1 : 3;
-                if (data.decision && data.decision.verdict.toLowerCase() === 'revise') {
-                    if (currentMode === 'QUICK') {
-                        currentRevisionCount = 1;
-                        console.log("[QUICK Mode] Critic failed. Revision counter maxes out at 1. Auto-approving without retry.");
-                        const badge = document.getElementById('adjudicatorVerdict');
-                        badge.textContent = "FORCE-PROCEED (1/1 Max Revision in QUICK mode)";
-                        badge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-amber-500/20 text-amber-400 border-amber-500/30";
-                        document.getElementById('docGenerationSection').classList.add('hidden');
-                        setVisible('finalDownloadBtn', true);
-                        updateStepper(5, 'success');
-                    } else if (currentRevisionCount < maxRevs) {
+                const verdictLower = (data.decision && data.decision.verdict) ? data.decision.verdict.toLowerCase() : '';
+                const shouldRetry = (currentMode === 'QUICK' && verdictLower !== 'pass') || (currentMode !== 'QUICK' && verdictLower === 'revise');
+                if (data.decision && shouldRetry && !isLoopFinished) {
+                    if (currentRevisionCount < maxRevs) {
                         currentRevisionCount++;
                         currentRevisionPlan = data.decision.revision_plan;
                         
@@ -1767,6 +1786,39 @@
                 }
 
             } catch (error) {
+                console.error("Critic evaluation error:", error);
+                if (currentMode === 'QUICK') {
+                    if (currentRevisionCount < 1) {
+                        currentRevisionCount = 1;
+                        console.log("[QUICK Mode] Critic error encountered. Retrying once (1/1)...");
+                        setTimeout(async () => {
+                            try {
+                                await generateCode(true);
+                                await executeCode();
+                                await runCritics();
+                            } catch (err) {
+                                console.error("Self-correction loop failed", err);
+                            }
+                        }, 2000);
+                        return;
+                    } else {
+                        currentRevisionCount = 2;
+                        const adjVerdict = document.getElementById('adjudicatorVerdict');
+                        const adjCard = document.getElementById('adjudicatorCard');
+                        const adjPlan = document.getElementById('adjudicatorPlan');
+                        if (adjVerdict) {
+                            adjVerdict.textContent = "PASSED (FORCED QUICK MODE)";
+                            adjVerdict.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
+                        }
+                        if (adjPlan) adjPlan.textContent = `Forced proceed after 1 retry in QUICK mode.\n${error.message}`;
+                        if (adjCard) adjCard.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
+                        document.getElementById('docGenerationSection').classList.add('hidden');
+                        setVisible('finalDownloadBtn', true);
+                        updateStepper(5, 'success');
+                        renderRunGuide();
+                        return;
+                    }
+                }
                 updateStepper(5, 'error');
                 showError(`Phase 3 Failed: ${error.message}`);
             } finally {
@@ -1865,6 +1917,236 @@
                 setButtonLoading('docBtn', 'docSpinner', false);
             }
         }
+
+        // --- QUICK MODE RUN GUIDE ---
+        function copyRunGuideCommand(btn, cmdOverride) {
+            const cmd = cmdOverride || btn.getAttribute('data-cmd');
+            if (!cmd) return;
+            const originalText = btn.innerText;
+            const setCopied = () => {
+                btn.innerText = "Copied ✓";
+                btn.classList.remove('text-indigo-400');
+                btn.classList.add('text-emerald-400');
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('text-emerald-400');
+                    btn.classList.add('text-indigo-400');
+                }, 1500);
+            };
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                navigator.clipboard.writeText(cmd).then(setCopied).catch(() => {
+                    fallbackCopyText(cmd, setCopied);
+                });
+            } else {
+                fallbackCopyText(cmd, setCopied);
+            }
+        }
+
+        function fallbackCopyText(text, cb) {
+            let successful = false;
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.top = '0';
+                ta.style.left = '0';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                successful = document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch(e) {
+                successful = false;
+            }
+            if (successful) {
+                if (cb) cb();
+            } else {
+                try {
+                    window.prompt("Copy to clipboard (Ctrl+C):", text);
+                } catch(_) {}
+                if (cb) cb();
+            }
+        }
+
+        function renderRunGuide() {
+            const guideSection = document.getElementById('quickRunGuideSection');
+            const commandsContainer = document.getElementById('quickRunGuideCommands');
+            if (!guideSection || !commandsContainer) return;
+
+            // Helper to reject sentinel command values produced by LLMs (e.g. "None", "null")
+            const isValidCmd = (c) => Boolean(c && typeof c === 'string' && c.trim() && !['NONE', 'NULL', 'UNDEFINED'].includes(c.trim().toUpperCase()));
+
+            // Detect project type, files, and dependencies
+            const files = (currentCodebase && currentCodebase.files) ? currentCodebase.files.map(f => (f.file_name || '').toLowerCase()) : [];
+            if (files.length === 0 && typeof componentResults !== 'undefined' && Array.isArray(componentResults)) {
+                for (const cr of componentResults) {
+                    if (cr && cr.codebase && Array.isArray(cr.codebase.files)) {
+                        for (const f of cr.codebase.files) {
+                            if (f && f.file_name) files.push(f.file_name.toLowerCase());
+                        }
+                    }
+                }
+            }
+
+            const stack = (currentDecomposition && currentDecomposition.shared_tech_stack) 
+                ? currentDecomposition.shared_tech_stack.map(s => String(s).toLowerCase()) 
+                : ((currentBlueprint && currentBlueprint.tech_stack) ? currentBlueprint.tech_stack.map(s => String(s).toLowerCase()) : []);
+            if (stack.length === 0 && typeof componentResults !== 'undefined' && Array.isArray(componentResults)) {
+                for (const cr of componentResults) {
+                    if (cr && cr.blueprint && Array.isArray(cr.blueprint.tech_stack)) {
+                        for (const s of cr.blueprint.tech_stack) {
+                            stack.push(String(s).toLowerCase());
+                        }
+                    }
+                }
+            }
+            
+            const hasFile = (name) => files.some(f => f === name || f.endsWith('/' + name) || f.endsWith('\\' + name));
+            const findFile = (suffix) => files.find(f => f === suffix || f.endsWith('/' + suffix) || f.endsWith('\\' + suffix));
+
+            const isPython = stack.some(s => s.includes('python') || s.includes('fastapi') || s.includes('flask') || s.includes('django')) || files.some(f => f.endsWith('.py')) || hasFile('requirements.txt') || hasFile('pyproject.toml') || hasFile('poetry.lock') || hasFile('pipfile');
+            const isNode = stack.some(s => s.includes('node') || s.includes('javascript') || s.includes('typescript') || s.includes('express') || s.includes('react') || s.includes('vue')) || hasFile('package.json');
+            const isRust = stack.some(s => s.includes('rust') || s.includes('cargo')) || hasFile('cargo.toml');
+            const isGo = stack.some(s => s.includes('golang') || s.includes('go')) || hasFile('go.mod');
+            const isJava = stack.some(s => s.includes('java') || s.includes('spring') || s.includes('maven') || s.includes('gradle')) || hasFile('pom.xml') || hasFile('build.gradle') || hasFile('build.gradle.kts');
+            const isDotNet = stack.some(s => s.includes('c#') || s.includes('dotnet') || s.includes('.net')) || files.some(f => f.endsWith('.csproj') || f.endsWith('.sln'));
+
+            // 1. Install dependencies command
+            let installCmd = "";
+            if (hasFile('poetry.lock') || (hasFile('pyproject.toml') && !hasFile('requirements.txt'))) {
+                installCmd = "poetry install";
+            } else if (hasFile('pipfile')) {
+                installCmd = "pipenv install";
+            } else if (hasFile('requirements.txt')) {
+                const reqFile = findFile('requirements.txt') || 'requirements.txt';
+                installCmd = `pip install -r ${reqFile}`;
+            } else if (hasFile('pnpm-lock.yaml')) {
+                installCmd = "pnpm install";
+            } else if (hasFile('yarn.lock')) {
+                installCmd = "yarn install";
+            } else if (hasFile('package.json')) {
+                installCmd = "npm install";
+            } else if (isRust) {
+                installCmd = "cargo build";
+            } else if (isGo) {
+                installCmd = "go mod download";
+            } else if (hasFile('pom.xml')) {
+                installCmd = "mvn clean install -DskipTests";
+            } else if (hasFile('build.gradle') || hasFile('build.gradle.kts')) {
+                installCmd = "./gradlew build -x test";
+            } else if (isDotNet) {
+                installCmd = "dotnet restore";
+            } else if (isPython) {
+                installCmd = "pip install -r requirements.txt";
+            } else if (isNode) {
+                installCmd = "npm install";
+            } else {
+                installCmd = "# Install dependencies";
+            }
+
+            // 2. Test command
+            let testCmd = isValidCmd(currentBlueprint && currentBlueprint.run_tests_command)
+                ? currentBlueprint.run_tests_command
+                : null;
+            if (!testCmd && typeof componentResults !== 'undefined' && Array.isArray(componentResults)) {
+                for (const cr of componentResults) {
+                    if (cr && cr.blueprint && isValidCmd(cr.blueprint.run_tests_command)) {
+                        testCmd = cr.blueprint.run_tests_command;
+                        break;
+                    }
+                }
+            }
+            if (!testCmd) {
+                if (hasFile('poetry.lock')) testCmd = "poetry run pytest";
+                else if (isNode || hasFile('package.json')) testCmd = "npm test";
+                else if (isRust) testCmd = "cargo test";
+                else if (isGo) testCmd = "go test ./...";
+                else if (hasFile('pom.xml')) testCmd = "mvn test";
+                else if (hasFile('build.gradle') || hasFile('build.gradle.kts')) testCmd = "./gradlew test";
+                else if (isDotNet) testCmd = "dotnet test";
+                else testCmd = "pytest";
+            }
+
+            // 3. Start / Run project command
+            let runCmd = "";
+            let devCmd = isValidCmd(currentDecomposition && currentDecomposition.dev_server_command)
+                ? currentDecomposition.dev_server_command 
+                : (isValidCmd(currentBlueprint && currentBlueprint.dev_server_command) ? currentBlueprint.dev_server_command : null);
+
+            if (!devCmd && typeof componentResults !== 'undefined' && Array.isArray(componentResults)) {
+                for (const cr of componentResults) {
+                    if (cr && cr.blueprint && isValidCmd(cr.blueprint.dev_server_command)) {
+                        devCmd = cr.blueprint.dev_server_command;
+                        break;
+                    }
+                }
+            }
+
+            if (devCmd) {
+                runCmd = devCmd;
+            } else if (isRust) {
+                runCmd = "cargo run";
+            } else if (isGo) {
+                runCmd = "go run .";
+            } else if (hasFile('pom.xml')) {
+                runCmd = "mvn spring-boot:run";
+            } else if (hasFile('build.gradle') || hasFile('build.gradle.kts')) {
+                runCmd = "./gradlew bootRun";
+            } else if (isDotNet) {
+                runCmd = "dotnet run";
+            } else if (isPython) {
+                const mainFile = findFile('main.py') || findFile('app.py') || findFile('server.py');
+                if (mainFile) {
+                    runCmd = `python ${mainFile}`;
+                } else if (hasFile('poetry.lock')) {
+                    runCmd = "poetry run python main.py";
+                } else {
+                    runCmd = "python main.py";
+                }
+            } else if (isNode) {
+                runCmd = "npm start";
+            } else if (hasFile('index.html')) {
+                runCmd = "python -m http.server 8000";
+            } else if (hasFile('run.bat')) {
+                runCmd = "run.bat";
+            } else if (hasFile('run.sh')) {
+                runCmd = "./run.sh";
+            } else {
+                runCmd = "./run.sh";
+            }
+
+            const escAttr = (s) => (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            const escHtml = (s) => (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+            commandsContainer.innerHTML = `
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+                    <div class="text-slate-400 text-xs font-sans font-semibold mb-1 flex items-center justify-between">
+                        <span>1. Install Dependencies</span>
+                        <button type="button" data-cmd="${escAttr(installCmd)}" onclick="copyRunGuideCommand(this, this.getAttribute('data-cmd'))" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-mono">Copy</button>
+                    </div>
+                    <code class="text-emerald-400 block">${escHtml(installCmd)}</code>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+                    <div class="text-slate-400 text-xs font-sans font-semibold mb-1 flex items-center justify-between">
+                        <span>2. Run Test Suite</span>
+                        <button type="button" data-cmd="${escAttr(testCmd)}" onclick="copyRunGuideCommand(this, this.getAttribute('data-cmd'))" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-mono">Copy</button>
+                    </div>
+                    <code class="text-emerald-400 block">${escHtml(testCmd)}</code>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-lg p-3">
+                    <div class="text-slate-400 text-xs font-sans font-semibold mb-1 flex items-center justify-between">
+                        <span>3. Run / Start Project</span>
+                        <button type="button" data-cmd="${escAttr(runCmd)}" onclick="copyRunGuideCommand(this, this.getAttribute('data-cmd'))" class="text-[10px] text-indigo-400 hover:text-indigo-300 font-mono">Copy</button>
+                    </div>
+                    <code class="text-emerald-400 block">${escHtml(runCmd)}</code>
+                </div>
+            `;
+
+            guideSection.classList.remove('hidden');
+            scrollToSection('quickRunGuideSection');
+        }
+
         // --- PHASE 1.5: DECOMPOSITION ---
         async function runDecomposition() {
             CountdownManager.cancel('decomposeBtn');
@@ -2506,7 +2788,7 @@
                 vBox.classList.remove('hidden');
                 aBtn.classList.remove('hidden');
                 
-                if (arbitration.decision.verdict === 'pass') {
+                if ((arbitration.decision.verdict || '').toLowerCase() === 'pass') {
                     vText.innerText = 'APPROVED';
                     vText.className = 'font-black text-xl tracking-tight text-emerald-400';
                     vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-emerald-500';
@@ -2534,6 +2816,36 @@
                         );
                     }
                 } else {
+                    const verdictLower = (arbitration.decision && arbitration.decision.verdict) ? arbitration.decision.verdict.toLowerCase() : '';
+                    const shouldRetry = (currentMode === 'QUICK' && verdictLower !== 'pass') || (currentMode !== 'QUICK' && verdictLower === 'revise');
+
+                    if (!shouldRetry && currentMode !== 'QUICK') {
+                        vText.innerText = 'FAILED (TERMINAL)';
+                        vText.className = 'font-black text-xl tracking-tight text-red-400';
+                        vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-red-500';
+                        vReas.innerText = arbitration.decision.revision_plan || 'Terminal critic failure in COMPLEX mode.';
+                        vReas.className = 'text-sm text-red-200/70 whitespace-pre-wrap leading-relaxed font-mono bg-red-950/30 p-3 rounded border border-red-900/50';
+                        aBtn.innerText = "Component Failed - Terminal Critic Error";
+                        aBtn.className = "w-full bg-red-800 text-white font-bold py-3.5 rounded-lg cursor-not-allowed transition-colors shadow-md";
+                        aBtn.onclick = null;
+                        state.status = 'failed';
+                        fetch('/api/pipeline/complete', { 
+                            method: 'POST', 
+                            headers: {'Content-Type': 'application/json'}, 
+                            body: JSON.stringify({ 
+                                component_id: cId, 
+                                stage: 'CRITICS', 
+                                verdict: verdictLower,
+                                revision_count: state.revisionCount || 0,
+                                mode: currentMode,
+                                generation_mode: currentMode
+                            }) 
+                        });
+                        renderPipelineTracks();
+                        processPipeline();
+                        return;
+                    }
+
                     vText.innerText = 'REVISION REQUIRED';
                     vText.className = 'font-black text-xl tracking-tight text-orange-400';
                     vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-orange-500';
@@ -2543,20 +2855,25 @@
                     state.revisionPlan = arbitration.decision.revision_plan;
                     
                     const maxCompRevs = (currentMode === 'QUICK') ? 1 : 3;
-                    if (currentMode === 'QUICK') {
-                        // In QUICK mode, when a component fails the execution/critic phase, it does not retry.
-                        // The revision counter maxes out at 1 and automatically approves the component to proceed.
-                        state.revisionCount = 1;
-                        console.log(`[QUICK Mode] Component ${cId} failed execution/critic phase. Revision count maxed out at 1. Auto-approving component to proceed.`);
-                        approveComponent(cId, true);
-                    } else if (state.revisionCount < maxCompRevs) {
+                    if (shouldRetry && state.revisionCount < maxCompRevs) {
                         state.revisionCount++;
                         aBtn.innerText = "Auto-Revising (Attempt " + state.revisionCount + "/" + maxCompRevs + ")...";
                         aBtn.className = "w-full bg-orange-600/20 text-orange-400 font-bold py-3.5 rounded-lg cursor-not-allowed transition-colors flex items-center justify-center border border-orange-500/30 shadow-sm animate-pulse";
                         aBtn.onclick = null;
                         
                         state.status = 'coding_queued';
-                        fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'CRITICS', verdict: 'revise' }) });
+                        fetch('/api/pipeline/complete', { 
+                            method: 'POST', 
+                            headers: {'Content-Type': 'application/json'}, 
+                            body: JSON.stringify({ 
+                                component_id: cId, 
+                                stage: 'CRITICS', 
+                                verdict: 'revise',
+                                revision_count: state.revisionCount,
+                                mode: currentMode,
+                                generation_mode: currentMode
+                            }) 
+                        });
                         renderPipelineTracks();
                         
                         setTimeout(() => {
@@ -2564,6 +2881,12 @@
                             processPipeline();
                         }, 1500);
                         
+                    } else if (currentMode === 'QUICK') {
+                        // In QUICK mode, when a component fails after 1 retry (revisionCount reaches 1),
+                        // auto-approve the component to proceed (force-proceed).
+                        state.revisionCount = 2;
+                        console.log(`[QUICK Mode] Component ${cId} failed execution/critic phase after 1 retry. Auto-approving component to proceed.`);
+                        approveComponent(cId, true);
                     } else {
                         aBtn.innerText = "Max Revisions Reached - Inspect & Force Approve";
                         aBtn.className = "w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-lg transition-colors shadow-md";
@@ -2583,11 +2906,39 @@
                     }
                 }
             } catch(e) {
-                alert("Critics Error (" + cId + "): " + e.message);
-                state.status = 'failed';
-                // pipelineLocks.critic = false;
-                renderPipelineTracks();
-                processPipeline();
+                console.error("Critics Error (" + cId + "):", e);
+                const maxCompRevs = (currentMode === 'QUICK') ? 1 : 3;
+                if (currentMode === 'QUICK') {
+                    if ((state.revisionCount || 0) < maxCompRevs) {
+                        state.revisionCount = (state.revisionCount || 0) + 1;
+                        console.log(`[QUICK Mode] Execution/critic error on component ${cId}. Retrying once (Attempt ${state.revisionCount}/${maxCompRevs})...`);
+                        state.status = 'coding_queued';
+                        fetch('/api/pipeline/complete', { 
+                            method: 'POST', 
+                            headers: {'Content-Type': 'application/json'}, 
+                            body: JSON.stringify({ 
+                                component_id: cId, 
+                                stage: 'CRITICS', 
+                                verdict: 'revise',
+                                revision_count: state.revisionCount,
+                                mode: currentMode,
+                                generation_mode: currentMode
+                            }) 
+                        });
+                        renderPipelineTracks();
+                        setTimeout(() => { processPipeline(); }, 1500);
+                        return;
+                    } else {
+                        state.revisionCount = 2;
+                        console.log(`[QUICK Mode] Component ${cId} failed execution/critic phase after 1 retry. Auto-approving component to proceed.`);
+                        approveComponent(cId, true);
+                        return;
+                    }
+                } else {
+                    state.status = 'failed';
+                    renderPipelineTracks();
+                    processPipeline();
+                }
             }
         }
 
@@ -2595,7 +2946,7 @@
             CountdownManager.cancel(`approve-component-${cId}`);
             const state = componentStates[cId];
             state.status = 'passed';
-            const forced = Boolean(isForced || (currentMode === 'QUICK' && state.revisionCount >= 1));
+            const forced = Boolean(isForced || (currentMode === 'QUICK' && state.revisionCount >= 2));
             fetch('/api/pipeline/complete', { 
                 method: 'POST', 
                 headers: {'Content-Type': 'application/json'}, 
@@ -2604,6 +2955,7 @@
                     stage: 'CRITICS', 
                     verdict: forced ? 'revise' : 'pass',
                     force_proceed: forced,
+                    revision_count: state.revisionCount || 0,
                     mode: currentMode,
                     generation_mode: currentMode
                 }) 
@@ -2750,8 +3102,9 @@
                 
                 setVisible('pipelineDashboard', false);
                 setVisible('codeOutputSection', true);
+                const maxIntegrationRevs = (currentMode === 'QUICK') ? 1 : 3;
                 document.getElementById('codeOutputTitle').innerText = integrationRevisionCount > 0 
-                    ? `Unified Integrated Codebase (Revision ${integrationRevisionCount}/3)`
+                    ? `Unified Integrated Codebase (Revision ${integrationRevisionCount}/${maxIntegrationRevs})`
                     : 'Unified Integrated Codebase';
                 document.getElementById('codeFilesContainer').classList.add('hidden');
                 document.getElementById('ideContainer').classList.remove('hidden');
@@ -2799,8 +3152,11 @@
                 const card = document.getElementById('adjudicatorCard');
                 const verdictBadge = document.getElementById('adjudicatorVerdict');
                 const planText = document.getElementById('adjudicatorPlan');
-                
-                const maxIntegrationRevs = (currentMode === 'QUICK') ? 1 : 3;
+
+                // Ensure adjudicator & critic sections are visible so verdict and run guide display
+                setVisible('criticOutputSection', true);
+                const adjSection = document.getElementById('adjudicatorSection');
+                if (adjSection) adjSection.classList.remove('hidden');
 
                 if (verdict === 'pass') {
                     if (verdictBadge) {
@@ -2816,28 +3172,16 @@
                     if (currentMode === 'QUICK') {
                         console.log("[QUICK Mode] Integration passed. Pipeline run complete (documentation skipped).");
                         setVisible('docGenerationSection', false);
+                        renderRunGuide();
                     } else {
+                        setVisible('quickRunGuideSection', false);
                         setVisible('docGenerationSection', true);
                         CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
                     }
                 } else {
                     // Verdict is 'revise' or 'error'
                     integrationRevisionPlan = arbitration?.decision?.revision_plan || "Adjudicator requested fixes for integration issues.";
-                    if (currentMode === 'QUICK') {
-                        // Zero self-healing retries in QUICK mode
-                        integrationRevisionCount = 1;
-                        if (verdictBadge) {
-                            verdictBadge.textContent = "PASSED (FORCED QUICK MODE)";
-                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
-                        }
-                        if (planText) planText.textContent = `Forced integration proceed after 1 attempt in QUICK mode.\n${integrationRevisionPlan}`;
-                        if (card) card.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
-
-                        setVisible('docGenerationSection', false);
-                        setVisible('finalDownloadBtn', true);
-                        updateStepper(5, 'success');
-                        console.log("[QUICK Mode] Integration failed first pass. Run force-completed without retries and documentation bypassed.");
-                    } else if (integrationRevisionCount < maxIntegrationRevs) {
+                    if (integrationRevisionCount < maxIntegrationRevs) {
                         integrationRevisionCount++;
                         if (verdictBadge) {
                             verdictBadge.textContent = `REVISION ${integrationRevisionCount}/${maxIntegrationRevs}`;
@@ -2850,6 +3194,21 @@
                             runIntegration(true);
                         }, 1500);
                         return;
+                    } else if (currentMode === 'QUICK') {
+                        // In QUICK mode: 1 revision retry executed, now force proceed!
+                        integrationRevisionCount = 2;
+                        if (verdictBadge) {
+                            verdictBadge.textContent = "PASSED (FORCED QUICK MODE)";
+                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
+                        }
+                        if (planText) planText.textContent = `Forced integration proceed after 1 retry in QUICK mode.\n${integrationRevisionPlan}`;
+                        if (card) card.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
+
+                        setVisible('docGenerationSection', false);
+                        setVisible('finalDownloadBtn', true);
+                        updateStepper(5, 'success');
+                        console.log("[QUICK Mode] Integration retry completed. Run force-completed and documentation bypassed.");
+                        renderRunGuide();
                     } else {
                         if (verdictBadge) {
                             verdictBadge.textContent = `MAX REVISIONS (${maxIntegrationRevs}/${maxIntegrationRevs})`;
@@ -2867,7 +3226,41 @@
                 }
                 
             } catch (err) {
+                console.error("Integration Error", err);
+                if (currentMode === 'QUICK') {
+                    if (integrationRevisionCount < 1) {
+                        integrationRevisionCount = 1;
+                        console.log("[QUICK Mode] Integration error encountered. Retrying once (1/1)...");
+                        setTimeout(() => {
+                            runIntegration(true);
+                        }, 1500);
+                        return;
+                    } else {
+                        // In QUICK mode: 1 revision retry executed, now force proceed!
+                        integrationRevisionCount = 2;
+                        const card = document.getElementById('adjudicatorCard');
+                        const verdictBadge = document.getElementById('adjudicatorVerdict');
+                        const planText = document.getElementById('adjudicatorPlan');
+                        if (verdictBadge) {
+                            verdictBadge.textContent = "PASSED (FORCED QUICK MODE)";
+                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
+                        }
+                        if (planText) planText.textContent = `Forced integration proceed after 1 retry in QUICK mode.\n${err.message}`;
+                        if (card) card.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
+
+                        setVisible('criticOutputSection', true);
+                        const adjSection = document.getElementById('adjudicatorSection');
+                        if (adjSection) adjSection.classList.remove('hidden');
+                        setVisible('docGenerationSection', false);
+                        setVisible('finalDownloadBtn', true);
+                        updateStepper(5, 'success');
+                        console.log("[QUICK Mode] Integration retry completed with error. Run force-completed and documentation bypassed.");
+                        renderRunGuide();
+                        return;
+                    }
+                }
                 showError("Integration Error: " + err.message);
+                updateStepper(5, 'error');
             } finally {
                 setButtonLoading('integrateBtn', 'integrateSpinner', false);
             }

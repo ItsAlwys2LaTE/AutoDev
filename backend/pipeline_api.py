@@ -26,6 +26,7 @@ class CompleteStageInput(BaseModel):
     stage: str
     verdict: Optional[str] = "pass"
     force_proceed: Optional[bool] = False
+    revision_count: Optional[int] = None
     generation_mode: Optional[str] = None
     mode: Optional[str] = None
 
@@ -60,7 +61,7 @@ def pipeline_init(payload: PipelineInitInput):
     from key_balancer import get_generation_mode
     active_mode = payload.generation_mode or payload.mode or get_generation_mode() or "QUICK"
     mode = str(active_mode).upper()
-    max_revs = 1 if mode == "QUICK" else 3
+    max_revs = 2 if mode == "QUICK" else 3
     scheduler = PipelineScheduler(
         config=PipelineConfig(
             max_revisions=max_revs,
@@ -103,6 +104,7 @@ def pipeline_complete(payload: CompleteStageInput):
         stage=payload.stage,
         adjudication_verdict=payload.verdict,
         force_proceed=bool(payload.force_proceed),
+        revision_count=payload.revision_count,
     )
     print_queue_status()
     return {"success": success}

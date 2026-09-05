@@ -126,7 +126,7 @@ def route_decision(state: GraphState):
     decision = state.get("decision")
     revision_count = state.get("revision_count", 0)
     gen_mode = str(state.get("generation_mode") or state.get("mode") or "QUICK").upper()
-    max_revisions = 1 if gen_mode == "QUICK" else 3
+    max_revisions = 2 if gen_mode == "QUICK" else 3
     
     verdict = decision.verdict.upper() if decision and getattr(decision, "verdict", None) else "UNKNOWN"
     print(f"Adjudicator Verdict: {verdict} (Revision: {revision_count}/{max_revisions}, Mode: {gen_mode})")
@@ -138,6 +138,8 @@ def route_decision(state: GraphState):
             if decision:
                 decision.verdict = "pass"
                 decision.revision_plan = f"Forced proceed after {max_revisions} revisions in QUICK mode."
+            else:
+                state["decision"] = AdjudicatorDecision(verdict="pass", revision_plan=f"Forced proceed after {max_revisions} revisions in QUICK mode.")
         return END
     else:
         # In a fully autonomous loop, this would route to a 'node_codegen_revise'
