@@ -411,12 +411,6 @@ from agents.documentation_agent import generate_documentation_stream
 @app.post("/api/generate-documentation")
 def api_generate_documentation(payload: DocumentationInput):
     try:
-        explicit_mode = payload.generation_mode or (payload.mode if payload.mode is not None else None)
-        if explicit_mode and explicit_mode.upper() == "QUICK":
-            def empty_stream():
-                yield "Documentation generation bypassed in QUICK mode.\n"
-            return StreamingResponse(empty_stream(), media_type="text/plain")
-
         return StreamingResponse(
             generate_documentation_stream(payload.requirements, payload.blueprint, payload.codebase),
             media_type="text/plain"

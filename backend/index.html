@@ -3170,8 +3170,9 @@
                     updateStepper(5, 'success');
 
                     if (currentMode === 'QUICK') {
-                        console.log("[QUICK Mode] Integration passed. Pipeline run complete (documentation skipped).");
-                        setVisible('docGenerationSection', false);
+                        console.log("[QUICK Mode] Integration passed. Auto-generating documentation.");
+                        setVisible('docGenerationSection', true);
+                        generateDocs();
                         renderRunGuide();
                     } else {
                         setVisible('quickRunGuideSection', false);
@@ -3204,10 +3205,11 @@
                         if (planText) planText.textContent = `Forced integration proceed after 1 retry in QUICK mode.\n${integrationRevisionPlan}`;
                         if (card) card.className = "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800";
 
-                        setVisible('docGenerationSection', false);
+                        setVisible('docGenerationSection', true);
                         setVisible('finalDownloadBtn', true);
                         updateStepper(5, 'success');
-                        console.log("[QUICK Mode] Integration retry completed. Run force-completed and documentation bypassed.");
+                        console.log("[QUICK Mode] Integration retry completed. Auto-generating documentation.");
+                        generateDocs();
                         renderRunGuide();
                     } else {
                         if (verdictBadge) {
@@ -3251,10 +3253,11 @@
                         setVisible('criticOutputSection', true);
                         const adjSection = document.getElementById('adjudicatorSection');
                         if (adjSection) adjSection.classList.remove('hidden');
-                        setVisible('docGenerationSection', false);
+                        setVisible('docGenerationSection', true);
                         setVisible('finalDownloadBtn', true);
                         updateStepper(5, 'success');
-                        console.log("[QUICK Mode] Integration retry completed with error. Run force-completed and documentation bypassed.");
+                        console.log("[QUICK Mode] Integration retry completed with error. Auto-generating documentation.");
+                        generateDocs();
                         renderRunGuide();
                         return;
                     }
