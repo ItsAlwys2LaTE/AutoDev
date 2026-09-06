@@ -2232,6 +2232,7 @@
         let pipelineQueue = [];
         let pipelineLocks = { design: false, code: false, critic: false };
         let componentEditors = {};
+        let isProgrammaticComponentEditorUpdate = {};
         
         let pipelineInterval = null;
         async function startComponentPipeline() {
@@ -2291,15 +2292,24 @@
                     });
                     
                     componentEditors[cId].onDidChangeModelContent(() => {
+                        if (isProgrammaticComponentEditorUpdate[cId]) return;
                         if (currentMode === 'COMPLEX') {
                             CountdownManager.pauseAll('Component Monaco editor edited');
                         }
                         const state = componentStates[cId];
-                        if (state && state.codebase && state.activeFileIndex >= 0) {
-                            if (state.revisionHistory && state.activeRevisionIndex >= 0) {
-                                state.revisionHistory[state.activeRevisionIndex].codebase.files[state.activeFileIndex].source_code = componentEditors[cId].getValue();
+                        if (state && state.status !== 'coding' && state.codebase && state.activeFileIndex >= 0) {
+                            const val = componentEditors[cId].getValue();
+                            if (val === "Agent is writing code...") return;
+                            if (state.revisionHistory && state.activeRevisionIndex >= 0 && state.revisionHistory[state.activeRevisionIndex]) {
+                                if (state.revisionHistory[state.activeRevisionIndex].codebase &&
+                                    state.revisionHistory[state.activeRevisionIndex].codebase.files &&
+                                    state.revisionHistory[state.activeRevisionIndex].codebase.files[state.activeFileIndex]) {
+                                    state.revisionHistory[state.activeRevisionIndex].codebase.files[state.activeFileIndex].source_code = val;
+                                }
                             }
-                            state.codebase.files[state.activeFileIndex].source_code = componentEditors[cId].getValue();
+                            if (state.codebase.files && state.codebase.files[state.activeFileIndex]) {
+                                state.codebase.files[state.activeFileIndex].source_code = val;
+                            }
                         }
                     });
                 });
@@ -2312,7 +2322,9 @@
             const state = componentStates[cId];
             if (revIndex !== -1) {
                 state.activeRevisionIndex = revIndex;
-                state.codebase = state.revisionHistory[revIndex].codebase;
+                if (state.revisionHistory && state.revisionHistory[revIndex]) {
+                    state.codebase = JSON.parse(JSON.stringify(state.revisionHistory[revIndex].codebase));
+                }
                 renderComponentRevTabs(cId);
             }
             
@@ -2328,14 +2340,19 @@
                 `).join('');
             }
             
-            if (componentEditors[cId] && state.codebase.files[index]) {
+            if (componentEditors[cId] && state.codebase && state.codebase.files && state.codebase.files[index]) {
                 const model = componentEditors[cId].getModel();
                 if (model) {
                     const ext = state.codebase.files[index].file_name.split('.').pop();
                     const langMap = { 'js': 'javascript', 'html': 'html', 'css': 'css', 'py': 'python', 'json': 'json', 'md': 'markdown', 'sh': 'shell' };
                     monaco.editor.setModelLanguage(model, langMap[ext] || 'plaintext');
                 }
-                componentEditors[cId].setValue(state.codebase.files[index].source_code);
+                isProgrammaticComponentEditorUpdate[cId] = true;
+                try {
+                    componentEditors[cId].setValue(state.codebase.files[index].source_code);
+                } finally {
+                    isProgrammaticComponentEditorUpdate[cId] = false;
+                }
             }
         }
         
@@ -2665,12 +2682,22 @@
             const state = componentStates[cId];
             
             try {
+                // Safely clone previous codebase before setting any UI loading states
+                const prevCodebase = state.codebase ? JSON.parse(JSON.stringify(state.codebase)) : null;
+
                 state.status = 'coding';
                 document.getElementById(`code-section-${cId}`).classList.remove('hidden');
                 
                 const container = document.getElementById(`file-list-${cId}`);
                 container.innerHTML = '<div class="text-slate-500 font-mono p-4 text-sm animate-pulse">Synthesizing codebase...</div>';
-                if (componentEditors[cId]) componentEditors[cId].setValue("Agent is writing code...");
+                if (componentEditors[cId]) {
+                    isProgrammaticComponentEditorUpdate[cId] = true;
+                    try {
+                        componentEditors[cId].setValue("Agent is writing code...");
+                    } finally {
+                        isProgrammaticComponentEditorUpdate[cId] = false;
+                    }
+                }
                 renderPipelineTracks();
                 
                 const codeRes = await fetch('/api/generate-code', {
@@ -2679,7 +2706,7 @@
                     body: JSON.stringify({
                         requirements: currentRequirements,
                         blueprint: state.blueprint,
-                        previous_codebase: state.codebase,
+                        previous_codebase: prevCodebase,
                         revision_plan: state.revisionPlan,
                         component_name: component.component_name,
                         revision_count: state.revisionCount || 0
