@@ -1591,4 +1591,10 @@ pytest test_pipeline_flow.py test_pipeline_stress_challenge.py -v
 - Implemented a "Pill-shaped Toggle Bar" above the pipeline tracks, allowing users to rapidly click a component's name to auto-scroll the carousel smoothly to that specific component.
 
 
-*Master System Documentation compiled autonomously for AutoDev. Verified against Git commit history (`c80d011` to `5502746`), source code implementations, and integration test suites.*
+#### 4. Monaco Editor Revision History Integrity Fix
+- **Issue:** When a component required revision in QUICK mode (or COMPLEX mode), switching back to view the "Initial" revision tab resulted in the very first file's source code displaying `"Agent is writing code..."` rather than the initial generated code.
+- **Root Cause:** In `backend/index.html`, `startComponentCode` called `componentEditors[cId].setValue("Agent is writing code...")` to render a loading placeholder. Because the editor's `activeRevisionIndex` and `activeFileIndex` were still pointing to revision 0, file 0, Monaco's `onDidChangeModelContent` listener fired synchronously and mutated `state.revisionHistory[0].codebase.files[0].source_code` in memory.
+- **Fix:** Added `isProgrammaticComponentEditorUpdate` guard flag, guarded `onDidChangeModelContent` to ignore programmatic updates and check `state.status !== 'coding'`, safely cloned `prevCodebase` before setting loading placeholders, and ensured `switchComponentFile` performs deep cloning of historical revision codebases.
+
+*Master System Documentation compiled autonomously for AutoDev. Verified against Git commit history (`c80d011` to `d311039`), source code implementations, and integration test suites.*
+
