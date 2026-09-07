@@ -11,7 +11,7 @@ from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlu
 from retry import with_exponential_backoff
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
-def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult, mode: str = None) -> CriticFeedback:
+def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult, codebase: GeneratedCodeBase = None, mode: str = None) -> CriticFeedback:
     critic_name = "Correctness Critic (Gemini)"
     primary_model, secondary_model = resolve_models_for_mode(mode)
     print(f"Running {critic_name} (Model: {primary_model})...")
@@ -24,15 +24,27 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
     if not keys:
         return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GEMINI API keys are not set.")
 
+    # Extract test files if codebase is provided
+    test_code = "No test code available."
+    if codebase and codebase.files:
+        test_files = [f for f in codebase.files if 'test' in f.file_name.lower() or f.file_name.startswith('test_')]
+        if test_files:
+            test_code = "\n\n".join([f"// {f.file_name}\n{f.source_code}" for f in test_files])
+
     prompt = f"""
-    Evaluate the CORRECTNESS of the code based on the execution logs.
-    Did the tests pass? Do the tests actually cover the Acceptance Criteria?
+    Evaluate the CORRECTNESS of the code based on the execution logs AND the test source code.
+    Did the tests pass? Are the tests actually testing the Acceptance Criteria, or are they trivial no-ops?
+    
+    TEST SOURCE CODE:
+    {test_code}
+    
+    EXECUTION LOGS:
+    {execution_result.model_dump_json(indent=2)}
     
     REQUIREMENTS:
     {requirements.model_dump_json(indent=2)}
     
-    EXECUTION LOGS:
-    {execution_result.model_dump_json(indent=2)}
+    CRITICAL INSTRUCTION: Check that the tests ACTUALLY test the functionality, not just trivial assertions. Flag any test that is a no-op or placeholder, even if it passes.
     """
     
     system_instruction = f"You are the {critic_name}. Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."

@@ -8,8 +8,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
-PRIMARY_MODEL = "gemini-2.5-flash"
-FALLBACK_MODEL = "gemini-2.0-flash-lite"
+PRIMARY_MODEL = "gemini-3.6-flash"
+FALLBACK_MODEL = "gemini-3.5-flash-lite"
 
 def generate_requirements_stream(feature_request: str, mode: str = None):
     """

@@ -349,9 +349,30 @@ class PipelineScheduler:
                     "revision_plan": revision_plan,
                 }
 
+            verdict_lower = str(adjudication_verdict).lower() if adjudication_verdict else "pass"
+
+            if verdict_lower == "error":
+                self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                comp.active_lease = None
+                comp.current_stage = None
+                comp.transition_to(
+                    ComponentStatus.FAILED,
+                    stage=None,
+                    lease=None,
+                    reason="Frontend reported a fatal error during execution",
+                )
+                self.log_event(
+                    TransitionEventType.STATUS_TRANSITION,
+                    component_id=component_id,
+                    from_status=ComponentStatus.IN_STAGE,
+                    to_status=ComponentStatus.FAILED,
+                    stage=norm_stage,
+                    metadata={"reason": "verdict was error"},
+                )
+                return True
+
             # Handle CRITICS and INTEGRATION stage adjudication
             if norm_stage in (StageEnum.CRITICS, StageEnum.INTEGRATION):
-                verdict_lower = str(adjudication_verdict).lower() if adjudication_verdict else "pass"
                 if verdict_lower == "revise":
                     comp.increment_revision()
                     if comp.has_exceeded_revisions():

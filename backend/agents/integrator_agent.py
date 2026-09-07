@@ -47,10 +47,10 @@ def generate_integration_stream(
        or 'app.py' with all route registrations). This file must wire all components together with proper 
        navigation (tabs, sidebar, or page routing).
     3. CONSOLIDATED DEPENDENCIES: Merge all package.json or requirements.txt files into ONE unified manifest 
-       with all dependencies from all components. Remove duplicates and ensure testing dependencies (such as jest for Node or pytest for Python) are present.
+       with all dependencies from all components. Remove duplicates and ensure testing dependencies (such as vitest and jsdom for Node or pytest for Python) are present.
     4. DYNAMIC INTEGRATION TESTS: Write comprehensive integration test(s) matching the project's selected tech stack:
        - For Python/pytest projects: Generate `test_integration.py` (or `test_app.py`) with pytest assertions testing end-to-end user workflows across components.
-       - For Node.js/JavaScript/TypeScript projects: Generate `integration.test.js` or `app.test.js` using Jest/npm test to verify cross-component interactions and state flows.
+       - For Node.js/JavaScript/TypeScript projects: You MUST generate `e2e.test.js` using Playwright (`@playwright/test`) to verify cross-component interactions and workflows in a real browser. Include `@playwright/test` in the unified package.json. You MUST also generate a `playwright.config.js` with a `webServer` block that runs your `dev_server_command` so the server boots automatically before tests run.
        - These tests must verify the seams between components (e.g., login -> browse -> add to cart -> checkout).
     5. SHARED STYLING: Ensure all components use consistent styling/theming. If components have separate 
        CSS files, create a shared base stylesheet or merge them.
@@ -60,6 +60,12 @@ def generate_integration_stream(
        project subdirectory.
     8. Follow the integration_strategy from the ComponentDecomposition for guidance on routing, shared 
        state, and cross-component wiring.
+    9. VITEST & MODERN JS (ESM) MANDATE: For JavaScript/Node/React projects, you MUST use Vitest instead of Jest to fully support modern ES modules (`import`/`export`).
+       a) Always add `"type": "module"` in `package.json`.
+       b) Include `vitest` and `jsdom` in devDependencies.
+       c) Generate a `vitest.config.js` or `vitest.config.mjs` with `environment: 'jsdom'` if DOM testing is needed.
+       d) At the top of your test files, include `import { describe, it, test, expect } from 'vitest';`.
+       e) DO NOT use CommonJS `require()`. Use modern `import` syntax everywhere.
     """
 
     # Build the component results context

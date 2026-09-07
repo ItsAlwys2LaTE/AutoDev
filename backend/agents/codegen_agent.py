@@ -32,13 +32,19 @@ def generate_code_stream(
     
     CRITICAL RULES:
     1. Write COMPLETE code. DO NOT use placeholders like 'pass', 'TODO', or '...'.
-    2. TEST SUITE: You MUST write comprehensive unit tests using the appropriate framework. No project is exempt. For Python (pytest), test files MUST be prefixed with `test_` (e.g., `test_models.py`) and test functions must start with `def test_...` for auto-discovery. For JS/HTML apps, test the DOM logic using Jest.
-    3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'jest' and 'jest-environment-jsdom' in the package.json.
+    2. TEST SUITE & SPLIT STRATEGY: You MUST write comprehensive unit tests. For Python (pytest), test files MUST be prefixed with `test_` and functions must start with `def test_...`. For JS/Node full-stack projects, you MUST SPLIT the tests: write backend API tests (e.g. `server.test.js` using node environment + supertest) separate from frontend DOM tests (e.g. `ui.test.js` using jsdom environment). Do NOT combine backend and frontend tests in the same file.
+    3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'vitest' and 'jsdom' in the package.json.
     4. SCHEMA COMPLIANCE: The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     5. IMPORTS/REQUIRES: EVERY file MUST include ALL necessary import/require statements at the top. Missing imports will cause crashes in the execution sandbox.
     6. NO ROOT SUBDIRECTORIES: Do NOT place the project inside an arbitrary root subdirectory. Output all files relative to the workspace root (e.g. `manage.py`, not `my_project/manage.py`).
     7. IDIOMATIC CODE: Write highly idiomatic code for the chosen language.
     8. ROBUSTNESS: You MUST implement robust edge-case handling, bounds checking (e.g., max lengths), state management, and error recovery to make the system production-ready. Do not just implement the happy path. If the blueprint implies edge cases (or if a senior engineer would normally handle them), implement them.
+    9. VITEST & MODERN JS (ESM) MANDATE: For JavaScript/Node/React projects, you MUST use Vitest instead of Jest to fully support modern ES modules (`import`/`export`).
+       a) Always add `"type": "module"` in `package.json`.
+       b) Include `vitest` and `jsdom` in devDependencies.
+       c) Generate a `vitest.config.js` or `vitest.config.mjs` with `environment: 'jsdom'` if DOM testing is needed.
+       d) At the top of your test files, include `import { describe, it, test, expect } from 'vitest';`.
+       e) DO NOT use CommonJS `require()`. Use modern `import` syntax everywhere.
     """
 
     prompt_content = f"""

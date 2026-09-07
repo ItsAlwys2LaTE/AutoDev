@@ -1,7 +1,8 @@
-from typing import TypedDict, Annotated, List, Optional
+from typing import TypedDict, Annotated, List, Optional, Any
 import operator
 import os
 import json
+import math
 from langgraph.graph import StateGraph, END
 from google import genai
 from google.genai import types
@@ -22,9 +23,12 @@ class GraphState(TypedDict, total=False):
     revision_count: int
     generation_mode: Optional[str]
     mode: Optional[str]
+    previous_composite: Optional[float]
+    delta: Optional[float]
+    dynamic_budget: Optional[int]
 
 def node_correctness(state: GraphState):
-    feedback = evaluate_correctness(state["requirements"], state["execution_result"])
+    feedback = evaluate_correctness(state["requirements"], state["execution_result"], state.get("codebase"), state.get("mode"))
     return {"feedbacks": [feedback]}
 
 def node_architecture(state: GraphState):
@@ -36,102 +40,223 @@ def node_completeness(state: GraphState):
     return {"feedbacks": [feedback]}
 
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
+from pydantic import BaseModel, Field
+
+class AdjudicatorLLMResponse(BaseModel):
+    """Internal LLM response schema without default values for Gemini API."""
+    verdict: str = Field(description="Strictly 'pass', 'revise', or 'error'")
+    revision_plan: str = Field(description="Detailed instructions for the CodeGen agent if verdict is 'revise'. If 'error', describes the system failure. If 'pass', a brief approval message.")
+
+def calculate_composite_score(feedbacks: List[Any]) -> float:
+    """
+    Calculate weighted composite score:
+    Correctness 50%, Architecture 20%, Completeness 30%
+    """
+    correctness_score = 0.0
+    architecture_score = 0.0
+    completeness_score = 0.0
+
+    for fb in feedbacks or []:
+        if fb is None:
+            continue
+        if isinstance(fb, dict):
+            name = (fb.get("critic_name") or "").lower()
+            raw_score = fb.get("severity_score")
+        else:
+            name = (getattr(fb, "critic_name", None) or "").lower()
+            raw_score = getattr(fb, "severity_score", 0)
+
+        score = 0.0
+        if raw_score is not None and not isinstance(raw_score, bool):
+            try:
+                score = float(raw_score)
+            except (ValueError, TypeError):
+                score = 0.0
+
+        if "correct" in name:
+            correctness_score = score
+        elif "arch" in name:
+            architecture_score = score
+        elif "complete" in name:
+            completeness_score = score
+
+    composite = (correctness_score * 0.50) + (architecture_score * 0.20) + (completeness_score * 0.30)
+    return round(composite, 2)
+
+
+def check_critic_system_error(feedbacks: List[Any]) -> Optional[str]:
+    """Check if any critic feedback reported an API Error, Rate Limit, or system failure."""
+    for fb in feedbacks or []:
+        comments = getattr(fb, "overall_comments", "") if not isinstance(fb, dict) else fb.get("overall_comments", "")
+        issues = getattr(fb, "issues_list", []) if not isinstance(fb, dict) else fb.get("issues_list", [])
+        combined = (str(comments) + " " + " ".join(str(i) for i in issues)).lower()
+        if "api error" in combined or "rate limit" in combined or "system failure" in combined or "503 service unavailable" in combined:
+            return str(comments) or (" ".join(str(i) for i in issues)) or "Critic system failure detected"
+    return None
+
+
+def synthesize_revision_plan(feedbacks: List[Any]) -> str:
+    """Build a revision plan from critic issues without calling an LLM."""
+    issues = []
+    for fb in feedbacks or []:
+        # Handle dict or Pydantic object
+        if isinstance(fb, dict):
+            name = fb.get("critic_name", "Critic")
+            score = fb.get("severity_score", 0)
+            issue_list = fb.get("issues_list", [])
+        else:
+            name = getattr(fb, "critic_name", "Critic")
+            score = getattr(fb, "severity_score", 0)
+            issue_list = getattr(fb, "issues_list", [])
+            
+        if score > 0:
+            issues.append(f"[{name}] (severity {score}/10):")
+            for issue in issue_list:
+                issues.append(f"  - {issue}")
+    return "\n".join(issues) if issues else "No issues found."
 
 def node_adjudicator(state: GraphState):
-    print("Running Adjudicator (Gemini 3.6-flash)...")
-    primary_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR") or os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
-    keys = get_gemini_keys_for_stage("ADJUDICATOR")
-    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
-        keys = [primary_key.strip()] + keys
-    
-    if not keys:
-        return {"decision": AdjudicatorDecision(verdict="revise", revision_plan="API Key Missing for Adjudicator.")}
+    print("Running Deterministic Adjudicator...")
+    feedbacks = state.get("feedbacks", [])
+    execution_result = state.get("execution_result")
+    revision_count = state.get("revision_count", 0)
+    gen_mode = str(state.get("generation_mode") or state.get("mode") or "QUICK").upper()
+    previous_composite = state.get("previous_composite")
 
-    # Convert the pydantic feedback objects to JSON strings for the prompt
-    feedbacks_json = [f.model_dump() for f in state["feedbacks"]]
-    
-    prompt = f"""
-    You are the Chief Software Adjudicator. 
-    Review the feedbacks provided by the 3 independent critic agents:
-    {json.dumps(feedbacks_json, indent=2)}
-    
-    INSTRUCTIONS:
-    1. SYSTEM ERRORS: If ANY critic feedback mentions an "API Error", "Rate Limit", or system failure, you MUST output a verdict of 'error' and set the revision_plan to explain that the evaluation failed due to a system error. DO NOT tell the CodeGen agent to revise the code.
-    2. CODE ISSUES: If there are no system errors, and ANY critic gave a severity_score greater than 0, you MUST output a verdict of 'revise', and synthesize their issues into a clear, actionable 'revision_plan' for the CodeGen agent.
-    3. PASS: If all severity scores are 0, output a verdict of 'pass' and a brief approval message.
-    """
-    
-    system_instruction = "You are the Adjudicator. Output strict JSON containing 'verdict' (pass/revise/error) and 'revision_plan'."
+    # GATE 1: Execution failure = mandatory revise
+    # We must check if execution failed before even looking at critics.
+    # Note: execution_result might be a dict or a Pydantic object
+    exec_success = True
+    exec_logs = ""
+    if execution_result:
+        if isinstance(execution_result, dict):
+            exec_success = execution_result.get("success", True)
+            exec_logs = execution_result.get("logs", "")
+        else:
+            exec_success = getattr(execution_result, "success", True)
+            exec_logs = getattr(execution_result, "logs", "")
 
-    for idx, key in enumerate(keys):
-        client = genai.Client(api_key=key)
+    if not exec_success:
+        print("Adjudicator: Execution failed. Mandatory revise.")
+        # We assign a max severity score to force revision
+        budget = 3 if gen_mode == "QUICK" else 4
+        log_snippet = str(exec_logs)[-2000:] if exec_logs else "No logs provided."
+        decision = AdjudicatorDecision(
+            verdict="revise",
+            revision_plan=f"EXECUTION FAILED. The tests crashed or timed out. Fix these errors first:\n\n{log_snippet}",
+            weighted_composite=10.0,
+            delta=0.0,
+            dynamic_budget=budget,
+            early_stop=False
+        )
+        return {"decision": decision}
 
-        @with_exponential_backoff
-        def _call_primary():
-            response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.1,
-                    response_mime_type="application/json",
-                    response_schema=AdjudicatorDecision,
-                )
+    # GATE 2: System errors in critics
+    sys_err = check_critic_system_error(feedbacks)
+    if sys_err:
+        print(f"Adjudicator: System error detected in critic feedbacks: {sys_err}")
+        return {
+            "decision": AdjudicatorDecision(
+                verdict="error",
+                revision_plan=f"Adjudicator System Error: Evaluation failed due to critic system error ({sys_err}).",
+                weighted_composite=10.0,
+                delta=0.0,
+                dynamic_budget=3,
+                early_stop=False,
             )
-            if hasattr(response, 'parsed') and response.parsed is not None:
-                return response.parsed
-            else:
-                return AdjudicatorDecision.model_validate_json(response.text)
+        }
 
+    # Score calculation
+    composite = calculate_composite_score(feedbacks)
+    # Budget: min 5, max 2, ceil(composite / 2)
+    budget = min(5, max(2, math.ceil(composite / 2)))
+    
+    delta = None
+    if previous_composite is not None and previous_composite != "" and not isinstance(previous_composite, bool):
         try:
-            decision = _call_primary()
-            return {"decision": decision}
-        except Exception as e:
-            print(f"Adjudicator primary model failed on key {idx+1}/{len(keys)}: {e}")
-            if is_rate_limit_error(e) and idx + 1 < len(keys):
-                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on gemini-3.6-flash...")
-                continue
-            else:
-                print("Falling back to gemini-3.5-flash-lite in Adjudicator...")
-                for fb_idx, fb_key in enumerate(keys):
-                    fb_client = genai.Client(api_key=fb_key)
+            delta = round(float(previous_composite) - composite, 2)
+        except (ValueError, TypeError):
+            delta = None
 
-                    @with_exponential_backoff
-                    def _call_fallback():
-                        response = fb_client.models.generate_content(
-                            model="gemini-3.5-flash-lite",
-                            contents=prompt,
-                            config=types.GenerateContentConfig(
-                                system_instruction=system_instruction,
-                                temperature=0.1,
-                                response_mime_type="application/json",
-                                response_schema=AdjudicatorDecision,
-                            )
-                        )
-                        if hasattr(response, 'parsed') and response.parsed is not None:
-                            return response.parsed
-                        else:
-                            return AdjudicatorDecision.model_validate_json(response.text)
+    # GATE 3: Auto-pass (strict threshold)
+    if composite <= 1.0:
+        print(f"Adjudicator: Auto-pass triggered. Composite {composite} <= 1.0")
+        return {
+            "decision": AdjudicatorDecision(
+                verdict="pass",
+                revision_plan=f"Auto-passed: weighted composite score of {composite} is excellent.",
+                weighted_composite=composite,
+                delta=delta,
+                dynamic_budget=budget,
+                early_stop=False,
+            )
+        }
 
-                    try:
-                        decision = _call_fallback()
-                        return {"decision": decision}
-                    except Exception as fallback_e:
-                        print(f"Adjudicator fallback failed on key {fb_idx+1}: {fallback_e}")
-                        if fb_idx + 1 < len(keys):
-                            continue
-                        return {"decision": AdjudicatorDecision(verdict="error", revision_plan=f"Adjudicator Error: {str(fallback_e)}")}
+    # GATE 4: Early-stop (only after 2+ revisions, only if quality is acceptable <= 3.0)
+    if revision_count >= 2 and delta is not None and delta <= 0.5 and composite <= 3.0:
+        print(f"Adjudicator: Early stop triggered. Delta {delta} <= 0.5 and Composite {composite} <= 3.0")
+        return {
+            "decision": AdjudicatorDecision(
+                verdict="pass",
+                revision_plan=f"Early stop triggered: score improvement ({delta}) is diminishing, and quality ({composite}) is acceptable.",
+                weighted_composite=composite,
+                delta=delta,
+                dynamic_budget=budget,
+                early_stop=True,
+            )
+        }
+
+    # GATE 5: Budget exhausted
+    # If we haven't passed by the time we hit the budget, force a pass (or error depending on UI logic, but UI expects pass or revise-loop).
+    # We will let route_decision or the UI handle the max_revisions fallback, so here we just return revise.
+    
+    # Default: Revise with deterministic plan
+    plan = synthesize_revision_plan(feedbacks)
+    print(f"Adjudicator: Revise required. Composite: {composite}")
+    return {
+        "decision": AdjudicatorDecision(
+            verdict="revise",
+            revision_plan=plan,
+            weighted_composite=composite,
+            delta=delta,
+            dynamic_budget=budget,
+            early_stop=False,
+        )
+    }
 
 def route_decision(state: GraphState):
     decision = state.get("decision")
+    if isinstance(decision, dict):
+        try:
+            decision = AdjudicatorDecision(**decision)
+            state["decision"] = decision
+        except Exception:
+            pass
+
     revision_count = state.get("revision_count", 0)
     gen_mode = str(state.get("generation_mode") or state.get("mode") or "QUICK").upper()
-    max_revisions = 2 if gen_mode == "QUICK" else 3
+    
+    # Dynamic budget resolution
+    max_revisions = None
+    if decision and getattr(decision, "dynamic_budget", None) is not None:
+        try:
+            budget_val = int(decision.dynamic_budget)
+            if budget_val > 0:
+                max_revisions = budget_val
+        except (ValueError, TypeError):
+            pass
+
+    if max_revisions is None:
+        max_revisions = 2 if gen_mode == "QUICK" else 3
     
     verdict = decision.verdict.upper() if decision and getattr(decision, "verdict", None) else "UNKNOWN"
     print(f"Adjudicator Verdict: {verdict} (Revision: {revision_count}/{max_revisions}, Mode: {gen_mode})")
     
     verdict_lower = decision.verdict.lower() if decision and getattr(decision, "verdict", None) else ""
+
+    if verdict_lower == "error":
+        return END
+
     if verdict_lower == "pass" or revision_count >= max_revisions:
         if gen_mode == "QUICK" and revision_count >= max_revisions and verdict_lower != "pass":
             print(f"[QUICK MODE] Component exceeded {max_revisions} revisions. Forcing proceed.")

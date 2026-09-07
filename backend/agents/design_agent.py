@@ -32,14 +32,17 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     Your job is to design the technical blueprint. 
     
     CRITICAL FORMATTING INSTRUCTIONS FOR YOUR OUTPUT:
-    1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack`. ALL projects, including static frontends (HTML/CSS/JS), MUST have automated tests. Identify the exact terminal `run_tests_command`. For Node/JS projects, ensure it includes dependency installation (e.g., 'npm install && npm test'). For static frontends, use 'npm install && npm test' with Jest and JSDOM to test DOM logic.
-    2. DOCKER ENVIRONMENT: You must specify a lightweight `docker_image` (e.g., 'node:20-alpine' for React/JS, 'python:3.11-slim' for Python) that contains the necessary runtime. Specify the `dev_server_command` to run the app (e.g., 'npm run dev -- --host 0.0.0.0' for Vite, 'python -m http.server 8080' for static HTML) and the internal `dev_server_port` it listens on (e.g., 5173, 8080). Dev servers MUST bind to 0.0.0.0 to allow port forwarding.
+    1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack`. ALL projects, including static frontends (HTML/CSS/JS), MUST have automated tests. Identify the exact terminal `run_tests_command`. For Node/JS projects, ensure it includes dependency installation (e.g., 'npm install && npm run test'). For static frontends, use 'npm install && npx vitest run' with Vitest and JSDOM to test DOM logic.
+    2. DOCKER ENVIRONMENT: You must specify a lightweight `docker_image`. For Python, use 'python:3.11-slim'. For Node/JS projects, you MUST use 'mcr.microsoft.com/playwright:v1.48.0-noble' to support testing. Specify the `dev_server_command` to run the app (e.g., 'npm run dev -- --host 0.0.0.0' for Vite, 'python -m http.server 8080' for static HTML) and the internal `dev_server_port` it listens on (e.g., 5173, 8080). Dev servers MUST bind to 0.0.0.0 to allow port forwarding.
     3. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt, vite.config.js). Do NOT place the project inside a root subdirectory; output all files relative to the workspace root (e.g. use 'manage.py' instead of 'my_project/manage.py').
-    4. TEST DRIVEN: You MUST include a comprehensive test suite file in your blueprint. For Python (pytest), files MUST start with `test_` (e.g., 'test_main.py', NOT 'tests.py') for auto-discovery to work. For JS/HTML, use 'app.test.js'. Every single project must have tests.
+    4. TEST DRIVEN & SPLIT STRATEGY: You MUST include comprehensive test suite files in your blueprint. Every project must have tests.
+       - For Python (pytest), test files MUST start with `test_` (e.g., 'test_main.py').
+       - For JS/Node full-stack projects, you MUST SPLIT the tests: Generate `server.test.js` (for backend API routes with node environment) and `ui.test.jsx` or `ui.test.js` (for DOM/React components with jsdom environment). Do NOT jam backend and frontend tests into a single file.
     5. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     6. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
     8. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
+    9. VITEST SETUP: If designing a JS/Node project, enforce modern ES modules (`"type": "module"` in package.json) and use Vitest instead of Jest. Explicitly include both `vitest` and `jsdom` in the package.json pseudocode.
     """
 
     if component_context:

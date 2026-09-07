@@ -42,7 +42,7 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
     
     is_node_stack = (
-        any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "npm", "react", "vue", "next", "express", "html", "css"))
+        any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "vitest", "npm", "react", "vue", "next", "express", "html", "css"))
         or "node" in docker_image_lower
         or (has_package_json and not has_py_files)
         or (has_js_files and not has_py_files)
@@ -70,7 +70,7 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     # Determine base runner
     if is_node_stack and (not raw_cmd or raw_cmd.lower() == "pytest" or raw_cmd == "NONE"):
         base_cmd = "npm test"
-    elif is_python_stack and (not raw_cmd or raw_cmd.lower() in ("npm test", "jest") or raw_cmd == "NONE"):
+    elif is_python_stack and (not raw_cmd or raw_cmd.lower() in ("npm test", "jest", "vitest", "vitest run", "npx vitest run") or raw_cmd == "NONE"):
         base_cmd = "pytest"
     elif is_go_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
         base_cmd = "go test ./..."
@@ -96,7 +96,7 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
 
     return base_cmd
 
-def _exec_with_timeout(container, cmd: str, workdir: str = "/workspace", timeout_sec: float = 60.0):
+def _exec_with_timeout(container, cmd: str, workdir: str = "/workspace", timeout_sec: float = 180.0):
     """Executes a command inside the container with a strict timeout limit to avoid blocking indefinitely."""
     result_holder = {}
     error_holder = []
@@ -112,7 +112,7 @@ def _exec_with_timeout(container, cmd: str, workdir: str = "/workspace", timeout
     th.join(timeout=timeout_sec)
 
     if th.is_alive():
-        return 124, b"TIMEOUT: Sandbox test execution exceeded timeout limit (60s)."
+        return 124, f"TIMEOUT: Sandbox test execution exceeded timeout limit ({timeout_sec}s).".encode('utf-8')
     if error_holder:
         raise error_holder[0]
     res = result_holder.get("res")
@@ -167,7 +167,7 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
                 container,
                 cmd=f"sh -c '{run_tests_command}'",
                 workdir="/workspace",
-                timeout_sec=60.0
+                timeout_sec=180.0
             )
             
             if isinstance(output, bytes):
@@ -175,6 +175,29 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
             else:
                 logs = str(output or "")
             success = (exit_code == 0)
+            
+            # --- SMOKE TEST PHASE (Proposal B) ---
+            if success and blueprint.dev_server_command and str(blueprint.dev_server_command).strip().upper() != "NONE":
+                print(f"Tests passed. Running Smoke Test for: {blueprint.dev_server_command}")
+                # We start the server in the background, wait 4 seconds, and check if the PID is still alive.
+                smoke_cmd = f"sh -c '{blueprint.dev_server_command} > smoke.log 2>&1 & PID=$!; sleep 4; kill -0 $PID 2>/dev/null; STATUS=$?; cat smoke.log; exit $STATUS'"
+                smoke_exit, smoke_output = _exec_with_timeout(
+                    container,
+                    cmd=smoke_cmd,
+                    workdir="/workspace",
+                    timeout_sec=15.0
+                )
+                
+                smoke_logs = smoke_output.decode('utf-8', errors='replace') if isinstance(smoke_output, bytes) else str(smoke_output or "")
+                logs += f"\n\n--- SMOKE TEST LOGS ({blueprint.dev_server_command}) ---\n" + smoke_logs
+                
+                if smoke_exit != 0:
+                    success = False
+                    logs += "\nSMOKE TEST FAILED: The development server crashed immediately after starting."
+                    print("Smoke test failed (server crashed).")
+                else:
+                    logs += "\nSMOKE TEST PASSED: The development server booted and stayed alive."
+                    print("Smoke test passed.")
             
             print("Execution complete.")
             return ExecutionResult(success=success, logs=logs)

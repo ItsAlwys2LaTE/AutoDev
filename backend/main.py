@@ -98,6 +98,7 @@ class ArbitrationInput(BaseModel):
     revision_count: Optional[int] = 0
     mode: Optional[str] = None
     generation_mode: Optional[str] = None
+    previous_composite: Optional[float] = None
 
 class IntegrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -392,6 +393,7 @@ def api_run_critics(payload: ArbitrationInput):
             "master_decomposition": payload.master_decomposition,
             "generation_mode": gen_mode,
             "mode": gen_mode,
+            "previous_composite": payload.previous_composite,
         }
         
         final_state = arbitration_engine.invoke(initial_state)

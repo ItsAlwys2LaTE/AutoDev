@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 # --- PHASE 1 MODELS (Requirements) ---
 
@@ -73,6 +73,10 @@ class AdjudicatorDecision(BaseModel):
     """The final decision made by the Adjudicator agent based on all critiques."""
     verdict: str = Field(description="Strictly 'pass', 'revise', or 'error'")
     revision_plan: str = Field(description="Detailed instructions for the CodeGen agent if verdict is 'revise'. If 'error', describes the system failure. If 'pass', a brief approval message.")
+    weighted_composite: Optional[float] = Field(default=None, description="Weighted composite severity score (Correctness 50%, Architecture 20%, Completeness 30%)")
+    delta: Optional[float] = Field(default=None, description="Score delta (improvement) compared to previous revision")
+    dynamic_budget: Optional[int] = Field(default=None, description="Dynamic revision budget calculated as min(5, ceil(composite / 3))")
+    early_stop: Optional[bool] = Field(default=False, description="True if early stop triggered due to delta <= 1")
 
 # --- PHASE 0 MODELS (Component Decomposition) ---
 
