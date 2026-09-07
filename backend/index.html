@@ -2851,6 +2851,7 @@
                                 stage: 'CRITICS', 
                                 verdict: 'revise',
                                 revision_count: state.revisionCount,
+                                dynamic_budget: state.dynamicBudget,
                                 mode: currentMode,
                                 generation_mode: currentMode
                             }) 
@@ -2902,6 +2903,7 @@
                                 stage: 'CRITICS', 
                                 verdict: 'revise',
                                 revision_count: state.revisionCount,
+                                dynamic_budget: state.dynamicBudget,
                                 mode: currentMode,
                                 generation_mode: currentMode
                             }) 
@@ -2938,6 +2940,7 @@
                     verdict: forced ? 'revise' : 'pass',
                     force_proceed: forced,
                     revision_count: state.revisionCount || 0,
+                    dynamic_budget: state.dynamicBudget,
                     mode: currentMode,
                     generation_mode: currentMode
                 }) 

@@ -1629,3 +1629,9 @@ pytest test_pipeline_flow.py test_pipeline_stress_challenge.py -v
 
 *Master System Documentation compiled autonomously for AutoDev. Verified against Git commit history (c80d011 to a0db60c), source code implementations, and integration test suites.*
 
+
+### Frontend-Backend Revision Sync Deadlock (Fixed)
+**Issue:** Components were deadlocking in a "Queued for Code" state while the backend showed them as "COMPLETED".
+**Root Cause:** The 
+ode_adjudicator dynamically adjusts the retry budget (dynamic_budget=3 for execution failures) and the frontend respects this by allowing 3 retries. However, the backend scheduler.py hardcoded max_revisions=2. During the second retry, the frontend sent erdict: revise (expecting the component to loop back to CODEGEN), but the backend saw that evision_count (2) >= max_revisions (2) and autonomously force-proceeded the component to COMPLETED. The frontend awaited a CODEGEN assignment that would never arrive.
+**Fix:** Updated CompleteStageInput to accept dynamic_budget from the frontend, and patched complete_stage_execution to dynamically sync comp.max_revisions = dynamic_budget when received.

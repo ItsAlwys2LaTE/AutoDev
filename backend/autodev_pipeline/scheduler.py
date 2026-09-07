@@ -280,6 +280,7 @@ class PipelineScheduler:
         revision_plan: Optional[str] = None,
         force_proceed: bool = False,
         revision_count: Optional[int] = None,
+        dynamic_budget: Optional[int] = None,
     ) -> bool:
         """
         Signals completion of stage processing for a component and executes atomic 2-phase handover.
@@ -293,6 +294,9 @@ class PipelineScheduler:
             lease = comp.active_lease
             if not lease:
                 return False
+
+            if dynamic_budget is not None and dynamic_budget > comp.max_revisions:
+                comp.max_revisions = dynamic_budget
 
             if force_proceed:
                 self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)

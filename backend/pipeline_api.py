@@ -25,10 +25,12 @@ class CompleteStageInput(BaseModel):
     component_id: str
     stage: str
     verdict: Optional[str] = "pass"
+    revision_plan: Optional[str] = None
     force_proceed: Optional[bool] = False
     revision_count: Optional[int] = None
-    generation_mode: Optional[str] = None
     mode: Optional[str] = None
+    generation_mode: Optional[str] = None
+    dynamic_budget: Optional[int] = None
 
 CompleteStageRequest = CompleteStageInput
 
@@ -105,6 +107,7 @@ def pipeline_complete(payload: CompleteStageInput):
         adjudication_verdict=payload.verdict,
         force_proceed=bool(payload.force_proceed),
         revision_count=payload.revision_count,
+        dynamic_budget=payload.dynamic_budget,
     )
     print_queue_status()
     return {"success": success}
