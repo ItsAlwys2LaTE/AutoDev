@@ -711,4 +711,4 @@ AutoDev has evolved through **78 commits across 9 architectural eras**, progress
 
 - **Aman Adil** — Bhilai Institute of Technology, Durg
 - **Amit Sahu** — Bhilai Institute of Technology, Durg
-- **Anupam Sharma** — Bhilai Institute of Technology, Durg *(Primary Author & Architecture Lead)*
+- **Anupam Sharma** — Bhilai Institute of Technology, Durg
