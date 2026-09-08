@@ -466,10 +466,11 @@ def start_preview(payload: ExecuteInput):
     if cmd == "NONE" or internal_port == 0:
         cmd = "python -m http.server 8080 --bind 0.0.0.0"
         internal_port = 8080
-        if "node" in image.lower():
-            # If it's a node container, use python? No, node doesn't have python by default.
-            # We can use npx serve instead
-            cmd = "npx serve -p 8080 -H 0.0.0.0"
+
+    if "node" in image.lower() and "python -m http.server" in cmd:
+        cmd = cmd.replace("python -m http.server", "npx --yes serve -p")
+        if "--bind 0.0.0.0" in cmd:
+            cmd = cmd.replace("--bind 0.0.0.0", "-H 0.0.0.0")
 
     host_port = get_free_port()
 

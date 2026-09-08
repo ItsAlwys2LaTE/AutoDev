@@ -1650,3 +1650,11 @@ o-cors mode, ensuring the iframe only mounts once the dev server actually begins
 **Issue:** The user experienced another deadlock exactly after 2 revisions in QUICK mode. The frontend showed the component stuck in "Queued for Code" while the backend logs indicated "Forced advancement after 3 revisions".
 **Root Cause:** A subtle off-by-one error in the backend's has_exceeded_revisions() logic. The frontend loops while evisionCount < maxCompRevs, meaning the final allowed retry attempt strictly equals the budget. When the frontend sent erdict: revise for the final allowed retry (e.g. attempt 3 of 3), the backend incremented its counter to 3, evaluated 3 >= 3, and prematurely killed the final retry, forcing the component to COMPLETED. The frontend awaited CODEGEN for the final retry, resulting in a deadlock.
 **Fix:** Modified has_exceeded_revisions() in ackend/autodev_pipeline/models.py to evaluate strictly greater than (>) rather than greater-than-or-equal-to (>=). This perfectly aligns the backend safety net with the frontend's loop boundaries. Additionally, normalized the fallback default budget for QUICK mode to 2 across all index.html catch blocks.
+
+### Live Preview Missing Python Bug (Fixed)
+**Issue:** The Live Preview crashed with sh: 1: python: not found when rendering plain HTML sites.
+**Root Cause:** The system prompt instructs the AI to use python -m http.server 8080 --bind 0.0.0.0 as a fallback command if a dev server is not defined. If the AI also selected a Node-based Docker image (e.g., 
+ode:20-alpine) for a plain HTML site, the container would attempt to execute Python, which is not installed in Node images.
+**Fix:** Added an interceptor in main.py (start_preview) that intelligently detects if the python -m http.server command is being passed to a Node-based image, and seamlessly rewrites the command to 
+px --yes serve -p 8080 -H 0.0.0.0. The --yes flag prevents 
+px from hanging on interactive installation prompts.
