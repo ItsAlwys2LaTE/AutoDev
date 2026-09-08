@@ -1635,3 +1635,13 @@ pytest test_pipeline_flow.py test_pipeline_stress_challenge.py -v
 **Root Cause:** The 
 ode_adjudicator dynamically adjusts the retry budget (dynamic_budget=3 for execution failures) and the frontend respects this by allowing 3 retries. However, the backend scheduler.py hardcoded max_revisions=2. During the second retry, the frontend sent erdict: revise (expecting the component to loop back to CODEGEN), but the backend saw that evision_count (2) >= max_revisions (2) and autonomously force-proceeded the component to COMPLETED. The frontend awaited a CODEGEN assignment that would never arrive.
 **Fix:** Updated CompleteStageInput to accept dynamic_budget from the frontend, and patched complete_stage_execution to dynamically sync comp.max_revisions = dynamic_budget when received.
+
+### Live Preview Connection Refused Bug (Fixed)
+**Issue:** The Live Preview consistently threw "localhost refused to connect".
+**Root Cause:** Two issues were at play. First, dev servers like Vite and Webpack bind to 127.0.0.1 inside the Docker container by default, making them inaccessible from the host machine despite port mapping. Second, the frontend blindly assigned the iframe source after a hardcoded 5-second timeout, which was vastly insufficient for containers running 
+pm install.
+**Fix:**
+- Injected HOST=0.0.0.0, VITE_HOST=0.0.0.0, and HOSTNAME=0.0.0.0 environment variables into the Docker container instantiation to force internal servers to bind to the network interface.
+- Replaced the hardcoded 5-second UI timeout with a robust polling mechanism that pings the target URL using 
+o-cors mode, ensuring the iframe only mounts once the dev server actually begins accepting TCP connections.
+- Added a 2.5-second crash detection in the backend start_preview API, returning container logs directly to the frontend if the dev server immediately terminates (e.g. due to syntax errors).

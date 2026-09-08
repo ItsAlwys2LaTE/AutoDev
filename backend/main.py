@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+import time
 import traceback
 
 from executor import execute_code
@@ -492,7 +493,13 @@ def start_preview(payload: ExecuteInput):
             image=image,
             command=["sh", "-c", cmd],
             working_dir="/workspace",
-            ports={f"{internal_port}/tcp": host_port}
+            ports={f"{internal_port}/tcp": host_port},
+            environment={
+                "HOST": "0.0.0.0", 
+                "VITE_HOST": "0.0.0.0", 
+                "HOSTNAME": "0.0.0.0", 
+                "PORT": str(internal_port)
+            }
         )
         
         # Inject the source code before starting
@@ -502,6 +509,13 @@ def start_preview(payload: ExecuteInput):
         container.start()
         preview_container_id = container.id
         
+        # Wait a moment to see if it crashes immediately (e.g. syntax error or missing module)
+        time.sleep(2.5)
+        container.reload()
+        if container.status == "exited":
+            logs = container.logs().decode('utf-8', errors='replace')
+            raise Exception(f"Container exited prematurely.\nLogs:\n{logs}")
+            
         return {"url": f"http://localhost:{host_port}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1146,15 +1146,30 @@
                 
                 const data = await response.json();
                 
-                // We need to wait a few seconds for the dev server (like Vite or npm install) to actually bind to the port
-                setTimeout(() => {
-                    document.getElementById('livePreviewFrame').removeAttribute('srcdoc');
-                    document.getElementById('livePreviewFrame').src = data.url;
-                }, 5000); // 5 seconds grace period for npm install / dev server
+                const targetUrl = data.url;
+                let attempts = 0;
+                
+                const checkServer = async () => {
+                    if (attempts > 30) {
+                        document.getElementById('livePreviewFrame').srcdoc = "<html><body style='font-family: sans-serif; color: red; text-align: center; margin-top: 50px;'><h3>Dev server timeout</h3><p>The server didn't start within 60 seconds.</p></body></html>";
+                        return;
+                    }
+                    try {
+                        await fetch(targetUrl, { mode: 'no-cors' });
+                        document.getElementById('livePreviewFrame').removeAttribute('srcdoc');
+                        document.getElementById('livePreviewFrame').src = targetUrl;
+                    } catch (err) {
+                        attempts++;
+                        setTimeout(checkServer, 2000);
+                    }
+                };
+                
+                checkServer();
                 
             } catch(e) {
                 console.error("Live Preview Error:", e);
-                document.getElementById('livePreviewFrame').srcdoc = "<html><body style='font-family: sans-serif; color: red; text-align: center; margin-top: 50px;'><h3>Failed to host live preview in Docker.</h3><p>Ensure Docker Desktop is running.</p><p>Check console for errors.</p></body></html>";
+                const safeError = e.message.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>");
+                document.getElementById('livePreviewFrame').srcdoc = `<html><body style='font-family: sans-serif; color: red; padding: 20px;'><h3>Failed to host live preview in Docker.</h3><p><strong>Error details:</strong></p><pre style='background: #fee; padding: 10px; border-radius: 4px; overflow: auto;'>${safeError}</pre></body></html>`;
             }
         }
 
