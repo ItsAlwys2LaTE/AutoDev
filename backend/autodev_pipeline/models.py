@@ -316,7 +316,7 @@ class ComponentStateRecord:
 
     def has_exceeded_revisions(self) -> bool:
         """Checks whether the component has exhausted its revision retry budget."""
-        return self.revision_count >= self.max_revisions
+        return self.revision_count > self.max_revisions
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializes the component state record into a primitive dictionary."""

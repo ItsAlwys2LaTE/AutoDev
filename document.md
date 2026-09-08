@@ -1645,3 +1645,8 @@ pm install.
 - Replaced the hardcoded 5-second UI timeout with a robust polling mechanism that pings the target URL using 
 o-cors mode, ensuring the iframe only mounts once the dev server actually begins accepting TCP connections.
 - Added a 2.5-second crash detection in the backend start_preview API, returning container logs directly to the frontend if the dev server immediately terminates (e.g. due to syntax errors).
+
+### Deadlock Edge-case has_exceeded_revisions (Fixed)
+**Issue:** The user experienced another deadlock exactly after 2 revisions in QUICK mode. The frontend showed the component stuck in "Queued for Code" while the backend logs indicated "Forced advancement after 3 revisions".
+**Root Cause:** A subtle off-by-one error in the backend's has_exceeded_revisions() logic. The frontend loops while evisionCount < maxCompRevs, meaning the final allowed retry attempt strictly equals the budget. When the frontend sent erdict: revise for the final allowed retry (e.g. attempt 3 of 3), the backend incremented its counter to 3, evaluated 3 >= 3, and prematurely killed the final retry, forcing the component to COMPLETED. The frontend awaited CODEGEN for the final retry, resulting in a deadlock.
+**Fix:** Modified has_exceeded_revisions() in ackend/autodev_pipeline/models.py to evaluate strictly greater than (>) rather than greater-than-or-equal-to (>=). This perfectly aligns the backend safety net with the frontend's loop boundaries. Additionally, normalized the fallback default budget for QUICK mode to 2 across all index.html catch blocks.
