@@ -41,7 +41,7 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
        produce a complete architectural blueprint WITHOUT seeing the original full requirements. Include 
        specific user stories, acceptance criteria, UI descriptions, and data models relevant to that component.
     5. The shared_tech_stack and shared_docker_image MUST be consistent across all components to ensure 
-       they can be integrated later. For Node.js/JS projects, you MUST use `mcr.microsoft.com/playwright:v1.48.0-noble` as the `shared_docker_image` to support Playwright E2E browser testing in the integration phase.
+       they can be integrated later. For Node.js/JS projects, you MUST use `mcr.microsoft.com/playwright:v1.48.0-jammy` as the `shared_docker_image` to support Playwright E2E browser testing in the integration phase.
     6. The integration_strategy MUST describe exactly how to wire the components together: shared routing 
        file structure, navigation patterns, shared CSS/theming, state management, and cross-component imports.
     7. Aim for 3-6 components. Fewer than 3 means the product probably isn't complex enough. More than 6 

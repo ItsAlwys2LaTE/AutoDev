@@ -1658,3 +1658,13 @@ ode:20-alpine) for a plain HTML site, the container would attempt to execute Pyt
 **Fix:** Added an interceptor in main.py (start_preview) that intelligently detects if the python -m http.server command is being passed to a Node-based image, and seamlessly rewrites the command to 
 px --yes serve -p 8080 -H 0.0.0.0. The --yes flag prevents 
 px from hanging on interactive installation prompts.
+
+### Playwright Version Mismatch Bug (Fixed)
+**Issue:** Components with Playwright integration tests frequently failed with Error: browserType.launch: Executable doesn't exist at /ms-playwright/chromium.... The error logs stated: Looks like Playwright was just updated to 1.63.0. Please update docker image as well. - current: mcr.microsoft.com/playwright:v1.48.0-jammy.
+**Root Cause:** The master_architect agent instructed the creation of a mcr.microsoft.com/playwright:v1.48.0-jammy docker image, but the AI commonly authored package.json with "@playwright/test": "^1.48.0" or "*". During the test execution phase, 
+pm install automatically resolved and installed the newest NPM package (e.g. 1.63.0). Playwright NPM packages are strictly hardcoded to specific binary versions, so 1.63.0 crashed when looking for its binaries inside a 1.48.0 container.
+**Fix:**
+- Updated the AI prompts (master_architect.py, design_agent.py, integrator_agent.py) to emphasize locking @playwright/test to exactly "1.48.0".
+- Added an automatic fallback interceptor in executor.py that parses the requested Playwright version from the docker_image string, and automatically appends 
+pm install @playwright/test@<version> --save-exact directly after the base 
+pm install. This explicitly guarantees the installed NPM package perfectly matches the container's pre-installed binaries, entirely preventing the mismatch crash.

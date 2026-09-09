@@ -50,7 +50,7 @@ def generate_integration_stream(
        with all dependencies from all components. Remove duplicates and ensure testing dependencies (such as vitest and jsdom for Node or pytest for Python) are present.
     4. DYNAMIC INTEGRATION TESTS: Write comprehensive integration test(s) matching the project's selected tech stack:
        - For Python/pytest projects: Generate `test_integration.py` (or `test_app.py`) with pytest assertions testing end-to-end user workflows across components.
-       - For Node.js/JavaScript/TypeScript projects: You MUST generate `e2e.test.js` using Playwright (`@playwright/test`) to verify cross-component interactions and workflows in a real browser. Include `@playwright/test` in the unified package.json. You MUST also generate a `playwright.config.js` with a `webServer` block that runs your `dev_server_command` so the server boots automatically before tests run.
+       - For Node.js/JavaScript/TypeScript projects: You MUST generate `e2e.test.js` using Playwright (`@playwright/test`) to verify cross-component interactions and workflows in a real browser. Include `"@playwright/test": "1.48.0"` (EXACTLY this version) in the unified package.json to match the docker image binaries. You MUST also generate a `playwright.config.js` with a `webServer` block that runs your `dev_server_command` so the server boots automatically before tests run.
        - These tests must verify the seams between components (e.g., login -> browse -> add to cart -> checkout).
     5. SHARED STYLING: Ensure all components use consistent styling/theming. If components have separate 
        CSS files, create a shared base stylesheet or merge them.

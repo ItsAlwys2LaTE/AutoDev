@@ -91,6 +91,15 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     elif has_package_json and "npm install" in base_cmd and "--no-audit" not in base_cmd:
         base_cmd = base_cmd.replace("npm install", "npm install --no-audit --no-fund")
 
+    # Guard against Playwright version mismatch
+    if "playwright" in docker_image_lower:
+        import re
+        match = re.search(r"v(\d+\.\d+\.\d+)", docker_image_lower)
+        if match:
+            pw_version = match.group(1)
+            # Override whatever npm installed from package.json with the exact version the container has browsers for
+            base_cmd = base_cmd.replace("npm install", f"npm install && npm install @playwright/test@{pw_version} --no-audit --no-fund --save-exact", 1)
+
     if has_requirements_txt and "pip install" not in base_cmd:
         base_cmd = f"pip install -r requirements.txt && {base_cmd}"
 
