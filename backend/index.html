@@ -1235,7 +1235,45 @@
             
             const zip = new JSZip();
             currentCodebase.files.forEach(file => {
-                zip.file(file.file_name, file.source_code);
+                const lower = file.file_name.toLowerCase();
+                const isTest = lower.includes('.test.') || lower.includes('.spec.') || 
+                               lower.startsWith('test_') || lower.includes('/test_') || 
+                               lower.startsWith('tests/') || lower.includes('/tests/') || 
+                               lower.startsWith('__tests__/') || lower.includes('/__tests__/') || 
+                               lower.startsWith('e2e/') || lower.includes('/e2e/') ||
+                               lower.includes('playwright.config.') || lower.includes('vitest.config.') || lower.includes('jest.config.');
+                
+                if (isTest) return; // Skip test files
+                
+                if (lower === 'package.json') {
+                    try {
+                        const pkg = JSON.parse(file.source_code);
+                        if (pkg.devDependencies) {
+                            delete pkg.devDependencies['vitest'];
+                            delete pkg.devDependencies['jsdom'];
+                            delete pkg.devDependencies['@playwright/test'];
+                            delete pkg.devDependencies['jest'];
+                            if (Object.keys(pkg.devDependencies).length === 0) delete pkg.devDependencies;
+                        }
+                        if (pkg.dependencies) {
+                            delete pkg.dependencies['vitest'];
+                            delete pkg.dependencies['jsdom'];
+                            delete pkg.dependencies['@playwright/test'];
+                            delete pkg.dependencies['jest'];
+                        }
+                        if (pkg.scripts && pkg.scripts.test) {
+                            delete pkg.scripts.test;
+                        }
+                        zip.file(file.file_name, JSON.stringify(pkg, null, 2));
+                    } catch (e) {
+                        zip.file(file.file_name, file.source_code);
+                    }
+                } else if (lower === 'requirements.txt') {
+                    const reqs = file.source_code.split('\n').filter(line => !line.toLowerCase().startsWith('pytest')).join('\n');
+                    zip.file(file.file_name, reqs);
+                } else {
+                    zip.file(file.file_name, file.source_code);
+                }
             });
             
             const hasReadme = currentCodebase.files.some(f => f.file_name.toLowerCase() === 'readme.md');

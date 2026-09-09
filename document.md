@@ -1668,3 +1668,7 @@ pm install automatically resolved and installed the newest NPM package (e.g. 1.6
 - Added an automatic fallback interceptor in executor.py that parses the requested Playwright version from the docker_image string, and automatically appends 
 pm install @playwright/test@<version> --save-exact directly after the base 
 pm install. This explicitly guarantees the installed NPM package perfectly matches the container's pre-installed binaries, entirely preventing the mismatch crash.
+
+### Test Cleanup in Downloadable ZIP
+**Issue:** Users requested the ability to download a clean project ZIP without the AutoDev automated test files (Playwright, Pytest, Vitest) included.
+**Fix:** Intercepted the downloadZip() function in the frontend index.html. It now automatically filters out all common test files (.test.js, 	est_*.py, 	ests/, __tests__/, playwright.config.js, etc.) before zipping the codebase. Additionally, it safely parses package.json and equirements.txt to seamlessly strip out testing dependencies (@playwright/test, itest, pytest) and test commands from the final source.
