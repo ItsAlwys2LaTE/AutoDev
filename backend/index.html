@@ -1230,6 +1230,78 @@
             }
         }
 
+        function renderCriticTabs(cId) {
+            const state = componentStates[cId];
+            if (!state.criticHistory || state.criticHistory.length === 0) return;
+            const container = document.getElementById('critic-tabs-' + cId);
+            if (container) {
+                container.innerHTML = state.criticHistory.map((hist, i) => {
+                    const isSelected = (state.activeCriticIndex !== undefined) ? state.activeCriticIndex === i : (i === state.criticHistory.length - 1);
+                    return '<button class="px-3 py-1 rounded-t-lg transition-colors border-b-2 ' + (isSelected ? 'bg-blue-600/20 text-blue-300 border-blue-500 font-bold' : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700') + '" onclick="renderCriticHistoryTab(\'' + cId + '\', ' + i + ')">' + (i === 0 ? 'Initial Eval' : 'Rev ' + i + ' Eval') + '</button>';
+                }).join('');
+            }
+        }
+
+        function renderCriticHistoryTab(cId, index) {
+            const state = componentStates[cId];
+            if (!state || !state.criticHistory || state.criticHistory.length <= index) return;
+            state.activeCriticIndex = index;
+            renderCriticTabs(cId);
+            const hist = state.criticHistory[index];
+            const isLatest = index === state.criticHistory.length - 1;
+            document.getElementById('exec-logs-' + cId).innerText = (hist.exec && hist.exec.logs) ? hist.exec.logs : (hist.execMsg || "No logs available.");
+            const cCards = document.getElementById('critic-cards-' + cId);
+            const vBox = document.getElementById('verdict-box-' + cId);
+            const aBtn = document.getElementById('approve-component-' + cId);
+            if (hist.loading) {
+                cCards.innerHTML = '<div class="text-sm text-slate-500 font-mono animate-pulse">Arbitration Engine analyzing execution results...</div>';
+                vBox.classList.add('hidden');
+                aBtn.classList.add('hidden');
+                return;
+            }
+            if (hist.error) {
+                cCards.innerHTML = '<div class="text-red-500 font-bold p-4">Critics API Failed: ' + hist.error + '</div>';
+                vBox.classList.add('hidden');
+                aBtn.classList.add('hidden');
+                return;
+            }
+            const arbitration = hist.arbitration;
+            if (!arbitration || !arbitration.feedbacks) return;
+            cCards.innerHTML = arbitration.feedbacks.map(f => {
+                const isPass = f.severity_score === 0;
+                return '<div class="bg-slate-900/80 p-4 rounded-lg border ' + (isPass ? 'border-emerald-500/30' : 'border-red-500/30') + ' shadow-sm relative overflow-hidden"><div class="absolute left-0 top-0 bottom-0 w-1 ' + (isPass ? 'bg-emerald-500' : 'bg-red-500') + '"></div><div class="flex justify-between items-center mb-2"><span class="font-bold uppercase tracking-wider text-xs ' + (isPass ? 'text-emerald-400' : 'text-red-400') + ' flex items-center gap-2">' + (isPass ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>') + f.critic_name + '</span><span class="text-[10px] font-mono px-2 py-0.5 rounded-full ' + (isPass ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500') + '">Sev: ' + f.severity_score + '/10</span></div><p class="text-slate-300 text-sm leading-relaxed mb-2">' + f.overall_comments + '</p>' + (f.issues_list && f.issues_list.length > 0 ? '<ul class="list-disc pl-5 text-xs text-slate-400 space-y-1">' + f.issues_list.map(i => '<li>' + i + '</li>').join('') + '</ul>' : '') + '</div>';
+            }).join('');
+            const vText = document.getElementById('verdict-text-' + cId);
+            const vReas = document.getElementById('verdict-reasoning-' + cId);
+            const vStrip = document.getElementById('verdict-strip-' + cId);
+            vBox.classList.remove('hidden');
+            if (isLatest && state.status === 'waiting_critic') {
+                aBtn.classList.remove('hidden');
+            } else {
+                aBtn.classList.add('hidden');
+            }
+            const isEarlyStop = !!(arbitration.decision && arbitration.decision.early_stop);
+            if ((arbitration.decision.verdict || '').toLowerCase() === 'pass' || isEarlyStop) {
+                vText.innerText = isEarlyStop ? 'APPROVED (EARLY STOP)' : 'APPROVED';
+                vText.className = 'font-black text-xl tracking-tight text-emerald-400';
+                vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-emerald-500';
+                vReas.innerText = arbitration.decision.revision_plan || (isEarlyStop ? 'Early stop triggered.' : 'All critics passed successfully.');
+                vReas.className = 'text-sm text-emerald-200/70 whitespace-pre-wrap leading-relaxed font-mono bg-emerald-950/30 p-3 rounded border border-emerald-900/50';
+                aBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Lock Final Component</span>';
+                aBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
+                aBtn.onclick = () => approveComponent(cId);
+            } else {
+                vText.innerText = 'REVISION REQUIRED';
+                vText.className = 'font-black text-xl tracking-tight text-red-400';
+                vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-red-500';
+                vReas.innerText = arbitration.decision.revision_plan || 'Critical issues found. Revision required.';
+                vReas.className = 'text-sm text-red-200/70 whitespace-pre-wrap leading-relaxed font-mono bg-red-950/30 p-3 rounded border border-red-900/50';
+                aBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span>Initiate Code Revision</span>';
+                aBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
+                aBtn.onclick = () => reviseComponent(cId);
+            }
+        }
+
         async function downloadZip() {
             if (!currentCodebase || !currentCodebase.files) return showError("No code generated yet.");
             
@@ -2445,6 +2517,7 @@
                                     <span class="bg-blue-600 text-white w-7 h-7 rounded-full flex justify-center items-center text-sm shadow">3</span>
                                     Arbitration Feedback
                                 </h4>
+                                <div id="critic-tabs-${cId}" class="flex gap-1 mb-4 flex-wrap"></div>
                                 
                                 <h5 class="text-xs uppercase font-bold text-slate-500 mb-2 tracking-wider">Execution Logs</h5>
                                 <div class="bg-slate-50 border border-slate-200 p-4 rounded-lg mb-6 max-h-40 overflow-y-auto shadow-inner">
@@ -2757,10 +2830,13 @@
                     throw new Error("Execute API Failed: " + JSON.stringify(exec));
                 }
                 state.executionResult = exec;
-                document.getElementById(`exec-logs-${cId}`).innerText = exec.logs;
+                
+                if (!state.criticHistory) state.criticHistory = [];
+                const historyIdx = state.criticHistory.length;
+                state.criticHistory.push({ exec: exec, loading: true });
                 
                 state.status = 'critiquing';
-                document.getElementById(`critic-cards-${cId}`).innerHTML = '<div class="text-sm text-slate-500 font-mono animate-pulse">Arbitration Engine analyzing execution results...</div>';
+                renderCriticHistoryTab(cId, historyIdx);
                 renderPipelineTracks();
                 
                 const criticRes = await fetch('/api/run-critics', {
@@ -2783,37 +2859,14 @@
                 const arbitration = await criticRes.json();
                 if (!criticRes.ok) {
                     const errMsg = arbitration.detail || arbitration.error || JSON.stringify(arbitration);
-                    document.getElementById(`critic-cards-${cId}`).innerHTML = `<div class="text-red-500 font-bold p-4">Critics API Failed: ${errMsg}</div>`;
+                    state.criticHistory[historyIdx].loading = false;
+                    state.criticHistory[historyIdx].error = errMsg;
+                    renderCriticHistoryTab(cId, historyIdx);
                     throw new Error("Critics API Failed: " + errMsg);
                 }
                 
-                // Render old-ui style critic cards
-                const cCards = document.getElementById(`critic-cards-${cId}`);
-                cCards.innerHTML = arbitration.feedbacks.map(f => {
-                    const isPass = f.severity_score === 0;
-                    return `
-                    <div class="bg-slate-900/80 p-4 rounded-lg border ${isPass ? 'border-emerald-500/30' : 'border-red-500/30'} shadow-sm relative overflow-hidden">
-                        <div class="absolute left-0 top-0 bottom-0 w-1 ${isPass ? 'bg-emerald-500' : 'bg-red-500'}"></div>
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold uppercase tracking-wider text-xs ${isPass ? 'text-emerald-400' : 'text-red-400'} flex items-center gap-2">
-                                ${isPass ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'}
-                                ${f.critic_name}
-                            </span>
-                            <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${isPass ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}">Sev: ${f.severity_score}/10</span>
-                        </div>
-                        <p class="text-slate-300 text-sm leading-relaxed mb-2">${f.overall_comments}</p>
-                        ${f.issues_list && f.issues_list.length > 0 ? `<ul class="list-disc pl-5 text-xs text-slate-400 space-y-1">${f.issues_list.map(i => `<li>${i}</li>`).join('')}</ul>` : ''}
-                    </div>
-                `}).join('');
-                
-                const vBox = document.getElementById(`verdict-box-${cId}`);
-                const vText = document.getElementById(`verdict-text-${cId}`);
-                const vReas = document.getElementById(`verdict-reasoning-${cId}`);
-                const vStrip = document.getElementById(`verdict-strip-${cId}`);
-                const aBtn = document.getElementById(`approve-component-${cId}`);
-                
-                vBox.classList.remove('hidden');
-                aBtn.classList.remove('hidden');
+                state.criticHistory[historyIdx].loading = false;
+                state.criticHistory[historyIdx].arbitration = arbitration;
                 
                 if (arbitration.decision && arbitration.decision.weighted_composite !== undefined && arbitration.decision.weighted_composite !== null) {
                     state.lastComposite = arbitration.decision.weighted_composite;
@@ -2821,25 +2874,18 @@
                 if (arbitration.decision && arbitration.decision.dynamic_budget) {
                     state.dynamicBudget = arbitration.decision.dynamic_budget;
                 }
+                
+                renderCriticHistoryTab(cId, historyIdx);
+                
                 const maxCompRevs = (arbitration.decision && arbitration.decision.dynamic_budget) ? arbitration.decision.dynamic_budget : (state.dynamicBudget || ((currentMode === 'QUICK') ? 2 : 3));
                 const isEarlyStop = !!(arbitration.decision && arbitration.decision.early_stop);
                 const verdictLower = (arbitration.decision && arbitration.decision.verdict) ? arbitration.decision.verdict.toLowerCase() : '';
+                
                 if ((arbitration.decision.verdict || '').toLowerCase() === 'pass' || isEarlyStop) {
-                    vText.innerText = isEarlyStop ? 'APPROVED (EARLY STOP)' : 'APPROVED';
-                    vText.className = 'font-black text-xl tracking-tight text-emerald-400';
-                    vStrip.className = 'absolute top-0 left-0 w-1 h-full bg-emerald-500';
-                    vReas.innerText = arbitration.decision.revision_plan || (isEarlyStop ? 'Early stop triggered: score improvement threshold met.' : 'All critics passed successfully. Ready for deployment integration.');
-                    vReas.className = 'text-sm text-emerald-200/70 whitespace-pre-wrap leading-relaxed font-mono bg-emerald-950/30 p-3 rounded border border-emerald-900/50';
-                    
-                    aBtn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Lock Final Component</span>';
-                    aBtn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md";
-                    aBtn.onclick = () => approveComponent(cId);
-                    
                     state.status = 'waiting_critic';
-                    // pipelineLocks.critic = false;
                     renderPipelineTracks();
                     processPipeline();
-
+                    
                     if (currentMode === 'QUICK') {
                         console.log(`[QUICK Mode] Component ${cId} passed. Auto-locking component.`);
                         approveComponent(cId);
