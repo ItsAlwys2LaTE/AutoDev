@@ -43,6 +43,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
     8. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
     9. VITEST SETUP: If designing a JS/Node project, enforce modern ES modules (`"type": "module"` in package.json) and use Vitest instead of Jest. Explicitly include both `vitest` and `jsdom` in the package.json pseudocode.
+    10. REACT ICONS: If designing React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react. Either use generic icons or use "react-icons" if brand icons are strictly required.
     """
 
     if component_context:

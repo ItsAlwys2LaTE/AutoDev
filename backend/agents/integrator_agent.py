@@ -66,6 +66,7 @@ def generate_integration_stream(
        c) Generate a `vitest.config.js` or `vitest.config.mjs` with `environment: 'jsdom'` if DOM testing is needed.
        d) At the top of your test files, include `import { describe, it, test, expect } from 'vitest';`.
        e) DO NOT use CommonJS `require()`. Use modern `import` syntax everywhere.
+    10. REACT ICONS: If generating React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react. Either use generic icons or use "react-icons" if brand icons are strictly required.
     """
 
     # Build the component results context
