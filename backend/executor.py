@@ -3,7 +3,9 @@ import tarfile
 import io
 import threading
 import docker
+import re
 from models import GeneratedCodeBase, ExecutionResult, SystemDesignBlueprint
+from golden_stacks import enforce_golden_dependencies
 
 def create_tar_from_codebase(codebase: GeneratedCodeBase) -> bytes:
     """Creates an in-memory tarball of the codebase to inject into the Docker container."""
@@ -35,6 +37,17 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     docker_image_lower = (blueprint.docker_image or "").lower()
     
     has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase.files)
+    has_lint_script = False
+    if has_package_json:
+        for f in codebase.files:
+            if f.file_name.lower() == 'package.json':
+                try:
+                    import json
+                    pkg = json.loads(f.source_code)
+                    if 'lint' in pkg.get('scripts', {}):
+                        has_lint_script = True
+                except Exception:
+                    pass
     has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase.files)
     has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase.files)
     has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase.files)
@@ -85,11 +98,13 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     else:
         base_cmd = "pytest"
 
-    # Auto-inject dependency installation
+    # Auto-inject dependency installation and pre-flight static analysis
+    lint_injection = "npm run lint && " if has_lint_script else ""
     if has_package_json and "npm install" not in base_cmd:
-        base_cmd = f"npm install --no-audit --no-fund && {base_cmd}"
+        base_cmd = f"npm install --no-audit --no-fund && {lint_injection}{base_cmd}"
     elif has_package_json and "npm install" in base_cmd and "--no-audit" not in base_cmd:
-        base_cmd = base_cmd.replace("npm install", "npm install --no-audit --no-fund")
+        replacement = f"npm install --no-audit --no-fund && npm run lint" if has_lint_script else "npm install --no-audit --no-fund"
+        base_cmd = base_cmd.replace("npm install", replacement)
 
     # Guard against Playwright version mismatch
     if "playwright" in docker_image_lower:
@@ -136,6 +151,8 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
     based on the tech stack, and returns the logs safely.
     """
     print(f"Docker Executor is booting up image: {blueprint.docker_image}...")
+    
+    codebase = enforce_golden_dependencies(codebase)
     
     try:
         client = docker.from_env()
