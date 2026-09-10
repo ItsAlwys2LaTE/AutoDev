@@ -43,7 +43,19 @@ REACT_VITE_PACKAGE_JSON = {
 
 ESLINT_RC_CONTENT = """module.exports = {
   root: true,
-  env: { browser: true, es2020: true },
+  env: { browser: true, es2020: true, node: true, jest: true },
+  globals: {
+    vitest: 'readonly',
+    vi: 'readonly',
+    describe: 'readonly',
+    it: 'readonly',
+    test: 'readonly',
+    expect: 'readonly',
+    beforeEach: 'readonly',
+    afterEach: 'readonly',
+    beforeAll: 'readonly',
+    afterAll: 'readonly'
+  },
   extends: [
     'eslint:recommended',
     'plugin:react/recommended',
@@ -56,12 +68,11 @@ ESLINT_RC_CONTENT = """module.exports = {
   plugins: ['react-refresh'],
   rules: {
     'react/jsx-no-target-blank': 'off',
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true },
-    ],
+    'react-refresh/only-export-components': 'off',
     'no-unused-vars': 'off',
-    'react/prop-types': 'off'
+    'react/prop-types': 'off',
+    'react/no-unescaped-entities': 'off',
+    'no-undef': 'error'
   },
 }
 """
