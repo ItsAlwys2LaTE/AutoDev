@@ -41,12 +41,41 @@ REACT_VITE_PACKAGE_JSON = {
   }
 }
 
+ESLINT_RC_CONTENT = """module.exports = {
+  root: true,
+  env: { browser: true, es2020: true },
+  extends: [
+    'eslint:recommended',
+    'plugin:react/recommended',
+    'plugin:react/jsx-runtime',
+    'plugin:react-hooks/recommended',
+  ],
+  ignorePatterns: ['dist', '.eslintrc.cjs'],
+  parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+  settings: { react: { version: '18.2' } },
+  plugins: ['react-refresh'],
+  rules: {
+    'react/jsx-no-target-blank': 'off',
+    'react-refresh/only-export-components': [
+      'warn',
+      { allowConstantExport: true },
+    ],
+    'no-unused-vars': 'off',
+    'react/prop-types': 'off'
+  },
+}
+"""
+
 def enforce_golden_dependencies(codebase):
+    has_eslint_config = any(f.file_name.lower() in ['.eslintrc.cjs', '.eslintrc.js', '.eslintrc.json', '.eslintrc', 'eslint.config.js'] for f in codebase.files)
+    react_detected = False
+    
     for file in codebase.files:
         if file.file_name.lower() == 'package.json':
             try:
                 ai_pkg = json.loads(file.source_code)
                 if 'react' in str(ai_pkg.get('dependencies', {})) or 'react' in str(ai_pkg.get('devDependencies', {})):
+                    react_detected = True
                     golden = REACT_VITE_PACKAGE_JSON.copy()
                     
                     ai_deps = ai_pkg.get('dependencies', {})
@@ -70,4 +99,11 @@ def enforce_golden_dependencies(codebase):
                     file.source_code = json.dumps(golden, indent=2)
             except Exception:
                 pass
+                
+    if react_detected and not has_eslint_config:
+        # Get the class of the first file object (CodeFile from models.py)
+        if codebase.files:
+            CodeFileClass = type(codebase.files[0])
+            codebase.files.append(CodeFileClass(file_name=".eslintrc.cjs", source_code=ESLINT_RC_CONTENT))
+            
     return codebase
