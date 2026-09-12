@@ -34,12 +34,13 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     
     CRITICAL FORMATTING INSTRUCTIONS FOR YOUR OUTPUT:
     1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack`. ALL projects, including static frontends (HTML/CSS/JS), MUST have automated tests. Identify the exact terminal `run_tests_command`. For Node/JS projects, ensure it includes dependency installation (e.g., 'npm install && npm run test'). For static frontends, use 'npm install && npx vitest run' with Vitest and JSDOM to test DOM logic.
-    2. DOCKER ENVIRONMENT: You must specify a lightweight `docker_image`. For Python, use 'python:3.11-slim'. For Node/JS projects, you MUST use 'mcr.microsoft.com/playwright:v1.48.0-jammy' to support testing. If you use playwright in package.json, you MUST specify exactly "@playwright/test": "1.48.0" to match the docker image binaries. Specify the `dev_server_command` to run the app (e.g., 'npm run dev -- --host 0.0.0.0' for Vite, 'python -m http.server 8080' for static HTML) and the internal `dev_server_port` it listens on (e.g., 5173, 8080). Dev servers MUST bind to 0.0.0.0 to allow port forwarding.
+    2. DOCKER ENVIRONMENT: You must specify a lightweight `docker_image`. For Python, use 'python:3.11-slim'. For Node/JS projects, you MUST use 'mcr.microsoft.com/playwright:v1.48.0-jammy' to support testing. Specify the `dev_server_command` to run the app (e.g., 'npm run dev -- --host 0.0.0.0' for Vite, 'python -m http.server 8080' for static HTML) and the internal `dev_server_port` it listens on (e.g., 5173, 8080). Dev servers MUST bind to 0.0.0.0 to allow port forwarding.
     3. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt, vite.config.js). Do NOT place the project inside a root subdirectory; output all files relative to the workspace root (e.g. use 'manage.py' instead of 'my_project/manage.py').
     4. TEST DRIVEN & SPLIT STRATEGY: You MUST include comprehensive test suite files in your blueprint. Every project must have tests.
        - For Python (pytest), test files MUST start with `test_` (e.g., 'test_main.py').
        - For JS/Node/React projects using Vitest: Design ALL tests to run under Vitest with jsdom.
          Do NOT design tests using `supertest` or any Node-only HTTP testing library — Vitest runs through Vite which cannot resolve them.
+         Do NOT use Playwright or Puppeteer for component-level tests. E2E tests are handled later during integration.
          Test server logic by importing and calling handler functions directly.
          For UI tests, use `@testing-library/react`.
          DATABASE TESTS: If designing a Node backend with MongoDB, design tests to use `mongodb-memory-server`. Do NOT attempt to connect to a real MongoDB instance.

@@ -52,10 +52,11 @@ def generate_code_stream(
        - For Python (pytest), test files MUST be prefixed with `test_` and functions must start with `def test_...`.
        - For JS/Node/React projects using Vitest: Write ALL tests (both UI and server logic) to run under Vitest.
          Do NOT use `supertest` or any Node-only HTTP testing library. Instead, test server-side logic by directly importing and calling your handler/route functions.
+         Do NOT use Playwright or Puppeteer for component-level tests. E2E tests are handled later during integration.
          For UI tests, use `@testing-library/react` with `jsdom` environment.
        - DATABASE TESTS: If you are writing a Node backend that connects to MongoDB, you MUST use `mongodb-memory-server` in your `beforeAll`/`afterAll` hooks to spin up an in-memory database. DO NOT connect to `mongodb://localhost:27017` or it will timeout.
        - IMPORTANT: In ALL .jsx and .tsx test files, you MUST include `import React from 'react';` at the very top, even if using the new JSX transform. The jsdom test environment requires this explicit import.
-    3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'vitest', 'jsdom', and 'mongodb-memory-server' (if applicable) in the package.json.
+    3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'vitest', 'jsdom', and 'mongodb-memory-server' (if applicable) in the package.json. Do NOT include '@playwright/test' in package.json at this stage.
     4. SCHEMA COMPLIANCE: The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     5. IMPORTS/REQUIRES: EVERY file MUST include ALL necessary import/require statements at the top. Missing imports will cause crashes in the execution sandbox.
     6. NO ROOT SUBDIRECTORIES: Do NOT place the project inside an arbitrary root subdirectory. Output all files relative to the workspace root (e.g. `manage.py`, not `my_project/manage.py`).
