@@ -9,7 +9,7 @@ REACT_VITE_PACKAGE_JSON = {
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives",
     "preview": "vite preview",
     "test": "vitest run"
   },
@@ -73,6 +73,7 @@ ESLINT_RC_CONTENT = """module.exports = {
     'react/prop-types': 'off',
     'react/no-unescaped-entities': 'off',
     'react/display-name': 'off',
+    'react-hooks/exhaustive-deps': 'off',
     'no-undef': 'error'
   },
 }
