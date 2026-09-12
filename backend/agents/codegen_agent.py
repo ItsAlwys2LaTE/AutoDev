@@ -11,6 +11,7 @@ from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve
 
 PRIMARY_MODEL = "gemini-3.7-flash"
 FALLBACK_MODEL = "gemini-3.5-flash-lite"
+QUICK_MODEL = "gemini-3.5-flash-lite"
 
 def generate_code_stream(
     requirements: RequirementsDocument, 
@@ -18,11 +19,18 @@ def generate_code_stream(
     previous_codebase: GeneratedCodeBase = None,
     revision_plan: str = None,
     mode: str = None,
-    primary_model: str = PRIMARY_MODEL,
+    primary_model: str = None,
     secondary_model: str = FALLBACK_MODEL,
 ):
-    primary_model = primary_model or PRIMARY_MODEL
-    secondary_model = secondary_model or FALLBACK_MODEL
+    active_mode = (mode or get_generation_mode()).upper()
+    # QUICK mode: use flash-lite (3.7-flash hits rate limits too aggressively)
+    # COMPLEX mode: use 3.7-flash with flash-lite fallback
+    if active_mode == "QUICK":
+        primary_model = primary_model or QUICK_MODEL
+        secondary_model = QUICK_MODEL  # no fallback needed, already at lite
+    else:
+        primary_model = primary_model or PRIMARY_MODEL
+        secondary_model = secondary_model or FALLBACK_MODEL
     keys = get_gemini_keys_for_stage("CODEGEN", mode=mode)
     primary_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
