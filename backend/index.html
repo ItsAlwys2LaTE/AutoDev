@@ -1374,6 +1374,37 @@
             setVisible('errorSection', true);
         }
 
+        /**
+         * Sanitizes a raw JSON string from an LLM before calling JSON.parse().
+         * LLMs frequently produce invalid escape sequences (e.g. \A, \d, \s, \U, \$)
+         * inside free-text fields like `pseudocode`. JSON only allows:
+         *   \" \\ \/ \b \f \n \r \t \uXXXX
+         * This function replaces any \X that is NOT one of the above with \\X (a
+         * literal backslash followed by X), making the JSON parseable.
+         */
+        function safeJsonParse(rawStr) {
+            // Strip the __RESET__ / __USAGE__ sentinels first
+            if (rawStr.includes('__RESET__')) {
+                const parts = rawStr.split('__RESET__');
+                rawStr = parts[parts.length - 1];
+            }
+            if (rawStr.includes('__USAGE__')) {
+                rawStr = rawStr.split('__USAGE__')[0];
+            }
+            // Replace invalid escape sequences with double-escaped versions.
+            // Only operates inside JSON string literals (between double quotes).
+            const sanitized = rawStr.replace(
+                /"((?:[^"\\]|\\[\s\S])*?)"/g,
+                (match) => match.replace(/\\([^"\\/bfnrtu])/g, '\\\\$1')
+            );
+            try {
+                return JSON.parse(sanitized);
+            } catch (e) {
+                // Last resort: try the original string in case our regex over-escaped
+                return JSON.parse(rawStr);
+            }
+        }
+
         function resetUI() {
             CountdownManager.cancelAll();
             window._quickIntegrationTriggered = false;
@@ -1467,7 +1498,7 @@
                 }
                 
                 // Done streaming. Now parse and format as rich text
-                const data = JSON.parse(fullJsonStr);
+                const data = safeJsonParse(fullJsonStr);
                 if (data.error) throw new Error(data.error);
 
                 currentRequirements = data; 
@@ -1593,7 +1624,7 @@
                 }
                 
                 // Done streaming. Now parse and format as rich text
-                const data = JSON.parse(fullJsonStr);
+                const data = safeJsonParse(fullJsonStr);
                 if (data.error) throw new Error(data.error);
 
                 currentBlueprint = data;
@@ -1740,7 +1771,7 @@
                 }
                 
                 // Done streaming. Now parse and set up IDE
-                const data = JSON.parse(fullJsonStr);
+                const data = safeJsonParse(fullJsonStr);
                 if (data.error) throw new Error(data.error);
 
                 currentCodebase = data;
@@ -2119,7 +2150,7 @@
                     }
                 }
                 
-                const data = JSON.parse(fullJsonStr);
+                const data = safeJsonParse(fullJsonStr);
                 if (data.error) throw new Error(data.error);
 
                 if (data.files && Array.isArray(data.files)) {
@@ -3124,7 +3155,13 @@
             
             let data;
             try {
-                data = JSON.parse(sanitized);
+                // Also fix invalid JSON escape sequences (e.g. \A, \d, \s, \U, \$)
+                // The char-by-char loop above handles bare newlines/tabs, but not \X sequences
+                const sanitized2 = sanitized.replace(
+                    /"((?:[^"\\]|\\[\s\S])*?)"/g,
+                    (match) => match.replace(/\\([^"\\/bfnrtu])/g, '\\\\$1')
+                );
+                data = JSON.parse(sanitized2);
             } catch (e) {
                 console.error("JSON Parse Error on sanitized string:", e, "\nSanitized:", sanitized);
                 throw e;
