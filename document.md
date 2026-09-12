@@ -1683,3 +1683,14 @@ pm install. This explicitly guarantees the installed NPM package perfectly match
 1. **Golden Stacks (ackend/golden_stacks.py)**: Intercepts the generated package.json for React/Vite projects before Docker execution. Instead of allowing the AI to invent potentially dangerous or outdated library versions, the pipeline dynamically forces a predefined "Golden" dependency matrix, guaranteeing that React, React Router, Vite, and Playwright versions are strictly pinned to working versions.
 2. **Static Analysis Pre-Flight**: Modified executor.py to conditionally inject 
 pm run lint (ESLint) directly into the test command if a lint script exists in the package file. If the AI hallucinates an import, the static analyzer catches it instantly and fails the execution early. This feeds the exact AST error directly to the Critic Subagent for a rapid self-healing cycle, completely bypassing slow runtime browser timeouts.
+
+### Test Stability Overhaul (Supertest Ban + React Import Injection + Display Name Fix)
+**Problem:** AI-generated React apps were stuck in an unresolvable doom loop during testing:
+1. ESLint `react/display-name` rule blocked anonymous arrow components in route configs.
+2. `supertest` (Node-only HTTP library) was imported in test files but Vitest runs through Vite (browser-oriented), so `supertest` could never be resolved.
+3. `.jsx` test files crashed with `React is not defined` because the jsdom test environment requires an explicit `import React` even with the new JSX transform.
+4. The Critic scored passing-but-simple tests as sev 6, triggering destructive rewrites that introduced new bugs (regression loop).
+
+**Fixes Applied:**
+- **`golden_stacks.py`**: Added `'react/display-name': 'off'` to ESLint config. Added `supertest` and `superagent` to a banned dependencies blocklist that strips them from any AI-generated `package.json`. Added auto-injection of `import React from 'react'` into all `.test.jsx` / `.test.tsx` files if missing.
+- **`codegen_agent.py`**, **`design_agent.py`**, **`integrator_agent.py`**: Updated system prompts to explicitly ban `supertest`, mandate `import React` in test files, and instruct the AI to test server logic by importing handler functions directly instead of using HTTP testing libraries.
