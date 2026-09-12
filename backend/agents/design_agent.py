@@ -38,7 +38,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     3. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt, vite.config.js). Do NOT place the project inside a root subdirectory; output all files relative to the workspace root (e.g. use 'manage.py' instead of 'my_project/manage.py').
     4. TEST DRIVEN & SPLIT STRATEGY: You MUST include comprehensive test suite files in your blueprint. Every project must have tests.
        - For Python (pytest), test files MUST start with `test_` (e.g., 'test_main.py').
-       - For JS/Node/React projects using Vitest: Design ALL tests to run under Vitest with jsdom.
+       - For JS/Node/React projects using Vitest: Design ALL tests to run under Vitest with jsdom. Test files MUST end with `.test.js` or `.spec.js` (e.g., 'auth.test.js') so Vitest can find them.
          Do NOT design tests using `supertest` or any Node-only HTTP testing library — Vitest runs through Vite which cannot resolve them.
          Do NOT use Playwright or Puppeteer for component-level tests. E2E tests are handled later during integration.
          Test server logic by importing and calling handler functions directly.

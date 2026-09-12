@@ -50,7 +50,7 @@ def generate_code_stream(
     1. Write COMPLETE code. DO NOT use placeholders like 'pass', 'TODO', or '...'.
     2. TEST SUITE & SPLIT STRATEGY: You MUST write comprehensive unit tests.
        - For Python (pytest), test files MUST be prefixed with `test_` and functions must start with `def test_...`.
-       - For JS/Node/React projects using Vitest: Write ALL tests (both UI and server logic) to run under Vitest.
+       - For JS/Node/React projects using Vitest: Write ALL tests (both UI and server logic) to run under Vitest. Test files MUST end with `.test.js` or `.spec.js` (e.g., 'auth.test.js') so Vitest can find them.
          Do NOT use `supertest` or any Node-only HTTP testing library. Instead, test server-side logic by directly importing and calling your handler/route functions.
          Do NOT use Playwright or Puppeteer for component-level tests. E2E tests are handled later during integration.
          For UI tests, use `@testing-library/react` with `jsdom` environment.
