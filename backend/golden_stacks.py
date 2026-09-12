@@ -82,6 +82,7 @@ ESLINT_RC_CONTENT = """module.exports = {
 def enforce_golden_dependencies(codebase):
     has_eslint_config = any(f.file_name.lower() in ['.eslintrc.cjs', '.eslintrc.js', '.eslintrc.json', '.eslintrc', 'eslint.config.js'] for f in codebase.files)
     react_detected = False
+    jsdom_detected = False
     
     # Banned dependencies that cause Vite resolution failures
     BANNED_DEV_DEPS = {'supertest', 'superagent'}
@@ -90,7 +91,12 @@ def enforce_golden_dependencies(codebase):
         if file.file_name.lower() == 'package.json':
             try:
                 ai_pkg = json.loads(file.source_code)
-                if 'react' in str(ai_pkg.get('dependencies', {})) or 'react' in str(ai_pkg.get('devDependencies', {})):
+                deps_str = str(ai_pkg.get('dependencies', {})) + str(ai_pkg.get('devDependencies', {}))
+                
+                if 'jsdom' in deps_str:
+                    jsdom_detected = True
+                    
+                if 'react' in deps_str:
                     react_detected = True
                     golden = REACT_VITE_PACKAGE_JSON.copy()
                     
@@ -117,7 +123,7 @@ def enforce_golden_dependencies(codebase):
                 pass
     
     # Auto-inject jsdom environment and React import into test files
-    if react_detected:
+    if jsdom_detected or react_detected:
         for file in codebase.files:
             fname = file.file_name.lower()
             if (fname.endswith('.test.jsx') or fname.endswith('.test.tsx') or
@@ -126,10 +132,11 @@ def enforce_golden_dependencies(codebase):
                 
                 src = file.source_code
                 prefix = ""
-                if "@vitest-environment jsdom" not in src:
+                
+                if (jsdom_detected or react_detected) and "@vitest-environment jsdom" not in src:
                     prefix += "// @vitest-environment jsdom\n"
                 
-                if "import React" not in src and "import * as React" not in src:
+                if react_detected and ("import React" not in src and "import * as React" not in src):
                     prefix += "import React from 'react';\n"
                     
                 if prefix:
