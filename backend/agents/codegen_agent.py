@@ -1,3 +1,4 @@
+import json
 from google import genai
 from google.genai import types
 import os
@@ -60,6 +61,8 @@ def generate_code_stream(
        f) Do NOT use `supertest`. Vitest runs through Vite which cannot resolve Node-only modules like supertest. Test server logic by importing functions directly.
     10. REACT ICONS: If generating React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react (it will crash the app). Either use generic icons (e.g. Globe, Mail) or use "react-icons" if brand icons are strictly required.
     """
+
+    system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(GeneratedCodeBase.model_json_schema())}"
 
     prompt_content = f"""
     REQUIREMENTS:

@@ -1,3 +1,4 @@
+import json
 from google import genai
 from google.genai import types
 import os
@@ -93,6 +94,8 @@ def generate_integration_stream(
     {f_code}
     ```
     """
+
+    system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(GeneratedCodeBase.model_json_schema())}"
 
     prompt_content = f"""
     ORIGINAL FULL REQUIREMENTS:

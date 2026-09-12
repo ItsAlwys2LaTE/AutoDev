@@ -1,3 +1,4 @@
+import json
 from google import genai
 from google.genai import types
 import os
@@ -48,6 +49,8 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
        means components are too granular and will create integration nightmares.
     8. component_id must be unique kebab-case identifiers (e.g., 'user-auth', 'product-catalog', 'shopping-cart').
     """
+
+    system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(ComponentDecomposition.model_json_schema())}"
 
     prompt_content = f"""
     REQUIREMENTS DOCUMENT:

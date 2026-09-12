@@ -1,3 +1,4 @@
+import json
 from google import genai
 from google.genai import types
 import os
@@ -59,6 +60,8 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     during integration (e.g., 'auth-styles.css' instead of 'styles.css'), EXCEPT for package.json 
     and configuration files.
     """
+
+    system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(SystemDesignBlueprint.model_json_schema())}"
 
     prompt_content = f"Generate a system design for these requirements:\n{requirements.model_dump_json(indent=2)}"
     

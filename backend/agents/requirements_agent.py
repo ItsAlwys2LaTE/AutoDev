@@ -1,3 +1,4 @@
+import json
 from google import genai
 from google.genai import types
 import os
@@ -40,6 +41,8 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
     so be precise about edge cases, inputs, and expected outputs.
     CRITICAL INSTRUCTION: You MUST explicitly include Acceptance Criteria for robustness. This includes boundary limits (e.g., maximum input lengths), handling of negative numbers/invalid inputs, error states, and all complex edge cases. Do not assume the downstream team will handle edge cases unless you document them.
     """
+
+    system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(RequirementsDocument.model_json_schema())}"
 
     prompt_content = feature_request
 

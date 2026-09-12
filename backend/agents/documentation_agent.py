@@ -1,3 +1,4 @@
+import json
 from google import genai
 from google.genai import types
 import os
@@ -38,6 +39,8 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
     2. Format the output STRICTLY as a DocumentationSet JSON object containing a list of 'CodeFile' objects.
     3. Use rich markdown formatting (headers, code blocks, bold text) inside the source_code strings.
     """
+
+    system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(DocumentationSet.model_json_schema())}"
 
     prompt_content = f"""
     REQUIREMENTS:
