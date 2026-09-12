@@ -116,15 +116,24 @@ def enforce_golden_dependencies(codebase):
             except Exception:
                 pass
     
-    # Auto-inject `import React from 'react'` into .jsx/.tsx test files if missing
+    # Auto-inject jsdom environment and React import into test files
     if react_detected:
         for file in codebase.files:
             fname = file.file_name.lower()
             if (fname.endswith('.test.jsx') or fname.endswith('.test.tsx') or
-                fname.endswith('.spec.jsx') or fname.endswith('.spec.tsx')):
+                fname.endswith('.spec.jsx') or fname.endswith('.spec.tsx') or
+                fname.endswith('.test.js') or fname.endswith('.spec.js')):
+                
                 src = file.source_code
+                prefix = ""
+                if "@vitest-environment jsdom" not in src:
+                    prefix += "// @vitest-environment jsdom\n"
+                
                 if "import React" not in src and "import * as React" not in src:
-                    file.source_code = "import React from 'react';\n" + src
+                    prefix += "import React from 'react';\n"
+                    
+                if prefix:
+                    file.source_code = prefix + src
                 
     if react_detected and not has_eslint_config:
         # Get the class of the first file object (CodeFile from models.py)

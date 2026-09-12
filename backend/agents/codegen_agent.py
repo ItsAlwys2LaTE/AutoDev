@@ -53,7 +53,7 @@ def generate_code_stream(
        - For JS/Node/React projects using Vitest: Write ALL tests (both UI and server logic) to run under Vitest. Test files MUST end with `.test.js` or `.spec.js` (e.g., 'auth.test.js') so Vitest can find them.
          Do NOT use `supertest` or any Node-only HTTP testing library. Instead, test server-side logic by directly importing and calling your handler/route functions.
          Do NOT use Playwright or Puppeteer for component-level tests. E2E tests are handled later during integration.
-         For UI tests, use `@testing-library/react` with `jsdom` environment.
+         For UI tests, use `@testing-library/react`. You MUST add `// @vitest-environment jsdom` at the very top of your test file to ensure the DOM is available (`document is not defined` will occur otherwise).
        - DATABASE TESTS: If you are writing a Node backend that connects to MongoDB, you MUST use `mongodb-memory-server` in your `beforeAll`/`afterAll` hooks to spin up an in-memory database. DO NOT connect to `mongodb://localhost:27017` or it will timeout.
        - IMPORTANT: In ALL .jsx and .tsx test files, you MUST include `import React from 'react';` at the very top, even if using the new JSX transform. The jsdom test environment requires this explicit import.
     3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'vitest', 'jsdom', and 'mongodb-memory-server' (if applicable) in the package.json. Do NOT include '@playwright/test' in package.json at this stage.
