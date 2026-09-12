@@ -6,7 +6,7 @@ import sys
 # Ensure we can import from the parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint
-from retry import with_exponential_backoff
+from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
 def generate_design_stream(requirements: RequirementsDocument, component_context: str = None, mode: str = None):
@@ -37,12 +37,15 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     3. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt, vite.config.js). Do NOT place the project inside a root subdirectory; output all files relative to the workspace root (e.g. use 'manage.py' instead of 'my_project/manage.py').
     4. TEST DRIVEN & SPLIT STRATEGY: You MUST include comprehensive test suite files in your blueprint. Every project must have tests.
        - For Python (pytest), test files MUST start with `test_` (e.g., 'test_main.py').
-       - For JS/Node full-stack projects, you MUST SPLIT the tests: Generate `server.test.js` (for backend API routes with node environment) and `ui.test.jsx` or `ui.test.js` (for DOM/React components with jsdom environment). Do NOT jam backend and frontend tests into a single file.
+       - For JS/Node/React projects using Vitest: Design ALL tests to run under Vitest with jsdom.
+         Do NOT design tests using `supertest` or any Node-only HTTP testing library — Vitest runs through Vite which cannot resolve them.
+         Test server logic by importing and calling handler functions directly.
+         For UI tests, use `@testing-library/react`.
     5. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     6. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
     8. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
-    9. VITEST SETUP: If designing a JS/Node project, enforce modern ES modules (`"type": "module"` in package.json) and use Vitest instead of Jest. Explicitly include both `vitest` and `jsdom` in the package.json pseudocode.
+    9. VITEST SETUP: If designing a JS/Node project, enforce modern ES modules (`"type": "module"` in package.json) and use Vitest instead of Jest. Explicitly include both `vitest` and `jsdom` in the package.json pseudocode. Do NOT include `supertest` in the blueprint.
     10. REACT ICONS: If designing React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react. Either use generic icons or use "react-icons" if brand icons are strictly required.
     """
 
@@ -78,7 +81,6 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                 )
             )
 
-        print(f"Design Agent is architecting blueprint stream using {primary_model} (Model: {primary_model}) (key {idx+1}/{len(keys)})...")
         try:
             response = get_stream(primary_model)
             iterator = iter(response)
@@ -98,7 +100,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
             return
         except Exception as e:
             yield '\n__RESET__\n'
-            print(f"Primary model ({primary_model}) failed on key {idx+1} in Design Agent: {e}")
+            print(f"Primary model ({primary_model}) failed on key {idx+1} in Design Agent: {format_concise_error(e)}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
@@ -127,9 +129,9 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                         return
                     except Exception as fallback_error:
                         yield '\n__RESET__\n'
-                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Design Agent: {fallback_error}")
+                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Design Agent: {format_concise_error(fallback_error)}")
                         if fb_idx + 1 < len(keys):
                             continue
-                        yield f'{{"error": "Both primary and fallback models failed in Design Agent. Last error: {fallback_error}"}}'
+                        yield f'{{"error": "Both primary and fallback models failed in Design Agent. Last error: {format_concise_error(fallback_error)}"}}'
                         return
 

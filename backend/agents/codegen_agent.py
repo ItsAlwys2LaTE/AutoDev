@@ -5,7 +5,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase
-from retry import with_exponential_backoff
+from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
 def generate_code_stream(
@@ -32,7 +32,12 @@ def generate_code_stream(
     
     CRITICAL RULES:
     1. Write COMPLETE code. DO NOT use placeholders like 'pass', 'TODO', or '...'.
-    2. TEST SUITE & SPLIT STRATEGY: You MUST write comprehensive unit tests. For Python (pytest), test files MUST be prefixed with `test_` and functions must start with `def test_...`. For JS/Node full-stack projects, you MUST SPLIT the tests: write backend API tests (e.g. `server.test.js` using node environment + supertest) separate from frontend DOM tests (e.g. `ui.test.js` using jsdom environment). Do NOT combine backend and frontend tests in the same file.
+    2. TEST SUITE & SPLIT STRATEGY: You MUST write comprehensive unit tests.
+       - For Python (pytest), test files MUST be prefixed with `test_` and functions must start with `def test_...`.
+       - For JS/Node/React projects using Vitest: Write ALL tests (both UI and server logic) to run under Vitest.
+         Do NOT use `supertest` or any Node-only HTTP testing library. Instead, test server-side logic by directly importing and calling your handler/route functions.
+         For UI tests, use `@testing-library/react` with `jsdom` environment.
+       - IMPORTANT: In ALL .jsx and .tsx test files, you MUST include `import React from 'react';` at the very top, even if using the new JSX transform. The jsdom test environment requires this explicit import.
     3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For JS/HTML projects, you must include testing libraries like 'vitest' and 'jsdom' in the package.json.
     4. SCHEMA COMPLIANCE: The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code.
     5. IMPORTS/REQUIRES: EVERY file MUST include ALL necessary import/require statements at the top. Missing imports will cause crashes in the execution sandbox.
@@ -45,6 +50,7 @@ def generate_code_stream(
        c) Generate a `vitest.config.js` or `vitest.config.mjs` with `environment: 'jsdom'` if DOM testing is needed.
        d) At the top of your test files, include `import { describe, it, test, expect } from 'vitest';`.
        e) DO NOT use CommonJS `require()`. Use modern `import` syntax everywhere.
+       f) Do NOT use `supertest`. Vitest runs through Vite which cannot resolve Node-only modules like supertest. Test server logic by importing functions directly.
     10. REACT ICONS: If generating React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react (it will crash the app). Either use generic icons (e.g. Globe, Mail) or use "react-icons" if brand icons are strictly required.
     """
 
@@ -85,7 +91,6 @@ def generate_code_stream(
                 )
             )
 
-        print(f"Code Gen Agent is writing source code stream using {primary_model} (Model: {primary_model}) (key {idx+1}/{len(keys)})...")
         try:
             response = _get_stream(primary_model)
             iterator = iter(response)
@@ -105,7 +110,7 @@ def generate_code_stream(
             return
         except Exception as e:
             yield '\n__RESET__\n'
-            print(f"Primary model ({primary_model}) failed on key {idx+1} in CodeGen Agent: {e}")
+            print(f"Primary model ({primary_model}) failed on key {idx+1} in CodeGen Agent: {format_concise_error(e)}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
@@ -134,9 +139,9 @@ def generate_code_stream(
                         return
                     except Exception as fallback_error:
                         yield '\n__RESET__\n'
-                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in CodeGen Agent: {fallback_error}")
+                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in CodeGen Agent: {format_concise_error(fallback_error)}")
                         if fb_idx + 1 < len(keys):
                             continue
-                        yield f'{{"error": "Both models failed in CodeGen Agent: {fallback_error}"}}'
+                        yield f'{{"error": "Both models failed in CodeGen Agent: {format_concise_error(fallback_error)}"}}'
                         return
 

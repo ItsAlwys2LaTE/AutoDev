@@ -72,6 +72,7 @@ ESLINT_RC_CONTENT = """module.exports = {
     'no-unused-vars': 'off',
     'react/prop-types': 'off',
     'react/no-unescaped-entities': 'off',
+    'react/display-name': 'off',
     'no-undef': 'error'
   },
 }
@@ -80,6 +81,9 @@ ESLINT_RC_CONTENT = """module.exports = {
 def enforce_golden_dependencies(codebase):
     has_eslint_config = any(f.file_name.lower() in ['.eslintrc.cjs', '.eslintrc.js', '.eslintrc.json', '.eslintrc', 'eslint.config.js'] for f in codebase.files)
     react_detected = False
+    
+    # Banned dependencies that cause Vite resolution failures
+    BANNED_DEV_DEPS = {'supertest', 'superagent'}
     
     for file in codebase.files:
         if file.file_name.lower() == 'package.json':
@@ -92,13 +96,13 @@ def enforce_golden_dependencies(codebase):
                     ai_deps = ai_pkg.get('dependencies', {})
                     golden_deps = golden['dependencies']
                     for k, v in ai_deps.items():
-                        if k not in golden_deps and k != "@playwright/test":
+                        if k not in golden_deps and k != "@playwright/test" and k not in BANNED_DEV_DEPS:
                             golden_deps[k] = v 
                             
                     ai_dev_deps = ai_pkg.get('devDependencies', {})
                     golden_dev_deps = golden['devDependencies']
                     for k, v in ai_dev_deps.items():
-                        if k not in golden_dev_deps and k != "@playwright/test":
+                        if k not in golden_dev_deps and k != "@playwright/test" and k not in BANNED_DEV_DEPS:
                             golden_dev_deps[k] = v
                             
                     if "@playwright/test" in str(file.source_code):
@@ -110,6 +114,16 @@ def enforce_golden_dependencies(codebase):
                     file.source_code = json.dumps(golden, indent=2)
             except Exception:
                 pass
+    
+    # Auto-inject `import React from 'react'` into .jsx/.tsx test files if missing
+    if react_detected:
+        for file in codebase.files:
+            fname = file.file_name.lower()
+            if (fname.endswith('.test.jsx') or fname.endswith('.test.tsx') or
+                fname.endswith('.spec.jsx') or fname.endswith('.spec.tsx')):
+                src = file.source_code
+                if "import React" not in src and "import * as React" not in src:
+                    file.source_code = "import React from 'react';\n" + src
                 
     if react_detected and not has_eslint_config:
         # Get the class of the first file object (CodeFile from models.py)
@@ -118,3 +132,4 @@ def enforce_golden_dependencies(codebase):
             codebase.files.append(CodeFileClass(file_name=".eslintrc.cjs", source_code=ESLINT_RC_CONTENT))
             
     return codebase
+
