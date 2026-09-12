@@ -220,6 +220,72 @@ def _is_async_stream_iterator(val: Any) -> bool:
     return isinstance(val, collections.abc.AsyncIterator)
 
 
+def format_concise_error(exc: Exception) -> str:
+    """
+    Extracts a clean, single-line error summary without raw JSON dumps or tracebacks.
+    Handles google.genai.errors.APIError (and subclasses), HTTP errors, and standard exceptions.
+    Guarantees length <= 120 characters and single-line format.
+    """
+    if exc is None:
+        return "Unknown error"
+
+    import re
+    import json
+
+    # 1. Check google.genai errors (APIError, ServerError, ClientError)
+    msg = getattr(exc, "message", None)
+    code = getattr(exc, "code", None)
+    status = getattr(exc, "status", None)
+
+    if msg is not None and str(msg).strip():
+        clean_msg = str(msg).strip().split("\n")[0].strip()
+        clean_msg = re.sub(r"<[^>]+>", "", clean_msg).strip()
+        status_part = f" {status}" if status else ""
+        code_part = f"[{code}{status_part}] " if code else ""
+        res = f"{code_part}{clean_msg}".strip()
+        return res[:120]
+
+    # 2. Extract embedded JSON or Python dict if present in str(exc)
+    raw = str(exc)
+    if "{" in raw and "}" in raw:
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        if match:
+            dict_str = match.group(0)
+            data = None
+            try:
+                data = json.loads(dict_str)
+            except Exception:
+                try:
+                    import ast
+                    data = ast.literal_eval(dict_str)
+                except Exception:
+                    pass
+            if isinstance(data, dict):
+                err_obj = data.get("error", data)
+                if isinstance(err_obj, dict):
+                    inner_msg = err_obj.get("message")
+                    inner_code = err_obj.get("code") or code
+                    inner_status = err_obj.get("status") or status
+                    if inner_msg:
+                        clean_inner = str(inner_msg).strip().split("\n")[0].strip()
+                        clean_inner = re.sub(r"<[^>]+>", "", clean_inner).strip()
+                        status_part = f" {inner_status}" if inner_status else ""
+                        code_part = f"[{inner_code}{status_part}] " if inner_code else ""
+                        res = f"{code_part}{clean_inner}".strip()
+                        return res[:120]
+
+    # 3. Clean single line fallback (strip HTML tags and take first line)
+    clean_raw = re.sub(r"<[^>]+>", "", raw).strip()
+    first_line = clean_raw.split("\n")[0].strip()
+    if code or status:
+        status_part = f" {status}" if status else ""
+        code_part = f"[{code}{status_part}] " if code else f"[{status}] "
+        res = f"{code_part}{first_line}".strip() if first_line else f"{code_part}HTTP Error".strip()
+        return res[:120]
+
+    return first_line[:120]
+
+
 def with_exponential_backoff(
     fn: Optional[Callable] = None,
     *,
@@ -265,8 +331,9 @@ def with_exponential_backoff(
                     except Exception as e:
                         if has_yielded or not is_transient_error(e, retryable_exceptions) or attempt >= max_retries:
                             if attempt >= max_retries and not has_yielded:
+                                concise_err = format_concise_error(e)
                                 print(
-                                    f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {e}"
+                                    f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {concise_err}"
                                 )
                             raise
 
@@ -282,8 +349,9 @@ def with_exponential_backoff(
                             except Exception:
                                 pass
 
+                        concise_err = format_concise_error(e)
                         print(
-                            f"[Retry {attempt}/{max_retries}] Transient error in {func.__name__}: {e}. Retrying in {delay:.1f}s..."
+                            f"model/key failed: {concise_err}. Retrying in {delay:.1f} seconds..."
                         )
                         await asyncio.sleep(delay)
                         gen = None
@@ -307,8 +375,9 @@ def with_exponential_backoff(
                     except Exception as e:
                         if has_yielded or not is_transient_error(e, retryable_exceptions) or attempt >= max_retries:
                             if attempt >= max_retries and not has_yielded:
+                                concise_err = format_concise_error(e)
                                 print(
-                                    f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {e}"
+                                    f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {concise_err}"
                                 )
                             raise
 
@@ -324,8 +393,9 @@ def with_exponential_backoff(
                             except Exception:
                                 pass
 
+                        concise_err = format_concise_error(e)
                         print(
-                            f"[Retry {attempt}/{max_retries}] Transient error in {func.__name__}: {e}. Retrying in {delay:.1f}s..."
+                            f"model/key failed: {concise_err}. Retrying in {delay:.1f} seconds..."
                         )
                         time.sleep(delay)
                         gen = None
@@ -348,8 +418,9 @@ def with_exponential_backoff(
                     except Exception as e:
                         if has_yielded or not is_transient_error(e, retryable_exceptions) or attempt >= max_retries:
                             if attempt >= max_retries and not has_yielded:
+                                concise_err = format_concise_error(e)
                                 print(
-                                    f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {e}"
+                                    f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {concise_err}"
                                 )
                             raise
 
@@ -365,8 +436,9 @@ def with_exponential_backoff(
                             except Exception:
                                 pass
 
+                        concise_err = format_concise_error(e)
                         print(
-                            f"[Retry {attempt}/{max_retries}] Transient error in {func.__name__}: {e}. Retrying in {delay:.1f}s..."
+                            f"model/key failed: {concise_err}. Retrying in {delay:.1f} seconds..."
                         )
                         await asyncio.sleep(delay)
                         gen = None
@@ -387,8 +459,9 @@ def with_exponential_backoff(
                         if not is_transient_error(e, retryable_exceptions):
                             raise
                         if attempt >= max_retries:
+                            concise_err = format_concise_error(e)
                             print(
-                                f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {e}"
+                                f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {concise_err}"
                             )
                             raise
 
@@ -404,8 +477,9 @@ def with_exponential_backoff(
                             except Exception:
                                 pass
 
+                        concise_err = format_concise_error(e)
                         print(
-                            f"[Retry {attempt}/{max_retries}] Transient error in {func.__name__}: {e}. Retrying in {delay:.1f}s..."
+                            f"model/key failed: {concise_err}. Retrying in {delay:.1f} seconds..."
                         )
                         await asyncio.sleep(delay)
 
@@ -426,8 +500,9 @@ def with_exponential_backoff(
                 except Exception as e:
                     if has_yielded or not is_transient_error(e, retryable_exceptions) or attempt >= max_retries:
                         if attempt >= max_retries and not has_yielded:
+                            concise_err = format_concise_error(e)
                             print(
-                                f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {e}"
+                                f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {concise_err}"
                             )
                         raise
 
@@ -443,8 +518,9 @@ def with_exponential_backoff(
                         except Exception:
                             pass
 
+                    concise_err = format_concise_error(e)
                     print(
-                        f"[Retry {attempt}/{max_retries}] Transient error in {func.__name__}: {e}. Retrying in {delay:.1f}s..."
+                        f"model/key failed: {concise_err}. Retrying in {delay:.1f} seconds..."
                     )
                     time.sleep(delay)
                     gen = None
@@ -462,8 +538,9 @@ def with_exponential_backoff(
                     if not is_transient_error(e, retryable_exceptions):
                         raise
                     if attempt >= max_retries:
+                        concise_err = format_concise_error(e)
                         print(
-                            f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {e}"
+                            f"[Backoff Exhausted] {func.__name__} failed after {attempt} retries ({attempt + 1} attempts). Bubbling up error: {concise_err}"
                         )
                         raise
 
@@ -479,8 +556,9 @@ def with_exponential_backoff(
                         except Exception:
                             pass
 
+                    concise_err = format_concise_error(e)
                     print(
-                        f"[Retry {attempt}/{max_retries}] Transient error in {func.__name__}: {e}. Retrying in {delay:.1f}s..."
+                        f"model/key failed: {concise_err}. Retrying in {delay:.1f} seconds..."
                     )
                     time.sleep(delay)
 

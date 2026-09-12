@@ -136,7 +136,6 @@ def generate_integration_stream(
                     system_instruction=system_prompt,
                     temperature=0.3,
                     response_mime_type="application/json",
-                    response_schema=GeneratedCodeBase,
                 )
             )
 
@@ -178,7 +177,6 @@ def generate_integration_stream(
                                 system_instruction=system_prompt,
                                 temperature=0.3,
                                 response_mime_type="application/json",
-                                response_schema=GeneratedCodeBase,
                             )
                         )
                     try:

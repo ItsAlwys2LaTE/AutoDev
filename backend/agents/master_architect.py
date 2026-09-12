@@ -5,7 +5,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, ComponentDecomposition
-from retry import with_exponential_backoff
+from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
 def decompose_requirements_stream(requirements: RequirementsDocument, mode: str = None):
@@ -68,11 +68,9 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
                     system_instruction=system_prompt,
                     temperature=0.2,
                     response_mime_type="application/json",
-                    response_schema=ComponentDecomposition,
                 )
             )
 
-        print(f"Master Architect is analyzing product complexity using {primary_model} (Model: {primary_model}) (key {idx+1}/{len(keys)})...")
         try:
             response = _get_stream(primary_model)
             iterator = iter(response)
@@ -93,7 +91,7 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
             return
         except Exception as e:
             yield '\n__RESET__\n'
-            print(f"Primary model ({primary_model}) on key {idx+1} failed in Master Architect: {e}")
+            print(f"Primary model ({primary_model}) on key {idx+1} failed in Master Architect: {format_concise_error(e)}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
@@ -111,7 +109,6 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
                                 system_instruction=system_prompt,
                                 temperature=0.2,
                                 response_mime_type="application/json",
-                                response_schema=ComponentDecomposition,
                             )
                         )
                     try:
@@ -122,8 +119,8 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
                         return
                     except Exception as fallback_error:
                         yield '\n__RESET__\n'
-                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Master Architect: {fallback_error}")
+                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Master Architect: {format_concise_error(fallback_error)}")
                         if fb_idx + 1 < len(keys):
                             continue
-                        yield f'{{"error": "Both models failed in Master Architect: {fallback_error}"}}'
+                        yield f'{{"error": "Both models failed in Master Architect: {format_concise_error(fallback_error)}"}}'
                         return

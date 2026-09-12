@@ -77,7 +77,6 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                     system_instruction=system_prompt,
                     temperature=0.2,
                     response_mime_type="application/json",
-                    response_schema=SystemDesignBlueprint,
                 )
             )
 
@@ -118,7 +117,6 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
                                 system_instruction=system_prompt,
                                 temperature=0.2,
                                 response_mime_type="application/json",
-                                response_schema=SystemDesignBlueprint,
                             )
                         )
                     try:

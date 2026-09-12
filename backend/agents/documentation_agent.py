@@ -6,7 +6,7 @@ import sys
 # Ensure we can import from the parent directory
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, CodeFile
-from retry import with_exponential_backoff
+from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 from pydantic import BaseModel, Field
 from typing import List
@@ -50,6 +50,7 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
     {codebase.model_dump_json(indent=2)}
     """
 
+    print(f"Documentation Agent is generating documentation using {primary_model} (Model: {primary_model})...")
     for idx, key in enumerate(keys):
         client = genai.Client(api_key=key)
 
@@ -62,11 +63,9 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
                     system_instruction=system_prompt,
                     temperature=0.3,
                     response_mime_type="application/json",
-                    response_schema=DocumentationSet,
                 )
             )
 
-        print(f"Documentation Agent is generating documentation using {primary_model} (Model: {primary_model}) (key {idx+1}/{len(keys)})...")
         try:
             stream = get_stream(primary_model)
             last_usage = None
@@ -80,7 +79,7 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
             return
         except Exception as e:
             yield '\n__RESET__\n'
-            print(f"Documentation Agent failed on key {idx+1} ({e})")
+            print(f"Documentation Agent failed on key {idx+1}: {format_concise_error(e)}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
@@ -98,7 +97,6 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
                                 system_instruction=system_prompt,
                                 temperature=0.3,
                                 response_mime_type="application/json",
-                                response_schema=DocumentationSet,
                             )
                         )
                     try:
@@ -113,9 +111,9 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
                             yield f"\n__USAGE__{last_usage.prompt_token_count},{last_usage.candidates_token_count}"
                         return
                     except Exception as fallback_e:
-                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed: {fallback_e}")
+                        print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Documentation Agent: {format_concise_error(fallback_e)}")
                         if fb_idx + 1 < len(keys):
                             continue
-                        yield f'{{"error": "API Error during documentation generation: {str(fallback_e)}" }}'
+                        yield f'{{"error": "API Error during documentation generation: {format_concise_error(fallback_e)}" }}'
                         return
 

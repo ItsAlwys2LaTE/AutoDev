@@ -95,8 +95,6 @@ def pipeline_tick():
             "stage": stage.value if isinstance(stage, StageEnum) else str(stage),
             "epoch": epoch
         })
-    if dispatched:
-        print_queue_status()
     return {"assignments": assignments}
 
 @router.post("/api/pipeline/complete")
@@ -109,5 +107,22 @@ def pipeline_complete(payload: CompleteStageInput):
         revision_count=payload.revision_count,
         dynamic_budget=payload.dynamic_budget,
     )
-    print_queue_status()
+    if success:
+        from key_balancer import get_generation_mode, resolve_models_for_mode, format_phase_transition
+        mode = payload.mode or payload.generation_mode or get_generation_mode() or "QUICK"
+        primary_model, _ = resolve_models_for_mode(mode)
+        comp_record = scheduler.components.get(payload.component_id)
+        comp_name = comp_record.name if comp_record else payload.component_id
+        stage_upper = (payload.stage or "").upper()
+        verdict_lower = (payload.verdict or "pass").lower()
+
+        if stage_upper == "CRITICS":
+            if verdict_lower == "pass":
+                print(format_phase_transition(comp_name, "CRITICS", "COMPLETED", primary_model, "CRITICS", mode=mode, extra="Verdict: PASS"))
+            elif verdict_lower == "revise":
+                extra_msg = f"Revision {payload.revision_count}" if payload.revision_count else "Revision"
+                codegen_model = "gemini-3.7-flash"
+                print(format_phase_transition(comp_name, "CRITICS", "CODEGEN", codegen_model, "CODEGEN", mode=mode, extra=extra_msg))
+    if scheduler.is_pipeline_finished():
+        print("development completed")
     return {"success": success}

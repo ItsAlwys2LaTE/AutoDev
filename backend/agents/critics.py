@@ -8,7 +8,7 @@ from groq import Groq
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback
-from retry import with_exponential_backoff
+from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
 def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult, codebase: GeneratedCodeBase = None, mode: str = None) -> CriticFeedback:
@@ -75,7 +75,7 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
         try:
             return _call_primary()
         except Exception as e:
-            print(f"Correctness Critic failed on key {idx+1}/{len(keys)} (Model: {primary_model}): {e}")
+            print(f"Correctness Critic failed on key {idx+1}/{len(keys)} (Model: {primary_model}): {format_concise_error(e)}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
@@ -106,10 +106,10 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
                     try:
                         return _call_fallback()
                     except Exception as fallback_e:
-                        print(f"Correctness Critic fallback on key {fb_idx+1} failed (Model: {secondary_model}): {fallback_e}")
+                        print(f"Correctness Critic fallback on key {fb_idx+1} failed (Model: {secondary_model}): {format_concise_error(fallback_e)}")
                         if fb_idx + 1 < len(keys):
                             continue
-                        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
+                        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {format_concise_error(fallback_e)}"], overall_comments="Failed to evaluate correctness.")
 
 
 
@@ -176,13 +176,13 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
     except Exception as e:
         error_msg = str(e).lower()
         if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg or "401" in error_msg or "unauthorized" in error_msg or api_key == "dummy_key_to_force_fallback":
-            print(f"Architecture Critic (Mistral) hit rate limit or missing key: {e}. Falling back to Gemini (Model: {primary_model})...")
+            print(f"Architecture Critic (Mistral) hit rate limit or missing key: {format_concise_error(e)}. Falling back to Gemini (Model: {primary_model})...")
             gemini_keys = get_gemini_keys_for_stage("CRITIC_ARCHITECTURE", mode=mode)
             adjudicator_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
             if adjudicator_key and adjudicator_key.strip() and adjudicator_key.strip() not in gemini_keys:
                 gemini_keys = [adjudicator_key.strip()] + gemini_keys
             if not gemini_keys:
-                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error: {str(e)}", "No fallback Gemini keys available."], overall_comments="Failed to evaluate architecture.")
+                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error: {format_concise_error(e)}", "No fallback Gemini keys available."], overall_comments="Failed to evaluate architecture.")
                 
             system_instruction = f"You are the {critic_name} (Fallback Mode). Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
 
@@ -212,7 +212,7 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
                 try:
                     return _call_gemini_primary()
                 except Exception as g_err:
-                    print(f"Gemini fallback ({primary_model}) on key {g_idx+1} failed: {g_err}")
+                    print(f"Gemini fallback ({primary_model}) on key {g_idx+1} failed: {format_concise_error(g_err)}")
                     if is_rate_limit_error(g_err) and g_idx + 1 < len(gemini_keys):
                         continue
 
@@ -243,12 +243,12 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
                 try:
                     return _call_gemini_fallback()
                 except Exception as fallback_e:
-                    print(f"Gemini fallback ({secondary_model}) on key {g_idx+1} failed: {fallback_e}")
+                    print(f"Gemini fallback ({secondary_model}) on key {g_idx+1} failed: {format_concise_error(fallback_e)}")
                     if g_idx + 1 < len(gemini_keys):
                         continue
-                    return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral Error: {str(e)}", f"Gemini Fallback Error: {str(fallback_e)}"], overall_comments="Failed to evaluate architecture.")
+                    return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral Error: {format_concise_error(e)}", f"Gemini Fallback Error: {format_concise_error(fallback_e)}"], overall_comments="Failed to evaluate architecture.")
         else:
-            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error (Non-Rate Limit): {str(e)}"], overall_comments="Failed to evaluate architecture.")
+            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error (Non-Rate Limit): {format_concise_error(e)}"], overall_comments="Failed to evaluate architecture.")
 
 
 def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None) -> CriticFeedback:
@@ -317,7 +317,7 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
         try:
             return _call_primary()
         except Exception as e:
-            print(f"Completeness Critic failed on key {idx+1}/{len(keys)} (Model: {primary_model}): {e}")
+            print(f"Completeness Critic failed on key {idx+1}/{len(keys)} (Model: {primary_model}): {format_concise_error(e)}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
                 continue
@@ -348,9 +348,9 @@ def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemD
                     try:
                         return _call_fallback()
                     except Exception as fallback_e:
-                        print(f"Completeness Critic fallback on key {fb_idx+1} failed (Model: {secondary_model}): {fallback_e}")
+                        print(f"Completeness Critic fallback on key {fb_idx+1} failed (Model: {secondary_model}): {format_concise_error(fallback_e)}")
                         if fb_idx + 1 < len(keys):
                             continue
-                        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {str(fallback_e)}"], overall_comments="Failed to evaluate completeness.")
+                        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {format_concise_error(fallback_e)}"], overall_comments="Failed to evaluate completeness.")
 
 

@@ -8,20 +8,27 @@ from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBas
 from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
+PRIMARY_MODEL = "gemini-3.7-flash"
+FALLBACK_MODEL = "gemini-3.5-flash-lite"
+
 def generate_code_stream(
     requirements: RequirementsDocument, 
     blueprint: SystemDesignBlueprint,
     previous_codebase: GeneratedCodeBase = None,
     revision_plan: str = None,
     mode: str = None,
+    primary_model: str = PRIMARY_MODEL,
+    secondary_model: str = FALLBACK_MODEL,
 ):
-    primary_model, secondary_model = resolve_models_for_mode(mode)
+    primary_model = primary_model or PRIMARY_MODEL
+    secondary_model = secondary_model or FALLBACK_MODEL
     keys = get_gemini_keys_for_stage("CODEGEN", mode=mode)
     primary_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
         keys = [primary_key.strip()] + keys
     if not keys:
         raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
+
 
 
     system_prompt = """
@@ -87,7 +94,6 @@ def generate_code_stream(
                     system_instruction=system_prompt,
                     temperature=0.3,
                     response_mime_type="application/json",
-                    response_schema=GeneratedCodeBase,
                 )
             )
 
@@ -128,14 +134,18 @@ def generate_code_stream(
                                 system_instruction=system_prompt,
                                 temperature=0.3,
                                 response_mime_type="application/json",
-                                response_schema=GeneratedCodeBase,
                             )
                         )
                     try:
                         response = _get_fallback_stream(secondary_model)
+                        fb_usage = None
                         for chunk in response:
                             if getattr(chunk, 'text', None):
                                 yield chunk.text
+                            if getattr(chunk, 'usage_metadata', None):
+                                fb_usage = chunk.usage_metadata
+                        if fb_usage:
+                            yield f"\n__USAGE__{fb_usage.prompt_token_count},{fb_usage.candidates_token_count}"
                         return
                     except Exception as fallback_error:
                         yield '\n__RESET__\n'

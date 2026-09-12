@@ -227,7 +227,7 @@ class CodeGenInput(BaseModel):
 def api_generate_code(payload: CodeGenInput):
     comp_name = payload.component_name or "Global"
     mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
-    active_model = resolve_model_for_mode(mode)
+    active_model = "gemini-3.7-flash"
     from_phase = "CRITICS" if (payload.revision_count and payload.revision_count > 0) else "DESIGN"
     extra = f"Revision {payload.revision_count}" if (payload.revision_count and payload.revision_count > 0) else None
     print(format_phase_transition(comp_name, from_phase, "CODEGEN", active_model, "CODEGEN", mode=mode, extra=extra))
@@ -237,7 +237,8 @@ def api_generate_code(payload: CodeGenInput):
                 payload.requirements, 
                 payload.blueprint,
                 payload.previous_codebase,
-                payload.revision_plan
+                payload.revision_plan,
+                mode=mode,
             ),
             media_type="text/plain"
         )

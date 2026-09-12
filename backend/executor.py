@@ -150,8 +150,6 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
     injects the generated source code into memory, executes tests dynamically
     based on the tech stack, and returns the logs safely.
     """
-    print(f"Docker Executor is booting up image: {blueprint.docker_image}...")
-    
     codebase = enforce_golden_dependencies(codebase)
     
     try:
@@ -164,7 +162,6 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
         try:
             client.images.get(blueprint.docker_image)
         except docker.errors.ImageNotFound:
-            print(f"Pulling image {blueprint.docker_image} (this might take a moment)...")
             client.images.pull(blueprint.docker_image)
 
         # Create the container in a detached state running a dummy process to keep it alive
@@ -230,7 +227,6 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
             
         finally:
             # Always clean up the container
-            print("Cleaning up Docker container...")
             container.stop(timeout=1)
             container.remove(force=True)
             
