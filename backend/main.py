@@ -15,14 +15,22 @@ load_dotenv()
 
 app = FastAPI(title="Auto-SDLC Pipeline")
 
-from pipeline_api import router as pipeline_router
-app.include_router(pipeline_router)
-
 from log_stream import router as log_router
 app.include_router(log_router)
 
+from pipeline_api import router as pipeline_router
+app.include_router(pipeline_router)
+
+@app.on_event("startup")
+def on_startup():
+    print("Welcome user")
+
+print("Welcome user")
+
 from typing import Optional
 import key_balancer
+from key_balancer import format_phase_transition, get_key_display_for_stage
+from retry import format_concise_error
 
 CURRENT_GENERATION_MODE: str = "QUICK"
 
@@ -53,7 +61,7 @@ def resolve_model_for_mode(mode: Optional[str] = None) -> str:
             return primary
         except Exception:
             pass
-    return "gemini-3.5-flash-lite" if active_mode == "QUICK" else "gemini-3.6-flash"
+    return "gemini-3.5-flash-lite" if active_mode == "QUICK" else "gemini-3.7-flash"
 
 
 class FeatureRequestInput(BaseModel):
@@ -127,6 +135,8 @@ def api_generate_requirements(user_input: FeatureRequestInput):
         mode = user_input.mode or getattr(user_input, "generation_mode", None) or "QUICK"
         set_current_generation_mode(mode)
         validate_prompt(user_input.feature_request)
+        active_model = resolve_model_for_mode(mode)
+        print(format_phase_transition("System", "INIT", "REQUIREMENTS", active_model, "REQUIREMENTS", mode=mode))
         return StreamingResponse(
             generate_requirements_stream(user_input.feature_request),
             media_type="text/plain"
@@ -134,7 +144,7 @@ def api_generate_requirements(user_input: FeatureRequestInput):
     except PromptGuardError as pe:
         raise HTTPException(status_code=400, detail=str(pe))
     except Exception as e:
-        traceback.print_exc()
+        print(f"Generate requirements failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 from agents.master_architect import decompose_requirements_stream
@@ -142,12 +152,15 @@ from agents.master_architect import decompose_requirements_stream
 @app.post("/api/decompose")
 def api_decompose(requirements: RequirementsDocument):
     try:
+        active_mode = get_current_generation_mode()
+        active_model = resolve_model_for_mode(active_mode)
+        print(format_phase_transition("System", "REQUIREMENTS", "MASTER_ARCHITECT", active_model, "MASTER_ARCHITECT", mode=active_mode))
         return StreamingResponse(
             decompose_requirements_stream(requirements),
             media_type="text/plain"
         )
     except Exception as e:
-        traceback.print_exc()
+        print(f"Decompose failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 from agents.integrator_agent import generate_integration_stream
@@ -156,6 +169,8 @@ from agents.integrator_agent import generate_integration_stream
 def api_integrate(payload: IntegrationInput):
     try:
         active_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
+        active_model = resolve_model_for_mode(active_mode)
+        print(format_phase_transition("System", "ALL_COMPONENTS_COMPLETED", "INTEGRATION", active_model, "INTEGRATION", mode=active_mode))
         return StreamingResponse(
             generate_integration_stream(
                 payload.requirements,
@@ -168,7 +183,7 @@ def api_integrate(payload: IntegrationInput):
             media_type="text/plain"
         )
     except Exception as e:
-        traceback.print_exc()
+        print(f"Integration failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 from agents.design_agent import generate_design_stream
@@ -186,25 +201,36 @@ def api_generate_design(payload: DesignInput):
     comp_name = payload.component_name or "Global"
     mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
     active_model = resolve_model_for_mode(mode)
-    print(f"\n[Component: {comp_name}] [Agent: DESIGN] Using API Key: GEMINI_API_KEY_DESIGN (Model: {active_model})")
+    print(format_phase_transition(comp_name, "CREATED", "DESIGN", active_model, "DESIGN", mode=mode))
     try:
         return StreamingResponse(
             generate_design_stream(payload.requirements, payload.component_context),
             media_type="text/plain"
         )
     except Exception as e:
-        traceback.print_exc()
+        print(f"Design failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 from agents.codegen_agent import generate_code_stream
+
+class CodeGenInput(BaseModel):
+    requirements: RequirementsDocument
+    blueprint: SystemDesignBlueprint
+    previous_codebase: Optional[GeneratedCodeBase] = None
+    revision_plan: Optional[str] = None
+    revision_count: Optional[int] = 0
+    component_name: Optional[str] = None
+    mode: Optional[str] = "QUICK"
+    generation_mode: Optional[str] = None
 
 @app.post("/api/generate-code")
 def api_generate_code(payload: CodeGenInput):
     comp_name = payload.component_name or "Global"
     mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
     active_model = resolve_model_for_mode(mode)
-    rev_str = f" (REVISION ATTEMPT {payload.revision_count})" if payload.revision_count and payload.revision_count > 0 else ""
-    print(f"\n[Component: {comp_name}] [Agent: CODEGEN]{rev_str} Using API Key: GEMINI_API_KEY_CODEGEN (Model: {active_model})")
+    from_phase = "CRITICS" if (payload.revision_count and payload.revision_count > 0) else "DESIGN"
+    extra = f"Revision {payload.revision_count}" if (payload.revision_count and payload.revision_count > 0) else None
+    print(format_phase_transition(comp_name, from_phase, "CODEGEN", active_model, "CODEGEN", mode=mode, extra=extra))
     try:
         return StreamingResponse(
             generate_code_stream(
@@ -216,7 +242,7 @@ def api_generate_code(payload: CodeGenInput):
             media_type="text/plain"
         )
     except Exception as e:
-        traceback.print_exc()
+        print(f"CodeGen failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 from google import genai
@@ -238,7 +264,7 @@ def api_parse_requirements(payload: TextUpdateInput):
             @with_exponential_backoff
             def _parse_primary():
                 response = client.models.generate_content(
-                    model="gemini-3.6-flash",
+                    model="gemini-3.7-flash",
                     contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
@@ -254,7 +280,7 @@ def api_parse_requirements(payload: TextUpdateInput):
             try:
                 return _parse_primary()
             except Exception as e:
-                print(f"3.6-flash failed on key {idx+1} in parse_requirements: {e}")
+                print(f"3.7-flash failed on key {idx+1} in parse_requirements: {format_concise_error(e)}")
                 if is_rate_limit_error(e) and idx + 1 < len(keys):
                     continue
                 else:
@@ -285,12 +311,11 @@ def api_parse_requirements(payload: TextUpdateInput):
                                 continue
                             raise fb_err
     except Exception as e:
-        traceback.print_exc()
+        print(f"Parse requirements failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/parse-blueprint")
 def api_parse_blueprint(payload: TextUpdateInput):
-    print("\n[Status] parsing design blueprint...\n")
     # Fast path: check if text is already valid JSON matching SystemDesignBlueprint
     stripped = payload.text.strip()
     if (stripped.startswith("{") and stripped.endswith("}")) or (stripped.startswith("```json") and "{" in stripped):
@@ -304,7 +329,6 @@ def api_parse_blueprint(payload: TextUpdateInput):
         clean_text = clean_text.strip()
         try:
             validated = SystemDesignBlueprint.model_validate_json(clean_text)
-            print("[Status] Fast-path validated blueprint JSON without LLM call.")
             return validated
         except Exception:
             pass
@@ -321,7 +345,7 @@ def api_parse_blueprint(payload: TextUpdateInput):
             @with_exponential_backoff
             def _parse_primary():
                 response = client.models.generate_content(
-                    model="gemini-3.6-flash",
+                    model="gemini-3.7-flash",
                     contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
@@ -337,7 +361,7 @@ def api_parse_blueprint(payload: TextUpdateInput):
             try:
                 return _parse_primary()
             except Exception as e:
-                print(f"3.6-flash failed on key {idx+1} in parse_blueprint: {e}")
+                print(f"3.7-flash failed on key {idx+1} in parse_blueprint: {format_concise_error(e)}")
                 if is_rate_limit_error(e) and idx + 1 < len(keys):
                     continue
                 else:
@@ -368,7 +392,7 @@ def api_parse_blueprint(payload: TextUpdateInput):
                                 continue
                             raise fb_err
     except Exception as e:
-        traceback.print_exc()
+        print(f"Parse blueprint failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/execute-code")
@@ -376,7 +400,7 @@ def api_execute_code(payload: ExecuteInput):
     try:
         return execute_code(payload.codebase, payload.blueprint)
     except Exception as e:
-        traceback.print_exc()
+        print(f"Execute code failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/run-critics")
@@ -384,6 +408,9 @@ def api_run_critics(payload: ArbitrationInput):
     try:
         rev_count = payload.revision_count if hasattr(payload, 'revision_count') and payload.revision_count is not None else 0
         gen_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
+        comp_name = payload.component_name or "Global"
+        active_model = resolve_model_for_mode(gen_mode)
+        print(format_phase_transition(comp_name, "CODEGEN", "CRITICS", active_model, "CRITICS", mode=gen_mode))
         initial_state = {
             "requirements": payload.requirements,
             "blueprint": payload.blueprint,
@@ -404,9 +431,7 @@ def api_run_critics(payload: ArbitrationInput):
             "revision_count": final_state.get("revision_count", rev_count),
         }
     except Exception as e:
-        print("\n=== PHASE 3 CRASH TRACEBACK ===")
-        traceback.print_exc()
-        print("===============================\n")
+        print(f"Critics evaluation failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=f"Server Error during evaluation: {str(e)}")
 
 from agents.documentation_agent import generate_documentation_stream
@@ -414,14 +439,21 @@ from agents.documentation_agent import generate_documentation_stream
 @app.post("/api/generate-documentation")
 def api_generate_documentation(payload: DocumentationInput):
     try:
+        active_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
+        active_model = resolve_model_for_mode(active_mode)
+        print(format_phase_transition("System", "INTEGRATION", "DOCUMENTATION", active_model, "DOCUMENTATION", mode=active_mode))
+
+        def docs_stream():
+            for chunk in generate_documentation_stream(payload.requirements, payload.blueprint, payload.codebase):
+                yield chunk
+            print("development completed")
+
         return StreamingResponse(
-            generate_documentation_stream(payload.requirements, payload.blueprint, payload.codebase),
+            docs_stream(),
             media_type="text/plain"
         )
     except Exception as e:
-        print("\n=== DOCS CRASH TRACEBACK ===")
-        traceback.print_exc()
-        print("===============================\n")
+        print(f"Documentation generation failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=f"Server Error during doc generation: {str(e)}")
 
 

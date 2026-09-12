@@ -7,8 +7,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import RequirementsDocument
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
+from retry import with_exponential_backoff, format_concise_error
 
-PRIMARY_MODEL = "gemini-3.6-flash"
+PRIMARY_MODEL = "gemini-3.7-flash"
 FALLBACK_MODEL = "gemini-3.5-flash-lite"
 
 def generate_requirements_stream(feature_request: str, mode: str = None):
@@ -42,6 +43,7 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
 
     prompt_content = feature_request
 
+    @with_exponential_backoff
     def _try_stream(key, model_name):
         """Attempt a single streaming call. Returns an iterator or raises."""
         client = genai.Client(api_key=key)
@@ -58,7 +60,6 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
 
     # Phase 1: Try primary model across all keys
     for idx, key in enumerate(keys):
-        print(f"Requirements Agent: trying {primary_model} (Model: {primary_model}) on key {idx+1}/{len(keys)}...")
         try:
             response = _try_stream(key, primary_model)
             for chunk in response:
@@ -71,7 +72,7 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
             return
         except Exception as e:
             yield '\n__RESET__\n'
-            print(f"Requirements Agent: {primary_model} failed on key {idx+1}: {e}")
+            print(f"Requirements Agent: {primary_model} failed on key {idx+1}: {format_concise_error(e)}")
             if is_rate_limit_error(e) and idx + 1 < len(keys):
                 continue
             # If it's NOT a rate limit error, or we've exhausted primary keys, go to fallback
@@ -80,7 +81,6 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
     # Phase 2: Try fallback model across all keys
     print(f"Requirements Agent: falling back to {secondary_model} (Model: {secondary_model})...")
     for fb_idx, fb_key in enumerate(keys):
-        print(f"Requirements Agent: trying {secondary_model} (Model: {secondary_model}) on key {fb_idx+1}/{len(keys)}...")
         try:
             response = _try_stream(fb_key, secondary_model)
             for chunk in response:
@@ -89,9 +89,9 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
             return
         except Exception as fallback_error:
             yield '\n__RESET__\n'
-            print(f"Requirements Agent: {secondary_model} failed on key {fb_idx+1}: {fallback_error}")
+            print(f"Requirements Agent: {secondary_model} failed on key {fb_idx+1}: {format_concise_error(fallback_error)}")
             if fb_idx + 1 < len(keys):
                 continue
-            yield f'{{"error": "All models failed in Requirements Agent. Last error: {fallback_error}"}}'
+            yield f'{{"error": "All models failed in Requirements Agent. Last error: {format_concise_error(fallback_error)}"}}'
             return
 

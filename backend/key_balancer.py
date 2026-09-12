@@ -41,13 +41,13 @@ def reset_generation_mode() -> None:
 
 def resolve_models_for_mode(
     mode: Optional[str] = None,
-    primary_model: str = "gemini-3.6-flash",
+    primary_model: str = "gemini-3.7-flash",
     secondary_model: str = "gemini-3.5-flash-lite",
 ) -> Tuple[str, str]:
     """
     Returns (effective_primary, effective_secondary) based on generation mode:
     - QUICK: ('gemini-3.5-flash-lite', 'gemini-3.5-flash-lite') -> strictly ONLY flash-lite
-    - COMPLEX: ('gemini-3.6-flash', 'gemini-3.5-flash-lite') -> Standard 3.6 prioritized with fallback
+    - COMPLEX: ('gemini-3.7-flash', 'gemini-3.5-flash-lite') -> Standard 3.7 prioritized with fallback
     - Invalid or unrecognized mode strings default to QUICK.
     """
     active_mode = (mode or get_generation_mode()).upper()
@@ -499,6 +499,56 @@ def get_gemini_keys_for_mode(stage: Optional[str] = None, mode: Optional[str] = 
     return get_gemini_keys_for_stage(stage=stage, mode=mode)
 
 
+def get_key_display_for_stage(stage_name: str, mode: Optional[str] = None) -> Tuple[str, str]:
+    """
+    Returns (env_var_name, masked_key) for a given stage.
+    """
+    if not stage_name or str(stage_name).upper() in ("N/A", "NONE"):
+        return ("N/A", "N/A")
+
+    stage_str = str(stage_name).strip()
+    stage_upper = stage_str.upper()
+
+    # Check if stage_name is already an env var name (like GEMINI_API_KEY_CODEGEN)
+    if stage_upper in STAGE_KEY_MAP.values() or stage_upper.startswith("GEMINI_API_KEY") or stage_upper.startswith("MISTRAL_API_KEY"):
+        key_env = stage_upper
+        stage_id = None
+        for k, v in STAGE_KEY_MAP.items():
+            if v == stage_upper:
+                stage_id = k
+                break
+        lookup_stage = stage_id or stage_str
+    else:
+        key_env = STAGE_KEY_MAP.get(stage_upper, "GEMINI_API_KEY")
+        lookup_stage = stage_str
+
+    keys = get_gemini_keys_for_stage(lookup_stage, mode=mode)
+    raw_key = keys[0] if keys else (os.environ.get(key_env) or os.environ.get("GEMINI_API_KEY", ""))
+    masked = (raw_key[:6] + "..." + raw_key[-4:]) if len(raw_key) > 10 else (raw_key or "UNSET")
+    return key_env, masked
+
+
+def format_phase_transition(
+    component_name: str,
+    from_phase: str,
+    to_phase: str,
+    model: str,
+    stage_key: str,
+    mode: Optional[str] = None,
+    extra: Optional[str] = None,
+) -> str:
+    """
+    Formats standardized phase transition log string:
+    [PHASE TRANSITION] [Component: <component_name>] <from_phase> -> <to_phase> | Model: <model> | API Key: <key_name> (<masked_key>)
+    """
+    key_name, masked_key = get_key_display_for_stage(stage_key, mode=mode)
+    extra_str = f" ({extra})" if extra else ""
+    return (
+        f"[PHASE TRANSITION] [Component: {component_name}] {from_phase} -> {to_phase}{extra_str} | "
+        f"Model: {model} | API Key: {key_name} ({masked_key})"
+    )
+
+
 
 def _invoke_callable(fn: Callable, client: Any, model: str) -> Any:
     """Safely invokes a callable accepting (client) or (client, model)."""
@@ -532,7 +582,7 @@ def _invoke_callable(fn: Callable, client: Any, model: str) -> Any:
 def execute_with_key_fallback(
     stage: Union[str, List[str], None] = None,
     call_fn: Optional[Callable[..., T]] = None,
-    primary_model: str = "gemini-3.6-flash",
+    primary_model: str = "gemini-3.7-flash",
     secondary_model: str = "gemini-3.5-flash-lite",
     custom_keys: Optional[List[str]] = None,
     client_factory: Optional[Callable[[str], Any]] = None,
@@ -542,7 +592,7 @@ def execute_with_key_fallback(
     """
     Executes an LLM API call with multi-key dynamic load balancing and hierarchical fallback:
     1. In QUICK mode: strictly restricts execution to 'gemini-3.5-flash-lite' across all keys.
-    2. In COMPLEX mode: attempts 'gemini-3.6-flash' across healthy candidate keys with
+    2. In COMPLEX mode: attempts 'gemini-3.7-flash' across healthy candidate keys with
        Least-Connections / Round-Robin distribution, falling back to 'gemini-3.5-flash-lite'.
     3. If a key encounters a rate limit (429) or error, updates KeyHealthTracker with exponential cooldown
        and immediately fails over to the next candidate key.
@@ -634,7 +684,7 @@ def execute_with_key_fallback(
 def execute_stream_with_key_fallback(
     stage: Union[str, List[str], None] = None,
     stream_fn: Optional[Callable[..., Any]] = None,
-    primary_model: str = "gemini-3.6-flash",
+    primary_model: str = "gemini-3.7-flash",
     secondary_model: str = "gemini-3.5-flash-lite",
     custom_keys: Optional[List[str]] = None,
     client_factory: Optional[Callable[[str], Any]] = None,
@@ -644,7 +694,7 @@ def execute_stream_with_key_fallback(
     """
     Executes a streaming LLM API call with multi-key dynamic rotation and model fallback:
     1. In QUICK mode: strictly restricts execution to 'gemini-3.5-flash-lite' across all keys.
-    2. In COMPLEX mode: attempts 'gemini-3.6-flash' across healthy candidate keys with
+    2. In COMPLEX mode: attempts 'gemini-3.7-flash' across healthy candidate keys with
        Least-Connections / Round-Robin distribution, falling back to 'gemini-3.5-flash-lite'.
     3. If rate limit (429) or connection failure occurs before first chunk, records cooldown and rotates to next key.
     4. If all primary attempts fail, degrades to secondary model.
