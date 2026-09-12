@@ -52,6 +52,7 @@ def generate_integration_stream(
     4. DYNAMIC INTEGRATION TESTS: Write comprehensive integration test(s) matching the project's selected tech stack:
        - For Python/pytest projects: Generate `test_integration.py` (or `test_app.py`) with pytest assertions testing end-to-end user workflows across components.
        - For Node.js/JavaScript/TypeScript projects: You MUST generate `e2e.test.js` using Playwright (`@playwright/test`) to verify cross-component interactions and workflows in a real browser. Include `"@playwright/test": "1.48.0"` (EXACTLY this version) in the unified package.json to match the docker image binaries. You MUST also generate a `playwright.config.js` with a `webServer` block that runs your `dev_server_command` so the server boots automatically before tests run.
+       - DATABASE TESTS: If testing a Node backend with MongoDB, use `mongodb-memory-server` to mock the DB in tests. Do NOT try connecting to a real local MongoDB instance.
        - Do NOT use `supertest` or any Node-only HTTP testing library. Vitest runs through Vite which cannot resolve them.
        - IMPORTANT: In ALL .jsx and .tsx test files, you MUST include `import React from 'react';` at the very top.
        - These tests must verify the seams between components (e.g., login -> browse -> add to cart -> checkout).

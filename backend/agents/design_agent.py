@@ -42,6 +42,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
          Do NOT design tests using `supertest` or any Node-only HTTP testing library — Vitest runs through Vite which cannot resolve them.
          Test server logic by importing and calling handler functions directly.
          For UI tests, use `@testing-library/react`.
+         DATABASE TESTS: If designing a Node backend with MongoDB, design tests to use `mongodb-memory-server`. Do NOT attempt to connect to a real MongoDB instance.
     5. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     6. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
