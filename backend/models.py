@@ -37,7 +37,7 @@ class SystemDesignBlueprint(BaseModel):
     architecture_overview: str = Field(description="High level explanation of the design choice")
     tech_stack: List[str] = Field(description="The selected languages and frameworks (e.g., ['HTML', 'CSS', 'JavaScript'] or ['Python', 'pytest'])")
     docker_image: str = Field(description="The Docker image to use (e.g., 'node:20-alpine', 'python:3.11-slim')")
-    dev_server_command: str = Field(description="Command to start the dev server, bound to 0.0.0.0 (e.g., 'npm run dev -- --host 0.0.0.0', 'python -m http.server 8080 --bind 0.0.0.0'). Set to 'NONE' if no server needed.")
+    dev_server_command: str = Field(description="Command to start the dev server, bound to 0.0.0.0 (e.g., 'npm run dev -- --host 0.0.0.0' for Vite port 5173, 'npx --yes serve -p 8080 -H 0.0.0.0' for Node static HTML, or 'python3 -m http.server 8080 --bind 0.0.0.0' strictly for Python images). Must be strictly compatible with docker_image. Set to 'NONE' if no server needed.")
     dev_server_port: int = Field(description="The internal port the dev server binds to (e.g., 5173, 3000, 8080). Set to 0 if none.")
     run_tests_command: str = Field(description="Terminal command to run tests (e.g., 'npm install && npm test' or 'pytest'). Must not be skipped.")
     files: List[FileBlueprint] = Field(description="List of all files that need to be coded")

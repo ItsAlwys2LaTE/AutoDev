@@ -11,6 +11,11 @@ import time
 import urllib.error
 from typing import Any, Callable, Optional, Tuple, Type, Union
 
+try:
+    from backend.code_extractor import safe_re_sub
+except ImportError:
+    from code_extractor import safe_re_sub
+
 logger = logging.getLogger("autodev.retry")
 
 # Collect Google API Core exceptions if available
@@ -239,7 +244,7 @@ def format_concise_error(exc: Exception) -> str:
 
     if msg is not None and str(msg).strip():
         clean_msg = str(msg).strip().split("\n")[0].strip()
-        clean_msg = re.sub(r"<[^>]+>", "", clean_msg).strip()
+        clean_msg = safe_re_sub(r"<[^>]+>", "", clean_msg).strip()
         status_part = f" {status}" if status else ""
         code_part = f"[{code}{status_part}] " if code else ""
         res = f"{code_part}{clean_msg}".strip()
@@ -268,14 +273,14 @@ def format_concise_error(exc: Exception) -> str:
                     inner_status = err_obj.get("status") or status
                     if inner_msg:
                         clean_inner = str(inner_msg).strip().split("\n")[0].strip()
-                        clean_inner = re.sub(r"<[^>]+>", "", clean_inner).strip()
+                        clean_inner = safe_re_sub(r"<[^>]+>", "", clean_inner).strip()
                         status_part = f" {inner_status}" if inner_status else ""
                         code_part = f"[{inner_code}{status_part}] " if inner_code else ""
                         res = f"{code_part}{clean_inner}".strip()
                         return res[:120]
 
     # 3. Clean single line fallback (strip HTML tags and take first line)
-    clean_raw = re.sub(r"<[^>]+>", "", raw).strip()
+    clean_raw = safe_re_sub(r"<[^>]+>", "", raw).strip()
     first_line = clean_raw.split("\n")[0].strip()
     if code or status:
         status_part = f" {status}" if status else ""

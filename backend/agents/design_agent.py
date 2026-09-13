@@ -33,22 +33,30 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     Your job is to design the technical blueprint. 
     
     CRITICAL FORMATTING INSTRUCTIONS FOR YOUR OUTPUT:
-    1. TECH STACK SELECTION: Analyze the requirements and intelligently select the optimal `tech_stack`. ALL projects, including static frontends (HTML/CSS/JS), MUST have automated tests. Identify the exact terminal `run_tests_command`. For Node/JS projects, ensure it includes dependency installation (e.g., 'npm install && npm run test'). For static frontends, use 'npm install && npx vitest run' with Vitest and JSDOM to test DOM logic.
-    2. DOCKER ENVIRONMENT: You must specify a lightweight `docker_image`. For Python, use 'python:3.11-slim'. For Node/JS projects, you MUST use 'mcr.microsoft.com/playwright:v1.48.0-jammy' to support testing. Specify the `dev_server_command` to run the app (e.g., 'npm run dev -- --host 0.0.0.0' for Vite, 'python -m http.server 8080' for static HTML) and the internal `dev_server_port` it listens on (e.g., 5173, 8080). Dev servers MUST bind to 0.0.0.0 to allow port forwarding.
+    1. TECH STACK SELECTION & HYBRID VERIFICATION COMMAND: Analyze the requirements and intelligently select the optimal `tech_stack` and verification command (`run_tests_command`). AutoDev operates on a HYBRID VERIFICATION STRATEGY:
+       - FRONTEND / UI COMPONENTS: For client-side UI components, React/Vite web applications, interactive dashboards, forms, and HTML/CSS/JS frontend views, verification is performed via PRODUCTION BUILD COMPILATION (`npm run build`) rather than brittle JSDOM unit tests. You MUST set `run_tests_command` strictly to:
+         `npm install --no-audit --no-fund && npm run build`
+         and you MUST OMIT all test files (`*.test.*`, `*.spec.*`) from the blueprint `files` list.
+       - BACKEND / LOGIC COMPONENTS: For backend services, REST/GraphQL APIs, data processing pipelines, algorithmic utilities, and standalone business logic modules (Python, Node/Express backend logic, Go, Rust), verification relies on UNIT TESTS. You MUST set `run_tests_command` to the appropriate test runner (e.g., 'pytest' for Python; 'npm install --no-audit --no-fund && npm test' or 'npm install --no-audit --no-fund && npm run test:unit' for Node.js; 'go test ./...' for Go; 'cargo test' for Rust) and you MUST include comprehensive unit test files in `files`.
+       - FULLSTACK / SINGLE-PASS PROJECTS: If the project is primarily a client-side frontend web app (e.g. React SPA with Vite), treat it as a frontend component (`npm install --no-audit --no-fund && npm run build`, omitting test files). If it contains a standalone backend API server or non-UI business logic, include unit tests for the backend logic.
+       - Never set `run_tests_command` to run Playwright during fast automated validation cycles.
+    2. DOCKER ENVIRONMENT & DEV SERVER COMPATIBILITY: You must specify a lightweight `docker_image` and a strictly compatible `dev_server_command`:
+       - STRICT RUNTIME COMPATIBILITY: The `dev_server_command` and `docker_image` MUST be strictly compatible. The runtime executable invoked in `dev_server_command` (e.g. `npm`, `npx`, `python`) MUST exist in the selected `docker_image`.
+       - REACT / VITE PROJECTS: For all React/Vite projects, you MUST use `mcr.microsoft.com/playwright:v1.48.0-jammy` as `docker_image`, mandate `npm run dev -- --host 0.0.0.0` as `dev_server_command`, and set `dev_server_port` to 5173. In `package.json`, ensure `"scripts"` contains `"dev": "vite"` (or `"dev": "vite --host 0.0.0.0"`).
+       - STRICT PROHIBITION OF PYTHON IN NODE/PLAYWRIGHT IMAGES: You are STRICTLY PROHIBITED from generating `python -m http.server` (or any Python command) whenever the selected Docker image is a Node or Playwright image (e.g., `mcr.microsoft.com/playwright:v1.48.0-jammy` or `node:*`). These container images do NOT have Python installed (`python: not found`). For static HTML/JS projects running in Node/Playwright containers, you MUST use `npx --yes serve -p 8080 -H 0.0.0.0` with `dev_server_port` 8080 (or `npm run dev -- --host 0.0.0.0` if Vite-based).
+       - PYTHON PROJECTS: If and only if the Docker image is Python (`python:3.11-slim`), set `dev_server_command` to `python3 -m http.server 8080 --bind 0.0.0.0` (for static HTML/file serving) or framework servers (e.g. `uvicorn main:app --host 0.0.0.0 --port 8000`) with matching `dev_server_port`.
+       - 0.0.0.0 HOST BINDING MANDATE: All dev servers MUST explicitly bind to `0.0.0.0` (never `localhost` or `127.0.0.1`) to permit container port forwarding. If no dev server is required (e.g., standalone CLI tool or backend algorithm), set `dev_server_command` to "NONE" and `dev_server_port` to 0.
     3. FILES AND EXTENSIONS: Generate files with the correct extensions for the chosen stack (e.g., .js, .html, .py). Include any necessary configuration or dependency files (e.g., package.json, requirements.txt, vite.config.js). Do NOT place the project inside a root subdirectory; output all files relative to the workspace root (e.g. use 'manage.py' instead of 'my_project/manage.py').
-    4. TEST DRIVEN & SPLIT STRATEGY: You MUST include comprehensive test suite files in your blueprint. Every project must have tests.
-       - For Python (pytest), test files MUST start with `test_` (e.g., 'test_main.py').
-       - For JS/Node/React projects using Vitest: Design ALL tests to run under Vitest with jsdom. Test files MUST end with `.test.js` or `.spec.js` (e.g., 'auth.test.js') so Vitest can find them.
-         Do NOT design tests using `supertest` or any Node-only HTTP testing library — Vitest runs through Vite which cannot resolve them.
-         Do NOT use Playwright or Puppeteer for component-level tests. E2E tests are handled later during integration.
-         Test server logic by importing and calling handler functions directly.
-         For UI tests, use `@testing-library/react`.
-         DATABASE TESTS: If designing a Node backend with MongoDB, design tests to use `mongodb-memory-server`. Do NOT attempt to connect to a real MongoDB instance.
+    4. HYBRID TEST & BUILD ARCHITECTURE:
+       - For Frontend / UI components (where `run_tests_command` is a build command): DO NOT design or include test files (`*.test.*`, `*.spec.*`) in your blueprint `files` list! Instead, direct all architectural focus and file definitions to complete, robust application source files (components, state management, routing, styles, assets). Ensure `package.json` contains standard build scripts (`"build": "vite build"`).
+       - For Backend / Logic components (where `run_tests_command` runs unit tests): You MUST include comprehensive unit test suite files in your blueprint:
+         * For Python (pytest): Test files MUST start with `test_` (e.g., 'test_main.py'). ALWAYS design tests to use raw string literals `r"..."` for regular expressions (e.g. `re.search(r"\d+", text)`) to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
+         * For Node/JS backend services using Vitest: Test files MUST end with `.test.js`, `.test.ts`, `.spec.js`, etc. Test server logic by importing handler/service functions directly. If using MongoDB, use `mongodb-memory-server`. Do NOT use `supertest`.
     5. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     6. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
     8. DEFENSIVE DESIGN: Your pseudocode and architecture MUST explicitly account for edge cases, input validation (e.g., max lengths, boundary conditions), error states, and robust error recovery. Do not design only the happy path. Design for production-level robustness.
-    9. VITEST SETUP: If designing a JS/Node project, enforce modern ES modules (`"type": "module"` in package.json) and use Vitest instead of Jest. Explicitly include both `vitest` and `jsdom` in the package.json pseudocode. Do NOT include `supertest` in the blueprint.
+    9. JAVASCRIPT / NODE STACK CONFIGURATION: For JS/Node projects, enforce modern ES modules (`"type": "module"` in package.json). For backend/logic components requiring unit testing, use Vitest instead of Jest and include `vitest` and `jsdom` in devDependencies. For frontend components, configure standard build tooling (e.g., `vite`, `@vitejs/plugin-react`) without requiring test runners in package.json. Note that `__dirname` is undefined in ES module scope; resolve paths using `process.cwd()` or `import.meta.url`.
     10. REACT ICONS: If designing React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react. Either use generic icons or use "react-icons" if brand icons are strictly required.
     """
 
@@ -61,6 +69,12 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     Prefix file names with the component identifier if they might conflict with other components 
     during integration (e.g., 'auth-styles.css' instead of 'styles.css'), EXCEPT for package.json 
     and configuration files.
+    
+    AUTONOMOUS COMPONENT CLASSIFICATION:
+    Examine the component's scoped requirements and technical role:
+    - If this is a Frontend / UI component (React/Vite, UI view, Admin Panel, Product Detail Page, Shopping Cart, client-side routing): Set `run_tests_command` strictly to `npm install --no-audit --no-fund && npm run build`. Do NOT design or include any test files (`*.test.*`, `*.spec.*`) in `files`. Even if it contains some logic or API calls, if its primary output is a UI, treat it as a Frontend component. For React/Vite components, set `dev_server_command` strictly to `npm run dev -- --host 0.0.0.0` and `dev_server_port` to 5173. NEVER specify `python -m http.server` when the component uses a Node or Playwright image.
+    - If this is a pure Backend / Logic component (Standalone API Server, Database Schema, Authentication Service, business algorithms): Set `run_tests_command` to the standard unit test runner (`pytest` or `npm install --no-audit --no-fund && npm test`) and include comprehensive unit test files in `files`.
+    - CRITICAL: Never instruct the test suite to start an HTTP server (`app.listen()`) or connect to a real database, as this will hang the sandbox and cause a 180s timeout.
     """
 
     system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(SystemDesignBlueprint.model_json_schema())}"

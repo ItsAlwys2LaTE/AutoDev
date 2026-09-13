@@ -220,14 +220,14 @@ class CodeGenInput(BaseModel):
     revision_plan: Optional[str] = None
     revision_count: Optional[int] = 0
     component_name: Optional[str] = None
-    mode: Optional[str] = "QUICK"
+    mode: Optional[str] = None
     generation_mode: Optional[str] = None
 
 @app.post("/api/generate-code")
 def api_generate_code(payload: CodeGenInput):
     comp_name = payload.component_name or "Global"
-    mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
-    active_model = "gemini-3.7-flash"
+    mode = payload.generation_mode or payload.mode or get_current_generation_mode()
+    active_model = resolve_model_for_mode(mode)
     from_phase = "CRITICS" if (payload.revision_count and payload.revision_count > 0) else "DESIGN"
     extra = f"Revision {payload.revision_count}" if (payload.revision_count and payload.revision_count > 0) else None
     print(format_phase_transition(comp_name, from_phase, "CODEGEN", active_model, "CODEGEN", mode=mode, extra=extra))
@@ -239,6 +239,7 @@ def api_generate_code(payload: CodeGenInput):
                 payload.previous_codebase,
                 payload.revision_plan,
                 mode=mode,
+                primary_model=active_model,
             ),
             media_type="text/plain"
         )
@@ -420,6 +421,7 @@ def api_run_critics(payload: ArbitrationInput):
             "feedbacks": [],
             "revision_count": rev_count,
             "master_decomposition": payload.master_decomposition,
+            "component_name": comp_name,
             "generation_mode": gen_mode,
             "mode": gen_mode,
             "previous_composite": payload.previous_composite,
@@ -467,6 +469,97 @@ from executor import create_tar_from_codebase
 
 preview_container_id = None
 
+
+def is_python_docker_image(image: Optional[str]) -> bool:
+    """
+    Checks if image is not empty and 'python' in image.lower().
+    Any image that does not contain 'python' (including Playwright
+    mcr.microsoft.com/playwright:*, Node, Bun, Deno) returns False.
+    """
+    if not image or not isinstance(image, str):
+        return False
+    return "python" in image.lower()
+
+
+def infer_dev_server_from_codebase(
+    codebase: Optional[GeneratedCodeBase],
+    image: Optional[str]
+) -> tuple[str, int]:
+    """
+    Inspects codebase.files:
+    * If package.json exists and contains 'vite' (case-insensitive in file content):
+      returns ('npm run dev -- --host 0.0.0.0', 5173).
+    * Else if package.json exists:
+      returns ('npx --yes serve -p 3000 -H 0.0.0.0', 3000).
+    * Else if index.html exists:
+      - If is_python_docker_image(image) is True:
+        returns ('python3 -m http.server 8080 --bind 0.0.0.0', 8080).
+      - Else:
+        returns ('npx --yes serve -p 8080 -H 0.0.0.0', 8080).
+    * Default (e.g. Python project):
+      returns ('python3 -m http.server 8080 --bind 0.0.0.0', 8080).
+    """
+    files = codebase.files if (codebase and hasattr(codebase, "files") and codebase.files) else []
+    pkg_file = None
+    has_index_html = False
+
+    for f in files:
+        if isinstance(f, dict):
+            fname = (f.get("file_name", "") or "").replace("\\", "/").strip().lstrip("./")
+        else:
+            fname = (getattr(f, "file_name", "") or "").replace("\\", "/").strip().lstrip("./")
+        base_name = fname.lower().split("/")[-1]
+        if base_name == "package.json":
+            pkg_file = f
+        elif base_name == "index.html":
+            has_index_html = True
+
+    if pkg_file is not None:
+        if isinstance(pkg_file, dict):
+            content = pkg_file.get("source_code", "") or ""
+        else:
+            content = getattr(pkg_file, "source_code", "") or ""
+        if "vite" in content.lower():
+            return ("npm run dev -- --host 0.0.0.0", 5173)
+        return ("npx --yes serve -p 3000 -H 0.0.0.0", 3000)
+    elif has_index_html:
+        if is_python_docker_image(image):
+            return ("python3 -m http.server 8080 --bind 0.0.0.0", 8080)
+        else:
+            return ("npx --yes serve -p 8080 -H 0.0.0.0", 8080)
+    else:
+        return ("python3 -m http.server 8080 --bind 0.0.0.0", 8080)
+
+
+def normalize_preview_command(
+    cmd: Optional[str],
+    internal_port: Optional[int],
+    image: Optional[str],
+    codebase: Optional[GeneratedCodeBase] = None
+) -> tuple[str, int]:
+    """
+    Normalizes preview command and internal port:
+    * If not cmd or cmd.strip() == '' or cmd.strip().upper() == 'NONE' or not internal_port or internal_port == 0:
+      calls infer_dev_server_from_codebase(codebase, image) to set cmd and internal_port.
+    * If not is_python_docker_image(image) and ('python -m http.server' in cmd or 'python3 -m http.server' in cmd):
+      - replaces 'python3 -m http.server' and 'python -m http.server' with 'npx --yes serve -p'.
+      - replaces '--bind 0.0.0.0' with '-H 0.0.0.0'.
+      - if '-H 0.0.0.0' is not in cmd, appends ' -H 0.0.0.0'.
+    * Returns (cmd, internal_port).
+    """
+    if not cmd or cmd.strip() == "" or cmd.strip().upper() == "NONE" or not internal_port or internal_port == 0:
+        cmd, internal_port = infer_dev_server_from_codebase(codebase, image)
+
+    if cmd and not is_python_docker_image(image) and ("python -m http.server" in cmd or "python3 -m http.server" in cmd):
+        cmd = cmd.replace("python3 -m http.server", "npx --yes serve -p")
+        cmd = cmd.replace("python -m http.server", "npx --yes serve -p")
+        cmd = cmd.replace("--bind 0.0.0.0", "-H 0.0.0.0")
+        if "-H 0.0.0.0" not in cmd:
+            cmd = f"{cmd} -H 0.0.0.0"
+
+    return cmd, internal_port
+
+
 def get_free_port():
     s = socket.socket()
     s.bind(('', 0))
@@ -496,14 +589,7 @@ def start_preview(payload: ExecuteInput):
     cmd = payload.blueprint.dev_server_command
     internal_port = payload.blueprint.dev_server_port
 
-    if cmd == "NONE" or internal_port == 0:
-        cmd = "python -m http.server 8080 --bind 0.0.0.0"
-        internal_port = 8080
-
-    if "node" in image.lower() and "python -m http.server" in cmd:
-        cmd = cmd.replace("python -m http.server", "npx --yes serve -p")
-        if "--bind 0.0.0.0" in cmd:
-            cmd = cmd.replace("--bind 0.0.0.0", "-H 0.0.0.0")
+    cmd, internal_port = normalize_preview_command(cmd, internal_port, image, payload.codebase)
 
     host_port = get_free_port()
 

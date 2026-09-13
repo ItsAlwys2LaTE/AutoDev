@@ -40,11 +40,13 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
        priority_order numbers so they are built first.
     4. Each component's scoped_requirements MUST be detailed enough for a Design Agent to independently 
        produce a complete architectural blueprint WITHOUT seeing the original full requirements. Include 
-       specific user stories, acceptance criteria, UI descriptions, and data models relevant to that component.
-    5. The shared_tech_stack and shared_docker_image MUST be consistent across all components to ensure 
-       they can be integrated later. For Node.js/JS projects, you MUST use `mcr.microsoft.com/playwright:v1.48.0-jammy` as the `shared_docker_image` to support Playwright E2E browser testing in the integration phase.
-    6. The integration_strategy MUST describe exactly how to wire the components together: shared routing 
-       file structure, navigation patterns, shared CSS/theming, state management, and cross-component imports.
+       specific user stories, acceptance criteria, UI descriptions, data models, and dev server expectations (e.g. React/Vite UI components requiring `npm run dev -- --host 0.0.0.0` on port 5173 bound to 0.0.0.0).
+    5. SHARED DOCKER IMAGE & DEV SERVER COMPATIBILITY: The shared_tech_stack and shared_docker_image MUST be consistent across all components to ensure they can be integrated later.
+       - For Node.js/JS/React projects, you MUST use `mcr.microsoft.com/playwright:v1.48.0-jammy` as the `shared_docker_image` to support Playwright E2E browser testing in the integration phase. For Python projects, use `python:3.11-slim`.
+       - DEV SERVER COMPATIBILITY: `dev_server_command` and `docker_image` must be strictly compatible across all components and in the final integrated application.
+       - PROHIBIT PYTHON HTTP SERVER: You are STRICTLY PROHIBITED from specifying or suggesting `python -m http.server` in `integration_strategy` or component requirements whenever the shared Docker image is Node or Playwright, as Python is not installed in those containers.
+       - REACT/VITE MANDATE: For React/Vite projects, mandate that the dev server runs via `npm run dev -- --host 0.0.0.0` on port 5173. All dev servers must bind to `0.0.0.0` to permit port forwarding.
+    6. INTEGRATION STRATEGY & LIVE PREVIEW: The integration_strategy MUST describe exactly how to wire the components together: shared routing, navigation patterns, shared CSS/theming, state management, cross-component imports, AND the unified dev server startup configuration (e.g., `npm run dev -- --host 0.0.0.0` on port 5173 bound to 0.0.0.0 for React/Vite).
     7. Aim for 3-6 components. Fewer than 3 means the product probably isn't complex enough. More than 6 
        means components are too granular and will create integration nightmares.
     8. component_id must be unique kebab-case identifiers (e.g., 'user-auth', 'product-catalog', 'shopping-cart').

@@ -327,6 +327,8 @@
                 </div>
             </div>
             
+            <div id="integrationRevTabs" class="flex gap-1 mb-4 flex-wrap hidden"></div>
+
             <div id="codeFilesContainer" class="space-y-4 mb-6 max-h-[500px] overflow-y-auto pr-2">
                 <!-- Dynamically injected streaming text -->
             </div>
@@ -403,6 +405,8 @@
                 <span class="px-3 py-1 bg-rose-500/20 text-rose-400 text-sm rounded-full font-medium border border-rose-500/20">Evaluated</span>
             </div>
             
+            <div id="integrationCriticTabs" class="flex gap-1 mb-4 flex-wrap hidden"></div>
+
             <div id="criticCardsContainer" class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
                 <!-- Dynamically injected critic cards -->
             </div>
@@ -851,6 +855,16 @@
                         if (currentMode === 'COMPLEX') {
                             CountdownManager.pausePermanently('execBtn', 'Monaco editor edited');
                         }
+                        if (currentCodebase && currentCodebase.files && activeFileIndex >= 0 && currentCodebase.files[activeFileIndex]) {
+                            const val = editorInstance.getValue();
+                            currentCodebase.files[activeFileIndex].source_code = val;
+                            if (typeof integrationRevisionHistory !== 'undefined' && integrationActiveRevisionIndex >= 0 && integrationRevisionHistory[integrationActiveRevisionIndex]) {
+                                const intRev = integrationRevisionHistory[integrationActiveRevisionIndex];
+                                if (intRev.codebase && intRev.codebase.files && intRev.codebase.files[activeFileIndex]) {
+                                    intRev.codebase.files[activeFileIndex].source_code = val;
+                                }
+                            }
+                        }
                     });
                     switchFile(fileIndex);
                 });
@@ -864,8 +878,15 @@
             if (!currentCodebase || !currentCodebase.files[index]) return;
             
             // Save current editor content to the previously active file
-            if (activeFileIndex >= 0 && editorInstance) {
-                currentCodebase.files[activeFileIndex].source_code = editorInstance.getValue();
+            if (activeFileIndex >= 0 && editorInstance && currentCodebase.files && currentCodebase.files[activeFileIndex]) {
+                const val = editorInstance.getValue();
+                currentCodebase.files[activeFileIndex].source_code = val;
+                if (typeof integrationRevisionHistory !== 'undefined' && integrationActiveRevisionIndex >= 0 && integrationRevisionHistory[integrationActiveRevisionIndex]) {
+                    const intRev = integrationRevisionHistory[integrationActiveRevisionIndex];
+                    if (intRev.codebase && intRev.codebase.files && intRev.codebase.files[activeFileIndex]) {
+                        intRev.codebase.files[activeFileIndex].source_code = val;
+                    }
+                }
             }
 
             activeFileIndex = index;
@@ -885,9 +906,36 @@
             if (editorInstance) {
                 const file = currentCodebase.files[index];
                 const ext = file.file_name.split('.').pop();
-                const langMap = { 'py': 'python', 'json': 'json', 'md': 'markdown', 'js': 'javascript', 'html': 'html' };
+                const langMap = { 'py': 'python', 'json': 'json', 'md': 'markdown', 'js': 'javascript', 'html': 'html', 'css': 'css', 'ts': 'typescript' };
                 monaco.editor.setModelLanguage(editorInstance.getModel(), langMap[ext] || 'plaintext');
                 editorInstance.setValue(file.source_code);
+            }
+
+            // If in diff mode, update diff editor for selected file
+            if (isDiffMode && diffEditorInstance) {
+                const activeIdx = (typeof integrationActiveRevisionIndex !== 'undefined' && integrationActiveRevisionIndex >= 0) ? integrationActiveRevisionIndex : activeRevisionIndex;
+                const revs = (typeof integrationRevisionHistory !== 'undefined' && integrationRevisionHistory.length > 0) ? integrationRevisionHistory : revisionHistory;
+                if (activeIdx > 0 && revs && revs[activeIdx] && revs[activeIdx - 1]) {
+                    const prevRev = revs[activeIdx - 1];
+                    const currRev = revs[activeIdx];
+                    const currFile = (currRev && currRev.codebase && currRev.codebase.files) ? currRev.codebase.files[index] : null;
+                    let prevFile = null;
+                    if (prevRev && prevRev.codebase && prevRev.codebase.files && currFile) {
+                        prevFile = prevRev.codebase.files.find(f => f.file_name === currFile.file_name) || null;
+                    }
+                    const ext = (currFile ? currFile.file_name : '').split('.').pop();
+                    const langMap = { 'py': 'python', 'json': 'json', 'md': 'markdown', 'js': 'javascript', 'html': 'html', 'css': 'css', 'ts': 'typescript' };
+                    const lang = langMap[ext] || 'plaintext';
+                    const oldModel = (diffEditorInstance && typeof diffEditorInstance.getModel === 'function') ? diffEditorInstance.getModel() : null;
+                    diffEditorInstance.setModel({
+                        original: monaco.editor.createModel(prevFile ? prevFile.source_code : '', lang),
+                        modified: monaco.editor.createModel(currFile ? currFile.source_code : '', lang)
+                    });
+                    if (oldModel) {
+                        if (oldModel.original) oldModel.original.dispose();
+                        if (oldModel.modified) oldModel.modified.dispose();
+                    }
+                }
             }
         }
 
@@ -1058,7 +1106,9 @@
         }
 
         function toggleDiffMode() {
-            if (activeRevisionIndex <= 0) return;
+            const activeIdx = (typeof integrationActiveRevisionIndex !== 'undefined' && integrationActiveRevisionIndex >= 0) ? integrationActiveRevisionIndex : activeRevisionIndex;
+            const revs = (typeof integrationRevisionHistory !== 'undefined' && integrationRevisionHistory.length > 0) ? integrationRevisionHistory : revisionHistory;
+            if (activeIdx <= 0 || !revs || revs.length <= activeIdx) return;
             isDiffMode = !isDiffMode;
             const diffBtn = document.getElementById('diffToggleBtn');
             const ideContainer = document.getElementById('ideContainer');
@@ -1069,35 +1119,57 @@
                 ideContainer.classList.add('hidden');
                 diffContainer.classList.remove('hidden');
 
-                const prevRev = revisionHistory[activeRevisionIndex - 1];
-                const currRev = revisionHistory[activeRevisionIndex];
+                const prevRev = revs[activeIdx - 1];
+                const currRev = revs[activeIdx];
                 const fileIdx = activeFileIndex >= 0 ? activeFileIndex : 0;
-                const prevFile = prevRev.codebase.files[fileIdx];
-                const currFile = currRev.codebase.files[fileIdx];
+                const currFile = (currRev && currRev.codebase && currRev.codebase.files) ? currRev.codebase.files[fileIdx] : null;
+                let prevFile = null;
+                if (prevRev && prevRev.codebase && prevRev.codebase.files && currFile) {
+                    prevFile = prevRev.codebase.files.find(f => f.file_name === currFile.file_name) || null;
+                }
 
                 // Flush current editor content
-                if (editorInstance && activeFileIndex >= 0) {
-                    currRev.codebase.files[activeFileIndex].source_code = editorInstance.getValue();
+                if (editorInstance && activeFileIndex >= 0 && currFile) {
+                    currFile.source_code = editorInstance.getValue();
                 }
 
                 require(['vs/editor/editor.main'], function () {
-                    if (diffEditorInstance) { diffEditorInstance.dispose(); }
+                    if (diffEditorInstance) {
+                        const oldM = (typeof diffEditorInstance.getModel === 'function') ? diffEditorInstance.getModel() : null;
+                        diffEditorInstance.dispose();
+                        if (oldM) {
+                            if (oldM.original) oldM.original.dispose();
+                            if (oldM.modified) oldM.modified.dispose();
+                        }
+                    }
                     diffEditorInstance = monaco.editor.createDiffEditor(document.getElementById('diffContainer'), {
                         theme: 'vs-dark',
                         automaticLayout: true,
                         readOnly: true,
                         renderSideBySide: true
                     });
+                    const fileName = (currFile && currFile.file_name) || (prevFile && prevFile.file_name) || '';
+                    const ext = fileName.split('.').pop();
+                    const langMap = { 'py': 'python', 'json': 'json', 'md': 'markdown', 'js': 'javascript', 'html': 'html', 'css': 'css', 'ts': 'typescript' };
+                    const lang = langMap[ext] || 'plaintext';
                     diffEditorInstance.setModel({
-                        original: monaco.editor.createModel(prevFile ? prevFile.source_code : '', 'python'),
-                        modified: monaco.editor.createModel(currFile ? currFile.source_code : '', 'python')
+                        original: monaco.editor.createModel(prevFile ? prevFile.source_code : '', lang),
+                        modified: monaco.editor.createModel(currFile ? currFile.source_code : '', lang)
                     });
                 });
             } else {
                 diffBtn.textContent = 'Show Diff';
                 diffContainer.classList.add('hidden');
                 ideContainer.classList.remove('hidden');
-                if (diffEditorInstance) { diffEditorInstance.dispose(); diffEditorInstance = null; }
+                if (diffEditorInstance) {
+                    const oldM = (typeof diffEditorInstance.getModel === 'function') ? diffEditorInstance.getModel() : null;
+                    diffEditorInstance.dispose();
+                    diffEditorInstance = null;
+                    if (oldM) {
+                        if (oldM.original) oldM.original.dispose();
+                        if (oldM.modified) oldM.modified.dispose();
+                    }
+                }
             }
         }
 
@@ -1344,7 +1416,37 @@
                     const reqs = file.source_code.split('\n').filter(line => !line.toLowerCase().startsWith('pytest')).join('\n');
                     zip.file(file.file_name, reqs);
                 } else {
-                    zip.file(file.file_name, file.source_code);
+                    let src = file.source_code;
+                    if ((lower.endsWith('.js') || lower.endsWith('.jsx') || lower.endsWith('.ts') || lower.endsWith('.tsx')) && src && src.includes('lucide-react')) {
+                        const iconMap = {
+                            'Facebook': 'Globe', 'Twitter': 'MessageCircle', 'Instagram': 'Camera',
+                            'Youtube': 'Play', 'YouTube': 'Play', 'Linkedin': 'Briefcase', 'LinkedIn': 'Briefcase',
+                            'Github': 'Code', 'GitHub': 'Code', 'Gitlab': 'Code2', 'GitLab': 'Code2',
+                            'Tiktok': 'Music', 'TikTok': 'Music', 'Discord': 'MessageSquare', 'Slack': 'Hash',
+                            'Twitch': 'Tv', 'Reddit': 'MessageCircle', 'Pinterest': 'Pin', 'Snapchat': 'Ghost',
+                            'Whatsapp': 'Phone', 'WhatsApp': 'Phone', 'Telegram': 'Send', 'Medium': 'BookOpen',
+                            'Google': 'Search', 'Chrome': 'Compass', 'Apple': 'Smartphone', 'Android': 'Bot',
+                            'Paypal': 'CreditCard', 'PayPal': 'CreditCard', 'Stripe': 'CreditCard',
+                            'Spotify': 'Music', 'Netflix': 'Tv', 'Amazon': 'ShoppingBag'
+                        };
+                        src = src.replace(/(import\s*\{)([^}]+)(\}\s*from\s*['"]lucide-react['"];?)/g, (m, p1, p2, p3) => {
+                            const specs = p2.split(',').map(s => {
+                                const trimmed = s.trim();
+                                if (!trimmed) return s;
+                                if (trimmed.includes(' as ')) {
+                                    const [orig, alias] = trimmed.split(' as ').map(x => x.trim());
+                                    if (iconMap[orig]) return s.replace(orig, iconMap[orig]);
+                                } else if (iconMap[trimmed]) {
+                                    const lead = s.match(/^\s*/)[0];
+                                    const trail = s.match(/\s*$/)[0];
+                                    return `${lead}${iconMap[trimmed]} as ${trimmed}${trail}`;
+                                }
+                                return s;
+                            });
+                            return `${p1}${specs.join(',')}${p3}`;
+                        });
+                    }
+                    zip.file(file.file_name, src);
                 }
             });
             
@@ -1375,38 +1477,67 @@
         }
 
         /**
-         * Sanitizes a raw JSON string from an LLM before calling JSON.parse().
-         * LLMs frequently produce invalid escape sequences (e.g. \A, \d, \s, \U, \$)
-         * inside free-text fields like `pseudocode`. JSON only allows:
-         *   \" \\ \/ \b \f \n \r \t \uXXXX
-         * This function walks char-by-char through JSON strings, double-escaping
-         * any invalid \X sequences so JSON sees a literal backslash.
+         * Hardened JSON sanitizer:
+         * 1. Inspects \u to verify 4 hexadecimal characters follow; otherwise double-escapes (\\u).
+         * 2. Double-escapes \b so regex word boundaries are preserved rather than converted to ASCII 0x08.
+         * 3. Double-escapes all unescaped backslashes (\d, \s, \w, \$).
+         * 4. Recovers unescaped newlines inside string literals.
+         * 5. Anchors __USAGE__ sentinel stripping to line breaks and stream boundaries, avoiding collision with user code.
+         * 6. Handles trailing backslashes on truncated streams before auto-closing strings.
+         * 7. Balances unclosed object ({}) and array ([]) brackets using an open container stack to recover truncated streams.
          */
-        function safeJsonParse(rawStr) {
-            // Strip the __RESET__ / __USAGE__ sentinels first
+        function robustJsonParse(rawStr) {
             if (rawStr.includes('__RESET__')) {
                 const parts = rawStr.split('__RESET__');
                 rawStr = parts[parts.length - 1];
             }
-            if (rawStr.includes('__USAGE__')) {
-                rawStr = rawStr.split('__USAGE__')[0];
+            // Anchor sentinel stripping strictly to line breaks and stream endings
+            // to prevent truncating valid code containing '__USAGE__' constants or comments
+            const usageIdx = rawStr.search(/\r?\n__USAGE__\d+,\d+\s*$/);
+            if (usageIdx !== -1) {
+                rawStr = rawStr.slice(0, usageIdx);
             }
-            // Char-by-char sanitization within JSON string literals
-            const VALID_ESCAPES = new Set(['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']);
+
+            const VALID_SINGLE_ESCAPES = new Set(['"', '\\', '/', 'f', 'n', 'r', 't']);
+            const HEX_CHARS = new Set("0123456789abcdefABCDEF");
+            
             let sanitized = "";
             let inString = false;
             let escapeNext = false;
-            for (let i = 0; i < rawStr.length; i++) {
+            const containerStack = []; // Stack tracking open '{' and '[' brackets
+            const len = rawStr.length;
+
+            for (let i = 0; i < len; i++) {
                 const c = rawStr[i];
                 if (!inString) {
-                    if (c === '"') inString = true;
+                    if (c === '"') {
+                        inString = true;
+                    } else if (c === '{' || c === '[') {
+                        containerStack.push(c);
+                    } else if (c === '}' && containerStack.length > 0 && containerStack[containerStack.length - 1] === '{') {
+                        containerStack.pop();
+                    } else if (c === ']' && containerStack.length > 0 && containerStack[containerStack.length - 1] === '[') {
+                        containerStack.pop();
+                    }
                     sanitized += c;
                 } else {
                     if (escapeNext) {
-                        if (!VALID_ESCAPES.has(c)) {
-                            sanitized += '\\' + c; // double-escape: \A -> \\A
-                        } else {
+                        if (c === 'u') {
+                            // Lookahead: verify 4 hexadecimal characters follow
+                            const hexCandidate = rawStr.slice(i + 1, i + 5);
+                            if (hexCandidate.length === 4 && [...hexCandidate].every(h => HEX_CHARS.has(h))) {
+                                sanitized += c; // Valid \uXXXX escape
+                            } else {
+                                sanitized += '\\' + c; // Invalid Unicode like \users -> \\users
+                            }
+                        } else if (c === 'b') {
+                            // Double-escape \b so word boundary regexes aren't converted to ASCII Backspace
+                            sanitized += '\\' + c;
+                        } else if (VALID_SINGLE_ESCAPES.has(c)) {
                             sanitized += c;
+                        } else {
+                            // Non-standard escapes: \d, \s, \w, \$ -> \\d, \\s
+                            sanitized += '\\' + c;
                         }
                         escapeNext = false;
                     } else if (c === '\\') {
@@ -1422,14 +1553,31 @@
                     } else if (c === '\t') {
                         sanitized += '\\t';
                     } else if (c.charCodeAt(0) < 32) {
-                        // strip unescaped control chars
+                        // Strip raw control codes
                     } else {
                         sanitized += c;
                     }
                 }
             }
+
+            // Auto-close string if stream was truncated, safely resolving trailing backslashes
+            if (inString) {
+                if (escapeNext) {
+                    sanitized += '\\'; // Neutralize hanging backslash so the quote terminates the string
+                }
+                sanitized += '"';
+            }
+
+            // Balance unclosed object and array containers to recover valid JSON on stream interruption
+            while (containerStack.length > 0) {
+                const openChar = containerStack.pop();
+                sanitized += (openChar === '{' ? '}' : ']');
+            }
+            
             return JSON.parse(sanitized);
         }
+
+        const safeJsonParse = robustJsonParse;
 
         function resetUI() {
             CountdownManager.cancelAll();
@@ -1452,6 +1600,14 @@
             currentDynamicBudget = null;
             integrationDynamicBudget = null;
             lastIntegrationComposite = null;
+            integrationRevisionHistory = [];
+            integrationActiveRevisionIndex = -1;
+            integrationCriticHistory = [];
+            integrationActiveCriticIndex = -1;
+            const intRevTabs = document.getElementById('integrationRevTabs') || document.getElementById('rev-tabs-integration');
+            if (intRevTabs) { intRevTabs.innerHTML = ''; intRevTabs.classList.add('hidden'); }
+            const intCritTabs = document.getElementById('integrationCriticTabs') || document.getElementById('critic-tabs-integration');
+            if (intCritTabs) { intCritTabs.innerHTML = ''; intCritTabs.classList.add('hidden'); }
             activeFileIndex = -1;
         }
 
@@ -1733,7 +1889,9 @@
             try {
                 const payload = {
                     requirements: currentRequirements,
-                    blueprint: currentBlueprint
+                    blueprint: currentBlueprint,
+                    generation_mode: currentMode,
+                    mode: currentMode
                 };
                 
                 if (isRevision && currentRevisionPlan) {
@@ -2838,7 +2996,9 @@
                         previous_codebase: prevCodebase,
                         revision_plan: state.revisionPlan,
                         component_name: component.component_name,
-                        revision_count: state.revisionCount || 0
+                        revision_count: state.revisionCount || 0,
+                        generation_mode: currentMode,
+                        mode: currentMode
                     })
                 });
                 
@@ -3045,7 +3205,7 @@
                 }
             } catch(e) {
                 console.error("Critics Error (" + cId + "):", e);
-                const maxCompRevs = state.dynamicBudget || ((currentMode === 'QUICK') ? 2 : 3);
+                const maxCompRevs = state.dynamicBudget || ((currentMode === 'QUICK') ? 1 : 3);
                 if (currentMode === 'QUICK') {
                     if ((state.revisionCount || 0) < maxCompRevs) {
                         state.revisionCount = (state.revisionCount || 0) + 1;
@@ -3147,55 +3307,8 @@
                 }
             }
             
-            let sanitized = "";
-            let inString = false;
-            let escapeNext = false;
-            const VALID_JSON_ESCAPES = new Set(['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']);
-            for (let i = 0; i < fullJsonStr.length; i++) {
-                const c = fullJsonStr[i];
-                if (!inString) {
-                    if (c === '"') inString = true;
-                    sanitized += c;
-                } else {
-                    if (escapeNext) {
-                        // We just saw a backslash. Check if this is a valid JSON escape.
-                        if (!VALID_JSON_ESCAPES.has(c)) {
-                            // Invalid escape like \A, \d, \s, \$, \U — double-escape it
-                            // so JSON sees a literal backslash: \\A
-                            sanitized += '\\' + c;
-                        } else {
-                            sanitized += c;
-                        }
-                        escapeNext = false;
-                    } else if (c === '\\') {
-                        sanitized += c;
-                        escapeNext = true;
-                    } else if (c === '"') {
-                        inString = false;
-                        sanitized += c;
-                    } else if (c === '\n') {
-                        sanitized += '\\n';
-                    } else if (c === '\r') {
-                        sanitized += '\\r';
-                    } else if (c === '\t') {
-                        sanitized += '\\t';
-                    } else if (c.charCodeAt(0) < 32) {
-                        sanitized += ""; // strip other unescaped control chars
-                    } else {
-                        sanitized += c;
-                    }
-                }
-            }
-            
-            let data;
-            try {
-                data = JSON.parse(sanitized);
-            } catch (e) {
-                console.error("JSON Parse Error on sanitized string:", e, "\nSanitized:", sanitized);
-                throw e;
-            }
-            
-            if (data.error) throw new Error(data.error);
+            const data = robustJsonParse(fullJsonStr);
+            if (data && data.error) throw new Error(data.error);
             return data;
         }
 
@@ -3203,6 +3316,182 @@
         let integrationRevisionPlan = null;
         let integrationDynamicBudget = null;
         let lastIntegrationComposite = null;
+        let integrationRevisionHistory = [];
+        let integrationActiveRevisionIndex = -1;
+        let integrationCriticHistory = [];
+        let integrationActiveCriticIndex = -1;
+
+        function renderIntegrationRevTabs() {
+            if (!integrationRevisionHistory || integrationRevisionHistory.length === 0) return;
+            const container = document.getElementById('integrationRevTabs') || document.getElementById('rev-tabs-integration');
+            if (container) {
+                container.classList.remove('hidden');
+                container.innerHTML = integrationRevisionHistory.map((rev, i) => `
+                    <button class="px-3 py-1 rounded-t-lg transition-colors border-b-2 ${integrationActiveRevisionIndex === i ? 'bg-purple-600/20 text-purple-300 border-purple-500 font-bold' : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'}" onclick="switchIntegrationRevision(${i}, 0)">
+                        ${i === 0 ? 'Initial' : 'Rev ' + i}
+                    </button>
+                `).join('');
+            }
+            const diffBtn = document.getElementById('diffToggleBtn');
+            if (diffBtn) {
+                if (integrationActiveRevisionIndex > 0) {
+                    diffBtn.classList.remove('hidden');
+                } else {
+                    diffBtn.classList.add('hidden');
+                }
+            }
+        }
+
+        function switchIntegrationRevision(revIndex, fileIndex = 0) {
+            if (revIndex < 0 || !integrationRevisionHistory || revIndex >= integrationRevisionHistory.length) return;
+
+            // Flush current editor content to previously active revision
+            if (activeFileIndex >= 0 && editorInstance && integrationActiveRevisionIndex >= 0 && integrationRevisionHistory[integrationActiveRevisionIndex]) {
+                const curRev = integrationRevisionHistory[integrationActiveRevisionIndex];
+                if (curRev.codebase && curRev.codebase.files && curRev.codebase.files[activeFileIndex]) {
+                    curRev.codebase.files[activeFileIndex].source_code = editorInstance.getValue();
+                }
+            }
+
+            integrationActiveRevisionIndex = revIndex;
+            activeRevisionIndex = revIndex;
+
+            const rev = integrationRevisionHistory[revIndex];
+            if (rev && rev.codebase) {
+                currentCodebase = JSON.parse(JSON.stringify(rev.codebase));
+            }
+            if (rev && rev.executionResult) {
+                currentExecutionResult = JSON.parse(JSON.stringify(rev.executionResult));
+            }
+
+            activeFileIndex = -1;
+
+            if (isDiffMode) toggleDiffMode();
+
+            buildFileExplorer();
+            if (currentCodebase && currentCodebase.files && currentCodebase.files.length > 0) {
+                switchFile(fileIndex);
+            }
+
+            const titleEl = document.getElementById('codeOutputTitle');
+            if (titleEl) {
+                const maxRevs = integrationDynamicBudget || ((currentMode === 'QUICK') ? 1 : 3);
+                titleEl.innerText = revIndex === 0 
+                    ? 'Unified Integrated Codebase (Initial)' 
+                    : `Unified Integrated Codebase (Revision ${revIndex}/${maxRevs})`;
+            }
+
+            renderIntegrationRevTabs();
+        }
+
+        function switchIntegrationFile(fileIndex, revIndex = -1) {
+            if (revIndex !== -1) {
+                switchIntegrationRevision(revIndex, fileIndex);
+                return;
+            }
+            switchFile(fileIndex);
+        }
+
+        function renderIntegrationCriticTabs() {
+            if (!integrationCriticHistory || integrationCriticHistory.length === 0) return;
+            const container = document.getElementById('integrationCriticTabs') || document.getElementById('critic-tabs-integration');
+            if (container) {
+                container.classList.remove('hidden');
+                container.innerHTML = integrationCriticHistory.map((hist, i) => {
+                    const isSelected = (integrationActiveCriticIndex !== undefined && integrationActiveCriticIndex !== -1) 
+                        ? integrationActiveCriticIndex === i 
+                        : (i === integrationCriticHistory.length - 1);
+                    return '<button class="px-3 py-1 rounded-t-lg transition-colors border-b-2 ' + 
+                        (isSelected ? 'bg-blue-600/20 text-blue-300 border-blue-500 font-bold' : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700') + 
+                        '" onclick="renderIntegrationCriticHistoryTab(' + i + ')">' + 
+                        (i === 0 ? 'Initial Eval' : 'Rev ' + i + ' Eval') + 
+                        '</button>';
+                }).join('');
+            }
+        }
+
+        function renderIntegrationCriticHistoryTab(index) {
+            if (!integrationCriticHistory || integrationCriticHistory.length <= index) return;
+            integrationActiveCriticIndex = index;
+            renderIntegrationCriticTabs();
+
+            const hist = integrationCriticHistory[index];
+            const execLogs = document.getElementById('execLogsOutput');
+            if (execLogs) {
+                execLogs.innerText = (hist.exec && hist.exec.logs) ? hist.exec.logs : (hist.execMsg || "No logs available.");
+            }
+            const statusBadge = document.getElementById('execStatusBadge');
+            if (statusBadge && hist.exec) {
+                if (hist.exec.success) {
+                    statusBadge.innerText = "Passed";
+                    statusBadge.className = "px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm rounded-full font-medium border border-emerald-500/20";
+                } else {
+                    statusBadge.innerText = "Failed";
+                    statusBadge.className = "px-3 py-1 bg-red-500/20 text-red-400 text-sm rounded-full font-medium border border-red-500/20";
+                }
+            }
+
+            const cCards = document.getElementById('criticCardsContainer');
+            const adjSection = document.getElementById('adjudicatorSection');
+            const verdictBadge = document.getElementById('adjudicatorVerdict');
+            const planText = document.getElementById('adjudicatorPlan');
+            const card = document.getElementById('adjudicatorCard');
+
+            if (hist.loading) {
+                if (cCards) cCards.innerHTML = '<div class="text-sm text-slate-500 font-mono animate-pulse">Arbitration Engine analyzing execution results...</div>';
+                if (adjSection) adjSection.classList.add('hidden');
+                return;
+            }
+            if (hist.error) {
+                if (cCards) cCards.innerHTML = '<div class="text-red-500 font-bold p-4">Critics API Failed: ' + hist.error + '</div>';
+                if (adjSection) adjSection.classList.add('hidden');
+                return;
+            }
+
+            const arbitration = hist.arbitration;
+            if (!arbitration) {
+                if (cCards) cCards.innerHTML = '<div class="text-sm text-slate-400 p-4">No arbitration feedback available for this revision.</div>';
+                if (adjSection) adjSection.classList.add('hidden');
+                return;
+            }
+
+            if (cCards) {
+                if (arbitration.feedbacks && arbitration.feedbacks.length > 0) {
+                    cCards.innerHTML = arbitration.feedbacks.map(f => {
+                        const isPass = f.severity_score === 0;
+                        return '<div class="bg-slate-900/80 p-4 rounded-lg border ' + (isPass ? 'border-emerald-500/30' : 'border-red-500/30') + ' shadow-sm relative overflow-hidden"><div class="absolute left-0 top-0 bottom-0 w-1 ' + (isPass ? 'bg-emerald-500' : 'bg-red-500') + '"></div><div class="flex justify-between items-center mb-2"><span class="font-bold uppercase tracking-wider text-xs ' + (isPass ? 'text-emerald-400' : 'text-red-400') + ' flex items-center gap-2">' + (isPass ? '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>') + f.critic_name + '</span><span class="text-[10px] font-mono px-2 py-0.5 rounded-full ' + (isPass ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500') + '">Sev: ' + f.severity_score + '/10</span></div><p class="text-slate-300 text-sm leading-relaxed mb-2">' + f.overall_comments + '</p>' + (f.issues_list && f.issues_list.length > 0 ? '<ul class="list-disc pl-5 text-xs text-slate-400 space-y-1">' + f.issues_list.map(i => '<li>' + i + '</li>').join('') + '</ul>' : '') + '</div>';
+                    }).join('');
+                } else {
+                    cCards.innerHTML = '<div class="text-sm text-slate-400 p-4">No critic feedback recorded for this revision.</div>';
+                }
+            }
+
+            if (adjSection) {
+                if (arbitration.decision) {
+                    adjSection.classList.remove('hidden');
+                    const dec = arbitration.decision;
+                    const isEarlyStop = !!dec.early_stop;
+                    const isPass = (dec.verdict || '').toLowerCase() === 'pass' || isEarlyStop;
+                    if (verdictBadge) {
+                        if (isPass) {
+                            verdictBadge.textContent = isEarlyStop ? "PASSED (EARLY STOP)" : "PASSED";
+                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30";
+                        } else {
+                            verdictBadge.textContent = (dec.verdict && dec.verdict.toLowerCase() === 'revise') ? 'REVISION REQUIRED' : (dec.verdict || 'REVISION').toUpperCase();
+                            verdictBadge.className = "px-3 py-1 rounded-full text-sm font-bold uppercase border bg-orange-500/20 text-orange-400 border-orange-500/30";
+                        }
+                    }
+                    if (planText) {
+                        planText.textContent = dec.revision_plan || (isPass ? (isEarlyStop ? "Early stop triggered: score improvement threshold met." : "Integration verified and passed by Adjudicator.") : "Adjudicator requested fixes for integration issues.");
+                    }
+                    if (card) {
+                        card.className = isPass ? "p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800" : "p-5 rounded-lg border shadow-sm bg-orange-950/20 border-orange-800";
+                    }
+                } else {
+                    adjSection.classList.add('hidden');
+                }
+            }
+        }
 
         async function runIntegration(isRevision = false) {
             CountdownManager.cancel('integrateBtn');
@@ -3211,6 +3500,18 @@
                 integrationRevisionPlan = null;
                 integrationDynamicBudget = null;
                 lastIntegrationComposite = null;
+                integrationRevisionHistory = [];
+                integrationActiveRevisionIndex = -1;
+                integrationCriticHistory = [];
+                integrationActiveCriticIndex = -1;
+                revisionHistory = integrationRevisionHistory;
+                activeRevisionIndex = -1;
+                const intRevTabs = document.getElementById('integrationRevTabs') || document.getElementById('rev-tabs-integration');
+                if (intRevTabs) { intRevTabs.innerHTML = ''; intRevTabs.classList.add('hidden'); }
+                const intCritTabs = document.getElementById('integrationCriticTabs') || document.getElementById('critic-tabs-integration');
+                if (intCritTabs) { intCritTabs.innerHTML = ''; intCritTabs.classList.add('hidden'); }
+                const diffBtn = document.getElementById('diffToggleBtn');
+                if (diffBtn) diffBtn.classList.add('hidden');
             }
             setButtonLoading('integrateBtn', 'integrateSpinner', true);
             updateStepper(5, 'loading');
@@ -3235,6 +3536,19 @@
                 
                 const finalCodebase = await readJsonStream(res);
                 currentCodebase = finalCodebase;
+
+                // Snapshot integration code revision
+                const codeSnapshot = {
+                    codebase: JSON.parse(JSON.stringify(currentCodebase)),
+                    executionResult: null,
+                    feedbacks: null,
+                    decision: null
+                };
+                integrationRevisionHistory.push(codeSnapshot);
+                integrationActiveRevisionIndex = integrationRevisionHistory.length - 1;
+                revisionHistory = integrationRevisionHistory;
+                activeRevisionIndex = integrationActiveRevisionIndex;
+                renderIntegrationRevTabs();
                 
                 let dynamicTestCmd = "pytest";
                 const stack = (currentDecomposition.shared_tech_stack || []).map(s => String(s).toLowerCase());
@@ -3271,7 +3585,8 @@
                     body: JSON.stringify({ codebase: currentCodebase, blueprint: currentBlueprint })
                 });
                 currentExecutionResult = await execRes.json();
-                
+                codeSnapshot.executionResult = JSON.parse(JSON.stringify(currentExecutionResult));
+
                 document.getElementById('execLogsOutput').innerText = currentExecutionResult.logs;
                 const statusBadge = document.getElementById('execStatusBadge');
                 if (currentExecutionResult.success) {
@@ -3284,6 +3599,19 @@
                 setVisible('execOutputSection', true);
                 
                 // --- Integration Phase Arbitration (Adjudicator) ---
+                if (!integrationCriticHistory) integrationCriticHistory = [];
+                const currentCriticIdx = integrationCriticHistory.length;
+                integrationCriticHistory.push({
+                    exec: JSON.parse(JSON.stringify(currentExecutionResult)),
+                    loading: true,
+                    error: null,
+                    arbitration: null
+                });
+                integrationActiveCriticIndex = currentCriticIdx;
+                setVisible('criticOutputSection', true);
+                renderIntegrationCriticTabs();
+                renderIntegrationCriticHistoryTab(currentCriticIdx);
+
                 const criticsRes = await fetch('/api/run-critics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -3301,6 +3629,21 @@
                     })
                 });
                 const arbitration = await criticsRes.json();
+                if (!criticsRes.ok) {
+                    const errMsg = arbitration.detail || arbitration.error || JSON.stringify(arbitration);
+                    integrationCriticHistory[currentCriticIdx].loading = false;
+                    integrationCriticHistory[currentCriticIdx].error = errMsg;
+                    renderIntegrationCriticTabs();
+                    renderIntegrationCriticHistoryTab(currentCriticIdx);
+                    throw new Error("Critics API Failed: " + errMsg);
+                }
+
+                integrationCriticHistory[currentCriticIdx].loading = false;
+                integrationCriticHistory[currentCriticIdx].arbitration = arbitration;
+                codeSnapshot.feedbacks = arbitration?.feedbacks || [];
+                codeSnapshot.decision = arbitration?.decision || null;
+                renderIntegrationCriticTabs();
+                renderIntegrationCriticHistoryTab(currentCriticIdx);
                 if (arbitration?.decision?.weighted_composite !== undefined && arbitration?.decision?.weighted_composite !== null) {
                     lastIntegrationComposite = arbitration.decision.weighted_composite;
                 }
@@ -3391,6 +3734,15 @@
                 
             } catch (err) {
                 console.error("Integration Error", err);
+                if (integrationCriticHistory && integrationCriticHistory.length > 0) {
+                    const lastHist = integrationCriticHistory[integrationCriticHistory.length - 1];
+                    if (lastHist && lastHist.loading) {
+                        lastHist.loading = false;
+                        lastHist.error = err.message || "Failed to complete integration analysis.";
+                        renderIntegrationCriticTabs();
+                        renderIntegrationCriticHistoryTab(integrationCriticHistory.length - 1);
+                    }
+                }
                 if (currentMode === 'QUICK') {
                     const maxCatchRevs = integrationDynamicBudget || ((currentMode === 'QUICK') ? 1 : 3);
                     if (integrationRevisionCount < maxCatchRevs) {

@@ -17,6 +17,7 @@ class GraphState(TypedDict, total=False):
     codebase: GeneratedCodeBase
     execution_result: ExecutionResult
     master_decomposition: Optional[ComponentDecomposition]
+    component_name: Optional[str]
     # operator.add ensures that when parallel nodes return lists, they are concatenated together
     feedbacks: Annotated[List[CriticFeedback], operator.add]
     decision: AdjudicatorDecision
@@ -28,7 +29,14 @@ class GraphState(TypedDict, total=False):
     dynamic_budget: Optional[int]
 
 def node_correctness(state: GraphState):
-    feedback = evaluate_correctness(state["requirements"], state["execution_result"], state.get("codebase"), state.get("mode"))
+    feedback = evaluate_correctness(
+        requirements=state["requirements"],
+        execution_result=state["execution_result"],
+        codebase=state.get("codebase"),
+        master_decomposition=state.get("master_decomposition"),
+        component_name=state.get("component_name"),
+        mode=state.get("mode")
+    )
     return {"feedbacks": [feedback]}
 
 def node_architecture(state: GraphState):

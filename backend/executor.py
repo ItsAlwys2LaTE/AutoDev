@@ -5,10 +5,11 @@ import threading
 import docker
 import re
 from models import GeneratedCodeBase, ExecutionResult, SystemDesignBlueprint
-from golden_stacks import enforce_golden_dependencies
+from golden_stacks import enforce_golden_dependencies, has_test_files, is_test_file
 
 def create_tar_from_codebase(codebase: GeneratedCodeBase) -> bytes:
     """Creates an in-memory tarball of the codebase to inject into the Docker container."""
+    codebase = enforce_golden_dependencies(codebase)
     tar_stream = io.BytesIO()
     with tarfile.open(fileobj=tar_stream, mode='w') as tar:
         for file_obj in codebase.files:
@@ -98,17 +99,20 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     else:
         base_cmd = "pytest"
 
+    # Detect if command is a build command (redundant to run lint and prevents build abort on lint warnings)
+    is_build_cmd = bool(re.search(r'\bbuild\b', raw_cmd, re.IGNORECASE)) or bool(re.search(r'\bbuild\b', base_cmd, re.IGNORECASE))
+    should_lint = has_lint_script and not is_build_cmd
+
     # Auto-inject dependency installation and pre-flight static analysis
-    lint_injection = "npm run lint && " if has_lint_script else ""
+    lint_injection = "npm run lint && " if should_lint else ""
     if has_package_json and "npm install" not in base_cmd:
         base_cmd = f"npm install --no-audit --no-fund && {lint_injection}{base_cmd}"
     elif has_package_json and "npm install" in base_cmd and "--no-audit" not in base_cmd:
-        replacement = f"npm install --no-audit --no-fund && npm run lint" if has_lint_script else "npm install --no-audit --no-fund"
+        replacement = f"npm install --no-audit --no-fund && npm run lint" if should_lint else "npm install --no-audit --no-fund"
         base_cmd = base_cmd.replace("npm install", replacement)
 
     # Guard against Playwright version mismatch
     if "playwright" in docker_image_lower:
-        import re
         match = re.search(r"v(\d+\.\d+\.\d+)", docker_image_lower)
         if match:
             pw_version = match.group(1)

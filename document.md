@@ -61,6 +61,8 @@
    - 6.2 [Frontend State Machine & Stage Progression Automata](#62-frontend-state-machine--stage-progression-automata)
    - 6.3 [Polling Loop, SSE Log Stream & Event Handling](#63-polling-loop-sse-log-stream--event-handling)
    - 6.4 [Embedded Monaco Editor, Live Docker Preview & Security Controls](#64-embedded-monaco-editor-live-docker-preview--security-controls)
+   - 6.5 [Integration Phase Revision Layout & Arbitration History Architecture](#65-integration-phase-revision-layout--arbitration-history-architecture)
+   - 6.6 [Live Preview 3-Layer Defense System](#live-preview-3-layer-defense-system-premature-exit-prevention)
 7. [Verification & Test Suite Documentation](#7-verification--test-suite-documentation)
    - 7.1 [Automated Integration Suite (`test_pipeline_flow.py`)](#71-automated-integration-suite-test_pipeline_flowpy)
    - 7.2 [Empirical Stress & Challenger Suite (`test_pipeline_stress_challenge.py`)](#72-empirical-stress--challenger-suite-test_pipeline_stress_challengepy)
@@ -1491,6 +1493,42 @@ The client dashboard is implemented in `backend/index.html` as a zero-build Sing
 4. **Re-entrancy Protection**: Disables buttons and shows spinners immediately upon click.
 5. **Self-Correction 3-Cycle Cap**: Automatically caps self-correction cycles at 3 iterations to prevent infinite token consumption.
 
+### 6.5 Integration Phase Revision Layout & Arbitration History Architecture
+
+1. **State Store & Snapshot Structure**:
+   - `integrationRevisionHistory`: An array of code snapshots recorded on initial integration synthesis and each revision loop (`Initial`, `Rev 1`, `Rev 2`, `Rev 3`, ...). Each record preserves:
+     - `revision`: Integer index (0-indexed).
+     - `codebase`: Deep clone of the integrated project files array (`file_name`, `content`).
+     - `executionResult`: Execution output (`stdout`, `stderr`, exit code, execution errors) corresponding to that code snapshot.
+     - `status`: String state (`'complete'`, `'error'`, etc.).
+   - `integrationActiveRevisionIndex`: Pointer tracking the currently displayed code revision.
+   - `integrationCriticHistory`: An array of arbitration snapshots recorded for each evaluation cycle (`Initial Eval`, `Rev 1 Eval`, `Rev 2 Eval`, ...). Each record preserves:
+     - `revision`: Integer revision index.
+     - `arbitration`: Full critic feedback dictionary (`correctness`, `performance`, `security`, `architecture`) containing reviewer critiques, severity scores, and recommendations.
+     - `decision`: Final adjudicator verdict (`AdjudicatorDecision` payload with `verdict`, `reasons`, `composite_score`, `early_stop_triggered`, etc.).
+     - `executionResult`: Execution logs evaluated by critics during that cycle.
+     - `loading`: Boolean flag tracking in-flight evaluations.
+     - `error`: Optional error string if arbitration synthesis failed or was interrupted.
+   - `integrationActiveCriticIndex`: Pointer tracking the currently displayed arbitration evaluation tab.
+
+2. **Dual-Tab Container Layout**:
+   - `#integrationRevTabs`: Flex tab container positioned directly above the Monaco editor in `#codeOutputSection`. Dynamically renders pills (`Initial`, `Rev 1`, `Rev 2`...) via `renderIntegrationRevTabs()`. The active tab is visually highlighted with blue accent styling (`bg-blue-600 text-white shadow-sm font-medium`).
+   - `#integrationCriticTabs`: Flex tab container positioned in `#criticOutputSection` above the critic cards. Dynamically renders pills (`Initial Eval`, `Rev 1 Eval`...) via `renderIntegrationCriticTabs()`. Supports pending indicator dots during active evaluation cycles.
+
+3. **Buffer Synchronization & Model Isolation**:
+   - Monaco editor model buffers are synchronized via `monaco.editor.getModels()` on each file switch. When navigating between integration revisions via `switchIntegrationRevision(targetIdx)`, the Monaco editor instances and file explorer tree are bound strictly to `integrationRevisionHistory[targetIdx].codebase`.
+   - Associated execution logs in `#integrationRunOutput` and execution status badges are restored to reflect the execution run of the selected revision.
+
+4. **Consecutive Diff Mode (`toggleDiffMode()`)**:
+   - Clicking `#diffToggleBtn` splits the editor into a Monaco Diff Editor (`monaco.editor.createDiffEditor`), comparing the active integration revision (`Rev N`) directly against the immediately preceding revision (`Rev N - 1`).
+   - **File Pairing by Name**: When comparing revisions, files are strictly resolved by matching `file_name` (`prevRev.codebase.files.find(f => f.file_name === curFile.file_name)`). Newly added files diff against empty string `""` without index mismatch fallbacks.
+   - **Safe Model Disposal**: Previous diff models (`diffEditorInstance.getModel()`) are explicitly disposed prior to instantiating new diff buffers, preventing DOM memory leaks.
+
+5. **Lifecycle Reset & Error Handling Resilience**:
+   - Fresh integration runs (`runIntegration(!isRevision)`) immediately flush and hide `#integrationRevTabs` and `#integrationCriticTabs` in the DOM, resetting history arrays to prevent visual artifact leaks.
+   - Arbitration failures (`catch (err)` in `runIntegration`) mark pending evaluations with `loading: false` and `error: err.message`, rendering an explicit error state in `renderIntegrationCriticHistoryTab` rather than an unresolvable infinite spinner.
+   - When browsing historical tabs without critics or decisions, stale cards and adjudicator verdict cards are explicitly cleared and hidden.
+
 ---
 
 ## 7. Verification & Test Suite Documentation
@@ -1694,3 +1732,31 @@ pm run lint (ESLint) directly into the test command if a lint script exists in t
 **Fixes Applied:**
 - **`golden_stacks.py`**: Added `'react/display-name': 'off'` to ESLint config. Added `supertest` and `superagent` to a banned dependencies blocklist that strips them from any AI-generated `package.json`. Added auto-injection of `import React from 'react'` into all `.test.jsx` / `.test.tsx` files if missing.
 - **`codegen_agent.py`**, **`design_agent.py`**, **`integrator_agent.py`**: Updated system prompts to explicitly ban `supertest`, mandate `import React` in test files, and instruct the AI to test server logic by importing handler functions directly instead of using HTTP testing libraries.
+
+### Live Preview 3-Layer Defense System (Premature Exit Prevention)
+
+**Problem / Root Cause:**
+The Docker live preview system (`POST /api/preview/start`) experienced premature container exit crashes reporting `sh: 1: python: not found`.
+1. **Playwright Image Bypass**: The previous command rewriting interceptor in `main.py` only checked `if "node" in image.lower() and "python -m http.server" in cmd`. When the design or architect agent generated a multi-component system using the standard Playwright image `mcr.microsoft.com/playwright:v1.48.0-jammy` with a static or fallback server command `python -m http.server 8080`, the check evaluated to `False` (since `"node"` was not in `"playwright"`). The container then attempted to run `python`, which does not exist in Debian Playwright base images.
+2. **Missing Dev Server Command Fallbacks**: When blueprints set `dev_server_command: "NONE"` or `dev_server_port: 0`, the server defaulted to Python HTTP server unconditionally, regardless of whether the application was a Node or React/Vite project.
+3. **Agent Prompt Hallucinations**: Prompt instructions in `design_agent.py`, `master_architect.py`, and `integrator_agent.py` provided conflicting advice, suggesting `python -m http.server` for static HTML even inside Node/Playwright environments.
+
+**3-Layer Defense Solution:**
+
+1. **Layer 1: Runtime Command Normalization (`backend/main.py`)**:
+   - Replaced narrow `"node"` image check with a comprehensive non-Python detection heuristic: `is_python_image = "python" in image.lower()`.
+   - Any non-Python image (including Playwright, Node, Bun, and Deno) executing `python -m http.server` or `python3 -m http.server` has its command rewritten to `npx --yes serve -p <port> -H 0.0.0.0`.
+   - Binds host addresses uniformly using `-H 0.0.0.0` or `--bind 0.0.0.0`.
+
+2. **Layer 2: Deterministic Codebase Heuristic Fallback (`backend/main.py`)**:
+   - When `cmd == "NONE"` or `internal_port == 0`, the endpoint deterministically inspects the payload codebase files:
+     - **Vite Projects** (has `package.json` with `vite` dependency): Configures `npm run dev -- --host 0.0.0.0` on internal port `5173`.
+     - **Generic Node Projects** (has `package.json`): Configures `npx --yes serve -p 3000 -H 0.0.0.0` on internal port `3000`.
+     - **Static HTML Web Apps** (has `index.html`): Configures `npx --yes serve -p 8080 -H 0.0.0.0` on port `8080` (or `python3 -m http.server 8080 --bind 0.0.0.0` if running in a genuine Python image).
+     - **Python Projects**: Preserves `python3 -m http.server 8080 --bind 0.0.0.0` on port `8080`.
+
+3. **Layer 3: Agent Prompt Guardrails & Compatibility Mandates**:
+   - Updated system prompts in `design_agent.py`, `master_architect.py`, and `integrator_agent.py`.
+   - Mandated that `dev_server_command` and `docker_image` must be strictly compatible.
+   - For React/Vite web apps, mandated setting `dev_server_command` to `npm run dev -- --host 0.0.0.0` with `dev_server_port: 5173`.
+   - Strictly prohibited generating Python server commands when using Node or Playwright Docker images.

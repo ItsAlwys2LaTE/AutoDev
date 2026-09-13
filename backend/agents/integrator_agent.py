@@ -49,9 +49,24 @@ def generate_integration_stream(
        navigation (tabs, sidebar, or page routing).
     3. CONSOLIDATED DEPENDENCIES: Merge all package.json or requirements.txt files into ONE unified manifest 
        with all dependencies from all components. Remove duplicates and ensure testing dependencies (such as vitest and jsdom for Node or pytest for Python) are present.
-    4. DYNAMIC INTEGRATION TESTS: Write comprehensive integration test(s) matching the project's selected tech stack:
-       - For Python/pytest projects: Generate `test_integration.py` (or `test_app.py`) with pytest assertions testing end-to-end user workflows across components.
-       - For Node.js/JavaScript/TypeScript projects: You MUST generate `e2e.test.js` using Playwright (`@playwright/test`) to verify cross-component interactions and workflows in a real browser. Include `"@playwright/test": "1.48.0"` (EXACTLY this version) in the unified package.json to match the docker image binaries. You MUST also generate a `playwright.config.js` with a `webServer` block that runs your `dev_server_command` so the server boots automatically before tests run.
+    4. DYNAMIC INTEGRATION TESTS & TEST RUNNER ROUTING: Write comprehensive integration test(s) matching the project's selected tech stack:
+       - For Python/pytest projects: Generate `test_integration.py` (or `test_app.py`) with pytest assertions testing end-to-end user workflows across components. ALWAYS use raw string literals `r"..."` for all regular expressions to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
+       - For Node.js/JavaScript/TypeScript projects:
+         a) Test Separation: Unit and component tests run under Vitest in JSDOM; end-to-end browser workflows run in Playwright.
+         b) File Naming Convention: Name all Playwright browser tests with the `.e2e.test.ts` or `.e2e.spec.ts` suffix, or place them strictly inside an `e2e/` directory (e.g., `e2e/checkout.test.ts`). Never mix Playwright `{ page }` fixtures into unit test files (`*.test.tsx`, `*.test.ts`, `*.test.js`).
+          c) Package Scripts & Dev Server Configuration: When generating or updating `package.json`, you MUST configure BOTH development server and test scripts:
+             - DEV SERVER SCRIPT: For React/Vite projects, you MUST include `"dev": "vite"` (or `"dev": "vite --host 0.0.0.0"`). For static Node web apps, include `"dev": "npx --yes serve -p 8080 -H 0.0.0.0"`.
+             - TEST SCRIPTS:
+               * `"test": "vitest run --exclude '**/*.e2e.*' --exclude '**/e2e/**'"`
+               * `"test:unit": "vitest run --exclude '**/*.e2e.*' --exclude '**/e2e/**'"`
+               * `"test:e2e": "playwright test"`
+          d) Blueprint Alignment: The blueprint `run_tests_command` MUST specify `npm test` or `npm run test:unit` for automated sandbox validation cycles, preventing test runner collisions with Playwright fixtures during fast automated feedback loops.
+          e) Playwright Setup & WebServer Compatibility: When generating Playwright tests, include `"@playwright/test": "1.48.0"` (EXACTLY this version) in the unified package.json to match docker image binaries. You MUST also generate a `playwright.config.js` with a `webServer` block:
+             - For React/Vite projects: `command: 'npm run dev -- --host 0.0.0.0'`, `port: 5173`, `reuseExistingServer: !process.env.CI`.
+             - Runtime Compatibility Mandate: `dev_server_command` and the Docker image MUST be strictly compatible. You are STRICTLY PROHIBITED from generating `python -m http.server` in `playwright.config.js` or `package.json` whenever the Docker image is Node or Playwright, as Python is not installed.
+             - 0.0.0.0 Host Binding: All dev servers must explicitly bind to `0.0.0.0` to permit port forwarding.
+         f) In React/Vite unit tests, Vitest runs in JSDOM with `src/setupTests.ts` pre-loaded (`window.matchMedia`, `ResizeObserver`, `@testing-library/jest-dom` matchers are globally available).
+         g) For Vanilla HTML/JS projects, `"type": "module"` is enforced in `package.json`, so `__dirname` is undefined in ES module scope; resolve `index.html` using `process.cwd()` (e.g., `path.resolve(process.cwd(), 'index.html')`) or `import.meta.url`.
        - DATABASE TESTS: If testing a Node backend with MongoDB, use `mongodb-memory-server` to mock the DB in tests. Do NOT try connecting to a real local MongoDB instance.
        - Do NOT use `supertest` or any Node-only HTTP testing library. Vitest runs through Vite which cannot resolve them.
        - IMPORTANT: In ALL .jsx and .tsx test files, you MUST include `import React from 'react';` at the very top.
@@ -67,10 +82,11 @@ def generate_integration_stream(
     9. VITEST & MODERN JS (ESM) MANDATE: For JavaScript/Node/React projects, you MUST use Vitest instead of Jest to fully support modern ES modules (`import`/`export`).
        a) Always add `"type": "module"` in `package.json`.
        b) Include `vitest` and `jsdom` in devDependencies.
-       c) Generate a `vitest.config.js` or `vitest.config.mjs` with `environment: 'jsdom'` if DOM testing is needed.
+       c) Vitest is configured with `environment: 'jsdom'` and auto-loads `src/setupTests.ts` (with `@testing-library/jest-dom` and browser mocks). If generating a custom `vitest.config.js` or `vitest.config.mjs`, include `environment: 'jsdom'`.
        d) At the top of your test files, include `import { describe, it, test, expect } from 'vitest';`.
-       e) DO NOT use CommonJS `require()`. Use modern `import` syntax everywhere.
+       e) DO NOT use CommonJS `require()` or `__dirname`. Because `"type": "module"` is enforced in `package.json`, `__dirname` is undefined in ES module scope; use `process.cwd()` (e.g. `path.resolve(process.cwd(), 'index.html')`) or `import.meta.url` for file path resolution.
        f) Do NOT use `supertest`. Test server logic by importing functions directly.
+       g) Vite Server Configuration: When generating or modifying `vite.config.js` or `vite.config.ts`, include `server: { host: '0.0.0.0', port: 5173 }` so the development server automatically binds to `0.0.0.0` on port 5173 for Docker container port forwarding.
     10. REACT ICONS: If generating React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react. Either use generic icons or use "react-icons" if brand icons are strictly required.
     """
 
