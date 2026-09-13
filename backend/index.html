@@ -1381,14 +1381,20 @@
         function setButtonLoading(btnId, spinnerId, isLoading) {
             const btn = document.getElementById(btnId);
             const spinner = document.getElementById(spinnerId);
-            if (isLoading) {
-                btn.disabled = true;
-                btn.classList.add('opacity-75', 'cursor-not-allowed');
-                spinner.classList.remove('hidden');
-            } else {
-                btn.disabled = false;
-                btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                spinner.classList.add('hidden');
+            if (btn) {
+                btn.disabled = isLoading;
+                if (isLoading) {
+                    btn.classList.add('opacity-75', 'cursor-not-allowed');
+                } else {
+                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
+                }
+            }
+            if (spinner) {
+                if (isLoading) {
+                    spinner.classList.remove('hidden');
+                } else {
+                    spinner.classList.add('hidden');
+                }
             }
         }
 
@@ -1856,7 +1862,9 @@
 
         async function generateDesign() {
             CountdownManager.cancel('simpleDesignBtn');
-            setButtonLoading('designBtn', 'designSpinner', true);
+            const activeDesignBtn = document.getElementById('simpleDesignBtn') ? 'simpleDesignBtn' : 'designBtn';
+            const activeDesignSpinner = document.getElementById('simpleDesignSpinner') ? 'simpleDesignSpinner' : 'designSpinner';
+            setButtonLoading(activeDesignBtn, activeDesignSpinner, true);
             updateStepper(2, 'loading');
             if (currentMode !== 'QUICK') {
                 try {
@@ -1869,14 +1877,14 @@
                     if (!parseRes.ok) throw new Error("Failed to parse requirements text.");
                     currentRequirements = await parseRes.json();
                 } catch (err) {
-                    setButtonLoading('designBtn', 'designSpinner', false);
+                    setButtonLoading(activeDesignBtn, activeDesignSpinner, false);
                     updateStepper(2, 'error');
                     return showError("Error parsing Requirements: " + err.message);
                 }
             }
 
             if (!currentRequirements) {
-                setButtonLoading('designBtn', 'designSpinner', false);
+                setButtonLoading(activeDesignBtn, activeDesignSpinner, false);
                 updateStepper(2, 'error');
                 return showError("Missing requirements data.");
             }
@@ -1968,7 +1976,9 @@
                 updateStepper(2, 'error');
                 showError(`Phase 2 Failed: ${error.message}`);
             } finally {
-                setButtonLoading('designBtn', 'designSpinner', false);
+                const activeDesignBtn = document.getElementById('simpleDesignBtn') ? 'simpleDesignBtn' : 'designBtn';
+                const activeDesignSpinner = document.getElementById('simpleDesignSpinner') ? 'simpleDesignSpinner' : 'designSpinner';
+                setButtonLoading(activeDesignBtn, activeDesignSpinner, false);
             }
         }
 
@@ -2866,12 +2876,15 @@
                     isComponentMode = false;
                     // Proceed to single-pass Phase 2
                     setVisible('designOutputSection', true);
-                    updateStepper(2, 'success');
                     // We need a fallback button if it's simple since we hijacked Phase 1's button
                     if (!document.getElementById('simpleDesignBtn')) {
                         document.getElementById('decomposeSimpleMsg').innerHTML += `
                             <button id="simpleDesignBtn" onclick="generateDesign()" class="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg flex justify-center items-center gap-2">
                                 <span>Execute SYS.ARCH_MAPPER (Single Pass)</span>
+                                <svg id="simpleDesignSpinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
                             </button>
                         `;
                     }

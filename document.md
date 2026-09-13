@@ -1940,3 +1940,22 @@ The Docker live preview system (`POST /api/preview/start`) experienced premature
    - Mandated that `dev_server_command` and `docker_image` must be strictly compatible.
    - For React/Vite web apps, mandated setting `dev_server_command` to `npm run dev -- --host 0.0.0.0` with `dev_server_port: 5173`.
    - Strictly prohibited generating Python server commands when using Node or Playwright Docker images.
+
+### Architectural Blueprint Phase Transition Fix (Null Button Guard)
+
+**Problem:**
+When running simple products (`!decomposition.is_complex`), the pipeline transitions into single-pass design generation (`generateDesign()`). The frontend threw an unhandled runtime exception:
+`TypeError: Cannot set properties of null (setting 'disabled') at setButtonLoading`
+This halted execution immediately and caused the application to freeze in the architectural blueprint phase.
+
+**Root Cause:**
+1. In an earlier iteration, the Phase 1 transition button `designBtn` was replaced with `decomposeBtn`. In simple product mode, `runDecomposition()` dynamically created `simpleDesignBtn` instead.
+2. However, `generateDesign()` still called `setButtonLoading('designBtn', 'designSpinner', true)`.
+3. `setButtonLoading()` did not check whether `btn` or `spinner` existed before setting `btn.disabled = true`, causing an unhandled promise rejection.
+4. Additionally, `runDecomposition()` was prematurely marking stepper 2 as `'success'` before design generation had even begun.
+
+**Fix Applied:**
+1. **Defensive `setButtonLoading`**: Made `setButtonLoading()` strictly null-safe by guarding `btn` and `spinner` lookups before modifying DOM properties.
+2. **Dynamic Target Resolution in `generateDesign()`**: Updated `generateDesign()` to resolve the active design button dynamically (`document.getElementById('simpleDesignBtn') ? 'simpleDesignBtn' : 'designBtn'`) with its corresponding spinner.
+3. **Stepper Timing Correction**: Removed the premature `updateStepper(2, 'success')` call in `runDecomposition()`. Stepper 2 now transitions to `'loading'` when `generateDesign()` starts and `'success'` only after the blueprint JSON is validated.
+
