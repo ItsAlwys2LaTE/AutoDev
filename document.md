@@ -1959,3 +1959,20 @@ This halted execution immediately and caused the application to freeze in the ar
 2. **Dynamic Target Resolution in `generateDesign()`**: Updated `generateDesign()` to resolve the active design button dynamically (`document.getElementById('simpleDesignBtn') ? 'simpleDesignBtn' : 'designBtn'`) with its corresponding spinner.
 3. **Stepper Timing Correction**: Removed the premature `updateStepper(2, 'success')` call in `runDecomposition()`. Stepper 2 now transitions to `'loading'` when `generateDesign()` starts and `'success'` only after the blueprint JSON is validated.
 
+### Technical Query Response Human-Readable Formatting
+
+**Feature:**
+Converted the Post-Completion Technical Query advisory responses from raw unformatted Markdown into structured, human-readable documentation matching the visual style and typography of the Requirements (`#jsonOutput`) and Architectural Blueprint (`#designJsonOutput`) document cards.
+
+**Implementation:**
+1. **Frontend Document Card Styling (`backend/index.html`)**:
+   Replaced the dark raw text block with the signature document card layout: white card background (`bg-white rounded-lg border border-slate-200 shadow-sm`), uppercase pulse badge (`READ-ONLY TECHNICAL EXPLANATION`), a copy-text button, and clean inner content area (`bg-slate-50 text-slate-800`).
+2. **Client-Side Markdown to Human-Readable Formatter (`formatMarkdownToHumanReadable`)**:
+   Transforms streaming Markdown chunks and completed responses into clean structured text:
+   - Headers (`#`, `##`, `###`) are transformed to clean capitalized section headers (e.g., `OVERVIEW:`, `ARCHITECTURE & PATTERNS:`).
+   - Code blocks (```` ``` ````) are converted to cleanly indented `[CODE SNIPPET]:` blocks.
+   - List asterisks/dashes (`*`, `-`) are standardized to clean bullet points (`•`).
+   - Markdown syntax artifacts (`**bold**`, `*italic*`, `` `code` ``) are stripped/standardized to clean human-readable text.
+3. **Backend Agent Prompt Alignment (`backend/agents/refactor_agent.py`)**:
+   Updated `QUERY_SYSTEM_PROMPT` to instruct Gemini models to directly author clean, well-structured technical text with capitalized section titles, clean bullet points, and indented code snippets.
+

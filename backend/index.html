@@ -527,12 +527,18 @@
                     </div>
 
                     <!-- Technical Q&A Streaming Output Box (Query Mode) -->
-                    <div id="postCompQueryResponseBox" class="hidden p-5 rounded-lg border border-slate-800 bg-slate-950 text-slate-200 text-sm whitespace-pre-wrap font-sans leading-relaxed">
-                        <div class="flex items-center justify-between mb-2 pb-2 border-b border-slate-800 text-xs text-slate-400 font-bold uppercase">
-                            <span>Technical Explanation</span>
-                            <button type="button" onclick="copyPostCompQueryResponse()" class="text-indigo-400 hover:text-indigo-300 font-semibold">Copy</button>
+                    <div id="postCompQueryResponseBox" class="hidden bg-white p-6 sm:p-8 rounded-lg border border-slate-200 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px] fade-in">
+                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-200">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">READ-ONLY TECHNICAL EXPLANATION</span>
+                            </div>
+                            <button type="button" onclick="copyPostCompQueryResponse()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5 shadow-sm">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                                <span>Copy Text</span>
+                            </button>
                         </div>
-                        <div id="postCompQueryOutput" class="text-slate-300 font-sans"></div>
+                        <div id="postCompQueryOutput" class="w-full min-h-[300px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap bg-slate-50 p-5 rounded-lg border border-slate-100 cursor-default select-text font-sans"></div>
                     </div>
                 </div>
             </div>
@@ -2764,15 +2770,61 @@
             }
         }
 
+        function formatMarkdownToHumanReadable(md) {
+            if (!md) return "";
+            let text = md.replace(/\r\n/g, '\n');
+
+            // 1. Format headers: # Title, ## Title, ### Title -> TITLE:
+            text = text.replace(/^(?:#{1,6})\s*([^\n\r]+)/gm, (match, p1) => {
+                const headerText = p1.trim().replace(/[*_`]/g, '');
+                return `\n${headerText.toUpperCase()}:\n`;
+            });
+
+            // 2. Format code blocks: ```lang ... ``` -> clean indented CODE SNIPPET block
+            text = text.replace(/```[a-zA-Z0-9_\-\.]*\n([\s\S]*?)\n```/g, (match, code) => {
+                const indented = code.split('\n').map(line => '    ' + line).join('\n');
+                return `\n[CODE SNIPPET]:\n${indented}\n`;
+            });
+
+            // 3. Strip bold and italic markdown markers
+            text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+            text = text.replace(/__([^_]+)__/g, '$1');
+            text = text.replace(/(^|[^\*])\*([^\*\n]+)\*([^\*]|$)/g, '$1$2$3');
+            text = text.replace(/(^|[^_])_([^_\n]+)_([^_]|$)/g, '$1$2$3');
+
+            // 4. Standardize list bullet points to clean circular bullets
+            text = text.replace(/^(\s*)[*\-]\s+/gm, '$1• ');
+
+            // 5. Inline code literals: `code` -> 'code'
+            text = text.replace(/`([^`]+)`/g, "'$1'");
+
+            // 6. Markdown links: [label](url) -> label (url)
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+
+            // 7. Horizontal rules: --- -> clean divider
+            text = text.replace(/^\s*[-*_]{3,}\s*$/gm, '----------------------------------------');
+
+            // 8. Clean up excessive consecutive blank lines
+            text = text.replace(/\n{3,}/g, '\n\n');
+
+            return text.trim();
+        }
+
         async function submitPostCompletionQuery() {
             const promptInput = document.getElementById('postCompletionPrompt');
-            const text = (promptInput?.value || '').trim();
-            if (!text) return showError("Please enter a question or query.");
-            if (!currentCodebase || !currentCodebase.files) return showError("No active codebase available.");
+            const text = promptInput ? promptInput.value.trim() : '';
+            if (!text) {
+                return showError("Please enter a technical query or question about the built application.");
+            }
+
+            if (!currentCodebase || !currentCodebase.files || currentCodebase.files.length === 0) {
+                return showError("No codebase available to query. Please generate a project first.");
+            }
+
+            const statusMsg = document.getElementById('postCompStatusMessage');
+            if (statusMsg) statusMsg.textContent = "Analyzing codebase and streaming technical explanation...";
 
             setButtonLoading('postCompletionSubmitBtn', 'postCompSpinner', true);
-            const statusMsg = document.getElementById('postCompStatusMessage');
-            if (statusMsg) statusMsg.textContent = "Streaming technical explanation...";
 
             try {
                 const res = await fetch('/api/post-completion/query', {
@@ -2800,7 +2852,7 @@
                 const queryBox = document.getElementById('postCompQueryResponseBox');
                 const queryOutput = document.getElementById('postCompQueryOutput');
                 if (queryBox) queryBox.classList.remove('hidden');
-                if (queryOutput) queryOutput.textContent = "";
+                if (queryOutput) queryOutput.textContent = "Streaming technical explanation...";
 
                 const reader = res.body.getReader();
                 const decoder = new TextDecoder("utf-8");
@@ -2812,6 +2864,11 @@
                     const chunk = decoder.decode(value, { stream: true });
                     fullText += chunk;
                     if (queryOutput) queryOutput.textContent = fullText;
+                }
+
+                // Convert markdown into well-formatted human-readable document (matching Requirement & Design phases)
+                if (queryOutput) {
+                    queryOutput.textContent = formatMarkdownToHumanReadable(fullText);
                 }
 
                 if (statusMsg) statusMsg.textContent = "Query response complete.";
