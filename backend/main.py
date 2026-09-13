@@ -7,7 +7,24 @@ import time
 import traceback
 
 from executor import execute_code
-from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, ComponentDecomposition, ComponentResult
+from models import (
+    RequirementsDocument,
+    SystemDesignBlueprint,
+    GeneratedCodeBase,
+    ExecutionResult,
+    ComponentDecomposition,
+    ComponentResult,
+    PostCompletionModifyRequest,
+    PostCompletionQueryRequest,
+    RefactorOutput,
+    PostCompletionModifyResponse,
+)
+from agents.refactor_agent import (
+    RefactorAgent,
+    refactor_codebase,
+    merge_refactored_codebase,
+    stream_codebase_query,
+)
 from orchestrator import arbitration_engine
 
 # Load environment variables
@@ -458,6 +475,95 @@ def api_generate_documentation(payload: DocumentationInput):
     except Exception as e:
         print(f"Documentation generation failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=f"Server Error during doc generation: {str(e)}")
+
+
+# --- PHASE 4 ROUTES (Post-Completion Final Request Phase) ---
+
+@app.post("/api/post-completion/modify", response_model=PostCompletionModifyResponse)
+def api_post_completion_modify(payload: PostCompletionModifyRequest):
+    """
+    Selectively refactors an existing completed codebase based on user prompt.
+    Merges updated files into the codebase, optionally runs execute_code() sandbox
+    verification, and returns the updated codebase and execution logs.
+    """
+    try:
+        active_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
+        active_model = resolve_model_for_mode(active_mode)
+
+        print(format_phase_transition(
+            "System", "COMPLETED", "POST_COMPLETION_MODIFY",
+            active_model, "CODEGEN", mode=active_mode,
+            extra=f"Prompt: {payload.prompt[:50]}..."
+        ))
+
+        # 1. Execute surgical refactor via RefactorAgent
+        refactor_result = refactor_codebase(
+            prompt=payload.prompt,
+            codebase=payload.codebase,
+            blueprint=payload.blueprint,
+            mode=active_mode,
+        )
+
+        # 2. Merge modified/new files into codebase while keeping untouched files byte-identical
+        updated_codebase, modified_file_names = merge_refactored_codebase(
+            original_codebase=payload.codebase,
+            refactor_output=refactor_result,
+        )
+
+        # 3. Optional sandbox verification
+        exec_result: Optional[ExecutionResult] = None
+        if payload.run_verification and payload.blueprint is not None:
+            print(f"Running sandbox verification for {len(modified_file_names)} modified files...")
+            try:
+                exec_result = execute_code(updated_codebase, payload.blueprint)
+            except Exception as ex_err:
+                exec_result = ExecutionResult(
+                    success=False,
+                    logs=f"Sandbox verification error: {format_concise_error(ex_err)}"
+                )
+
+        return PostCompletionModifyResponse(
+            success=True,
+            summary=refactor_result.summary,
+            modified_files=modified_file_names,
+            codebase=updated_codebase,
+            execution_result=exec_result,
+        )
+    except Exception as e:
+        print(f"Post-completion modify failed: {format_concise_error(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/post-completion/query")
+def api_post_completion_query(payload: PostCompletionQueryRequest):
+    """
+    Streams a conversational technical explanation answering queries about the codebase.
+    Never mutates codebase files.
+    """
+    try:
+        active_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
+        active_model = resolve_model_for_mode(active_mode)
+        query_text = payload.prompt or payload.query or ""
+
+        print(format_phase_transition(
+            "System", "COMPLETED", "POST_COMPLETION_QUERY",
+            active_model, "DOCUMENTATION", mode=active_mode,
+            extra=f"Query: {query_text[:50]}..."
+        ))
+
+        return StreamingResponse(
+            stream_codebase_query(
+                prompt=query_text,
+                codebase=payload.codebase,
+                blueprint=payload.blueprint,
+                mode=active_mode,
+            ),
+            media_type="text/plain",
+        )
+    except Exception as e:
+        print(f"Post-completion query failed: {format_concise_error(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 import uuid

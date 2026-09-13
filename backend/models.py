@@ -1,5 +1,12 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+import sys
+from pydantic import BaseModel, Field, model_validator
+from typing import List, Optional, Any
+
+# Ensure singleton module registration across both 'models' and 'backend.models'
+if __name__ in ("models", "backend.models") and __name__ in sys.modules:
+    sys.modules.setdefault("models", sys.modules[__name__])
+    sys.modules.setdefault("backend.models", sys.modules[__name__])
+
 
 # --- PHASE 1 MODELS (Requirements) ---
 
@@ -105,3 +112,51 @@ class ComponentResult(BaseModel):
     blueprint: SystemDesignBlueprint = Field(description="The design blueprint used for this component")
     codebase: GeneratedCodeBase = Field(description="The tested and approved source code for this component")
     execution_result: ExecutionResult = Field(description="The passing test execution result")
+
+
+# --- PHASE 4 MODELS (Post-Completion Final Request Phase) ---
+
+class PostCompletionModifyRequest(BaseModel):
+    """Payload for modifying an existing codebase post-pipeline completion."""
+    prompt: str = Field(description="The user's refactoring, feature addition, bug fix, or styling instruction")
+    codebase: GeneratedCodeBase = Field(description="The current codebase snapshot to be selectively refactored")
+    blueprint: Optional[SystemDesignBlueprint] = Field(default=None, description="The system architecture blueprint providing tech stack and verification context")
+    run_verification: Optional[bool] = Field(default=True, description="Whether to invoke executor sandbox verification after applying modifications")
+    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK or COMPLEX")
+    generation_mode: Optional[str] = Field(default=None, description="Alias for mode to maintain backward compatibility")
+
+
+class PostCompletionQueryRequest(BaseModel):
+    """Payload for querying/inspecting an existing codebase post-pipeline completion."""
+    prompt: Optional[str] = Field(default=None, description="The user's technical question or explanation query about the codebase")
+    query: Optional[str] = Field(default=None, description="Alias for prompt")
+    codebase: GeneratedCodeBase = Field(description="The current codebase snapshot to inspect (read-only)")
+    blueprint: Optional[SystemDesignBlueprint] = Field(default=None, description="Optional system architecture blueprint for context")
+    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK or COMPLEX")
+    generation_mode: Optional[str] = Field(default=None, description="Alias for mode")
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_query_or_prompt(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            p = data.get("prompt") or data.get("query")
+            if p is not None:
+                data["prompt"] = str(p)
+                data["query"] = str(p)
+        return data
+
+
+class RefactorOutput(BaseModel):
+    """Structured response from the RefactorAgent containing ONLY modified or newly created files."""
+    summary: str = Field(description="Concise description of changes made and files touched")
+    modified_files: List[CodeFile] = Field(description="List of files that were modified or newly created. Untouched files MUST be omitted.")
+
+
+class PostCompletionModifyResponse(BaseModel):
+    """API response returned by POST /api/post-completion/modify."""
+    success: bool = Field(description="True if modification and merging succeeded")
+    summary: str = Field(description="Summary of the applied changes")
+    modified_files: List[str] = Field(description="List of file paths that were modified or created")
+    codebase: GeneratedCodeBase = Field(description="The updated, fully-merged codebase")
+    execution_result: Optional[ExecutionResult] = Field(default=None, description="Sandbox build/test verification result if run_verification was True")
+
