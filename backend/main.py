@@ -711,8 +711,15 @@ def start_preview(payload: ExecuteInput):
             cmd = f"npm install --no-audit --no-fund && {cmd}"
             
         has_requirements = any(f.file_name.lower() == 'requirements.txt' for f in payload.codebase.files)
-        if has_requirements and "pip install" not in cmd and "python " in cmd:
-            cmd = f"pip install -r requirements.txt && {cmd}"
+        if has_requirements and "pip install" not in cmd and is_python_docker_image(image) and ("python " in cmd or "python3 " in cmd):
+            pip_cmd = (
+                "(pip install --break-system-packages -r requirements.txt 2>/dev/null || "
+                "pip install -r requirements.txt 2>/dev/null || "
+                "python3 -m pip install --break-system-packages -r requirements.txt 2>/dev/null || "
+                "python3 -m pip install -r requirements.txt 2>/dev/null || "
+                "python -m pip install -r requirements.txt)"
+            )
+            cmd = f"{pip_cmd} && {cmd}"
 
         # Create container mapping internal port to the dynamically found host port
         container = client.containers.create(

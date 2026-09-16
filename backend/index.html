@@ -97,6 +97,17 @@
             </div>
         </header>
 
+        <!-- RESTORATION BANNER (Initially Hidden) -->
+        <div id="restorationBanner" class="hidden mb-6 p-4 rounded-xl border border-blue-500/40 bg-blue-900/40 text-blue-200 flex items-center justify-between shadow-lg fade-in">
+            <div class="flex items-center gap-3">
+                <span class="w-3 h-3 rounded-full bg-blue-400 animate-ping"></span>
+                <span id="restorationBannerText" class="text-sm font-semibold tracking-wide">Restored previous development session. Resuming...</span>
+            </div>
+            <button type="button" onclick="document.getElementById('restorationBanner').classList.add('hidden')" class="text-xs text-blue-300 hover:text-white px-2 py-1 rounded transition-colors focus:outline-none">
+                Dismiss ✕
+            </button>
+        </div>
+
         <!-- PIPELINE STEPPER -->
         <div class="relative max-w-5xl mx-auto mb-12">
             <!-- Connecting Line -->
@@ -177,6 +188,20 @@
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
             </button>
+
+            <!-- DUAL CONTROL GROUP (Initially Hidden) -->
+            <div id="pipelineControlGroup" class="hidden w-full flex flex-col sm:flex-row items-center gap-3">
+                <button id="abortDevBtn" type="button" onclick="abortDevelopment()" 
+                    class="w-full sm:w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span id="abortDevBtnText">Abort Development</span>
+                </button>
+                <button id="requestNewProductBtn" type="button" onclick="requestNewProduct()" 
+                    class="w-full sm:w-1/2 bg-slate-700 hover:bg-slate-800 text-slate-200 hover:text-white font-semibold py-3 px-4 rounded-lg border border-slate-600 transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500">
+                    <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span>Request New Product</span>
+                </button>
+            </div>
         </div>
 
         <div id="errorSection" class="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg hidden shadow-sm">
@@ -668,6 +693,9 @@
 
         // Generation Modes State & Management
         let currentMode = 'QUICK'; // Default mode MUST be QUICK
+        let pipelineStatus = 'idle'; // 'idle' | 'running' | 'aborted' | 'completed'
+        let inFlightPhase = null;
+        let activeAbortController = null;
 
         function setGenerationMode(mode) {
             if (pipelineActive) return; // Prevent mid-flight mode corruption
@@ -890,9 +918,10 @@
             attachEditableClickHandlers();
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             initLogStream();
             initGenerationModes();
+            await initAutoRecovery();
         });
 
         let currentRequirements = null;
@@ -914,6 +943,11 @@
         let componentStates = {};              // Map: componentId -> { status, blueprint, codebase, executionResult, revisionCount }
         let isComponentMode = false;           // Whether we are in multi-component mode
         let pipelineActive = false;            // Whether the pipeline is currently running
+        let pipelineInterval = null;
+        let pipelineQueue = [];
+        let pipelineLocks = { design: false, code: false, critic: false };
+        let componentEditors = {};
+        let isProgrammaticComponentEditorUpdate = {};
 
         // Session Cost Tracker
         let sessionUsage = { prompt: 0, completion: 0, cost: 0.0 };
@@ -1714,17 +1748,797 @@
 
         const safeJsonParse = robustJsonParse;
 
+        // =========================================================================
+        // STATE PERSISTENCE ENGINE (R2) & DUAL STORAGE ARCHITECTURE
+        // =========================================================================
+        const StateStore = {
+            STORAGE_KEY: 'autodev_state_v1',
+            _debounceTimer: null,
+            _inMemoryCache: null,
+
+            save(data, immediate = false) {
+                if (!data) data = (typeof getCurrentState === 'function') ? getCurrentState() : {};
+                this._inMemoryCache = data;
+
+                if (immediate) {
+                    this.flushSync();
+                } else {
+                    if (this._debounceTimer) clearTimeout(this._debounceTimer);
+                    this._debounceTimer = setTimeout(() => {
+                        this.flushSync();
+                    }, 300);
+                }
+            },
+
+            flushSync() {
+                if (this._debounceTimer) {
+                    clearTimeout(this._debounceTimer);
+                    this._debounceTimer = null;
+                }
+                const state = this._inMemoryCache || ((typeof getCurrentState === 'function') ? getCurrentState() : null);
+                if (!state) return;
+
+                let jsonStr;
+                try {
+                    jsonStr = JSON.stringify(state);
+                } catch (e) {
+                    console.error("[StateStore] JSON serialization error:", e);
+                    return;
+                }
+
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, jsonStr);
+                    try { sessionStorage.setItem(this.STORAGE_KEY, jsonStr); } catch (_) {}
+                } catch (e) {
+                    const isQuota = (e.name === 'QuotaExceededError' || e.code === 22 || e.number === -2147024882);
+                    if (isQuota) {
+                        console.warn("[StateStore] QuotaExceededError detected. Applying prune defense.");
+                        const pruned = this.prune(state);
+                        try {
+                            const prunedStr = JSON.stringify(pruned);
+                            localStorage.setItem(this.STORAGE_KEY, prunedStr);
+                            try { sessionStorage.setItem(this.STORAGE_KEY, prunedStr); } catch (_) {}
+                        } catch (retryErr) {
+                            console.warn("[StateStore] LocalStorage write failed after prune, attempting sessionStorage fallback:", retryErr);
+                            try {
+                                sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(pruned));
+                            } catch (sessErr) {
+                                console.error("[StateStore] Both localStorage and sessionStorage quota exceeded:", sessErr);
+                            }
+                        }
+                    } else {
+                        console.warn("[StateStore] Storage save error, attempting sessionStorage fallback:", e);
+                        try {
+                            sessionStorage.setItem(this.STORAGE_KEY, jsonStr);
+                        } catch (_) {}
+                    }
+                }
+            },
+
+            load() {
+                let raw = null;
+                try {
+                    raw = localStorage.getItem(this.STORAGE_KEY);
+                } catch (e) {
+                    console.warn("[StateStore] LocalStorage read error:", e);
+                }
+
+                if (!raw) {
+                    try {
+                        raw = sessionStorage.getItem(this.STORAGE_KEY);
+                    } catch (e) {
+                        console.warn("[StateStore] SessionStorage read error:", e);
+                    }
+                }
+
+                if (!raw && this._inMemoryCache) {
+                    return this._inMemoryCache;
+                }
+
+                if (!raw) return null;
+
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && typeof parsed === 'object') {
+                        this._inMemoryCache = parsed;
+                        return parsed;
+                    }
+                    return null;
+                } catch (e) {
+                    console.error("[StateStore] Corrupted JSON string in storage:", e);
+                    return null;
+                }
+            },
+
+            clear() {
+                if (this._debounceTimer) {
+                    clearTimeout(this._debounceTimer);
+                    this._debounceTimer = null;
+                }
+                this._inMemoryCache = null;
+                try { localStorage.removeItem(this.STORAGE_KEY); } catch (_) {}
+                try { sessionStorage.removeItem(this.STORAGE_KEY); } catch (_) {}
+            },
+
+            prune(state) {
+                if (!state) return state;
+                const copy = JSON.parse(JSON.stringify(state));
+
+                // Level 1: Truncate execution logs to last 2000 chars
+                if (typeof copy.executionLogs === 'string' && copy.executionLogs.length > 2000) {
+                    copy.executionLogs = "...[TRUNCATED]...\n" + copy.executionLogs.slice(-2000);
+                }
+                if (copy.singlePass?.executionResult?.logs && typeof copy.singlePass.executionResult.logs === 'string' && copy.singlePass.executionResult.logs.length > 2000) {
+                    copy.singlePass.executionResult.logs = "...[TRUNCATED]...\n" + copy.singlePass.executionResult.logs.slice(-2000);
+                }
+                if (copy.currentExecutionResult?.logs && typeof copy.currentExecutionResult.logs === 'string' && copy.currentExecutionResult.logs.length > 2000) {
+                    copy.currentExecutionResult.logs = "...[TRUNCATED]...\n" + copy.currentExecutionResult.logs.slice(-2000);
+                }
+                if (copy.componentStates && typeof copy.componentStates === 'object') {
+                    Object.keys(copy.componentStates).forEach(cId => {
+                        const cs = copy.componentStates[cId];
+                        if (cs?.executionResult?.logs && typeof cs.executionResult.logs === 'string' && cs.executionResult.logs.length > 2000) {
+                            cs.executionResult.logs = "...[TRUNCATED]...\n" + cs.executionResult.logs.slice(-2000);
+                        }
+                    });
+                }
+
+                // Level 2: Intermediary revision history file sources pruning
+                ['revisionHistory', 'integrationRevisionHistory'].forEach(histKey => {
+                    if (Array.isArray(copy[histKey]) && copy[histKey].length > 2) {
+                        for (let r = 1; r < copy[histKey].length - 1; r++) {
+                            const rev = copy[histKey][r];
+                            if (rev && rev.codebase && Array.isArray(rev.codebase.files)) {
+                                rev.codebase.files.forEach(f => {
+                                    if (f) f.source_code = "[PRUNED]";
+                                });
+                            }
+                        }
+                    }
+                });
+
+                // Level 3: Drop raw stream buffer if present
+                delete copy._rawStreamBuffer;
+                return copy;
+            }
+        };
+        StateStore.flush = StateStore.flushSync; // Method alias
+
+        let activeComponentId = null;
+        let activeComponentStage = null;
+
+        function getCurrentState() {
+            return {
+                version: 1,
+                timestamp: Date.now(),
+                pipelineStatus: pipelineStatus || 'idle',
+                inFlightPhase: inFlightPhase || null,
+                currentMode: currentMode || 'QUICK',
+                featureRequest: document.getElementById('featureRequest')?.value || '',
+                isComponentMode: isComponentMode,
+                activeComponentId: activeComponentId,
+                activeComponentStage: activeComponentStage,
+                requirements: currentRequirements,
+                decomposition: currentDecomposition,
+                componentStates: componentStates || {},
+                componentResults: componentResults || [],
+                singlePass: {
+                    blueprint: currentBlueprint,
+                    codebase: currentCodebase,
+                    executionResult: currentExecutionResult,
+                    revisionCount: currentRevisionCount,
+                    revisionPlan: currentRevisionPlan,
+                    compositeScore: currentCompositeScore,
+                    dynamicBudget: currentDynamicBudget
+                },
+                singlePassCode: currentCodebase,
+                integratedCodebase: currentCodebase,
+                executionLogs: (currentExecutionResult && currentExecutionResult.logs) || document.getElementById('execLogsOutput')?.textContent || '',
+                revisionHistory: revisionHistory || [],
+                integrationRevisionHistory: integrationRevisionHistory || [],
+                criticEvaluations: (typeof currentCriticEvaluations !== 'undefined' ? currentCriticEvaluations : []),
+                adjudicatorDecisions: (typeof currentAdjudicatorDecisions !== 'undefined' ? currentAdjudicatorDecisions : []),
+                sessionUsage: sessionUsage,
+                // Extra fields for fidelity
+                currentBlueprint: currentBlueprint,
+                currentCodebase: currentCodebase,
+                currentExecutionResult: currentExecutionResult,
+                currentRevisionPlan: currentRevisionPlan,
+                currentRevisionCount: currentRevisionCount,
+                currentCompositeScore: currentCompositeScore,
+                currentDynamicBudget: currentDynamicBudget,
+                pipelineActive: pipelineActive,
+                pipelineQueue: pipelineQueue || [],
+                activeRevisionIndex: activeRevisionIndex,
+                activeFileIndex: activeFileIndex,
+                integrationRevisionCount: integrationRevisionCount,
+                integrationRevisionPlan: integrationRevisionPlan,
+                integrationDynamicBudget: integrationDynamicBudget,
+                lastIntegrationComposite: lastIntegrationComposite,
+                integrationActiveRevisionIndex: integrationActiveRevisionIndex,
+                integrationCriticHistory: integrationCriticHistory || [],
+                integrationActiveCriticIndex: integrationActiveCriticIndex
+            };
+        }
+
+        // =========================================================================
+        // NETWORK RECONNECT & FETCH INTERCEPTOR (R3)
+        // =========================================================================
+        function showNetworkOfflineToast() {
+            let toast = document.getElementById('networkOfflineToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'networkOfflineToast';
+                toast.className = 'fixed bottom-4 right-4 z-50 bg-amber-600 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 transition-all duration-300';
+                toast.innerHTML = `
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span id="networkOfflineToastText" class="font-medium text-sm">Network connection lost. Waiting to reconnect...</span>
+                `;
+                document.body.appendChild(toast);
+            }
+            const textSpan = document.getElementById('networkOfflineToastText');
+            if (textSpan) textSpan.textContent = "Network connection lost. Waiting to reconnect...";
+            toast.classList.remove('hidden');
+        }
+
+        function hideNetworkOfflineToast(success = false) {
+            const toast = document.getElementById('networkOfflineToast');
+            if (!toast) return;
+            if (success) {
+                toast.className = 'fixed bottom-4 right-4 z-50 bg-emerald-600 text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 transition-all duration-300';
+                const textSpan = document.getElementById('networkOfflineToastText');
+                if (textSpan) textSpan.textContent = "Network connection re-established. Resuming...";
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 2000);
+            } else {
+                toast.classList.add('hidden');
+            }
+        }
+
+        function waitForOnline() {
+            return new Promise(resolve => {
+                if (navigator.onLine) {
+                    resolve();
+                    return;
+                }
+                const handler = () => {
+                    window.removeEventListener('online', handler);
+                    resolve();
+                };
+                window.addEventListener('online', handler);
+            });
+        }
+
+        const _nativeFetch = window.fetch.bind(window);
+
+        async function fetchWithAutoRetry(input, init = {}, retries = 3) {
+            const opts = { ...init };
+            if (!opts.signal && activeAbortController) {
+                opts.signal = activeAbortController.signal;
+            }
+
+            try {
+                return await _nativeFetch(input, opts);
+            } catch (err) {
+                if (err.name === 'AbortError' || (opts.signal && opts.signal.aborted)) {
+                    throw err;
+                }
+
+                const isNetworkErr = (!navigator.onLine) ||
+                    (err instanceof TypeError) ||
+                    (err.message && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('network')));
+
+                if (isNetworkErr && retries > 0) {
+                    console.warn(`[AutoDev Network] Connection error for ${typeof input === 'string' ? input : 'request'}. Waiting for reconnect...`);
+                    showNetworkOfflineToast();
+                    await waitForOnline();
+                    console.log(`[AutoDev Network] Back online! Retrying request...`);
+                    hideNetworkOfflineToast(true);
+                    await new Promise(r => setTimeout(r, 1000));
+                    return fetchWithAutoRetry(input, init, retries - 1);
+                }
+
+                throw err;
+            }
+        }
+
+        window.fetch = fetchWithAutoRetry;
+
+        window.addEventListener('online', () => {
+            console.log("[AutoDev Network] window 'online' event detected.");
+            hideNetworkOfflineToast(true);
+            if (pipelineStatus === 'running' && inFlightPhase) {
+                StateStore.save(getCurrentState(), true);
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            console.log("[AutoDev Network] window 'offline' event detected.");
+            showNetworkOfflineToast();
+        });
+
+        // =========================================================================
+        // DOM FORMATTING HELPERS
+        // =========================================================================
+        function formatRequirementsText(data) {
+            if (!data) return '';
+            let reqText = `PROJECT TITLE:\n${data.project_title || 'N/A'}\n\nOVERVIEW:\n${data.overview || 'N/A'}\n\nUSER STORIES:\n`;
+            if (data.user_stories && Array.isArray(data.user_stories)) {
+                data.user_stories.forEach((story, i) => {
+                    reqText += `\n${i + 1}. ${story.title}\n`;
+                    reqText += `   As a: ${story.as_a}\n`;
+                    reqText += `   I want to: ${story.i_want_to}\n`;
+                    reqText += `   So that: ${story.so_that}\n`;
+                    if (story.acceptance_criteria && Array.isArray(story.acceptance_criteria)) {
+                        reqText += `   Acceptance Criteria:\n`;
+                        story.acceptance_criteria.forEach(ac => {
+                            reqText += `     • [${ac.id}] ${ac.description}\n`;
+                            reqText += `       Expected: ${ac.expected_behavior}\n`;
+                        });
+                    }
+                });
+            }
+            return reqText;
+        }
+
+        function formatBlueprintText(data) {
+            if (!data) return '';
+            let bpText = `ARCHITECTURE OVERVIEW:\n${data.architecture_overview || 'N/A'}\n\nFILES TO GENERATE:\n`;
+            if (data.files && Array.isArray(data.files)) {
+                data.files.forEach((f, i) => {
+                    bpText += `\n📄 ${i + 1}. ${f.file_name}\n`;
+                    bpText += `   Purpose: ${f.purpose}\n`;
+                    bpText += `   Dependencies: ${(f.dependencies || []).join(', ') || 'None'}\n`;
+                    bpText += `   Pseudocode:\n${(f.pseudocode || '').split('\n').map(l => '     ' + l).join('\n')}\n`;
+                });
+            }
+            return bpText;
+        }
+
+        // =========================================================================
+        // DUAL-BUTTON TRANSFORMATION CONTROLLERS (R1)
+        // =========================================================================
+        function abortDevelopment() {
+            console.log("[AutoDev] Aborting development by user request.");
+            CountdownManager.cancelAll();
+
+            if (activeAbortController) {
+                activeAbortController.abort();
+                activeAbortController = null;
+            }
+
+            if (pipelineInterval) {
+                clearInterval(pipelineInterval);
+                pipelineInterval = null;
+            }
+
+            pipelineActive = false;
+            pipelineStatus = 'aborted';
+
+            // Synchronously flush state so state indicates aborted and data is preserved for inspection
+            StateStore.save(getCurrentState(), true);
+
+            // Update abort button UI to show aborted state
+            const abortBtn = document.getElementById('abortDevBtn');
+            if (abortBtn) {
+                abortBtn.disabled = true;
+                abortBtn.className = "w-full sm:w-1/2 bg-slate-600 text-slate-400 font-semibold py-3 px-4 rounded-lg cursor-not-allowed flex justify-center items-center gap-2 shadow-sm";
+                const text = document.getElementById('abortDevBtnText');
+                if (text) text.textContent = "Development Aborted";
+            }
+
+            const toast = document.getElementById('networkOfflineToast');
+            if (toast) toast.classList.add('hidden');
+
+            console.log("[AutoDev] Development successfully aborted. All sections preserved for inspection.");
+        }
+
+        function requestNewProduct() {
+            console.log("[AutoDev] Requesting new product by user request.");
+            CountdownManager.cancelAll();
+            if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; }
+            if (pipelineInterval) { clearInterval(pipelineInterval); pipelineInterval = null; }
+
+            // Flush persistent storage
+            StateStore.clear();
+
+            // Clear featureRequest textarea
+            if (document.getElementById('featureRequest')) { document.getElementById('featureRequest').value = ''; }
+
+            // Deep reset of all DOM cards, editors, steppers, and memory variables
+            resetUI();
+
+            // Hide control group and restore submit button
+            const group = document.getElementById('pipelineControlGroup');
+            if (group) group.classList.add('hidden');
+
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) { submitBtn.classList.remove('hidden'); submitBtn.disabled = false; submitBtn.classList.remove('opacity-75', 'cursor-not-allowed'); }
+
+            const spinner = document.getElementById('spinner');
+            if (spinner) spinner.classList.add('hidden');
+
+            const abortBtn = document.getElementById('abortDevBtn');
+            if (abortBtn) {
+                abortBtn.disabled = false;
+                abortBtn.className = "w-full sm:w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500";
+                const text = document.getElementById('abortDevBtnText');
+                if (text) text.textContent = "Abort Development"; }
+
+            const resBanner = document.getElementById('restorationBanner');
+            if (resBanner) resBanner.classList.add('hidden');
+
+            console.log("[AutoDev] Workspace reset. Ready for new product.");
+        }
+
+        // Aliases for 9-Phase Recovery Matrix compatibility
+        const generateSinglePassCode = (isRev = false) => generateCode(isRev);
+        const runSinglePassExecution = () => executeCode();
+        const runSinglePassCritics = () => runCritics();
+        const generateIntegration = (isRev = false) => runIntegration(isRev);
+        const generateDocumentation = () => generateDocs();
+
+        async function resumeComponentPipeline() {
+            pipelineActive = true;
+            activeAbortController = new AbortController();
+            setVisible('decomposeActions', false);
+            setVisible('pipelineDashboard', true);
+            updateStepper(2, 'success');
+            renderPipelineTracks();
+
+            if ((!pipelineQueue || pipelineQueue.length === 0) && currentDecomposition?.components) {
+                pipelineQueue = [...currentDecomposition.components].sort((a, b) => a.priority_order - b.priority_order);
+            }
+
+            try {
+                await fetch('/api/pipeline/init', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        components: pipelineQueue,
+                        mode: currentMode,
+                        generation_mode: currentMode
+                    })
+                });
+
+                for (const res of componentResults) {
+                    try {
+                        await fetch('/api/pipeline/complete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                component_id: res.component_id,
+                                stage: 'CRITICS',
+                                verdict: 'pass',
+                                mode: currentMode,
+                                generation_mode: currentMode
+                            })
+                        });
+                    } catch (_) {}
+                }
+            } catch (e) {
+                console.warn("[AutoDev] Pipeline resume init error:", e);
+            }
+
+            if (pipelineInterval) clearInterval(pipelineInterval);
+            pipelineInterval = setInterval(processPipeline, 2000);
+            processPipeline();
+        }
+
+        function executePhaseRecovery(phase) {
+            const normalized = (phase || '').toLowerCase().trim();
+            console.log(`[AutoDev Recovery Matrix] Resuming phase: '${phase}' (normalized: '${normalized}')`);
+
+            switch (normalized) {
+                case 'requirements':
+                    generateRequirements();
+                    break;
+                case 'decomposition':
+                    runDecomposition();
+                    break;
+                case 'single_design':
+                case 'single-pass design':
+                case 'design':
+                    generateDesign();
+                    break;
+                case 'single_codegen':
+                case 'single-pass codegen':
+                case 'codegen':
+                    generateSinglePassCode();
+                    break;
+                case 'single_execution':
+                case 'sandbox execution':
+                case 'execution':
+                    runSinglePassExecution();
+                    break;
+                case 'single_critics':
+                case 'critics':
+                    runSinglePassCritics();
+                    break;
+                case 'component_dag':
+                case 'component dag':
+                case 'pipeline':
+                    resumeComponentPipeline();
+                    break;
+                case 'integration':
+                    generateIntegration();
+                    break;
+                case 'documentation':
+                    generateDocumentation();
+                    break;
+                default:
+                    console.warn(`[AutoDev Recovery Matrix] Unrecognized phase '${phase}', falling back to requirements.`);
+                    generateRequirements();
+                    break;
+            }
+        }
+
+        // =========================================================================
+        // IN-FLIGHT AUTO-RECOVERY BOOTLOADER (R3)
+        // =========================================================================
+        async function initAutoRecovery() {
+            const saved = StateStore.load();
+            if (!saved) return;
+
+            console.log("[AutoDev] Persisted session detected in StateStore:", saved);
+
+            // 1. Hydrate mode, prompt input, and cost tally
+            if (saved.currentMode) setGenerationMode(saved.currentMode);
+            if (saved.featureRequest) {
+                const feat = document.getElementById('featureRequest');
+                if (feat) feat.value = saved.featureRequest;
+            }
+            if (saved.sessionUsage) {
+                sessionUsage = saved.sessionUsage;
+                updateCost(0, 0);
+            }
+
+            // 2. Hydrate internal state models
+            currentRequirements = saved.requirements || null;
+            currentDecomposition = saved.decomposition || null;
+            isComponentMode = Boolean(saved.isComponentMode || (currentDecomposition && currentDecomposition.is_complex));
+            componentResults = saved.componentResults || [];
+            componentStates = saved.componentStates || {};
+            pipelineQueue = saved.pipelineQueue || [];
+            activeComponentId = saved.activeComponentId || null;
+            activeComponentStage = saved.activeComponentStage || null;
+            currentBlueprint = saved.currentBlueprint || saved.singlePass?.blueprint || null;
+            currentCodebase = saved.integratedCodebase || saved.singlePassCode || saved.singlePass?.codebase || saved.currentCodebase || null;
+            currentExecutionResult = saved.currentExecutionResult || saved.singlePass?.executionResult || (saved.executionLogs ? { logs: saved.executionLogs, success: true } : null);
+            currentRevisionPlan = saved.currentRevisionPlan || saved.singlePass?.revisionPlan || null;
+            currentRevisionCount = saved.currentRevisionCount || saved.singlePass?.revisionCount || 0;
+            currentCompositeScore = saved.currentCompositeScore || saved.singlePass?.compositeScore || null;
+            currentDynamicBudget = saved.currentDynamicBudget || saved.singlePass?.dynamicBudget || null;
+            revisionHistory = saved.revisionHistory || [];
+            activeRevisionIndex = saved.activeRevisionIndex !== undefined ? saved.activeRevisionIndex : -1;
+            integrationRevisionCount = saved.integrationRevisionCount || 0;
+            integrationRevisionPlan = saved.integrationRevisionPlan || null;
+            integrationDynamicBudget = saved.integrationDynamicBudget || null;
+            lastIntegrationComposite = saved.lastIntegrationComposite || null;
+            integrationRevisionHistory = saved.integrationRevisionHistory || [];
+            integrationActiveRevisionIndex = saved.integrationActiveRevisionIndex !== undefined ? saved.integrationActiveRevisionIndex : -1;
+            integrationCriticHistory = saved.integrationCriticHistory || [];
+            integrationActiveCriticIndex = saved.integrationActiveCriticIndex !== undefined ? saved.integrationActiveCriticIndex : -1;
+            
+            pipelineStatus = saved.pipelineStatus || 'idle';
+            inFlightPhase = saved.inFlightPhase || null;
+
+            // 3. Hydrate UI DOM Elements
+            if (currentRequirements) {
+                setVisible('outputSection', true);
+                const reqDiv = document.getElementById('jsonOutput');
+                if (reqDiv) reqDiv.innerText = formatRequirementsText(currentRequirements);
+                updateStepper(1, 'success');
+            }
+
+            if (currentDecomposition) {
+                setVisible('decomposeSection', true);
+                const statusEl = document.getElementById('decomposeStatus');
+                if (statusEl) statusEl.innerText = "Decomposed";
+                updateStepper(2, 'success');
+
+                if (!currentDecomposition.is_complex) {
+                    setVisible('decomposeSimpleMsg', true);
+                    isComponentMode = false;
+                } else {
+                    isComponentMode = true;
+                    const container = document.getElementById('decomposeCards');
+                    if (container && currentDecomposition.components) {
+                        container.innerHTML = currentDecomposition.components.map(c => `
+                            <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 relative">
+                                <span class="absolute top-2 right-2 text-xs font-mono bg-slate-700 px-2 py-1 rounded text-slate-300">Order: ${c.priority_order || 1}</span>
+                                <h4 class="font-bold text-cyan-400 mb-1">${c.component_name}</h4>
+                                <p class="text-xs text-slate-400 mb-2">${c.description}</p>
+                                <div class="text-xs text-slate-500">Depends on: ${(c.dependencies_on || []).join(', ') || 'None'}</div>
+                            </div>
+                        `).join('');
+                    }
+                    setVisible('decomposeActions', true);
+                    setVisible('pipelineDashboard', true);
+                    renderPipelineTracks();
+                }
+            }
+
+            if (currentBlueprint) {
+                setVisible('designOutputSection', true);
+                const designDiv = document.getElementById('designJsonOutput');
+                if (designDiv) designDiv.innerText = formatBlueprintText(currentBlueprint);
+                updateStepper(2, 'success');
+            }
+
+            if (currentCodebase && currentCodebase.files && currentCodebase.files.length > 0) {
+                setVisible('codeOutputSection', true);
+                const filesContainer = document.getElementById('codeFilesContainer');
+                if (filesContainer) filesContainer.classList.add('hidden');
+                const ide = document.getElementById('ideContainer');
+                if (ide) ide.classList.remove('hidden');
+                buildFileExplorer();
+                initMonaco(activeFileIndex >= 0 ? activeFileIndex : 0);
+                updateStepper(3, 'success');
+            }
+
+            if (currentExecutionResult || saved.executionLogs) {
+                setVisible('execOutputSection', true);
+                const logsEl = document.getElementById('execLogsOutput');
+                if (logsEl) logsEl.textContent = (currentExecutionResult && currentExecutionResult.logs) || saved.executionLogs || '';
+                const badge = document.getElementById('execStatusBadge');
+                if (badge) {
+                    if (currentExecutionResult && currentExecutionResult.success) {
+                        badge.textContent = "Tests Passed";
+                        badge.className = "px-3 py-1 text-sm rounded-full font-medium border bg-emerald-500/20 text-emerald-400 border-emerald-500/20";
+                    } else {
+                        badge.textContent = "Tests Failed";
+                        badge.className = "px-3 py-1 text-sm rounded-full font-medium border bg-rose-500/20 text-rose-400 border-rose-500/20";
+                    }
+                }
+                updateStepper(4, 'success');
+            }
+
+            if (saved.adjudicatorDecisions || currentRevisionPlan) {
+                setVisible('criticOutputSection', true);
+                const adjSection = document.getElementById('adjudicatorSection');
+                if (adjSection) adjSection.classList.remove('hidden');
+                updateStepper(5, 'success');
+            }
+
+            // 4. Branch on pipelineStatus
+            if (saved.pipelineStatus === 'aborted') {
+                setVisible('submitBtn', false);
+                const group = document.getElementById('pipelineControlGroup');
+                if (group) group.classList.remove('hidden');
+                const abortBtn = document.getElementById('abortDevBtn');
+                if (abortBtn) {
+                    abortBtn.disabled = true;
+                    abortBtn.className = "w-full sm:w-1/2 bg-slate-600 text-slate-400 font-semibold py-3 px-4 rounded-lg cursor-not-allowed flex justify-center items-center gap-2 shadow-sm";
+                    const text = document.getElementById('abortDevBtnText');
+                    if (text) text.textContent = "Development Aborted";
+                }
+                console.log("[AutoDev] Session restored in ABORTED status. Preserved for inspection.");
+                return;
+            }
+
+            if (saved.pipelineStatus === 'completed') {
+                setVisible('finalDownloadBtn', true);
+                setVisible('submitBtn', false);
+                const group = document.getElementById('pipelineControlGroup');
+                if (group) group.classList.remove('hidden');
+                showPostCompletionSection();
+                console.log("[AutoDev] Session restored in COMPLETED status.");
+                return;
+            }
+
+            if (saved.pipelineStatus === 'running' && saved.inFlightPhase) {
+                setVisible('submitBtn', false);
+                const group = document.getElementById('pipelineControlGroup');
+                if (group) group.classList.remove('hidden');
+
+                const phaseLabels = {
+                    "requirements": "Requirements Modeling",
+                    "decomposition": "Component Decomposition",
+                    "single_design": "Architectural Blueprint",
+                    "single_codegen": "Code Generation",
+                    "single_execution": "Sandbox Execution",
+                    "single_critics": "Arbitration & Critics",
+                    "component_dag": "Component Pipeline",
+                    "integration": "Integration Phase",
+                    "documentation": "Documentation Generation"
+                };
+                const displayLabel = phaseLabels[saved.inFlightPhase] || saved.inFlightPhase;
+
+                const banner = document.getElementById('restorationBanner');
+                if (banner) {
+                    const bannerText = document.getElementById('restorationBannerText');
+                    if (bannerText) {
+                        bannerText.textContent = `Restored previous development session. Resuming ${displayLabel}...`;
+                    }
+                    banner.classList.remove('hidden');
+                }
+
+                console.log(`[AutoDev] Resuming active in-flight phase: ${saved.inFlightPhase}`);
+                activeAbortController = new AbortController();
+                pipelineActive = true;
+
+                executePhaseRecovery(saved.inFlightPhase);
+            }
+        }
+
         function resetUI() {
             CountdownManager.cancelAll();
             window._quickIntegrationTriggered = false;
+
+            if (activeAbortController) {
+                activeAbortController.abort();
+                activeAbortController = null;
+            }
+
+            if (pipelineInterval) {
+                clearInterval(pipelineInterval);
+                pipelineInterval = null;
+            }
+
+            pipelineActive = false;
+            pipelineStatus = 'idle';
+            inFlightPhase = null;
+            isComponentMode = false;
+            pipelineQueue = [];
+            pipelineLocks = { design: false, code: false, critic: false };
+            componentStates = {};
+            componentResults = [];
+
             setVisible('errorSection', false);
             setVisible('outputSection', false);
             setVisible('designOutputSection', false);
             setVisible('codeOutputSection', false);
             setVisible('execOutputSection', false);
             setVisible('criticOutputSection', false);
-            document.getElementById('adjudicatorSection').classList.add('hidden');
-            for(let i=1; i<=5; i++) updateStepper(i, 'idle');
+            setVisible('decomposeSection', false);
+            setVisible('pipelineDashboard', false);
+            setVisible('integrationSection', false);
+            setVisible('docGenerationSection', false);
+            setVisible('finalDownloadBtn', false);
+            setVisible('quickRunGuideSection', false);
+
+            const adjSection = document.getElementById('adjudicatorSection');
+            if (adjSection) adjSection.classList.add('hidden');
+
+            for (let i = 1; i <= 5; i++) updateStepper(i, 'idle');
+            const stepperProg = document.getElementById('stepperProgress');
+            if (stepperProg) stepperProg.style.width = '0%';
+
+            // Clear DOM outputs and cards
+            const jsonOutput = document.getElementById('jsonOutput');
+            if (jsonOutput) jsonOutput.innerText = '';
+            const designJsonOutput = document.getElementById('designJsonOutput');
+            if (designJsonOutput) designJsonOutput.innerText = '';
+            const execLogsOutput = document.getElementById('execLogsOutput');
+            if (execLogsOutput) execLogsOutput.textContent = '';
+            const decomposeCards = document.getElementById('decomposeCards');
+            if (decomposeCards) decomposeCards.innerHTML = '';
+            const pipelineTracks = document.getElementById('pipelineTracks');
+            if (pipelineTracks) pipelineTracks.innerHTML = '';
+            const componentToggler = document.getElementById('componentToggler');
+            if (componentToggler) componentToggler.innerHTML = '';
+            const criticCards = document.getElementById('criticCardsContainer');
+            if (criticCards) criticCards.innerHTML = '';
+
+            // Clear Monaco editors
+            if (editorInstance) {
+                try { editorInstance.setValue(''); } catch (_) {}
+            }
+            if (typeof componentEditors === 'object' && componentEditors) {
+                Object.values(componentEditors).forEach(ed => {
+                    try { ed.dispose(); } catch (_) {}
+                });
+                componentEditors = {};
+            }
+            if (typeof diffEditorInstance !== 'undefined' && diffEditorInstance) {
+                try { diffEditorInstance.dispose(); diffEditorInstance = null; } catch (_) {}
+            }
+
             currentRequirements = null;
             currentBlueprint = null;
             currentCodebase = null;
@@ -1733,17 +2547,34 @@
             currentRevisionCount = 0;
             currentCompositeScore = null;
             currentDynamicBudget = null;
+            currentDecomposition = null;
+
+            revisionHistory = [];
+            activeRevisionIndex = -1;
+            activeFileIndex = -1;
+
             integrationDynamicBudget = null;
             lastIntegrationComposite = null;
+            integrationRevisionCount = 0;
+            integrationRevisionPlan = null;
             integrationRevisionHistory = [];
             integrationActiveRevisionIndex = -1;
             integrationCriticHistory = [];
             integrationActiveCriticIndex = -1;
+
+            sessionUsage = { prompt: 0, completion: 0, cost: 0.0 };
+            updateCost(0, 0);
+
             const intRevTabs = document.getElementById('integrationRevTabs') || document.getElementById('rev-tabs-integration');
             if (intRevTabs) { intRevTabs.innerHTML = ''; intRevTabs.classList.add('hidden'); }
             const intCritTabs = document.getElementById('integrationCriticTabs') || document.getElementById('critic-tabs-integration');
             if (intCritTabs) { intCritTabs.innerHTML = ''; intCritTabs.classList.add('hidden'); }
-            activeFileIndex = -1;
+            const revTabs = document.getElementById('revisionTabs');
+            if (revTabs) revTabs.innerHTML = '';
+            const revTabsBar = document.getElementById('revisionTabsBar');
+            if (revTabsBar) revTabsBar.classList.add('hidden');
+            const diffBtn = document.getElementById('diffToggleBtn');
+            if (diffBtn) diffBtn.classList.add('hidden');
 
             // Reset Post-Completion UI
             setVisible('postCompletionSection', false);
@@ -1754,6 +2585,9 @@
             const postStatus = document.getElementById('postCompStatusMessage');
             if (postStatus) postStatus.textContent = '';
             if (typeof setPostCompletionMode === 'function') setPostCompletionMode('modify');
+
+            const resBanner = document.getElementById('restorationBanner');
+            if (resBanner) resBanner.classList.add('hidden');
         }
 
         function scrollToSection(elementId) {
@@ -1767,6 +2601,26 @@
             if (!input.trim()) return showError("Please enter a feature request.");
 
             resetUI();
+
+            // Transition: Hide #submitBtn, show #pipelineControlGroup
+            setVisible('submitBtn', false);
+            const group = document.getElementById('pipelineControlGroup');
+            if (group) group.classList.remove('hidden');
+
+            const abortBtn = document.getElementById('abortDevBtn');
+            if (abortBtn) {
+                abortBtn.disabled = false;
+                abortBtn.className = "w-full sm:w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500";
+                const text = document.getElementById('abortDevBtnText');
+                if (text) text.textContent = "Abort Development";
+            }
+
+            activeAbortController = new AbortController();
+            pipelineStatus = 'running';
+            pipelineActive = true;
+            inFlightPhase = 'requirements';
+            StateStore.save(getCurrentState(), true);
+
             setButtonLoading('submitBtn', 'spinner', true);
             updateStepper(1, 'loading');
 
@@ -1822,6 +2676,7 @@
                     
                     // Show raw JSON streaming to the user
                     document.getElementById('jsonOutput').innerText = fullJsonStr;
+                    StateStore.save(getCurrentState(), false);
                 }
                 
                 // Done streaming. Now parse and format as rich text
@@ -1829,27 +2684,14 @@
                 if (data.error) throw new Error(data.error);
 
                 currentRequirements = data; 
-                // Populate rich text div using actual Pydantic schema fields
-                let reqText = `PROJECT TITLE:\n${data.project_title || 'N/A'}\n\nOVERVIEW:\n${data.overview || 'N/A'}\n\nUSER STORIES:\n`;
-                if (data.user_stories && Array.isArray(data.user_stories)) {
-                    data.user_stories.forEach((story, i) => {
-                        reqText += `\n${i + 1}. ${story.title}\n`;
-                        reqText += `   As a: ${story.as_a}\n`;
-                        reqText += `   I want to: ${story.i_want_to}\n`;
-                        reqText += `   So that: ${story.so_that}\n`;
-                        if (story.acceptance_criteria && Array.isArray(story.acceptance_criteria)) {
-                            reqText += `   Acceptance Criteria:\n`;
-                            story.acceptance_criteria.forEach(ac => {
-                                reqText += `     • [${ac.id}] ${ac.description}\n`;
-                                reqText += `       Expected: ${ac.expected_behavior}\n`;
-                            });
-                        }
-                    });
-                }
-                document.getElementById('jsonOutput').innerText = reqText;
+                document.getElementById('jsonOutput').innerText = formatRequirementsText(data);
                 
                 updateStepper(1, 'success');
                 applyModeUIRules();
+
+                // Milestone: Requirements complete -> Decomposition
+                inFlightPhase = 'decomposition';
+                StateStore.save(getCurrentState(), true);
 
                 if (currentMode === 'QUICK') {
                     console.log("[QUICK Mode] Auto-progressing: Requirements -> Decomposition");
@@ -1859,6 +2701,10 @@
                 }
 
             } catch (error) {
+                if (error.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] generateRequirements aborted.");
+                    return;
+                }
                 updateStepper(1, 'error');
                 showError(`Phase 1 Failed: ${error.message}`);
             } finally {
@@ -1872,6 +2718,10 @@
             const activeDesignSpinner = document.getElementById('simpleDesignSpinner') ? 'simpleDesignSpinner' : 'designSpinner';
             setButtonLoading(activeDesignBtn, activeDesignSpinner, true);
             updateStepper(2, 'loading');
+
+            inFlightPhase = 'single_design';
+            StateStore.save(getCurrentState(), true);
+
             if (currentMode !== 'QUICK') {
                 try {
                     const text = document.getElementById('jsonOutput').innerText;
@@ -1950,6 +2800,7 @@
                     
                     // Show raw JSON streaming to the user
                     document.getElementById('designJsonOutput').innerText = fullJsonStr;
+                    StateStore.save(getCurrentState(), false);
                 }
                 
                 // Done streaming. Now parse and format as rich text
@@ -1957,20 +2808,14 @@
                 if (data.error) throw new Error(data.error);
 
                 currentBlueprint = data;
-                // Populate rich text div using actual Pydantic schema fields
-                let bpText = `ARCHITECTURE OVERVIEW:\n${data.architecture_overview || 'N/A'}\n\nFILES TO GENERATE:\n`;
-                if (data.files && Array.isArray(data.files)) {
-                    data.files.forEach((f, i) => {
-                        bpText += `\n📄 ${i + 1}. ${f.file_name}\n`;
-                        bpText += `   Purpose: ${f.purpose}\n`;
-                        bpText += `   Dependencies: ${(f.dependencies || []).join(', ') || 'None'}\n`;
-                        bpText += `   Pseudocode:\n${(f.pseudocode || '').split('\n').map(l => '     ' + l).join('\n')}\n`;
-                    });
-                }
-                document.getElementById('designJsonOutput').innerText = bpText;
+                document.getElementById('designJsonOutput').innerText = formatBlueprintText(data);
                 
                 updateStepper(2, 'success');
                 applyModeUIRules();
+
+                // Milestone: Design complete -> Codegen
+                inFlightPhase = 'single_codegen';
+                StateStore.save(getCurrentState(), true);
 
                 if (currentMode === 'QUICK') {
                     console.log("[QUICK Mode] Auto-progressing: Design -> Code Generation");
@@ -1979,6 +2824,10 @@
                     CountdownManager.start('codeBtn', '<span id="codeBtnText">Execute SYS.CODE_GEN (v1.3.0)</span>', () => generateCode(), 30);
                 }
             } catch (error) {
+                if (error.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] generateDesign aborted.");
+                    return;
+                }
                 updateStepper(2, 'error');
                 showError(`Phase 2 Failed: ${error.message}`);
             } finally {
@@ -2015,6 +2864,10 @@
 
             if (!currentRequirements || !currentBlueprint) return showError("Missing prerequisites.");
             
+            inFlightPhase = 'single_codegen';
+            pipelineStatus = 'running';
+            StateStore.save(getCurrentState(), true);
+
             setVisible('errorSection', false);
             
             if (isRevision) {
@@ -2101,6 +2954,7 @@
                     
                     // Show raw JSON streaming to the user
                     container.innerHTML = `<pre><code class="text-gray-400 text-sm block whitespace-pre-wrap font-mono">${fullJsonStr.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+                    StateStore.save(getCurrentState(), false);
                 }
                 
                 // Done streaming. Now parse and set up IDE
@@ -2125,6 +2979,9 @@
                 updateStepper(3, 'success');
                 applyModeUIRules();
 
+                inFlightPhase = 'single_execution';
+                StateStore.save(getCurrentState(), true);
+
                 if (!isRevision) {
                     if (currentMode === 'QUICK') {
                         console.log("[QUICK Mode] Auto-progressing: Code -> Sandbox Execution");
@@ -2135,6 +2992,10 @@
                 }
 
             } catch (error) {
+                if (error.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] Code generation aborted.");
+                    return;
+                }
                 updateStepper(3, 'error');
                 showError(`Phase 2b Failed: ${error.message}`);
             } finally {
@@ -2147,6 +3008,10 @@
             CountdownManager.cancel('execBtn');
             if (!currentCodebase) return showError("Missing codebase.");
             
+            inFlightPhase = 'single_execution';
+            pipelineStatus = 'running';
+            StateStore.save(getCurrentState(), true);
+
             // Flush active editor edits back to the codebase payload before sending!
             if (activeFileIndex >= 0 && editorInstance) {
                 currentCodebase.files[activeFileIndex].source_code = editorInstance.getValue();
@@ -2205,6 +3070,9 @@
                 
                 updateStepper(4, 'success');
 
+                inFlightPhase = 'single_critics';
+                StateStore.save(getCurrentState(), true);
+
                 if (currentRevisionCount === 0) {
                     if (currentMode === 'QUICK') {
                         console.log("[QUICK Mode] Auto-progressing: Execution -> Critics");
@@ -2215,6 +3083,10 @@
                 }
 
             } catch (error) {
+                if (error.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] Code execution aborted.");
+                    return;
+                }
                 updateStepper(4, 'error');
                 showError(`Phase 2c Failed: ${error.message}`);
             } finally {
@@ -2228,6 +3100,10 @@
                 return showError("Missing previous phase data.");
             }
             
+            inFlightPhase = 'single_critics';
+            pipelineStatus = 'running';
+            StateStore.save(getCurrentState(), true);
+
             setVisible('errorSection', false);
             setVisible('criticOutputSection', false);
             setButtonLoading('criticBtn', 'criticSpinner', true);
@@ -2330,6 +3206,9 @@
                             }
                             renderRunGuide();
                             showPostCompletionSection();
+                            pipelineStatus = 'completed';
+                            inFlightPhase = null;
+                            StateStore.save(getCurrentState(), true);
                         } else {
                             if (!isPassed && currentRevisionCount >= maxRevs) {
                                 adjVerdict.textContent = `MAX REVISIONS (${maxRevs}/${maxRevs})`;
@@ -2340,6 +3219,8 @@
                             document.getElementById('docGenerationSection').classList.remove('hidden');
                             CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
                             showPostCompletionSection();
+                            inFlightPhase = 'documentation';
+                            StateStore.save(getCurrentState(), true);
                         }
                     } else {
                         document.getElementById('docGenerationSection').classList.add('hidden');
@@ -2368,6 +3249,9 @@
                         badge.textContent = `REVISE (Attempt ${currentRevisionCount}/${maxRevs} starting...)`;
                         badge.classList.add('animate-pulse');
 
+                        inFlightPhase = 'single_codegen';
+                        StateStore.save(getCurrentState(), true);
+
                         // Wait 3 seconds so user can read the critique, then start the loop
                         setTimeout(async () => {
                             try {
@@ -2382,12 +3266,18 @@
                 }
 
             } catch (error) {
+                if (error.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] Critics evaluation aborted.");
+                    return;
+                }
                 console.error("Critic evaluation error:", error);
                 if (currentMode === 'QUICK') {
                     const maxCatchRevs = currentDynamicBudget || ((currentMode === 'QUICK') ? 1 : 3);
                     if (currentRevisionCount < maxCatchRevs) {
                         currentRevisionCount++;
                         console.log(`[QUICK Mode] Critic error encountered. Retrying (Attempt ${currentRevisionCount}/${maxCatchRevs})...`);
+                        inFlightPhase = 'single_codegen';
+                        StateStore.save(getCurrentState(), true);
                         setTimeout(async () => {
                             try {
                                 await generateCode(true);
@@ -2414,6 +3304,9 @@
                         updateStepper(5, 'success');
                         renderRunGuide();
                         showPostCompletionSection();
+                        pipelineStatus = 'completed';
+                        inFlightPhase = null;
+                        StateStore.save(getCurrentState(), true);
                         return;
                     }
                 }
@@ -2431,6 +3324,10 @@
                 return showError("Missing previous phase data.");
             }
             
+            inFlightPhase = 'documentation';
+            pipelineStatus = 'running';
+            StateStore.save(getCurrentState(), true);
+
             setVisible('errorSection', false);
             setButtonLoading('docBtn', 'docSpinner', true);
 
@@ -2484,6 +3381,7 @@
                             updateCost(p, c);
                         }
                     }
+                    StateStore.save(getCurrentState(), false);
                 }
                 
                 const data = safeJsonParse(fullJsonStr);
@@ -2506,7 +3404,15 @@
                 document.getElementById('finalDownloadBtn').classList.remove('hidden');
                 showPostCompletionSection();
 
+                pipelineStatus = 'completed';
+                inFlightPhase = null;
+                StateStore.save(getCurrentState(), true);
+
             } catch (error) {
+                if (error.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] Documentation generation aborted.");
+                    return;
+                }
                 showError(`Phase 3.5 Documentation Failed: ${error.message}`);
                 document.getElementById('docBtn').innerHTML = `<span>Phase 3.5: Generate Documentation</span>`;
             } finally {
@@ -2904,6 +3810,10 @@
             setVisible('decomposeSection', true);
             document.getElementById('decomposeStatus').innerText = "Analyzing...";
             
+            inFlightPhase = 'decomposition';
+            pipelineStatus = 'running';
+            StateStore.save(getCurrentState(), true);
+
             try {
                 // Ensure requirements are parsed if in complex/interactive mode
                 if (currentMode !== 'QUICK') {
@@ -2945,6 +3855,8 @@
                             </button>
                         `;
                     }
+                    inFlightPhase = 'single_design';
+                    StateStore.save(getCurrentState(), true);
                     if (currentMode === 'QUICK') {
                         console.log("[QUICK Mode] Auto-progressing: Simple decomposition -> Single-pass Design");
                         generateDesign();
@@ -2981,6 +3893,8 @@
                         </div>
                     `).join('');
                     setVisible('decomposeActions', true);
+                    inFlightPhase = 'component_dag';
+                    StateStore.save(getCurrentState(), true);
                     if (currentMode === 'QUICK') {
                         console.log("[QUICK Mode] Auto-progressing: Complex decomposition -> Component Pipeline");
                         startComponentPipeline();
@@ -2990,6 +3904,10 @@
                 }
                 
             } catch (error) {
+                if (error.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] Decomposition aborted.");
+                    return;
+                }
                 showError("Decomposition Error: " + error.message);
                 setVisible('decomposeSection', false);
             } finally {
@@ -2998,16 +3916,13 @@
         }
 
         // --- PIPELINE ORCHESTRATOR ---
-        let pipelineQueue = [];
-        let pipelineLocks = { design: false, code: false, critic: false };
-        let componentEditors = {};
-        let isProgrammaticComponentEditorUpdate = {};
-        
-        let pipelineInterval = null;
         async function startComponentPipeline() {
             CountdownManager.cancel('pipelineBtn');
             window._quickIntegrationTriggered = false;
             pipelineActive = true;
+            inFlightPhase = 'component_dag';
+            pipelineStatus = 'running';
+            StateStore.save(getCurrentState(), true);
             setVisible('decomposeActions', false);
             setVisible('pipelineDashboard', true);
             updateStepper(2, 'success'); 
@@ -3759,9 +4674,10 @@
                 blueprint: state.blueprint,
                 codebase: state.codebase,
                 execution_result: state.executionResult,
-                        master_decomposition: currentDecomposition
+                master_decomposition: currentDecomposition
             });
             
+            StateStore.save(getCurrentState(), true);
             renderPipelineTracks();
             processPipeline();
         }
@@ -3790,6 +4706,7 @@
                         updateCost(p, c);
                     }
                 }
+                StateStore.save(getCurrentState(), false);
             }
             
             const data = robustJsonParse(fullJsonStr);
@@ -4016,6 +4933,11 @@
 
         async function runIntegration(isRevision = false) {
             CountdownManager.cancel('integrateBtn');
+            
+            inFlightPhase = 'integration';
+            pipelineStatus = 'running';
+            StateStore.save(getCurrentState(), true);
+
             if (!isRevision) {
                 integrationRevisionCount = 0;
                 integrationRevisionPlan = null;
@@ -4195,6 +5117,9 @@
                     setVisible('finalDownloadBtn', true);
                     updateStepper(5, 'success');
 
+                    inFlightPhase = 'documentation';
+                    StateStore.save(getCurrentState(), true);
+
                     if (currentMode === 'QUICK') {
                         console.log("[QUICK Mode] Integration passed. Auto-generating documentation.");
                         setVisible('docGenerationSection', true);
@@ -4219,6 +5144,9 @@
                         if (planText) planText.textContent = `Auto-correcting integration (${integrationRevisionCount}/${dynamicIntBudget}):\n${integrationRevisionPlan}`;
                         if (card) card.className = "p-5 rounded-lg border shadow-sm bg-orange-950/20 border-orange-800";
                         
+                        inFlightPhase = 'integration';
+                        StateStore.save(getCurrentState(), true);
+
                         setTimeout(() => {
                             runIntegration(true);
                         }, 1500);
@@ -4237,6 +5165,8 @@
                         setVisible('finalDownloadBtn', true);
                         updateStepper(5, 'success');
                         console.log(`[QUICK Mode] Integration retry completed after ${dynamicIntBudget} retries. Auto-generating documentation.`);
+                        inFlightPhase = 'documentation';
+                        StateStore.save(getCurrentState(), true);
                         generateDocs();
                         renderRunGuide();
                         showPostCompletionSection();
@@ -4252,12 +5182,19 @@
                         setVisible('finalDownloadBtn', true);
                         updateStepper(5, 'success');
 
+                        inFlightPhase = 'documentation';
+                        StateStore.save(getCurrentState(), true);
+
                         CountdownManager.start('docBtn', '<span>Phase 3.5: Generate Documentation</span>', () => generateDocs(), 30);
                         showPostCompletionSection();
                     }
                 }
                 
             } catch (err) {
+                if (err.name === 'AbortError' || pipelineStatus === 'aborted') {
+                    console.log("[AutoDev] Integration aborted.");
+                    return;
+                }
                 console.error("Integration Error", err);
                 if (integrationCriticHistory && integrationCriticHistory.length > 0) {
                     const lastHist = integrationCriticHistory[integrationCriticHistory.length - 1];
@@ -4273,6 +5210,8 @@
                     if (integrationRevisionCount < maxCatchRevs) {
                         integrationRevisionCount++;
                         console.log("[QUICK Mode] Integration error encountered. Retrying once (1/1)...");
+                        inFlightPhase = 'integration';
+                        StateStore.save(getCurrentState(), true);
                         setTimeout(() => {
                             runIntegration(true);
                         }, 1500);
@@ -4297,6 +5236,8 @@
                         setVisible('finalDownloadBtn', true);
                         updateStepper(5, 'success');
                         console.log("[QUICK Mode] Integration retry completed with error. Auto-generating documentation.");
+                        inFlightPhase = 'documentation';
+                        StateStore.save(getCurrentState(), true);
                         generateDocs();
                         renderRunGuide();
                         showPostCompletionSection();

@@ -37,6 +37,12 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     tech_stack_lower = [str(s).lower() for s in (blueprint.tech_stack or [])]
     docker_image_lower = (blueprint.docker_image or "").lower()
     
+    # Docker image runtime capabilities
+    is_python_image = "python" in docker_image_lower
+    is_go_image = "golang" in docker_image_lower or "/go" in docker_image_lower
+    is_rust_image = "rust" in docker_image_lower or "cargo" in docker_image_lower
+    is_node_image = "node" in docker_image_lower or "playwright" in docker_image_lower or "bun" in docker_image_lower
+
     has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase.files)
     has_lint_script = False
     if has_package_json:
@@ -55,43 +61,47 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
     has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
     
-    is_node_stack = (
-        any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "vitest", "npm", "react", "vue", "next", "express", "html", "css"))
-        or "node" in docker_image_lower
-        or (has_package_json and not has_py_files)
-        or (has_js_files and not has_py_files)
-    )
-    
-    is_python_stack = (
-        any(k in s for s in tech_stack_lower for k in ("python", "pytest", "django", "flask", "fastapi"))
-        or "python" in docker_image_lower
-        or (has_requirements_txt and not has_js_files)
-        or (has_py_files and not has_js_files)
-    )
-    
     is_go_stack = (
         any(k in s for s in tech_stack_lower for k in ("go", "golang"))
-        or "golang" in docker_image_lower
+        or is_go_image
         or has_go_files
     )
 
     is_rust_stack = (
         any(k in s for s in tech_stack_lower for k in ("rust", "cargo"))
-        or "rust" in docker_image_lower
+        or is_rust_image
         or has_rust_files
+    )
+
+    is_node_stack = (
+        any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "vitest", "npm", "react", "vue", "next", "express", "html", "css"))
+        or is_node_image
+        or (has_package_json and not has_py_files and not has_go_files and not has_rust_files)
+        or (has_js_files and not has_py_files and not has_go_files and not has_rust_files)
+    )
+    
+    is_python_stack = (
+        any(k in s for s in tech_stack_lower for k in ("python", "pytest", "django", "flask", "fastapi"))
+        or is_python_image
+        or (has_requirements_txt and not has_js_files and not has_go_files and not has_rust_files)
+        or (has_py_files and not has_js_files and not has_go_files and not has_rust_files)
     )
 
     # Determine base runner
     if is_node_stack and (not raw_cmd or raw_cmd.lower() == "pytest" or raw_cmd == "NONE"):
         base_cmd = "npm test"
-    elif is_python_stack and (not raw_cmd or raw_cmd.lower() in ("npm test", "jest", "vitest", "vitest run", "npx vitest run") or raw_cmd == "NONE"):
-        base_cmd = "pytest"
     elif is_go_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
         base_cmd = "go test ./..."
     elif is_rust_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
         base_cmd = "cargo test"
+    elif is_python_stack and (not raw_cmd or raw_cmd.lower() in ("npm test", "jest", "vitest", "vitest run", "npx vitest run") or raw_cmd == "NONE"):
+        base_cmd = "pytest"
     elif raw_cmd and raw_cmd != "NONE":
         base_cmd = raw_cmd
+    elif is_go_stack or has_go_files:
+        base_cmd = "go test ./..."
+    elif is_rust_stack or has_rust_files:
+        base_cmd = "cargo test"
     elif is_node_stack or has_package_json:
         base_cmd = "npm test"
     elif is_python_stack or has_requirements_txt or has_py_files:
@@ -99,28 +109,63 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     else:
         base_cmd = "pytest"
 
+    # Runtime environment detection for dependency pre-flight injections
+    # Check that the runner and container image are strictly compatible with package managers
+    is_go_runner = base_cmd.startswith("go ") or "go test" in base_cmd
+    is_rust_runner = base_cmd.startswith("cargo ") or "cargo test" in base_cmd
+    is_node_runner = base_cmd.startswith("npm ") or base_cmd.startswith("npx ") or "vitest" in base_cmd or "jest" in base_cmd
+    is_python_runner = base_cmd.startswith("pytest") or base_cmd.startswith("python")
+
+    is_node_env = (
+        (is_node_image or is_node_stack or is_node_runner)
+        and not is_python_image
+        and not is_go_image
+        and not is_rust_image
+        and not is_go_runner
+        and not is_rust_runner
+        and not is_python_runner
+    )
+
+    is_python_env = (
+        (is_python_image or is_python_stack or is_python_runner)
+        and not is_go_image
+        and not is_rust_image
+        and not is_node_image
+        and not is_go_runner
+        and not is_rust_runner
+        and not is_node_runner
+    )
+
     # Detect if command is a build command (redundant to run lint and prevents build abort on lint warnings)
     is_build_cmd = bool(re.search(r'\bbuild\b', raw_cmd, re.IGNORECASE)) or bool(re.search(r'\bbuild\b', base_cmd, re.IGNORECASE))
     should_lint = has_lint_script and not is_build_cmd
 
-    # Auto-inject dependency installation and pre-flight static analysis
+    # Auto-inject dependency installation and pre-flight static analysis ONLY in Node environments
     lint_injection = "npm run lint && " if should_lint else ""
-    if has_package_json and "npm install" not in base_cmd:
+    if is_node_env and has_package_json and "npm install" not in base_cmd:
         base_cmd = f"npm install --no-audit --no-fund && {lint_injection}{base_cmd}"
-    elif has_package_json and "npm install" in base_cmd and "--no-audit" not in base_cmd:
+    elif is_node_env and has_package_json and "npm install" in base_cmd and "--no-audit" not in base_cmd:
         replacement = f"npm install --no-audit --no-fund && npm run lint" if should_lint else "npm install --no-audit --no-fund"
         base_cmd = base_cmd.replace("npm install", replacement)
 
     # Guard against Playwright version mismatch
-    if "playwright" in docker_image_lower:
+    if "playwright" in docker_image_lower and "npm install" in base_cmd:
         match = re.search(r"v(\d+\.\d+\.\d+)", docker_image_lower)
         if match:
             pw_version = match.group(1)
             # Override whatever npm installed from package.json with the exact version the container has browsers for
             base_cmd = base_cmd.replace("npm install", f"npm install && npm install @playwright/test@{pw_version} --no-audit --no-fund --save-exact", 1)
 
-    if has_requirements_txt and "pip install" not in base_cmd:
-        base_cmd = f"pip install -r requirements.txt && {base_cmd}"
+    # Auto-inject Python dependencies ONLY in Python environments
+    if is_python_env and has_requirements_txt and "pip install" not in base_cmd:
+        pip_install_cmd = (
+            "(pip install --break-system-packages -r requirements.txt 2>/dev/null || "
+            "pip install -r requirements.txt 2>/dev/null || "
+            "python3 -m pip install --break-system-packages -r requirements.txt 2>/dev/null || "
+            "python3 -m pip install -r requirements.txt 2>/dev/null || "
+            "python -m pip install -r requirements.txt)"
+        )
+        base_cmd = f"{pip_install_cmd} && {base_cmd}"
 
     return base_cmd
 
