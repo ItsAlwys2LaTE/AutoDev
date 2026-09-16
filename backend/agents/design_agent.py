@@ -27,7 +27,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
         raise ValueError("GEMINI_API_KEY_DESIGN is not set in the environment variables.")
 
 
-    system_prompt = """
+    system_prompt = r"""
     You are an Expert Software Architect. You receive strict Requirements containing 
     User Stories and Acceptance Criteria.
     Your job is to design the technical blueprint. 
@@ -51,7 +51,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
        - For Frontend / UI components (where `run_tests_command` is a build command): DO NOT design or include test files (`*.test.*`, `*.spec.*`) in your blueprint `files` list! Instead, direct all architectural focus and file definitions to complete, robust application source files (components, state management, routing, styles, assets). Ensure `package.json` contains standard build scripts (`"build": "vite build"`).
        - For Backend / Logic components (where `run_tests_command` runs unit tests): You MUST include comprehensive unit test suite files in your blueprint:
          * For Python (pytest): Test files MUST start with `test_` (e.g., 'test_main.py'). ALWAYS design tests to use raw string literals `r"..."` for regular expressions (e.g. `re.search(r"\d+", text)`) to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
-         * For Node/JS backend services using Vitest: Test files MUST end with `.test.js`, `.test.ts`, `.spec.js`, etc. Test server logic by importing handler/service functions directly. If using MongoDB, use `mongodb-memory-server`. Do NOT use `supertest`.
+          * For Node/JS backend services using Vitest: Test files MUST end with `.test.js`, `.test.ts`, `.spec.js`, etc. Test server logic by importing handler/controller functions directly with mock req/res. If using MongoDB, use `mongodb-memory-server`. STRICT PROHIBITION: Do NOT design or include `supertest` or `superagent` in dependencies, devDependencies, or test file descriptions.
     5. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     6. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 
@@ -74,7 +74,7 @@ def generate_design_stream(requirements: RequirementsDocument, component_context
     Examine the component's scoped requirements and technical role:
     - If this is a Frontend / UI component (React/Vite, UI view, Admin Panel, Product Detail Page, Shopping Cart, client-side routing): Set `run_tests_command` strictly to `npm install --no-audit --no-fund && npm run build`. Do NOT design or include any test files (`*.test.*`, `*.spec.*`) in `files`. Even if it contains some logic or API calls, if its primary output is a UI, treat it as a Frontend component. For React/Vite components, set `dev_server_command` strictly to `npm run dev -- --host 0.0.0.0` and `dev_server_port` to 5173. NEVER specify `python -m http.server` when the component uses a Node or Playwright image.
     - If this is a pure Backend / Logic component (Standalone API Server, Database Schema, Authentication Service, business algorithms): Set `run_tests_command` to the standard unit test runner (`pytest` or `npm install --no-audit --no-fund && npm test`) and include comprehensive unit test files in `files`.
-    - CRITICAL: Never instruct the test suite to start an HTTP server (`app.listen()`) or connect to a real database, as this will hang the sandbox and cause a 180s timeout.
+    - CRITICAL: Never instruct the test suite to start an HTTP server (`app.listen()`), use `supertest`, or connect to a real database, as this will hang the sandbox and cause timeouts or module resolution crashes.
     """
 
     system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(SystemDesignBlueprint.model_json_schema())}"

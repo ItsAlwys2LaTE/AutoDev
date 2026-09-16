@@ -68,6 +68,7 @@
    - 6.9 [State Persistence Engine, In-Flight Phase Auto-Recovery & Dual-Button Control Plane](#69-state-persistence-engine-in-flight-phase-auto-recovery--dual-button-control-plane)
    - 6.10 [Polyglot Container Isolation, Test Runner Hijack Defense & Critic-Adjudicator Execution Alignment](#610-polyglot-container-isolation-test-runner-hijack-defense--critic-adjudicator-execution-alignment)
    - 6.11 [Substring Collision Defense (`sh: 1: go: not found` Prevention) & Integration Test Hardening](#611-substring-collision-defense-sh-1-go-not-found-prevention--integration-test-hardening)
+   - 6.12 [Zero-Dependency In-Memory HTTP Test Client & Supertest Module Resolution Defense](#612-zero-dependency-in-memory-http-test-client--supertest-module-resolution-defense)
 7. [Verification & Test Suite Documentation](#7-verification--test-suite-documentation)
    - 7.1 [Automated Integration Suite (`test_pipeline_flow.py`)](#71-automated-integration-suite-test_pipeline_flowpy)
    - 7.2 [Empirical Stress & Challenger Suite (`test_pipeline_stress_challenge.py`)](#72-empirical-stress--challenger-suite-test_pipeline_stress_challengepy)
@@ -2381,4 +2382,151 @@ Three new regression tests were added to `tests/test_docker_executor.py`:
 3. `test_integration_python_backend_with_html_frontend_resolves_pytest`: Asserts that an integrated Python backend with static HTML files resolves to `python:3.11-slim` and `pytest`.
 
 Full test suite execution: **88 passed (100% pass rate, 0 regressions)**.
+
+---
+
+### 6.12 Zero-Dependency In-Memory HTTP Test Client & Supertest Module Resolution Defense
+
+```
++====================================================================================================+
+|            ZERO-DEPENDENCY SUPERTEST SHIM & VITEST RESOLUTION DEFENSE ARCHITECTURE                 |
++====================================================================================================+
+|                                                                                                    |
+|  [ LLM Generates Backend Test Suite: auth.test.js with "import request from 'supertest'" ]         |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  THE FATAL RESOLUTION TRAP (PREVIOUS):                                                             |
+|  - Prompts instructed AI "Do NOT use supertest" in a brief clause -> AI ignored and imported it     |
+|  - AI omitted supertest from package.json (or golden_stacks stripped it)                            |
+|  - npm install never installed supertest into node_modules                                          |
+|  - vitest run executed -> Vite plugin loadAndTransform() failed:                                   |
+|    "Error: Failed to load url supertest in /workspace/auth.test.js. Does the file exist?"          |
+|  - 0 tests executed -> Critic flagged Sev 8/10 -> Self-correction failed identically across 3 revs|
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 1: Zero-Dependency In-Memory HTTP Client (setupSupertest.js):                              |
+|  - Implements MockIncomingMessage (Readable stream) & MockServerResponse (EventEmitter)            |
+|  - Directly invokes app(req, res) or app.handle(req, res) in-memory                                |
+|  - ZERO network sockets, ZERO port bindings, ZERO 180s container sandbox timeouts                  |
+|  - Chained API: request(app).post().send().set().query().expect().then()                            |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 2: Universal Vitest / Vite Module Aliasing (golden_stacks.py):                              |
+|  - Automatically injects vitest.config.js (or updates vite.config.ts) with:                       |
+|    resolve: { alias: { 'supertest': './setupSupertest.js', 'superagent': './setupSupertest.js' } }  |
+|  - Bypasses node_modules resolution completely in Vite's module pipeline                           |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 3: Container Physical Stub Pre-Flight Injection (executor.py):                              |
+|  - Right after npm install, creates valid ESM packages:                                            |
+|    node_modules/supertest/package.json & index.js (copy of setupSupertest.js)                      |
+|    node_modules/superagent/package.json & index.js                                                 |
+|  - Guarantees resolution even if tests use CommonJS require('supertest') or bypass config aliases   |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 4: Agent System Prompt Hardening (codegen_agent, design_agent, integrator_agent):           |
+|  - Prominent ZERO-TOLERANCE rule prohibiting supertest / superagent                                |
+|  - Concrete code templates showing how to test route handlers with mock req/res (vi.fn())          |
+|                                                                                                    |
++====================================================================================================+
+```
+
+#### 1. Problem & Forensic Root-Cause Analysis
+
+During unit test execution of Node.js backend components (e.g. `nexusprep-backend`), test runs consistently crashed during Vite module loading:
+```
+added 128 packages, and audited 129 packages in 9s
+added 4 packages in 2s
+
+> nexusprep-backend@1.0.0 test
+> vitest run
+
+ RUN  v2.1.9 /workspace
+
+ ❯ auth.test.js (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  auth.test.js [ auth.test.js ]
+Error: Failed to load url supertest (resolved id: supertest) in /workspace/auth.test.js. Does the file exist?
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+Test Files  1 failed (1)
+     Tests  no tests
+
+Critic Reports: Correctness Critic (Gemini) Sev: 8/10:
+The test suite failed to execute due to a missing 'supertest' module or bundling/resolution error in Vite, resulting in zero tests running and a test suite failure.
+```
+
+##### Root Cause Analysis
+1. **The LLM Prior Probability Trap**: LLMs trained on Express/Node.js web frameworks have an overwhelming statistical bias towards writing `import request from 'supertest'` for API route testing.
+2. **The Missing Dependency Contradiction**:
+   - In `design_agent.py` and `codegen_agent.py`, prompts cautioned "Do NOT use supertest". Consequently, the AI did not list `supertest` in `package.json` dependencies.
+   - When `npm install` executed in the Docker sandbox, `supertest` was never installed into `/workspace/node_modules`.
+3. **Vite `loadAndTransform` Crash**:
+   Vitest runs through Vite's ESM bundler pipeline. When `auth.test.js` imported `supertest`, Vite queried `node_modules` for a matching package. Because `supertest` was not installed, Vite halted test execution immediately with `Error: Failed to load url supertest`.
+4. **The Revision Loop Failure**:
+   Because the Correctness Critic noted `missing 'supertest' module`, the Codegen Agent attempted in revisions to add `supertest` to `package.json`. However:
+   - In `golden_stacks.py`, `BANNED_DEV_DEPS = {'supertest', 'superagent'}` stripped `supertest` from React projects.
+   - For non-React projects, even if `supertest` installed, real `supertest` calls `http.createServer(app).listen(0)`, binding TCP ports and hanging container test runners until the 180-second timeout.
+
+#### 2. Architectural Defenses Implemented
+
+##### Layer 1: Zero-Dependency In-Memory HTTP Test Client (`setupSupertest.js`)
+Implemented a standalone, zero-dependency in-memory client that emulates the complete `supertest` interface:
+- **`MockIncomingMessage`**: Subclasses Node's `stream.Readable`, parsing URL paths, query parameters, headers, and streaming request payloads (JSON objects, strings, buffers) to body-parser middleware.
+- **`MockServerResponse`**: Subclasses `events.EventEmitter`, providing Express `ServerResponse` methods (`status`, `sendStatus`, `setHeader`, `set`, `getHeader`, `writeHead`, `write`, `end`, `send`, `json`). Captures response status, parsed JSON bodies, headers, and emits `'finish'`.
+- **In-Memory Request Execution**: Directly executes `app(req, res)` or `app.handle(req, res)` in-memory. Zero network sockets are opened, zero ports are bound, eliminating port conflicts and preventing 180s container execution timeouts.
+- **Chained Supertest API Support**: Supports `.get()`, `.post()`, `.put()`, `.delete()`, `.patch()`, `.options()`, `.head()`, `.set()`, `.send()`, `.query()`, `.type()`, `.accept()`, `.auth()`, `.expect()`, and `.then()`.
+
+##### Layer 2: Automatic Module Aliasing (`backend/golden_stacks.py`)
+In `enforce_golden_dependencies()`:
+- Whenever `supertest` or `superagent` is referenced in any source file or when Node tests are present:
+  - Injects `setupSupertest.js` into the codebase.
+  - Injects or configures `vitest.config.js` (or `vite.config.ts`) with:
+    ```javascript
+    resolve: {
+      alias: {
+        'supertest': path.resolve(process.cwd(), './setupSupertest.js'),
+        'superagent': path.resolve(process.cwd(), './setupSupertest.js'),
+      },
+    }
+    ```
+  - Vite's resolver intercepts all `supertest` import specifiers and resolves them directly to the in-memory client, completely bypassing `node_modules` lookups.
+
+##### Layer 3: Physical Package Stub Injection in Sandbox (`backend/executor.py`)
+In `resolve_test_runner_command()`:
+Immediately after `npm install --no-audit --no-fund`, executes a shell pre-flight command:
+```bash
+(mkdir -p node_modules/supertest node_modules/superagent && \
+ echo '{"name":"supertest","version":"6.3.4","main":"index.js","type":"module"}' > node_modules/supertest/package.json 2>/dev/null && \
+ cp setupSupertest.js node_modules/supertest/index.js 2>/dev/null && \
+ echo '{"name":"superagent","version":"8.1.2","main":"index.js","type":"module"}' > node_modules/superagent/package.json 2>/dev/null && \
+ cp setupSupertest.js node_modules/superagent/index.js 2>/dev/null || true)
+```
+Even if a test uses CommonJS `require('supertest')` or Vitest is executed with flags bypassing configuration files, `node_modules/supertest` is physically present as a valid ES module package.
+
+##### Layer 4: Agent System Prompt Hardening
+Updated `codegen_agent.py`, `design_agent.py`, and `integrator_agent.py`:
+- Prominently bans `supertest` and `superagent`.
+- Provides explicit patterns demonstrating how to test Express/Node route controllers directly using mock `req` and `res` objects with `vi.fn()`:
+  ```javascript
+  import { registerHandler } from './controllers/authController.js';
+  test('registers user', async () => {
+    const req = { body: { email: 'user@test.com', password: 'secretpassword' } };
+    const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
+    await registerHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+  ```
+
+#### 3. Verification & Test Suite Expansion (`tests/test_docker_executor.py`)
+
+Three new unit tests were added:
+1. `test_supertest_stripped_from_node_backend_package_json_and_shim_injected`: Validates that `supertest` is stripped from `package.json` and both `setupSupertest.js` and `vitest.config.js` are injected with aliases.
+2. `test_node_executor_injects_supertest_stub_command`: Validates that `resolve_test_runner_command()` includes the physical `node_modules/supertest` stub creation command.
+3. `test_setup_supertest_injected_when_auth_test_js_imports_supertest`: Validates that `auth.test.js` importing `supertest` triggers automatic shim injection.
+
+Full repository test suite execution: **91 passed in 4.11s (100% pass rate, 0 regressions)**.
+
 

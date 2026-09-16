@@ -74,7 +74,7 @@ def generate_integration_stream(
          f) In React/Vite unit tests, Vitest runs in JSDOM with `src/setupTests.ts` pre-loaded (`window.matchMedia`, `ResizeObserver`, `@testing-library/jest-dom` matchers are globally available).
          g) For Vanilla HTML/JS projects, `"type": "module"` is enforced in `package.json`, so `__dirname` is undefined in ES module scope; resolve `index.html` using `process.cwd()` (e.g., `path.resolve(process.cwd(), 'index.html')`) or `import.meta.url`.
        - DATABASE TESTS: If testing a Node backend with MongoDB, use `mongodb-memory-server` to mock the DB in tests. Do NOT try connecting to a real local MongoDB instance.
-       - Do NOT use `supertest` or any Node-only HTTP testing library. Vitest runs through Vite which cannot resolve them.
+       - STRICT PROHIBITION: Do NOT use `supertest` or `superagent` (`import request from 'supertest'` is BANNED). Test server logic by importing route handlers directly with mock req/res or by invoking `app(req, res)` in-memory.
        - IMPORTANT: In ALL .jsx and .tsx test files, you MUST include `import React from 'react';` at the very top.
        - These tests must verify the seams between components (e.g., login -> browse -> add to cart -> checkout).
     5. SHARED STYLING: Ensure all components use consistent styling/theming. If components have separate 
@@ -91,7 +91,7 @@ def generate_integration_stream(
        c) Vitest is configured with `environment: 'jsdom'` and auto-loads `src/setupTests.ts` (with `@testing-library/jest-dom` and browser mocks). If generating a custom `vitest.config.js` or `vitest.config.mjs`, include `environment: 'jsdom'`.
        d) At the top of your test files, include `import { describe, it, test, expect } from 'vitest';`.
        e) DO NOT use CommonJS `require()` or `__dirname`. Because `"type": "module"` is enforced in `package.json`, `__dirname` is undefined in ES module scope; use `process.cwd()` (e.g. `path.resolve(process.cwd(), 'index.html')`) or `import.meta.url` for file path resolution.
-       f) Do NOT use `supertest`. Test server logic by importing functions directly.
+       f) STRICT PROHIBITION: Do NOT use `supertest` or `superagent`. Test server logic by importing functions directly or invoking `app(req, res)` in-memory.
        g) Vite Server Configuration: When generating or modifying `vite.config.js` or `vite.config.ts`, include `server: { host: '0.0.0.0', port: 5173 }` so the development server automatically binds to `0.0.0.0` on port 5173 for Docker container port forwarding.
     10. REACT ICONS: If generating React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react. Either use generic icons or use "react-icons" if brand icons are strictly required.
     """

@@ -195,10 +195,12 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
 
     # Auto-inject dependency installation and pre-flight static analysis ONLY in Node environments
     lint_injection = "npm run lint && " if should_lint else ""
+    supertest_stub_cmd = "(mkdir -p node_modules/supertest node_modules/superagent && echo '{\"name\":\"supertest\",\"version\":\"6.3.4\",\"main\":\"index.js\",\"type\":\"module\"}' > node_modules/supertest/package.json 2>/dev/null && cp setupSupertest.js node_modules/supertest/index.js 2>/dev/null && echo '{\"name\":\"superagent\",\"version\":\"8.1.2\",\"main\":\"index.js\",\"type\":\"module\"}' > node_modules/superagent/package.json 2>/dev/null && cp setupSupertest.js node_modules/superagent/index.js 2>/dev/null || true) && "
+
     if is_node_env and has_package_json and "npm install" not in base_cmd:
-        base_cmd = f"npm install --no-audit --no-fund && {lint_injection}{base_cmd}"
+        base_cmd = f"npm install --no-audit --no-fund && {supertest_stub_cmd}{lint_injection}{base_cmd}"
     elif is_node_env and has_package_json and "npm install" in base_cmd and "--no-audit" not in base_cmd:
-        replacement = f"npm install --no-audit --no-fund && npm run lint" if should_lint else "npm install --no-audit --no-fund"
+        replacement = f"npm install --no-audit --no-fund && {supertest_stub_cmd}npm run lint" if should_lint else f"npm install --no-audit --no-fund && {supertest_stub_cmd}"
         base_cmd = base_cmd.replace("npm install", replacement)
 
     # Guard against Playwright version mismatch

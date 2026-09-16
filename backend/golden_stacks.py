@@ -213,6 +213,7 @@ beforeEach(() => {
 VITE_CONFIG_CONTENT = """/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
@@ -223,7 +224,355 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**', '**/*.e2e.*'],
     css: false,
   },
+  resolve: {
+    alias: {
+      'supertest': path.resolve(process.cwd(), './setupSupertest.js'),
+      'superagent': path.resolve(process.cwd(), './setupSupertest.js'),
+    },
+  },
 });
+"""
+
+NODE_VITEST_CONFIG_CONTENT = """import { defineConfig } from 'vitest/config';
+import path from 'path';
+
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'node',
+  },
+  resolve: {
+    alias: {
+      'supertest': path.resolve(process.cwd(), './setupSupertest.js'),
+      'superagent': path.resolve(process.cwd(), './setupSupertest.js'),
+    },
+  },
+});
+"""
+
+SETUP_SUPERTEST_CONTENT = """// setupSupertest.js - Auto-injected in-memory HTTP test client for Vitest/Vite
+import { Readable } from 'node:stream';
+import { EventEmitter } from 'node:events';
+
+class MockIncomingMessage extends Readable {
+  constructor(method, url, headers = {}, body = null) {
+    super();
+    this.method = (method || 'GET').toUpperCase();
+    this.url = url || '/';
+    this.headers = {};
+    for (const [k, v] of Object.entries(headers || {})) {
+      this.headers[k.toLowerCase()] = String(v);
+    }
+    this.rawHeaders = Object.entries(this.headers).flat();
+    this.body = body;
+    this.query = {};
+
+    const qIndex = this.url.indexOf('?');
+    if (qIndex !== -1) {
+      const searchParams = new URLSearchParams(this.url.slice(qIndex));
+      for (const [key, value] of searchParams.entries()) {
+        this.query[key] = value;
+      }
+    }
+
+    let payloadStr = '';
+    if (body !== null && body !== undefined) {
+      if (typeof body === 'object' && !Buffer.isBuffer(body)) {
+        payloadStr = JSON.stringify(body);
+        if (!this.headers['content-type']) {
+          this.headers['content-type'] = 'application/json';
+        }
+      } else {
+        payloadStr = String(body);
+      }
+      this.headers['content-length'] = String(Buffer.byteLength(payloadStr));
+      this.push(Buffer.from(payloadStr));
+    }
+    this.push(null);
+  }
+
+  _read() {}
+
+  get(header) {
+    return this.headers[header.toLowerCase()];
+  }
+
+  header(header) {
+    return this.get(header);
+  }
+}
+
+class MockServerResponse extends EventEmitter {
+  constructor(resolve, reject) {
+    super();
+    this.statusCode = 200;
+    this.statusMessage = 'OK';
+    this.headers = {};
+    this._chunks = [];
+    this._resolve = resolve;
+    this._reject = reject;
+    this.headersSent = false;
+    this.finished = false;
+  }
+
+  status(code) {
+    this.statusCode = code;
+    return this;
+  }
+
+  sendStatus(code) {
+    this.statusCode = code;
+    return this.send(String(code));
+  }
+
+  setHeader(name, value) {
+    this.headers[name.toLowerCase()] = String(value);
+    return this;
+  }
+
+  set(name, value) {
+    if (typeof name === 'object' && name !== null) {
+      for (const [k, v] of Object.entries(name)) {
+        this.setHeader(k, v);
+      }
+    } else {
+      this.setHeader(name, value);
+    }
+    return this;
+  }
+
+  getHeader(name) {
+    return this.headers[name.toLowerCase()];
+  }
+
+  getHeaders() {
+    return { ...this.headers };
+  }
+
+  hasHeader(name) {
+    return name.toLowerCase() in this.headers;
+  }
+
+  removeHeader(name) {
+    delete this.headers[name.toLowerCase()];
+  }
+
+  writeHead(statusCode, reasonOrHeaders, maybeHeaders) {
+    this.statusCode = statusCode;
+    const headers = typeof reasonOrHeaders === 'object' ? reasonOrHeaders : maybeHeaders;
+    if (headers) {
+      this.set(headers);
+    }
+    return this;
+  }
+
+  write(chunk, encoding, cb) {
+    if (chunk) {
+      this._chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding));
+    }
+    if (typeof cb === 'function') cb();
+    return true;
+  }
+
+  end(chunk, encoding, cb) {
+    if (this.finished) return this;
+    if (chunk) {
+      this.write(chunk, encoding);
+    }
+    this.finished = true;
+    this.headersSent = true;
+
+    const raw = Buffer.concat(this._chunks).toString('utf-8');
+    let parsedBody = {};
+    try {
+      parsedBody = JSON.parse(raw);
+    } catch {
+      parsedBody = raw;
+    }
+
+    const resObj = {
+      status: this.statusCode,
+      statusCode: this.statusCode,
+      body: parsedBody,
+      text: raw,
+      headers: this.headers,
+      header: this.headers,
+      ok: this.statusCode >= 200 && this.statusCode < 300,
+      clientError: this.statusCode >= 400 && this.statusCode < 500,
+      serverError: this.statusCode >= 500 && this.statusCode < 600,
+      get: (header) => this.headers[header.toLowerCase()],
+    };
+
+    this.emit('finish');
+    if (typeof cb === 'function') cb();
+    this._resolve(resObj);
+    return this;
+  }
+
+  send(data) {
+    if (typeof data === 'object' && data !== null && !Buffer.isBuffer(data)) {
+      return this.json(data);
+    }
+    if (typeof data === 'string') {
+      if (!this.getHeader('content-type')) {
+        this.setHeader('content-type', 'text/html; charset=utf-8');
+      }
+      this.write(Buffer.from(data));
+    } else if (Buffer.isBuffer(data)) {
+      this.write(data);
+    }
+    return this.end();
+  }
+
+  json(data) {
+    if (!this.getHeader('content-type')) {
+      this.setHeader('content-type', 'application/json; charset=utf-8');
+    }
+    this.write(Buffer.from(JSON.stringify(data)));
+    return this.end();
+  }
+}
+
+function getStatusText(code) {
+  const map = { 200: 'OK', 201: 'Created', 204: 'No Content', 400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 500: 'Internal Server Error' };
+  return map[code] || 'Status';
+}
+
+function createTestRequest(app, method, url) {
+  let headers = {};
+  let bodyData = null;
+  let queryData = {};
+  const assertions = [];
+
+  const chain = {
+    set(key, value) {
+      if (typeof key === 'object' && key !== null) {
+        for (const [k, v] of Object.entries(key)) {
+          headers[k.toLowerCase()] = String(v);
+        }
+      } else if (key) {
+        headers[key.toLowerCase()] = String(value);
+      }
+      return chain;
+    },
+    send(data) {
+      bodyData = data;
+      return chain;
+    },
+    query(params) {
+      if (typeof params === 'object' && params !== null) {
+        Object.assign(queryData, params);
+      }
+      return chain;
+    },
+    type(t) {
+      headers['content-type'] = t.includes('/') ? t : `application/${t}`;
+      return chain;
+    },
+    accept(a) {
+      headers['accept'] = a.includes('/') ? a : `application/${a}`;
+      return chain;
+    },
+    auth(userOrToken, passOrOptions) {
+      if (passOrOptions && typeof passOrOptions === 'object' && passOrOptions.type === 'bearer') {
+        headers['authorization'] = `Bearer ${userOrToken}`;
+      } else if (typeof passOrOptions === 'string') {
+        const credentials = Buffer.from(`${userOrToken}:${passOrOptions}`).toString('base64');
+        headers['authorization'] = `Basic ${credentials}`;
+      } else {
+        headers['authorization'] = `Bearer ${userOrToken}`;
+      }
+      return chain;
+    },
+    expect(val, fn) {
+      assertions.push({ val, fn });
+      return chain;
+    },
+    then(resolve, reject) {
+      return execute().then(resolve, reject);
+    },
+    catch(reject) {
+      return execute().catch(reject);
+    },
+    end(callback) {
+      execute().then((res) => callback && callback(null, res)).catch((err) => callback && callback(err));
+    }
+  };
+
+  async function execute() {
+    return new Promise((resolve, reject) => {
+      try {
+        let targetUrl = url;
+        if (Object.keys(queryData).length > 0) {
+          const sep = targetUrl.includes('?') ? '&' : '?';
+          targetUrl += sep + new URLSearchParams(queryData).toString();
+        }
+
+        const req = new MockIncomingMessage(method, targetUrl, headers, bodyData);
+        const res = new MockServerResponse(
+          (responseObj) => {
+            for (const assertItem of assertions) {
+              if (typeof assertItem.val === 'number') {
+                if (responseObj.status !== assertItem.val) {
+                  return reject(new Error(`expected ${assertItem.val} "${getStatusText(assertItem.val)}", got ${responseObj.status} "${getStatusText(responseObj.status)}"`));
+                }
+              } else if (typeof assertItem.val === 'string') {
+                if (typeof assertItem.fn === 'string' || assertItem.fn instanceof RegExp) {
+                  const headerVal = responseObj.headers[assertItem.val.toLowerCase()];
+                  const match = assertItem.fn instanceof RegExp ? assertItem.fn.test(headerVal) : headerVal === assertItem.fn;
+                  if (!match) {
+                    return reject(new Error(`expected "${assertItem.val}" matching ${assertItem.fn}, got "${headerVal}"`));
+                  }
+                }
+              }
+            }
+            resolve(responseObj);
+          },
+          reject
+        );
+
+        let handler = app;
+        if (handler && typeof handler.handle === 'function') {
+          handler.handle(req, res, (err) => {
+            if (err) reject(err);
+            else res.end();
+          });
+        } else if (typeof handler === 'function') {
+          handler(req, res, (err) => {
+            if (err) reject(err);
+            else res.end();
+          });
+        } else if (handler && typeof handler.emit === 'function') {
+          handler.emit('request', req, res);
+        } else {
+          reject(new Error('Provided app is not a callable function or Express application'));
+        }
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  return chain;
+}
+
+export function request(app) {
+  const handler = (method) => (url) => createTestRequest(app, method, url);
+  return {
+    get: handler('GET'),
+    post: handler('POST'),
+    put: handler('PUT'),
+    delete: handler('DELETE'),
+    patch: handler('PATCH'),
+    options: handler('OPTIONS'),
+    head: handler('HEAD'),
+  };
+}
+
+export default request;
+request.agent = request;
+request.Test = createTestRequest;
+export const superagent = request;
 """
 
 VITE_BUILD_CONFIG_CONTENT = """import { defineConfig } from 'vite';
@@ -236,6 +585,7 @@ export default defineConfig({
 
 SETUP_CONFIG_EXCLUSIONS = {
     'setuptests.ts', 'setuptests.js', 'src/setuptests.ts', 'src/setuptests.js',
+    'setupsupertest.js', 'setupsupertest.ts', 'src/setupsupertest.js', 'src/setupsupertest.ts',
     'vitest.config.ts', 'vitest.config.js', 'vite.config.ts', 'vite.config.js',
     'conftest.py', 'jest.config.js', 'jest.config.ts', 'jest.config.mjs', 'jest.config.cjs',
     'playwright.config.ts', 'playwright.config.js', 'cypress.config.ts', 'cypress.config.js',
@@ -532,6 +882,8 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
 
     tests_present = has_test_files(codebase)
 
+    has_package_json = any(file.file_name.lower() == 'package.json' for file in codebase.files)
+
     for file in codebase.files:
         if file.file_name.lower() == 'package.json':
             try:
@@ -576,8 +928,30 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
                     golden['devDependencies'] = golden_dev_deps
 
                     file.source_code = json.dumps(golden, indent=2)
+                else:
+                    # Non-React Node/backend package.json: strip banned dependencies
+                    modified = False
+                    for sec in ['dependencies', 'devDependencies']:
+                        if sec in ai_pkg and isinstance(ai_pkg[sec], dict):
+                            for banned in BANNED_DEV_DEPS:
+                                if banned in ai_pkg[sec]:
+                                    del ai_pkg[sec][banned]
+                                    modified = True
+                    if modified:
+                        file.source_code = json.dumps(ai_pkg, indent=2)
             except Exception:
                 pass
+
+    # Inject setupSupertest.js if supertest/superagent is referenced or for Node projects with tests
+    has_supertest_usage = any(
+        ('supertest' in (getattr(f, 'source_code', '') or '') or 'superagent' in (getattr(f, 'source_code', '') or ''))
+        for f in codebase.files
+    )
+    has_setup_supertest = any(_norm(getattr(f, 'file_name', '')) in ['setupsupertest.js', 'setupsupertest.ts'] for f in codebase.files)
+
+    if (has_supertest_usage or (has_package_json and tests_present)) and not has_setup_supertest:
+        if CodeFileClass is not None:
+            codebase.files.append(CodeFileClass(file_name="setupSupertest.js", source_code=SETUP_SUPERTEST_CONTENT))
 
     # Only inject test headers if tests_present
     if tests_present and (jsdom_detected or react_detected):
@@ -628,6 +1002,14 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
                 # Do NOT inject src/setupTests.ts or vitest.config.ts.
                 if not has_vite_config:
                     codebase.files.append(CodeFileClass(file_name="vite.config.ts", source_code=VITE_BUILD_CONFIG_CONTENT))
+        elif tests_present and has_package_json:
+            # Node.js backend project with unit tests
+            has_vitest_config = any(
+                _norm(f.file_name) in ['vitest.config.ts', 'vitest.config.js', 'vitest.config.mjs', 'vite.config.ts', 'vite.config.js', 'vite.config.mjs']
+                for f in codebase.files
+            )
+            if not has_vitest_config:
+                codebase.files.append(CodeFileClass(file_name="vitest.config.js", source_code=NODE_VITEST_CONFIG_CONTENT))
 
     return codebase
 

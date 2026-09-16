@@ -58,10 +58,22 @@ def generate_code_stream(
        - CASE B: BACKEND / LOGIC UNIT TESTING (When `run_tests_command` is a test command such as `pytest`, `npm test`, or `npm run test:unit`, AND/OR test files are listed in the blueprint):
          * You MUST write comprehensive, non-trivial unit tests for all test files listed in the blueprint.
          * For Python (pytest): Test files MUST be prefixed with `test_` and functions must start with `def test_...`. ALWAYS use raw string literals `r"..."` for all regular expressions (e.g. `re.search(r"\d+", text)`) to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
-         * For JS/Node backend logic: Write tests to run under Vitest (`.test.js`, `.test.ts`, `.spec.js`). 
-         * CRITICAL TIMEOUT PREVENTION: NEVER call `app.listen()` or start a real HTTP server in your tests. Test server logic by importing and executing handler functions directly, passing mock Request/Response objects. 
-         * NEVER connect to a real database (like `mongodb://localhost`). ALWAYS use `mongodb-memory-server` or mock the database layer. Tests that start servers or real connections will hang the sandbox and fail with a 180s timeout.
-         * For async operations, ensure all promises resolve. Use explicit `afterAll` blocks to close mock databases or timers. Do NOT use `supertest`.
+         * For JS/Node backend logic: Write tests to run under Vitest (`.test.js`, `.test.ts`, `.spec.js`).
+         * STRICT PROHIBITION OF `supertest`: NEVER import or require `supertest` or `superagent` (e.g., `import request from 'supertest'` is STRICTLY FORBIDDEN). Real HTTP listeners and supertest instances hang the container sandbox, resulting in 180s timeout failures or module resolution crashes (`Failed to load url supertest`).
+         * HOW TO TEST SERVER/API LOGIC SAFELY: Test server logic and API endpoints by importing route handler/controller functions directly and passing mock Request/Response objects with `vi.fn()`:
+           ```javascript
+           import { registerHandler } from './controllers/authController.js';
+           test('registers user', async () => {
+             const req = { body: { email: 'user@test.com', password: 'secretpassword' } };
+             const res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
+             await registerHandler(req, res);
+             expect(res.status).toHaveBeenCalledWith(201);
+             expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ token: expect.any(String) }));
+           });
+           ```
+           Alternatively, if testing an Express `app` instance, invoke `app(req, res)` directly in-process without calling `app.listen()`.
+         * DATABASE MOCKING: NEVER connect to a real database (like `mongodb://localhost`). ALWAYS use `mongodb-memory-server` or mock the database layer with `vi.mock()`. Tests that start servers or real connections will hang the sandbox and fail with a 180s timeout.
+         * For async operations, ensure all promises resolve. Use explicit `afterAll` blocks to close mock databases or timers.
     3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For projects running unit tests, include the necessary test runners ('vitest', 'jsdom', etc.). For frontend projects validated via `npm run build`, ensure build dependencies (such as `vite`, `@vitejs/plugin-react`) and all runtime dependencies are declared. Do NOT include '@playwright/test' in package.json at this stage.
     4. SCHEMA & BLUEPRINT COMPLIANCE: The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code. Do NOT invent additional test files that were not specified in the blueprint.
     5. IMPORTS/REQUIRES: EVERY file MUST include ALL necessary import/require statements at the top. Missing imports will cause crashes in the execution sandbox.
