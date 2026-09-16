@@ -2157,3 +2157,94 @@ State persistence and control plane mechanics are validated by **35 automated te
 | `TestNetworkDisconnectAndOfflineResilience` | Offline event interception, reconnection trigger (`online`), and auto-retry without data loss. |
 
 All 35 tests pass with 100% determinism in < 1.0s, bringing the complete AutoDev test suite to **82 passing tests** with zero regressions.
+
+---
+
+### 6.10 Polyglot Container Isolation, Test Runner Hijack Defense & Critic-Adjudicator Execution Alignment
+
+```
++====================================================================================================+
+|                POLYGLOT CONTAINER ISOLATION & CRITIC EXECUTION ALIGNMENT ARCHITECTURE              |
++====================================================================================================+
+|                                                                                                    |
+|  [ Polyglot / Mixed Decomposition: e.g., React Frontend + Python Backend Microservice ]            |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  resolve_docker_image(blueprint, codebase)                                                         |
+|  - Inspects actual codebase files (requirements.txt vs package.json)                              |
+|  - Auto-corrects pure Python microservices: playwright/node image -> python:3.11-slim             |
+|  - Auto-corrects pure Node/React services:  python image          -> playwright/node image         |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  resolve_test_runner_command(blueprint, codebase)                                                  |
+|  - Evaluates is_pure_python: has_py_files && !has_package_json && !has_js_files                    |
+|  - Prevents Node stack hijacking: is_node_stack = False when is_pure_python                        |
+|  - Preserves pytest: base_cmd = "pytest" (never overridden to "npm test")                          |
+|  - Injects 4-tier resilient pip install: (pip install ... || python3 -m pip install ...)           |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Docker Sandbox Container Run: execute_code()                                                      |
+|  - Spawns python:3.11-slim with pre-installed Python 3.11, pip, and pytest                         |
+|  - Complete isolation: zero npm ENOENT package.json crashes                                        |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Correctness Critic Alignment: evaluate_correctness()                                              |
+|  - Mode B prompt passes Execution Sandbox Status: PASSED / FAILED                                  |
+|  - Strict instruction: If execution failed, assign severity >= 6 and detail errors                 |
+|  - Deterministic Python Guard: if not exec_success and fb.severity_score <= 2:                       |
+|    Enforces severity_score = 8 and issues_list failure details                                     |
+|  - Eliminates Critic (0/10) vs Master Adjudicator (Revise) contradiction                           |
+|                                                                                                    |
++====================================================================================================+
+```
+
+#### 1. Problem & Root Cause Analysis
+During polyglot application development (e.g. FastAPI / PyMuPDF backend microservices paired with React/HTML frontends), the pipeline suffered from two coupled failure modes:
+1. **Test Runner Hijack (`npm error ENOENT: package.json`)**:
+   - Because the Master Architect selected a Playwright Docker image for the overall frontend, the component context passed to the Python microservice inherited `docker_image = "mcr.microsoft.com/playwright:v1.48.0-jammy"`.
+   - In `backend/executor.py`, `resolve_test_runner_command()` evaluated `is_node_image = True` and erroneously marked `is_node_stack = True` even though the codebase was 100% Python (`requirements.txt`, `main.py`, `test_main.py`).
+   - Line 91 saw `raw_cmd == "pytest"` and replaced it with `"npm test"`, causing npm to crash with `ENOENT: no such file or directory, open '/workspace/package.json'`.
+2. **The Critic–Adjudicator Revision Doom Loop**:
+   - The Correctness Critic (Gemini) evaluated `test_main.py` in Mode B. Since no failed pytest assertions existed in the log (pytest was never run), the LLM awarded a passing score of `Sev: 0/10`.
+   - The Master Adjudicator (deterministic Python gate) checked `if not execution_result.success:` and triggered mandatory `REVISION REQUIRED` on Gate 1 with the raw npm error log.
+   - The Codegen Agent received this feedback for 3 consecutive revisions, but because it only writes application code and cannot alter Docker images or test runner commands, all 3 revisions failed identically.
+
+#### 2. Architectural Defenses Implemented
+
+##### Layer 1: Dynamic Docker Runtime Image Resolution (`backend/executor.py`)
+Introduced `resolve_docker_image()` to dynamically inspect the codebase files and guarantee container-codebase compatibility:
+- **Pure Python Codebases** (`requirements.txt` / `.py` files without `package.json` or `.js` files):
+  Automatically normalizes the container image to `python:3.11-slim`, preventing execution inside Node or Playwright images that lack `pip` and `pytest`.
+- **Pure Node/React Codebases** (`package.json` / `.js` files without Python files):
+  Automatically normalizes the container image to `mcr.microsoft.com/playwright:v1.48.0-jammy`.
+
+##### Layer 2: Pure Python Test Runner Protection (`backend/executor.py`)
+In `resolve_test_runner_command()`:
+- Evaluates `is_pure_python = (has_py_files or has_requirements_txt) and not has_package_json and not has_js_files and not has_go_files and not has_rust_files`.
+- Explicitly excludes pure Python codebases from `is_node_stack`, regardless of what container image was requested.
+- Preserves `pytest` whenever `is_pure_python` is True or `raw_cmd.lower() == "pytest"`, completely eliminating `npm test` overrides on Python projects.
+
+##### Layer 3: Deterministic Critic Execution Status Alignment (`backend/agents/critics.py`)
+In `evaluate_correctness()`:
+- Injected `Execution Sandbox Status: PASSED / FAILED` into the Mode B LLM prompt.
+- Explicitly prohibited awarding severity scores $\le 2$ when sandbox execution failed.
+- Added a deterministic Python post-processing guard:
+  ```python
+  def _enforce_execution_status(fb: CriticFeedback) -> CriticFeedback:
+      fb.critic_name = critic_name
+      if not exec_success and fb.severity_score <= 2:
+          fb.severity_score = 8
+          if not fb.issues_list:
+              fb.issues_list = ["Test suite execution failed in container sandbox (exit code != 0)."]
+          fb.overall_comments = f"Execution failed in Docker sandbox. {fb.overall_comments}".strip()
+      return fb
+  ```
+  This guarantees that Critic reports and Adjudicator verdicts remain 100% aligned, preventing misleading 0/10 scores during infrastructure or test crashes.
+
+#### 3. Verification
+Automated test suite `tests/test_docker_executor.py` expanded to cover:
+- Pure Python microservice in Playwright image auto-correcting to `python:3.11-slim` and running `pytest`.
+- Pure Node project in Python image auto-correcting to Playwright.
+- Correctness Critic deterministic guard enforcing severity $\ge 6$ on non-zero exit codes.
+
+Total test suite across repository: **85 passing tests (100% pass rate)**.

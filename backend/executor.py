@@ -26,16 +26,43 @@ def create_tar_from_codebase(codebase: GeneratedCodeBase) -> bytes:
     tar_stream.seek(0)
     return tar_stream.read()
 
+def resolve_docker_image(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> str:
+    """
+    Resolves the appropriate Docker container image matching the codebase language runtime.
+    Prevents running pure Python microservices in Node/Playwright containers or vice-versa.
+    """
+    image = (blueprint.docker_image or "").strip()
+    image_lower = image.lower()
+
+    has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase.files)
+    has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase.files)
+    has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase.files)
+    has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase.files)
+    has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
+    has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
+
+    is_pure_python = (has_py_files or has_requirements_txt) and not has_package_json and not has_js_files and not has_go_files and not has_rust_files
+    is_pure_node = (has_package_json or has_js_files) and not has_py_files and not has_go_files and not has_rust_files
+
+    if is_pure_python and ("playwright" in image_lower or "node" in image_lower or "golang" in image_lower or "rust" in image_lower or not image):
+        return "python:3.11-slim"
+
+    if is_pure_node and ("python" in image_lower or "golang" in image_lower or "rust" in image_lower or not image):
+        return "mcr.microsoft.com/playwright:v1.48.0-jammy"
+
+    return image or "python:3.11-slim"
+
 def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> str:
     """
     Dynamically determines the appropriate test runner command based on the
     project's tech stack, file extensions, and Docker image, avoiding hardcoded mismatches.
     """
     raw_cmd = (blueprint.run_tests_command or "").strip()
+    effective_image = resolve_docker_image(blueprint, codebase)
+    docker_image_lower = effective_image.lower()
     
     # Normalize tech stack keywords
     tech_stack_lower = [str(s).lower() for s in (blueprint.tech_stack or [])]
-    docker_image_lower = (blueprint.docker_image or "").lower()
     
     # Docker image runtime capabilities
     is_python_image = "python" in docker_image_lower
@@ -61,6 +88,9 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
     has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
     
+    is_pure_python = (has_py_files or has_requirements_txt) and not has_package_json and not has_js_files and not has_go_files and not has_rust_files
+    is_pure_node = (has_package_json or has_js_files) and not has_py_files and not has_go_files and not has_rust_files
+
     is_go_stack = (
         any(k in s for s in tech_stack_lower for k in ("go", "golang"))
         or is_go_image
@@ -74,21 +104,26 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     )
 
     is_node_stack = (
-        any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "vitest", "npm", "react", "vue", "next", "express", "html", "css"))
-        or is_node_image
-        or (has_package_json and not has_py_files and not has_go_files and not has_rust_files)
-        or (has_js_files and not has_py_files and not has_go_files and not has_rust_files)
+        not is_pure_python and (
+            any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "vitest", "npm", "react", "vue", "next", "express", "html", "css"))
+            or (is_node_image and not is_pure_python)
+            or (has_package_json and not has_py_files and not has_go_files and not has_rust_files)
+            or (has_js_files and not has_py_files and not has_go_files and not has_rust_files)
+        )
     )
     
     is_python_stack = (
-        any(k in s for s in tech_stack_lower for k in ("python", "pytest", "django", "flask", "fastapi"))
+        is_pure_python
+        or any(k in s for s in tech_stack_lower for k in ("python", "pytest", "django", "flask", "fastapi"))
         or is_python_image
         or (has_requirements_txt and not has_js_files and not has_go_files and not has_rust_files)
         or (has_py_files and not has_js_files and not has_go_files and not has_rust_files)
     )
 
     # Determine base runner
-    if is_node_stack and (not raw_cmd or raw_cmd.lower() == "pytest" or raw_cmd == "NONE"):
+    if is_pure_python or (raw_cmd.lower() == "pytest" and (is_python_stack or has_py_files or has_requirements_txt)):
+        base_cmd = "pytest"
+    elif is_node_stack and (not raw_cmd or raw_cmd.lower() == "pytest" or raw_cmd == "NONE"):
         base_cmd = "npm test"
     elif is_go_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
         base_cmd = "go test ./..."
@@ -200,6 +235,7 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
     based on the tech stack, and returns the logs safely.
     """
     codebase = enforce_golden_dependencies(codebase)
+    effective_docker_image = resolve_docker_image(blueprint, codebase)
     
     try:
         client = docker.from_env()
@@ -209,13 +245,13 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
     try:
         # Pull image if not exists
         try:
-            client.images.get(blueprint.docker_image)
+            client.images.get(effective_docker_image)
         except docker.errors.ImageNotFound:
-            client.images.pull(blueprint.docker_image)
+            client.images.pull(effective_docker_image)
 
         # Create the container in a detached state running a dummy process to keep it alive
         container = client.containers.create(
-            image=blueprint.docker_image,
+            image=effective_docker_image,
             command="tail -f /dev/null",
             detach=True,
             working_dir="/workspace"

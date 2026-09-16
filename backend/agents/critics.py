@@ -186,6 +186,7 @@ CRITICAL INSTRUCTIONS:
 
 Evaluate the CORRECTNESS of the code based on the execution logs AND the test source code.
 Did the tests pass? Are the tests actually testing the Acceptance Criteria, or are they trivial no-ops?
+Execution Sandbox Status: {"PASSED" if exec_success else "FAILED"}
 {component_context}
 
 TEST SOURCE CODE:
@@ -200,10 +201,20 @@ REQUIREMENTS DOCUMENT:
 CRITICAL INSTRUCTIONS:
 1. Check that the tests ACTUALLY test functionality against acceptance criteria, not just trivial assertions/no-ops. Flag any test that is a no-op or placeholder, even if it passes.
 2. Verify that test cases thoroughly validate the Acceptance Criteria defined in the requirements.
-3. If any test assertions failed in the execution logs, assign a failing severity_score (5-10) and detail each failure in issues_list.
-4. If all tests pass and meaningfully validate the requirements, assign severity_score: 0 (or <= 2) and empty issues_list: [].
+3. If the sandbox execution failed (Execution Sandbox Status: FAILED, non-zero exit code, runner crash, compiler errors, or test assertion failures in the execution logs), you MUST assign a failing severity_score (6-10) and detail the errors from the execution logs in issues_list. You are STRICTLY PROHIBITED from awarding severity <= 2 when execution failed.
+4. If and only if the execution passed without error and all tests meaningfully validate the requirements, assign severity_score: 0 (or <= 2) and empty issues_list: [].
 """
         system_instruction = f"You are the {critic_name}. Evaluate the test suite and execution logs strictly. Output a severity_score (0-10, where <=2 passes) and a list of specific issues."
+
+    def _enforce_execution_status(fb: CriticFeedback) -> CriticFeedback:
+        fb.critic_name = critic_name
+        # Deterministic Guard: If sandbox execution failed, ensure severity score reflects failure
+        if not exec_success and fb.severity_score <= 2:
+            fb.severity_score = 8
+            if not fb.issues_list:
+                fb.issues_list = ["Test suite execution failed in container sandbox (exit code != 0)."]
+            fb.overall_comments = f"Execution failed in Docker sandbox. {fb.overall_comments}".strip()
+        return fb
 
     # Try all primary keys with resolved primary model
     for idx, key in enumerate(keys):
@@ -225,8 +236,7 @@ CRITICAL INSTRUCTIONS:
                 fb = response.parsed
             else:
                 fb = CriticFeedback.model_validate_json(response.text)
-            fb.critic_name = critic_name
-            return fb
+            return _enforce_execution_status(fb)
 
         try:
             return _call_primary()
@@ -256,8 +266,7 @@ CRITICAL INSTRUCTIONS:
                             fb = response.parsed
                         else:
                             fb = CriticFeedback.model_validate_json(response.text)
-                        fb.critic_name = critic_name
-                        return fb
+                        return _enforce_execution_status(fb)
 
                     try:
                         return _call_fallback()
