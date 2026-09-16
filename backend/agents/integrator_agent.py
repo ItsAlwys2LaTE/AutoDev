@@ -50,7 +50,13 @@ def generate_integration_stream(
     3. CONSOLIDATED DEPENDENCIES: Merge all package.json or requirements.txt files into ONE unified manifest 
        with all dependencies from all components. Remove duplicates and ensure testing dependencies (such as vitest and jsdom for Node or pytest for Python) are present.
     4. DYNAMIC INTEGRATION TESTS & TEST RUNNER ROUTING: Write comprehensive integration test(s) matching the project's selected tech stack:
-       - For Python/pytest projects: Generate `test_integration.py` (or `test_app.py`) with pytest assertions testing end-to-end user workflows across components. ALWAYS use raw string literals `r"..."` for all regular expressions to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
+       - For Python/pytest projects: Generate comprehensive `test_integration.py` (or `test_app.py`) using `fastapi.testclient.TestClient` or `httpx`.
+         a) Non-Trivial End-to-End Workflow Testing: You are STRICTLY PROHIBITED from writing trivial or placeholder smoke tests (such as merely checking a static HTML title or root 200 OK). You MUST test real functional workflows spanning the integrated components:
+            - Call backend API endpoints with both valid and boundary/edge-case payloads and assert response status codes and JSON schema keys.
+            - Test file upload and processing endpoints (e.g. simulated PDF bytes or file uploads) with realistic multi-step request sequences.
+            - Test data persistence, session state, calculations, and AI routing/orchestration logic (mocking external third-party API calls where needed).
+         b) Comprehensive Acceptance Criteria Validation: Ensure all major user stories from the requirements are verified with assertions.
+         c) ALWAYS use raw string literals `r"..."` for all regular expressions to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
        - For Node.js/JavaScript/TypeScript projects:
          a) Test Separation: Unit and component tests run under Vitest in JSDOM; end-to-end browser workflows run in Playwright.
          b) File Naming Convention: Name all Playwright browser tests with the `.e2e.test.ts` or `.e2e.spec.ts` suffix, or place them strictly inside an `e2e/` directory (e.g., `e2e/checkout.test.ts`). Never mix Playwright `{ page }` fixtures into unit test files (`*.test.tsx`, `*.test.ts`, `*.test.js`).

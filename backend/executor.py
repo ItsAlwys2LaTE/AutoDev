@@ -40,15 +40,25 @@ def resolve_docker_image(blueprint: SystemDesignBlueprint, codebase: GeneratedCo
     has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase.files)
     has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
     has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
+    has_go_mod = any(f.file_name.lower() == 'go.mod' for f in codebase.files)
+    has_cargo_toml = any(f.file_name.lower() == 'cargo.toml' for f in codebase.files)
 
-    is_pure_python = (has_py_files or has_requirements_txt) and not has_package_json and not has_js_files and not has_go_files and not has_rust_files
-    is_pure_node = (has_package_json or has_js_files) and not has_py_files and not has_go_files and not has_rust_files
+    is_python_service = (has_py_files or has_requirements_txt) and not has_package_json and not has_go_files and not has_rust_files
+    is_pure_node = (has_package_json or (has_js_files and not has_py_files)) and not has_py_files and not has_go_files and not has_rust_files
+    is_go_service = (has_go_files or has_go_mod) and not has_py_files and not has_package_json
+    is_rust_service = (has_rust_files or has_cargo_toml) and not has_py_files and not has_package_json
 
-    if is_pure_python and ("playwright" in image_lower or "node" in image_lower or "golang" in image_lower or "rust" in image_lower or not image):
+    if is_python_service and ("playwright" in image_lower or "node" in image_lower or "golang" in image_lower or "rust" in image_lower or not image):
         return "python:3.11-slim"
 
     if is_pure_node and ("python" in image_lower or "golang" in image_lower or "rust" in image_lower or not image):
         return "mcr.microsoft.com/playwright:v1.48.0-jammy"
+
+    if is_go_service and ("python" in image_lower or "playwright" in image_lower or "node" in image_lower or "rust" in image_lower or not image):
+        return "golang:1.22-bookworm"
+
+    if is_rust_service and ("python" in image_lower or "playwright" in image_lower or "node" in image_lower or "golang" in image_lower or not image):
+        return "rust:1.75-slim"
 
     return image or "python:3.11-slim"
 
@@ -83,63 +93,71 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
                 except Exception:
                     pass
     has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase.files)
+    has_go_mod = any(f.file_name.lower() == 'go.mod' for f in codebase.files)
+    has_cargo_toml = any(f.file_name.lower() == 'cargo.toml' for f in codebase.files)
     has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase.files)
     has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase.files)
     has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
     has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
     
-    is_pure_python = (has_py_files or has_requirements_txt) and not has_package_json and not has_js_files and not has_go_files and not has_rust_files
-    is_pure_node = (has_package_json or has_js_files) and not has_py_files and not has_go_files and not has_rust_files
+    is_pure_python = (has_py_files or has_requirements_txt) and not has_package_json and not has_go_files and not has_rust_files
+    is_pure_node = (has_package_json or (has_js_files and not has_py_files)) and not has_py_files and not has_go_files and not has_rust_files
 
+    # Match Go strictly with word boundaries to avoid false positives (e.g. google-generativeai, django, mongodb)
+    is_go_keyword = any(bool(re.search(r'\b(go|golang)\b', s)) for s in tech_stack_lower)
     is_go_stack = (
-        any(k in s for s in tech_stack_lower for k in ("go", "golang"))
-        or is_go_image
-        or has_go_files
+        (has_go_files or has_go_mod)
+        or (is_go_image and not has_py_files and not has_package_json)
+        or (is_go_keyword and (has_go_files or has_go_mod or is_go_image))
     )
 
+    # Match Rust strictly with word boundaries
+    is_rust_keyword = any(bool(re.search(r'\b(rust|cargo)\b', s)) for s in tech_stack_lower)
     is_rust_stack = (
-        any(k in s for s in tech_stack_lower for k in ("rust", "cargo"))
-        or is_rust_image
-        or has_rust_files
+        (has_rust_files or has_cargo_toml)
+        or (is_rust_image and not has_py_files and not has_package_json)
+        or (is_rust_keyword and (has_rust_files or has_cargo_toml or is_rust_image))
     )
 
     is_node_stack = (
         not is_pure_python and (
-            any(k in s for s in tech_stack_lower for k in ("node", "javascript", "typescript", "jest", "vitest", "npm", "react", "vue", "next", "express", "html", "css"))
-            or (is_node_image and not is_pure_python)
-            or (has_package_json and not has_py_files and not has_go_files and not has_rust_files)
-            or (has_js_files and not has_py_files and not has_go_files and not has_rust_files)
+            has_package_json
+            or (has_js_files and not has_py_files)
+            or (is_node_image and not has_py_files)
+            or (any(bool(re.search(r'\b(node|javascript|typescript|jest|vitest|npm|react|vue|next|express)\b', s)) for s in tech_stack_lower) and (has_package_json or has_js_files or is_node_image))
         )
     )
     
     is_python_stack = (
         is_pure_python
-        or any(k in s for s in tech_stack_lower for k in ("python", "pytest", "django", "flask", "fastapi"))
+        or any(bool(re.search(r'\b(python|pytest|django|flask|fastapi)\b', s)) for s in tech_stack_lower)
         or is_python_image
-        or (has_requirements_txt and not has_js_files and not has_go_files and not has_rust_files)
-        or (has_py_files and not has_js_files and not has_go_files and not has_rust_files)
+        or has_requirements_txt
+        or has_py_files
     )
 
     # Determine base runner
-    if is_pure_python or (raw_cmd.lower() == "pytest" and (is_python_stack or has_py_files or has_requirements_txt)):
+    if (has_go_files or has_go_mod) and (is_go_stack or is_go_image or raw_cmd.startswith("go ")):
+        base_cmd = raw_cmd if raw_cmd.startswith("go ") else "go test ./..."
+    elif (has_rust_files or has_cargo_toml) and (is_rust_stack or is_rust_image or raw_cmd.startswith("cargo ")):
+        base_cmd = raw_cmd if raw_cmd.startswith("cargo ") else "cargo test"
+    elif is_pure_python or (has_py_files and not has_package_json):
+        base_cmd = "pytest"
+    elif has_package_json and not has_py_files:
+        base_cmd = "npm test"
+    elif (has_py_files or has_requirements_txt) and (raw_cmd.lower() == "pytest" or is_python_stack):
         base_cmd = "pytest"
     elif is_node_stack and (not raw_cmd or raw_cmd.lower() == "pytest" or raw_cmd == "NONE"):
         base_cmd = "npm test"
-    elif is_go_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
-        base_cmd = "go test ./..."
-    elif is_rust_stack and (not raw_cmd or raw_cmd.lower() in ("pytest", "npm test") or raw_cmd == "NONE"):
-        base_cmd = "cargo test"
-    elif is_python_stack and (not raw_cmd or raw_cmd.lower() in ("npm test", "jest", "vitest", "vitest run", "npx vitest run") or raw_cmd == "NONE"):
-        base_cmd = "pytest"
     elif raw_cmd and raw_cmd != "NONE":
         base_cmd = raw_cmd
-    elif is_go_stack or has_go_files:
+    elif has_go_files or has_go_mod:
         base_cmd = "go test ./..."
-    elif is_rust_stack or has_rust_files:
+    elif has_rust_files or has_cargo_toml:
         base_cmd = "cargo test"
-    elif is_node_stack or has_package_json:
+    elif has_package_json or is_node_stack:
         base_cmd = "npm test"
-    elif is_python_stack or has_requirements_txt or has_py_files:
+    elif has_py_files or has_requirements_txt or is_python_stack:
         base_cmd = "pytest"
     else:
         base_cmd = "pytest"

@@ -64,6 +64,10 @@
    - 6.5 [Integration Phase Revision Layout & Arbitration History Architecture](#65-integration-phase-revision-layout--arbitration-history-architecture)
    - 6.6 [Live Preview 3-Layer Defense System](#live-preview-3-layer-defense-system-premature-exit-prevention)
    - 6.7 [Post-Completion Iteration & Query Engine Architecture](#67-post-completion-iteration--query-engine-architecture)
+   - 6.8 [Polyglot Dependency Isolation & Pre-Flight Environment Guarding (`pip: not found` Defense)](#68-cross-runtime-docker-execution-defense-prevention-of-sh-1-pip-not-found)
+   - 6.9 [State Persistence Engine, In-Flight Phase Auto-Recovery & Dual-Button Control Plane](#69-state-persistence-engine-in-flight-phase-auto-recovery--dual-button-control-plane)
+   - 6.10 [Polyglot Container Isolation, Test Runner Hijack Defense & Critic-Adjudicator Execution Alignment](#610-polyglot-container-isolation-test-runner-hijack-defense--critic-adjudicator-execution-alignment)
+   - 6.11 [Substring Collision Defense (`sh: 1: go: not found` Prevention) & Integration Test Hardening](#611-substring-collision-defense-sh-1-go-not-found-prevention--integration-test-hardening)
 7. [Verification & Test Suite Documentation](#7-verification--test-suite-documentation)
    - 7.1 [Automated Integration Suite (`test_pipeline_flow.py`)](#71-automated-integration-suite-test_pipeline_flowpy)
    - 7.2 [Empirical Stress & Challenger Suite (`test_pipeline_stress_challenge.py`)](#72-empirical-stress--challenger-suite-test_pipeline_stress_challengepy)
@@ -2248,3 +2252,133 @@ Automated test suite `tests/test_docker_executor.py` expanded to cover:
 - Correctness Critic deterministic guard enforcing severity $\ge 6$ on non-zero exit codes.
 
 Total test suite across repository: **85 passing tests (100% pass rate)**.
+
+---
+
+### 6.11 Substring Collision Defense (`sh: 1: go: not found` Prevention) & Integration Test Hardening
+
+```
++====================================================================================================+
+|         SUBSTRING COLLISION DEFENSE & INTEGRATION TEST HARDENING ARCHITECTURE                       |
++====================================================================================================+
+|                                                                                                    |
+|  [ Multi-Component Integration: e.g. FastAPI Backend + Static HTML/CSS Frontend ]                  |
+|  - shared_tech_stack: ["Python", "FastAPI", "google-generativeai", "pytest", "HTML", "CSS"]       |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Flawed Substring Check (PREVIOUS):                                                                |
+|  any(k in s for s in tech_stack for k in ("go", "golang"))                                         |
+|  -> "go" in "google-generativeai" == True! -> is_go_stack = True                                    |
+|  -> Hijacked base_cmd = "go test ./..."                                                            |
+|  -> Container crashed: sh: 1: go: not found (Exit code 127)                                         |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 1: Strict Regex Word Boundaries & File Pre-Flight Guard (RESOLVED):                         |
+|  - re.search(r'\b(go|golang)\b', s)                                                                |
+|  - Requires has_go_files or has_go_mod or is_go_image                                              |
+|  - "google-generativeai", "django", "mongodb", "algorithms" NEVER match Go runner                  |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 2: Manifest-Driven Test Command in Integration UI (RESOLVED):                              |
+|  - runIntegration() inspects codebase files rather than guessing from tech stack strings           |
+|  - Python backend with HTML frontend -> dynamicTestCmd = "pytest" (not "npm test")                 |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 3: Runtime Docker Image Normalization (RESOLVED):                                           |
+|  - Python backend with static HTML/CSS resolves to python:3.11-slim (not Playwright/Node/Go)        |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 4: Integrator Agent System Prompt Hardening (RESOLVED):                                     |
+|  - Strictly prohibits placeholder smoke tests (e.g. static HTML title checks or 200 OK on root)    |
+|  - Mandates multi-step API tests using fastapi.testclient.TestClient / httpx                       |
+|  - Validates file/PDF byte uploads, OCR fallback, session persistence, and error handling          |
+|                                                                                                    |
++====================================================================================================+
+```
+
+#### 1. Problem & Root Cause Analysis
+
+During the integration phase of a multi-component application comprising a Python backend (using `FastAPI`, `PyMuPDF`, `google-generativeai`, and `pytest`) and an HTML/CSS frontend, the integration pipeline repeatedly failed across all three automated self-correction revisions:
+```
+Test Execution Results: Failed
+sh: 1: go: not found
+Execution complete. Invoke the parallel Arbitration Engine.
+
+Correctness Critic (Gemini) Sev: 8/10:
+The test execution failed due to an environment command error, and the existing test suite fails to thoroughly validate the complex acceptance criteria outlined in the requirements... Execution log indicates a compilation/execution failure where the 'go' command was not found (sh: 1: go: not found)... The test suite is extremely minimal and consists almost entirely of placeholder or trivial smoke tests (e.g. checking for static text headers) rather than real end-to-end integration across OCR and AI workflows.
+```
+
+Forensic investigation revealed two root causes:
+
+##### Root Cause 1: 2-Character Substring Collision in Runner Resolution (`backend/executor.py`)
+In `backend/executor.py`, stack detection logic contained:
+```python
+is_go_stack = any(k in s for s in tech_stack_lower for k in ("go", "golang"))
+```
+Because `"go"` is a two-character English substring, any tech stack entry containing `"go"` evaluated `k in s` to `True`:
+- `"google-generativeai"` $\to$ matches `"go"`
+- `"django"` $\to$ matches `"go"`
+- `"mongodb"` $\to$ matches `"go"`
+- `"algorithms"` $\to$ matches `"go"`
+- `"argon2"` $\to$ matches `"go"`
+
+When `runIntegration()` in `backend/index.html` processed `shared_tech_stack`, the presence of `"HTML"` triggered its heuristic to initialize `dynamicTestCmd = "npm test"`. Then `backend/executor.py` evaluated:
+```python
+elif is_go_stack and raw_cmd.lower() in ("pytest", "npm test"):
+    base_cmd = "go test ./..."
+```
+Because `is_go_stack` was erroneously `True` due to `"google-generativeai"`, `base_cmd` was hijacked to `"go test ./..."`. The container was a standard Python or Playwright Linux environment without Go installed, resulting in an immediate command not found crash (`sh: 1: go: not found`, exit code 127).
+
+A similar risk existed for Rust:
+```python
+is_rust_stack = any(k in s for s in tech_stack_lower for k in ("rust", "cargo"))
+```
+Entries like `"truststore"` would trigger `is_rust_stack = True`.
+
+##### Root Cause 2: Integrator Prompt Lacked Rigorous Integration Test Mandates (`backend/agents/integrator_agent.py`)
+While `integrator_agent.py` contained detailed multi-paragraph guidelines for Node.js/Playwright E2E suites, its instruction for Python was merely:
+`Generate test_integration.py with pytest assertions testing end-to-end user workflows.`
+Given this minimal instruction, LLMs predictably fell back to trivial smoke tests (such as checking if `index.html` contains a `<title>` string or asserting `GET /` returns 200 OK) rather than testing real multi-step API workflows, file uploads, OCR processing, or state persistence. The Correctness Critic rightly flagged these trivial tests with severity 8/10.
+
+#### 2. Architectural Defenses Implemented
+
+##### Layer 1: Strict Regex Word Boundaries & File Pre-Flight Guard (`backend/executor.py`)
+Replaced naive substring inclusion with strict word-boundary regular expressions:
+```python
+has_go_keyword = any(bool(re.search(r'\b(go|golang)\b', s)) for s in tech_stack_lower)
+has_rust_keyword = any(bool(re.search(r'\b(rust|cargo)\b', s)) for s in tech_stack_lower)
+
+is_go_stack = has_go_keyword and (has_go_files or has_go_mod or is_go_image)
+is_rust_stack = has_rust_keyword and (has_rust_files or has_cargo_toml or is_rust_image)
+```
+- `"google-generativeai"`, `"django"`, and `"mongodb"` are strictly rejected because `\b(go|golang)\b` does not match within longer words.
+- Even if a user's prompt mentions the word "go", `is_go_stack` remains `False` unless `.go` files, a `go.mod` file, or a Go container image actually exist in the codebase.
+
+##### Layer 2: Manifest-Driven Test Command Selection in Frontend Integration (`backend/index.html`)
+In `runIntegration()`, replaced the crude `stack.some(s => s.includes('html'))` heuristic with direct codebase file inspection:
+- **`package.json` present**: `dynamicTestCmd = "npm test"`
+- **Python files / `requirements.txt` present without `package.json`**: `dynamicTestCmd = "pytest"`
+- **`.go` files or `go.mod` present**: `dynamicTestCmd = "go test ./..."`
+- **`.rs` files or `Cargo.toml` present**: `dynamicTestCmd = "cargo test"`
+
+##### Layer 3: Runtime Docker Image Normalization for Python Backends with Static Frontends (`backend/executor.py`)
+In `resolve_docker_image()`:
+When an integrated application consists of a Python backend (with `requirements.txt` or `.py` files) and static HTML/CSS files (without a `package.json`), the container image is guaranteed to resolve to `python:3.11-slim`, ensuring `pytest`, `python3`, and standard Linux libraries are present.
+
+##### Layer 4: Hardened Integrator Agent System Prompt (`backend/agents/integrator_agent.py`)
+Expanded Rule 4 in `INTEGRATOR_SYSTEM_PROMPT` to mandate production-grade integration test suites:
+- **Prohibition of Placeholder Smoke Tests**: Explicitly forbids trivial smoke tests that only verify static HTML headers or root endpoint 200 OK statuses.
+- **Mandatory Multi-Step Workflows**: Requires using `fastapi.testclient.TestClient` or `httpx` to execute chained API flows across microservices.
+- **Simulated File Uploads**: Requires constructing mock binary files (`io.BytesIO`) to thoroughly exercise upload, OCR extraction, and document processing endpoints.
+- **Boundary & Error Assertions**: Requires testing invalid payloads, malformed files, rate-limit responses, and concurrency semaphore ceilings.
+- **Session State Persistence**: Mandates testing session retrieval, updates, and cross-request consistency.
+
+#### 3. Verification & Test Coverage (`tests/test_docker_executor.py`)
+
+Three new regression tests were added to `tests/test_docker_executor.py`:
+1. `test_google_generativeai_never_triggers_go_test`: Asserts that `tech_stack=["python", "google-generativeai"]` resolves strictly to `pytest` and never `go test ./...`.
+2. `test_django_and_mongodb_never_trigger_go_test`: Asserts that `"django"` and `"mongodb"` do not trigger Go stack hijacking.
+3. `test_integration_python_backend_with_html_frontend_resolves_pytest`: Asserts that an integrated Python backend with static HTML files resolves to `python:3.11-slim` and `pytest`.
+
+Full test suite execution: **88 passed (100% pass rate, 0 regressions)**.
+

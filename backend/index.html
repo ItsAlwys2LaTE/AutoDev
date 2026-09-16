@@ -4994,10 +4994,24 @@
                 renderIntegrationRevTabs();
                 
                 let dynamicTestCmd = "pytest";
-                const stack = (currentDecomposition.shared_tech_stack || []).map(s => String(s).toLowerCase());
-                const isNode = stack.some(s => s.includes('node') || s.includes('javascript') || s.includes('typescript') || s.includes('jest') || s.includes('html') || s.includes('react') || s.includes('vue')) || (currentDecomposition.shared_docker_image || '').includes('node');
-                if (isNode) {
+                const intFiles = (currentCodebase && currentCodebase.files) ? currentCodebase.files : [];
+                const hasPkgJson = intFiles.some(f => (f.file_name || '').toLowerCase() === 'package.json');
+                const hasPythonFiles = intFiles.some(f => (f.file_name || '').toLowerCase().endsWith('.py') || (f.file_name || '').toLowerCase() === 'requirements.txt');
+                const hasGoLangFiles = intFiles.some(f => (f.file_name || '').toLowerCase().endsWith('.go') || (f.file_name || '').toLowerCase() === 'go.mod');
+                const hasRustLangFiles = intFiles.some(f => (f.file_name || '').toLowerCase().endsWith('.rs') || (f.file_name || '').toLowerCase() === 'cargo.toml');
+
+                if (hasGoLangFiles) {
+                    dynamicTestCmd = "go test ./...";
+                } else if (hasRustLangFiles) {
+                    dynamicTestCmd = "cargo test";
+                } else if (hasPythonFiles && !hasPkgJson) {
+                    dynamicTestCmd = "pytest";
+                } else if (hasPkgJson) {
                     dynamicTestCmd = "npm test";
+                } else {
+                    const stack = (currentDecomposition.shared_tech_stack || []).map(s => String(s).toLowerCase());
+                    const isNode = stack.some(s => s.includes('node') || s.includes('javascript') || s.includes('typescript') || s.includes('react') || s.includes('vue')) || (currentDecomposition.shared_docker_image || '').includes('node') || (currentDecomposition.shared_docker_image || '').includes('playwright');
+                    dynamicTestCmd = isNode ? "npm test" : "pytest";
                 }
                 
                 currentBlueprint = {
