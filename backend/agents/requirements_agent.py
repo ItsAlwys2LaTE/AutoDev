@@ -46,24 +46,24 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
 
     prompt_content = feature_request
 
-    @with_exponential_backoff
-    def _try_stream(key, model_name):
-        """Attempt a single streaming call. Returns an iterator or raises."""
-        client = genai.Client(api_key=key)
-        return client.models.generate_content_stream(
-            model=model_name,
-            contents=prompt_content,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.2, 
-                response_mime_type="application/json",
-            )
-        )
-
     # Phase 1: Try primary model across all keys
     for idx, key in enumerate(keys):
+        client = genai.Client(api_key=key)
+
+        @with_exponential_backoff
+        def _get_stream(model_name: str):
+            return client.models.generate_content_stream(
+                model=model_name,
+                contents=prompt_content,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.2, 
+                    response_mime_type="application/json",
+                )
+            )
+
         try:
-            response = _try_stream(key, primary_model)
+            response = _get_stream(primary_model)
             for chunk in response:
                 if getattr(chunk, 'text', None):
                     yield chunk.text
@@ -83,8 +83,22 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
     # Phase 2: Try fallback model across all keys
     print(f"Requirements Agent: falling back to {secondary_model} (Model: {secondary_model})...")
     for fb_idx, fb_key in enumerate(keys):
+        fb_client = genai.Client(api_key=fb_key)
+
+        @with_exponential_backoff
+        def _get_fallback_stream(model_name: str):
+            return fb_client.models.generate_content_stream(
+                model=model_name,
+                contents=prompt_content,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.2, 
+                    response_mime_type="application/json",
+                )
+            )
+
         try:
-            response = _try_stream(fb_key, secondary_model)
+            response = _get_fallback_stream(secondary_model)
             for chunk in response:
                 if getattr(chunk, 'text', None):
                     yield chunk.text
