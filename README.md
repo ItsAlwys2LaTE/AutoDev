@@ -1,6 +1,6 @@
 # AutoDev: Autonomous Multi-Agent Software Engineering Platform
 
-**Production Build: v2.2.1-Prod (Master Edition)**
+**Production Build: v2.3.0-Prod (Master Edition)**
 
 🔗 **System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, Monaco Editor, and Vanilla ES6+ Web Dashboard.
 
@@ -93,6 +93,10 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 | **Prompt Guard Security Filter** | Defends against prompt injection attacks, system prompt extraction, and malformed/vague input prompts |
 | **One-Click Production ZIP Export** | Bundles full project trees (source code, test suites, blueprints, documentation) into a downloadable `.zip` file via JSZip |
 | **Write-Ahead State Store (WASS)** | Durable append-only event journal (`pipeline_events.jsonl`) and atomic snapshot checkpointing for crash recovery |
+| **Targeted Differential Revision** | Surgically extracts and refactors only broken files via AST/regex error parsing, eliminating whole-codebase token waste and regressions |
+| **Hybrid Verification Strategy** | Decouples verification posture: production build compilation (`npm run build`) for UI vs comprehensive unit tests (`pytest`/`vitest`) for logic |
+| **Python Sandbox Hardening** | Auto-injects `python-multipart` and pins transitive conflicts (`pymongo<4.8`), enforcing defensive dictionary access and Motor mock patterns |
+| **Dynamic Abort/Retry Control Plane** | Stateful pipeline cancellation with single-click "Retry Development" pipeline restart and live terminal connection telemetry |
 
 ---
 
@@ -704,6 +708,7 @@ AutoDev has evolved through **78 commits across 9 architectural eras**, progress
 | `v2.1.0` | `3fdbde3` | Component Pipeline | Master Architect, Integrator, modular multi-component pipeline |
 | `v2.2.0-DAG` | `9166d0a` | Mathematical DAG | Kahn sort, Tarjan SCC, StageMutex, 2-phase handover, WASS |
 | `v2.2.1-Prod` | `5502746` | Production Release | Live SSE terminal, Prompt Guard, horizontal carousel UI, Backoff |
+| `v2.3.0-Prod` | `HEAD` | Differential & Hybrid SDLC | Targeted differential revision, hybrid UI build verification, Python runtime defense, Abort->Retry control plane |
 
 ---
 

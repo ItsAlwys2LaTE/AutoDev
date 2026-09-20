@@ -1,11 +1,29 @@
 import os
 import tarfile
 import io
+import json
 import threading
 import docker
 import re
-from models import GeneratedCodeBase, ExecutionResult, SystemDesignBlueprint
+import ast
+from typing import Optional, List, Any
+from models import GeneratedCodeBase, ExecutionResult, SystemDesignBlueprint, ComponentSpec, ComponentDecomposition
 from golden_stacks import enforce_golden_dependencies, has_test_files, is_test_file
+try:
+    from golden_stacks import sanitize_python_source
+except ImportError:
+    sanitize_python_source = None
+
+def is_python_test_file(file_name: str) -> bool:
+    """Detects whether a file is an executable Python test file."""
+    if not file_name or not isinstance(file_name, str):
+        return False
+    norm = file_name.replace('\\', '/').split('/')[-1].lower()
+    if not norm.endswith('.py'):
+        return False
+    if norm.startswith('test_') or norm.endswith('_test.py'):
+        return True
+    return is_test_file(file_name)
 
 def create_tar_from_codebase(codebase: GeneratedCodeBase) -> bytes:
     """Creates an in-memory tarball of the codebase to inject into the Docker container."""
@@ -26,22 +44,179 @@ def create_tar_from_codebase(codebase: GeneratedCodeBase) -> bytes:
     tar_stream.seek(0)
     return tar_stream.read()
 
-def resolve_docker_image(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> str:
+def _coerce_dict(obj: Any) -> Optional[dict]:
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        return obj
+    if isinstance(obj, str):
+        s = obj.strip()
+        if s.startswith("{") and s.endswith("}"):
+            try:
+                parsed = json.loads(s)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                pass
+    return None
+
+def _extract_codebase_files(codebase: Any):
+    if codebase is None:
+        return []
+    raw = getattr(codebase, 'files', None)
+    if raw is None and isinstance(codebase, dict):
+        raw = codebase.get('files', [])
+    if not raw:
+        return []
+    class _FileProxy:
+        def __init__(self, f):
+            if isinstance(f, dict):
+                self.file_name = f.get('file_name', '') or ''
+                self.source_code = f.get('source_code', '') or ''
+            else:
+                self.file_name = getattr(f, 'file_name', '') or ''
+                self.source_code = getattr(f, 'source_code', '') or ''
+    return [_FileProxy(f) for f in raw]
+
+def resolve_component_docker_image(
+    component: Optional[Any] = None,
+    decomposition: Optional[Any] = None,
+    default: Optional[str] = None
+) -> Optional[str]:
+    """
+    Resolves Docker image by checking component-specific override first,
+    falling back to shared_docker_image from decomposition.
+    """
+    comp_dict = _coerce_dict(component)
+    if component is not None:
+        img = comp_dict.get("docker_image") if comp_dict is not None else getattr(component, "docker_image", None)
+        if img and str(img).strip():
+            return str(img).strip()
+    decomp_dict = _coerce_dict(decomposition)
+    if decomposition is not None:
+        img = decomp_dict.get("shared_docker_image") if decomp_dict is not None else getattr(decomposition, "shared_docker_image", None)
+        if img and str(img).strip():
+            return str(img).strip()
+    return default
+
+def resolve_component_tech_stack(
+    component: Optional[Any] = None,
+    decomposition: Optional[Any] = None,
+    default: Optional[List[str]] = None
+) -> List[str]:
+    """
+    Resolves tech stack by checking component-specific override first,
+    falling back to shared_tech_stack from decomposition.
+    """
+    comp_dict = _coerce_dict(component)
+    if component is not None:
+        stack = comp_dict.get("tech_stack") if comp_dict is not None else getattr(component, "tech_stack", None)
+        if stack:
+            cleaned = [str(s).strip() for s in stack if str(s).strip()]
+            if cleaned:
+                return cleaned
+    decomp_dict = _coerce_dict(decomposition)
+    if decomposition is not None:
+        stack = decomp_dict.get("shared_tech_stack") if decomp_dict is not None else getattr(decomposition, "shared_tech_stack", None)
+        if stack:
+            cleaned = [str(s).strip() for s in stack if str(s).strip()]
+            if cleaned:
+                return cleaned
+    return default or []
+
+def resolve_tech_stack(
+    component: Optional[Any] = None,
+    decomposition: Optional[Any] = None,
+    blueprint: Optional[SystemDesignBlueprint] = None,
+    default: Optional[List[str]] = None,
+) -> List[str]:
+    """
+    Resolves tech stack by checking component-specific field first
+    (component.tech_stack or blueprint.tech_stack), falling back to
+    shared_tech_stack from decomposition, and then default.
+    """
+    comp_dict = _coerce_dict(component)
+    if component is not None:
+        stack = comp_dict.get("tech_stack") if comp_dict is not None else getattr(component, "tech_stack", None)
+        if stack:
+            cleaned = [str(s).strip() for s in stack if str(s).strip()]
+            if cleaned:
+                return cleaned
+    if blueprint is not None:
+        bp_stack = getattr(blueprint, "tech_stack", None)
+        if bp_stack:
+            cleaned = [str(s).strip() for s in bp_stack if str(s).strip()]
+            if cleaned:
+                return cleaned
+    decomp_dict = _coerce_dict(decomposition)
+    if decomposition is not None:
+        stack = decomp_dict.get("shared_tech_stack") if decomp_dict is not None else getattr(decomposition, "shared_tech_stack", None)
+        if stack:
+            cleaned = [str(s).strip() for s in stack if str(s).strip()]
+            if cleaned:
+                return cleaned
+    return default or []
+
+def resolve_docker_image(
+    blueprint: Optional[SystemDesignBlueprint] = None,
+    codebase: Optional[GeneratedCodeBase] = None,
+    component: Optional[Any] = None,
+    decomposition: Optional[Any] = None,
+) -> str:
     """
     Resolves the appropriate Docker container image matching the codebase language runtime.
     Prevents running pure Python microservices in Node/Playwright containers or vice-versa.
+    Guarantees that any component with Python test files or pytest test command resolves to python:3.11-slim.
+    Checks component-specific docker_image first, falling back to blueprint.docker_image,
+    shared_docker_image from decomposition, and codebase heuristics.
     """
-    image = (blueprint.docker_image or "").strip()
-    image_lower = image.lower()
+    comp_dict = _coerce_dict(component)
+    component_image = None
+    if component is not None:
+        img = comp_dict.get("docker_image") if comp_dict is not None else getattr(component, "docker_image", None)
+        if img and str(img).strip():
+            component_image = str(img).strip()
 
-    has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase.files)
-    has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase.files)
-    has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase.files)
-    has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase.files)
-    has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
-    has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
-    has_go_mod = any(f.file_name.lower() == 'go.mod' for f in codebase.files)
-    has_cargo_toml = any(f.file_name.lower() == 'cargo.toml' for f in codebase.files)
+    decomp_dict = _coerce_dict(decomposition)
+    shared_image = None
+    if decomposition is not None:
+        s_img = decomp_dict.get("shared_docker_image") if decomp_dict is not None else getattr(decomposition, "shared_docker_image", None)
+        if s_img and str(s_img).strip():
+            shared_image = str(s_img).strip()
+
+    configured_image = (
+        component_image
+        or (blueprint.docker_image.strip() if (blueprint and blueprint.docker_image) else None)
+        or shared_image
+        or ""
+    )
+    image = configured_image.strip()
+    image_lower = image.lower()
+    raw_cmd = (blueprint.run_tests_command if blueprint else "").strip().lower()
+
+    codebase_files = _extract_codebase_files(codebase)
+    if not codebase_files:
+        return image or "python:3.11-slim"
+
+    has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase_files)
+    has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase_files)
+    has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase_files)
+    has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase_files)
+    has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase_files)
+    has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase_files)
+    has_go_mod = any(f.file_name.lower() == 'go.mod' for f in codebase_files)
+    has_cargo_toml = any(f.file_name.lower() == 'cargo.toml' for f in codebase_files)
+
+    has_py_test_files = any(is_python_test_file(f.file_name) for f in codebase_files)
+    is_pytest_cmd = bool(re.search(r'\b(pytest|python\d?)\b', raw_cmd))
+
+    # Priority 1: If component contains Python test files OR test command invokes pytest/python,
+    # resolve to a Python container image. If configured image is already a Python image, use it;
+    # otherwise fallback to python:3.11-slim (to prevent running pytest in Node/Playwright containers).
+    if has_py_test_files or is_pytest_cmd:
+        if "python" in image_lower:
+            return image
+        return "python:3.11-slim"
 
     is_python_service = (has_py_files or has_requirements_txt) and not has_package_json and not has_go_files and not has_rust_files
     is_pure_node = (has_package_json or (has_js_files and not has_py_files)) and not has_py_files and not has_go_files and not has_rust_files
@@ -62,17 +237,23 @@ def resolve_docker_image(blueprint: SystemDesignBlueprint, codebase: GeneratedCo
 
     return image or "python:3.11-slim"
 
-def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase) -> str:
+def resolve_test_runner_command(
+    blueprint: SystemDesignBlueprint,
+    codebase: GeneratedCodeBase,
+    component: Optional[Any] = None,
+    decomposition: Optional[Any] = None,
+) -> str:
     """
     Dynamically determines the appropriate test runner command based on the
     project's tech stack, file extensions, and Docker image, avoiding hardcoded mismatches.
     """
-    raw_cmd = (blueprint.run_tests_command or "").strip()
-    effective_image = resolve_docker_image(blueprint, codebase)
+    raw_cmd = (blueprint.run_tests_command or "").strip() if blueprint else ""
+    effective_image = resolve_docker_image(blueprint, codebase, component=component, decomposition=decomposition)
     docker_image_lower = effective_image.lower()
     
-    # Normalize tech stack keywords
-    tech_stack_lower = [str(s).lower() for s in (blueprint.tech_stack or [])]
+    # Normalize tech stack keywords (checking component/decomposition overrides first)
+    resolved_stack = resolve_tech_stack(component=component, decomposition=decomposition, blueprint=blueprint)
+    tech_stack_lower = [str(s).lower() for s in (resolved_stack or [])]
     
     # Docker image runtime capabilities
     is_python_image = "python" in docker_image_lower
@@ -80,25 +261,33 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     is_rust_image = "rust" in docker_image_lower or "cargo" in docker_image_lower
     is_node_image = "node" in docker_image_lower or "playwright" in docker_image_lower or "bun" in docker_image_lower
 
-    has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase.files)
+    codebase_files = _extract_codebase_files(codebase)
+    has_package_json = any(f.file_name.lower() == 'package.json' for f in codebase_files)
     has_lint_script = False
+    has_test_script = False
+    has_build_script = False
     if has_package_json:
-        for f in codebase.files:
+        for f in codebase_files:
             if f.file_name.lower() == 'package.json':
                 try:
                     import json
                     pkg = json.loads(f.source_code)
-                    if 'lint' in pkg.get('scripts', {}):
+                    scripts = pkg.get('scripts', {})
+                    if 'lint' in scripts:
                         has_lint_script = True
+                    if 'test' in scripts:
+                        has_test_script = True
+                    if 'build' in scripts:
+                        has_build_script = True
                 except Exception:
                     pass
-    has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase.files)
-    has_go_mod = any(f.file_name.lower() == 'go.mod' for f in codebase.files)
-    has_cargo_toml = any(f.file_name.lower() == 'cargo.toml' for f in codebase.files)
-    has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase.files)
-    has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase.files)
-    has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase.files)
-    has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase.files)
+    has_requirements_txt = any(f.file_name.lower() == 'requirements.txt' for f in codebase_files)
+    has_go_mod = any(f.file_name.lower() == 'go.mod' for f in codebase_files)
+    has_cargo_toml = any(f.file_name.lower() == 'cargo.toml' for f in codebase_files)
+    has_js_files = any(f.file_name.lower().endswith(('.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs')) for f in codebase_files)
+    has_py_files = any(f.file_name.lower().endswith('.py') for f in codebase_files)
+    has_go_files = any(f.file_name.lower().endswith('.go') for f in codebase_files)
+    has_rust_files = any(f.file_name.lower().endswith('.rs') for f in codebase_files)
     
     is_pure_python = (has_py_files or has_requirements_txt) and not has_package_json and not has_go_files and not has_rust_files
     is_pure_node = (has_package_json or (has_js_files and not has_py_files)) and not has_py_files and not has_go_files and not has_rust_files
@@ -136,19 +325,32 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
         or has_py_files
     )
 
+    tests_present = has_test_files(codebase)
+    raw_cmd_lower = raw_cmd.lower()
+    raw_has_build = bool(re.search(r'\bbuild\b', raw_cmd_lower))
+    raw_is_node_cmd = bool(re.search(r'\b(npm|npx|vitest|jest|vite)\b', raw_cmd_lower))
+
     # Determine base runner
+    has_py_test_files = any(is_python_test_file(f.file_name) for f in codebase_files)
     if (has_go_files or has_go_mod) and (is_go_stack or is_go_image or raw_cmd.startswith("go ")):
         base_cmd = raw_cmd if raw_cmd.startswith("go ") else "go test ./..."
     elif (has_rust_files or has_cargo_toml) and (is_rust_stack or is_rust_image or raw_cmd.startswith("cargo ")):
         base_cmd = raw_cmd if raw_cmd.startswith("cargo ") else "cargo test"
+    elif has_py_test_files or (is_python_image and not is_node_stack) or raw_cmd_lower.startswith("pytest") or raw_cmd_lower == "pytest":
+        base_cmd = raw_cmd if (raw_cmd and raw_cmd_lower != "none" and not raw_cmd.startswith("npm ")) else "pytest"
     elif is_pure_python or (has_py_files and not has_package_json):
         base_cmd = "pytest"
-    elif has_package_json and not has_py_files:
-        base_cmd = "npm test"
-    elif (has_py_files or has_requirements_txt) and (raw_cmd.lower() == "pytest" or is_python_stack):
+    elif is_node_stack or (has_package_json and not has_py_files):
+        if raw_has_build:
+            base_cmd = raw_cmd
+        elif not tests_present and (has_build_script or not has_test_script):
+            base_cmd = "npm run build"
+        elif raw_is_node_cmd and raw_cmd_lower != "none":
+            base_cmd = raw_cmd
+        else:
+            base_cmd = "npm test" if (tests_present or has_test_script) else "npm run build"
+    elif (has_py_files or has_requirements_txt) and (raw_cmd_lower == "pytest" or is_python_stack):
         base_cmd = "pytest"
-    elif is_node_stack and (not raw_cmd or raw_cmd.lower() == "pytest" or raw_cmd == "NONE"):
-        base_cmd = "npm test"
     elif raw_cmd and raw_cmd != "NONE":
         base_cmd = raw_cmd
     elif has_go_files or has_go_mod:
@@ -156,11 +358,17 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
     elif has_rust_files or has_cargo_toml:
         base_cmd = "cargo test"
     elif has_package_json or is_node_stack:
-        base_cmd = "npm test"
+        base_cmd = "npm test" if (tests_present or has_test_script) else "npm run build"
     elif has_py_files or has_requirements_txt or is_python_stack:
         base_cmd = "pytest"
     else:
         base_cmd = "pytest"
+
+    # Safety net: If base_cmd contains npm test but package.json has no test script,
+    # or no test files exist in a frontend build stack, fallback to npm run build
+    if has_package_json and "npm test" in base_cmd and (not has_test_script or not tests_present):
+        if has_build_script or not tests_present:
+            base_cmd = base_cmd.replace("npm test", "npm run build")
 
     # Runtime environment detection for dependency pre-flight injections
     # Check that the runner and container image are strictly compatible with package managers
@@ -211,16 +419,18 @@ def resolve_test_runner_command(blueprint: SystemDesignBlueprint, codebase: Gene
             # Override whatever npm installed from package.json with the exact version the container has browsers for
             base_cmd = base_cmd.replace("npm install", f"npm install && npm install @playwright/test@{pw_version} --no-audit --no-fund --save-exact", 1)
 
-    # Auto-inject Python dependencies ONLY in Python environments
-    if is_python_env and has_requirements_txt and "pip install" not in base_cmd:
+    # Auto-inject Python dependencies ONLY in Python environments or when running pytest
+    is_pytest_runner = "pytest" in base_cmd or is_python_runner
+    if (is_python_env or is_pytest_runner) and not is_go_runner and not is_rust_runner and not is_node_runner and "pip install" not in base_cmd:
         pip_install_cmd = (
-            "(pip install --break-system-packages -r requirements.txt 2>/dev/null || "
-            "pip install -r requirements.txt 2>/dev/null || "
-            "python3 -m pip install --break-system-packages -r requirements.txt 2>/dev/null || "
-            "python3 -m pip install -r requirements.txt 2>/dev/null || "
-            "python -m pip install -r requirements.txt)"
+            "(pip install --break-system-packages pytest pytest-asyncio httpx -r requirements.txt 2>/dev/null || "
+            "pip install pytest pytest-asyncio httpx -r requirements.txt 2>/dev/null || "
+            "pip install --break-system-packages pytest pytest-asyncio httpx 2>/dev/null || "
+            "pip install pytest pytest-asyncio httpx 2>/dev/null || "
+            "python3 -m pip install --break-system-packages pytest pytest-asyncio httpx 2>/dev/null || "
+            "true) && "
         )
-        base_cmd = f"{pip_install_cmd} && {base_cmd}"
+        base_cmd = f"{pip_install_cmd}{base_cmd}"
 
     return base_cmd
 
@@ -248,14 +458,48 @@ def _exec_with_timeout(container, cmd: str, workdir: str = "/workspace", timeout
         return 1, b"Execution error: No response from container execution."
     return res.exit_code, res.output
 
-def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) -> ExecutionResult:
+def execute_code(
+    codebase: GeneratedCodeBase,
+    blueprint: SystemDesignBlueprint,
+    timeout: int = 180,
+    component: Optional[Any] = None,
+    decomposition: Optional[Any] = None,
+) -> ExecutionResult:
     """
     Spins up an isolated Docker container based on the blueprint,
     injects the generated source code into memory, executes tests dynamically
     based on the tech stack, and returns the logs safely.
     """
     codebase = enforce_golden_dependencies(codebase)
-    effective_docker_image = resolve_docker_image(blueprint, codebase)
+
+    # --- R3: In-Memory Pre-Flight Python AST Syntax Gate ---
+    # Validate syntax of all Python files in-memory before invoking Docker daemon.
+    # If unrecoverable syntax errors exist, fail fast with pinpointed error message.
+    for file_obj in getattr(codebase, 'files', []):
+        fname = file_obj.file_name if hasattr(file_obj, 'file_name') else file_obj.get('file_name', '')
+        if fname.lower().endswith('.py'):
+            source = file_obj.source_code if hasattr(file_obj, 'source_code') else file_obj.get('source_code', '')
+            if sanitize_python_source is not None:
+                try:
+                    source = sanitize_python_source(source)
+                    if hasattr(file_obj, 'source_code'):
+                        file_obj.source_code = source
+                    elif isinstance(file_obj, dict):
+                        file_obj['source_code'] = source
+                except Exception:
+                    pass
+            try:
+                ast.parse(source, filename=fname)
+            except SyntaxError as e:
+                lineno = e.lineno or 1
+                msg = e.msg or str(e)
+                lines = source.splitlines()
+                line_content = lines[lineno - 1] if 1 <= lineno <= len(lines) else (e.text.strip() if e.text else "")
+                error_log = f"PYTHON SYNTAX ERROR in {fname} line {lineno}: {msg}\nLine: {line_content}"
+                print(error_log)
+                return ExecutionResult(success=False, logs=error_log)
+
+    effective_docker_image = resolve_docker_image(blueprint, codebase, component=component, decomposition=decomposition)
     
     try:
         client = docker.from_env()
@@ -285,7 +529,7 @@ def execute_code(codebase: GeneratedCodeBase, blueprint: SystemDesignBlueprint) 
             container.put_archive("/workspace", tar_data)
             
             # Format the test command dynamically based on the project's tech stack
-            run_tests_command = resolve_test_runner_command(blueprint, codebase)
+            run_tests_command = resolve_test_runner_command(blueprint, codebase, component=component, decomposition=decomposition)
                 
             print(f"Executing docker command: {run_tests_command}")
             

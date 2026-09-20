@@ -205,9 +205,15 @@ def node_adjudicator(state: GraphState):
         print("Adjudicator: Execution failed. Mandatory revise.")
         budget = 3 if gen_mode == "QUICK" else 4
         log_snippet = str(exec_logs)[-2000:] if exec_logs else "No logs provided."
+        critic_analysis = synthesize_revision_plan(feedbacks)
+
+        plan_sections = [f"EXECUTION FAILED. The tests or build crashed. Fix these errors first:\n\n{log_snippet}"]
+        if critic_analysis and critic_analysis.strip() != "No issues found.":
+            plan_sections.append(f"CRITIC DIAGNOSIS & ACTIONABLE ROOT CAUSE:\n{critic_analysis}")
+
         decision = AdjudicatorDecision(
             verdict="revise",
-            revision_plan=f"EXECUTION FAILED. The tests crashed or timed out. Fix these errors first:\n\n{log_snippet}",
+            revision_plan="\n\n".join(plan_sections),
             weighted_composite=10.0,
             delta=None,
             dynamic_budget=budget,

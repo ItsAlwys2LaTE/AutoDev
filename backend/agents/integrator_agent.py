@@ -138,6 +138,33 @@ def generate_integration_stream(
     """
 
     if previous_codebase and revision_plan:
+        if previous_codebase.files:
+            try:
+                from agents.revision_extractor import extract_broken_files
+                from agents.differential_revision_agent import stream_and_merge_differential_revision
+
+                broken_files = extract_broken_files(
+                    test_output=revision_plan,
+                    critic_report=revision_plan,
+                    codebase=previous_codebase,
+                    allow_fallback=True,
+                )
+                if broken_files and len(broken_files) < len(previous_codebase.files):
+                    print(f"Integration Agent: Engaged targeted differential revision on {len(broken_files)} broken file(s): {broken_files}")
+                    yield from stream_and_merge_differential_revision(
+                        codebase=previous_codebase,
+                        broken_files=broken_files,
+                        revision_plan=revision_plan,
+                        blueprint=None,
+                        mode=mode,
+                        stage="INTEGRATION",
+                        primary_model=primary_model,
+                        secondary_model=secondary_model,
+                    )
+                    return
+            except Exception as diff_err:
+                print(f"Integration Agent: Differential revision bypass/fallback ({diff_err}), falling back to full prompt.")
+
         prompt_content += f"""
     PREVIOUS INTEGRATED CODEBASE (FAILED ARBITRATION / TESTS):
     {previous_codebase.model_dump_json(indent=2)}

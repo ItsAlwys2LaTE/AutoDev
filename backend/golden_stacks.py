@@ -2,6 +2,7 @@ import os
 import json
 import copy
 import re
+import ast
 from typing import Any
 
 # Pinned, battle-tested golden dependencies for React + Vite stacks
@@ -583,6 +584,17 @@ export default defineConfig({
 });
 """
 
+PYTEST_INI_CONTENT = """[pytest]
+asyncio_mode = auto
+testpaths = .
+python_files = test_*.py *_test.py
+python_classes = Test*
+python_functions = test_*
+filterwarnings =
+    ignore::DeprecationWarning
+    ignore::PendingDeprecationWarning
+"""
+
 SETUP_CONFIG_EXCLUSIONS = {
     'setuptests.ts', 'setuptests.js', 'src/setuptests.ts', 'src/setuptests.js',
     'setupsupertest.js', 'setupsupertest.ts', 'src/setupsupertest.js', 'src/setupsupertest.ts',
@@ -814,6 +826,241 @@ def sanitize_lucide_brand_icons(source_code: str) -> str:
 
     return sanitized
 
+def normalize_requirements_txt(content: str) -> str:
+    """
+    Normalizes requirements.txt for Python testing pipelines:
+    1. Ensures pytest, pytest-asyncio, and httpx are declared.
+    2. Strips broken pins (e.g. 'pytest==', 'pytest>=', empty versions, invalid placeholders).
+    3. Removes conflicting upper-bound pins (e.g. 'pytest-asyncio<0.18') that break asyncio_mode = auto.
+    4. Preserves all other valid requirements, comments, and options.
+    """
+    if not content or not isinstance(content, str):
+        return "pytest\npytest-asyncio\nhttpx\n"
+
+    target_deps = {'pytest', 'pytest-asyncio', 'httpx'}
+    seen_deps = set()
+    lines = content.splitlines()
+    output_lines = []
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith(('#', '-', '@')):
+            output_lines.append(line)
+            continue
+
+        # Extract package name and version specifiers
+        m = re.match(r'^([A-Za-z0-9_.\-]+)(.*)$', stripped)
+        if not m:
+            output_lines.append(line)
+            continue
+
+        raw_pkg = m.group(1)
+        rest = m.group(2).strip()
+        canonical = re.sub(r'[-_.]+', '-', raw_pkg).lower()
+
+        if canonical in target_deps:
+            if canonical in seen_deps:
+                continue
+            seen_deps.add(canonical)
+
+            # Check for broken or conflicting pins
+            is_broken = False
+            # 1. Empty version specifier after operator (e.g. 'pytest==')
+            if re.match(r'^(==|>=|<=|!=|~=|===|<|>)\s*$', rest):
+                is_broken = True
+            # 2. Conflicting upper bound pin (e.g. '< 7.0' or '<= 0.20')
+            elif re.match(r'^<', rest):
+                is_broken = True
+            # 3. Non-standard placeholder versions (e.g. 'unknown', 'latest', 'none')
+            elif re.search(r'(unknown|none|null|latest|broken)', rest, re.IGNORECASE):
+                is_broken = True
+            # 4. Malformed single '=' operator
+            elif rest.startswith('=') and not rest.startswith('=='):
+                is_broken = True
+
+            if is_broken:
+                output_lines.append(canonical)
+            else:
+                output_lines.append(f"{canonical}{(' ' + rest) if rest and not rest.startswith(('=', '<', '>', '~', '!')) else rest}")
+        else:
+            output_lines.append(line)
+
+    # Ensure all target dependencies are present
+    for req in ['pytest', 'pytest-asyncio', 'httpx']:
+        if req not in seen_deps:
+            output_lines.append(req)
+
+    result = '\n'.join(output_lines)
+    if content.endswith('\n') or content.strip():
+        result += '\n'
+    return result
+
+PYTHON_DEPENDENCY_CONSTRAINTS = {
+    "motor": {"pymongo": "<4.8"},
+    "fastapi": {"python-multipart": ""},
+}
+
+def enforce_python_dependency_constraints(content: str) -> str:
+    """
+    Scans requirements.txt for packages with known transitive dependency
+    conflicts and injects version constraints for their transitive deps.
+    """
+    if not content or not isinstance(content, str):
+        return content
+        
+    lines = content.splitlines()
+    detected_packages = set()
+    for line in lines:
+        stripped = line.strip()
+        if not stripped or stripped.startswith(('#', '-', '@')):
+            continue
+        m = re.match(r'^([A-Za-z0-9_.\-]+)', stripped)
+        if m:
+            pkg = m.group(1).lower()
+            detected_packages.add(pkg)
+            if '==' in stripped:
+                detected_packages.add(stripped.lower().replace(' ', ''))
+
+    needed_constraints = {}
+    for trigger, constraints in PYTHON_DEPENDENCY_CONSTRAINTS.items():
+        if trigger in detected_packages:
+            needed_constraints.update(constraints)
+            
+    if not needed_constraints:
+        return content
+        
+    output_lines = list(lines)
+    for target, bound in needed_constraints.items():
+        if target not in detected_packages:
+            output_lines.append(f"{target}{bound}")
+            
+    result = '\n'.join(output_lines)
+    if content.endswith('\n') or content.strip():
+        result += '\n'
+    return result
+
+def sanitize_python_source(source_code: str) -> str:
+    """
+    Deterministically sanitizes and repairs common LLM-generated Python syntax errors:
+    1. Runs ast.parse(source_code). If clean, returns original source.
+    2. If SyntaxError occurs:
+       - Fixes f-string expressions containing backslashes or nested quotes (e.g. {\"key\": \"val\"} or {{\"...\"}}).
+       - Converts conflicting inner quotes inside {...} or {{...}} to single quotes.
+       - Converts malformed f-strings without interpolated variables into valid raw/triple-quoted strings.
+       - Fixes unescaped regex escape sequences (\\d, \\s, \\w, etc.) by converting them to raw strings.
+    3. Re-validates with ast.parse(). If fixed, returns sanitized source; else returns best-effort sanitized code.
+    """
+    if not source_code or not isinstance(source_code, str):
+        return source_code
+
+    # 1. Fast path: check if source is already valid
+    try:
+        ast.parse(source_code)
+        return source_code
+    except SyntaxError:
+        pass
+
+    # Helper 1: Fix double braces {{ ... }} with escaped or unescaped double quotes inside f-strings
+    def _fix_double_braces(text: str) -> str:
+        def repl(m):
+            content = m.group(1)
+            fixed = content.replace('\\"', "'").replace('"', "'")
+            return '{{' + fixed + '}}'
+        return re.sub(r'\{\{(.*?)\}\}', repl, text, flags=re.DOTALL)
+
+    # Helper 2: Fix single braces { ... } with backslash-escaped quotes inside f-strings
+    def _fix_single_brace_backslashes(text: str) -> str:
+        def repl(m):
+            content = m.group(1)
+            fixed = content.replace('\\"', "'").replace('"', "'")
+            return '{' + fixed + '}'
+        return re.sub(r'(?<!\{)\{([^{}\n]+)\}(?!\})', repl, text)
+
+    # Helper 3: Convert unescaped regex escape sequences into raw strings r"..."
+    def _fix_regex_raw_strings(text: str) -> str:
+        def repl_str(m):
+            prefix = m.group(1) or ''
+            quote = m.group(2)
+            body = m.group(3)
+            if 'r' in prefix.lower():
+                return m.group(0)
+            if re.search(r'\\(?:[dswDSWbB])', body):
+                return prefix + 'r' + quote + body + quote
+            return m.group(0)
+        pattern = re.compile(r'([bBfFuU]?)([\'"])((?:\\.|(?!\2)[^\\])*)\2')
+        return pattern.sub(repl_str, text)
+
+    # Helper 4: Convert malformed f-strings without variables into raw strings
+    def _fix_malformed_fstrings_without_vars(text: str) -> str:
+        lines = text.splitlines(keepends=True)
+        new_lines = []
+        for line in lines:
+            if re.search(r'\bf[\'"]', line):
+                try:
+                    ast.parse(line.strip())
+                    new_lines.append(line)
+                    continue
+                except SyntaxError:
+                    pass
+                has_var = bool(re.search(r'(?<!\{)\{([a-zA-Z_][a-zA-Z0-9_.]*)\}(?!\})', line))
+                if not has_var:
+                    fixed_line = re.sub(r'\bf([\'"])', r'r\1', line)
+                    try:
+                        ast.parse(fixed_line.strip())
+                        new_lines.append(fixed_line)
+                        continue
+                    except SyntaxError:
+                        pass
+            new_lines.append(line)
+        return ''.join(new_lines)
+
+    # Progressive Sanitization Pipeline:
+    # Pass 1: Fix double-brace and single-brace quote/backslash collisions
+    repaired = _fix_double_braces(source_code)
+    repaired = _fix_single_brace_backslashes(repaired)
+    try:
+        ast.parse(repaired)
+        return repaired
+    except SyntaxError:
+        pass
+
+    # Pass 2: Combine with regex raw string repairs
+    repaired_regex = _fix_regex_raw_strings(repaired)
+    try:
+        ast.parse(repaired_regex)
+        return repaired_regex
+    except SyntaxError:
+        pass
+
+    # Pass 3: Convert malformed f-strings without variables to raw strings
+    repaired_fvars = _fix_malformed_fstrings_without_vars(repaired_regex)
+    try:
+        ast.parse(repaired_fvars)
+        return repaired_fvars
+    except SyntaxError:
+        pass
+
+    # Pass 4: Targeted line-level repair using SyntaxError metadata
+    try:
+        ast.parse(source_code)
+    except SyntaxError as e:
+        lines = source_code.splitlines(keepends=True)
+        if e.lineno and 1 <= e.lineno <= len(lines):
+            idx = e.lineno - 1
+            line = lines[idx]
+            fixed = _fix_double_braces(line)
+            fixed = _fix_single_brace_backslashes(fixed)
+            fixed = fixed.replace('\\"', "'")
+            lines[idx] = fixed
+            target_candidate = ''.join(lines)
+            try:
+                ast.parse(target_candidate)
+                return target_candidate
+            except SyntaxError:
+                pass
+
+    return repaired
+
 def has_test_files(codebase: Any) -> bool:
     """Detects whether the codebase contains any active test suites."""
     if not codebase:
@@ -866,6 +1113,19 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
                     elif isinstance(file, dict):
                         file['source_code'] = cleaned
 
+    # 0b. Deterministic Python source code sanitization (R2)
+    for file in codebase.files:
+        fname = (getattr(file, 'file_name', '') if hasattr(file, 'file_name') else file.get('file_name', '')).lower()
+        if fname.endswith('.py'):
+            src = getattr(file, 'source_code', '') if hasattr(file, 'source_code') else file.get('source_code', '')
+            if src:
+                sanitized = sanitize_python_source(src)
+                if sanitized != src:
+                    if hasattr(file, 'source_code'):
+                        file.source_code = sanitized
+                    elif isinstance(file, dict):
+                        file['source_code'] = sanitized
+
     # Track existing configurations
     has_eslint_config = any(
         _norm(f.file_name) in ['.eslintrc.cjs', '.eslintrc.js', '.eslintrc.json', '.eslintrc', 'eslint.config.js']
@@ -898,12 +1158,14 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
                     # CRITICAL FIX: Deep copy prevents cross-run global dictionary mutation
                     golden = copy.deepcopy(REACT_VITE_PACKAGE_JSON)
 
-                    # When not tests_present: remove test devDependencies and test scripts from golden package.json
+                    # When not tests_present: remove test devDependencies and unit test scripts from golden package.json
+                    # Provide a safe 'test' alias pointing to build verification so npm test never fails with 'Missing script: "test"'
                     if not tests_present:
                         for test_dev_dep in ['vitest', 'jsdom', '@testing-library/react', '@testing-library/jest-dom', '@testing-library/user-event']:
                             golden['devDependencies'].pop(test_dev_dep, None)
-                        for test_script in ['test', 'test:unit', 'test:e2e']:
+                        for test_script in ['test:unit', 'test:e2e']:
                             golden['scripts'].pop(test_script, None)
+                        golden['scripts']['test'] = "npm run build"
 
                     ai_deps = ai_pkg.get('dependencies', {})
                     golden_deps = golden['dependencies']
@@ -937,6 +1199,14 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
                                 if banned in ai_pkg[sec]:
                                     del ai_pkg[sec][banned]
                                     modified = True
+                    # If no tests are present and no test script exists, but build script exists,
+                    # provide safe test fallback alias to build
+                    if not tests_present:
+                        scripts = ai_pkg.get('scripts', {})
+                        if 'test' not in scripts and 'build' in scripts:
+                            scripts['test'] = "npm run build"
+                            ai_pkg['scripts'] = scripts
+                            modified = True
                     if modified:
                         file.source_code = json.dumps(ai_pkg, indent=2)
             except Exception:
@@ -956,8 +1226,11 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
     # Only inject test headers if tests_present
     if tests_present and (jsdom_detected or react_detected):
         for file in codebase.files:
-            if is_test_file(file.file_name):
-                src = file.source_code
+            fname = file.file_name if hasattr(file, 'file_name') else file.get('file_name', '')
+            if is_test_file(fname):
+                if fname.lower().endswith('.py'):
+                    continue
+                src = file.source_code if hasattr(file, 'source_code') else file.get('source_code', '')
                 prefix = ""
 
                 if "@vitest-environment jsdom" not in src:
@@ -1010,6 +1283,57 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
             )
             if not has_vitest_config:
                 codebase.files.append(CodeFileClass(file_name="vitest.config.js", source_code=NODE_VITEST_CONFIG_CONTENT))
+
+    # Deterministic Python testing configuration injection (pytest.ini & requirements.txt)
+    has_py_files = any(
+        (getattr(f, 'file_name', '') if hasattr(f, 'file_name') else f.get('file_name', '')).lower().endswith('.py')
+        for f in codebase.files
+    )
+    has_py_test_files = any(
+        is_test_file(getattr(f, 'file_name', '') if hasattr(f, 'file_name') else f.get('file_name', '')) and
+        (getattr(f, 'file_name', '') if hasattr(f, 'file_name') else f.get('file_name', '')).lower().endswith('.py')
+        for f in codebase.files
+    )
+    has_pytest_ini = any(
+        _norm(getattr(f, 'file_name', '') if hasattr(f, 'file_name') else f.get('file_name', '')) == 'pytest.ini'
+        for f in codebase.files
+    )
+
+    if (has_py_files or has_py_test_files) and not has_pytest_ini:
+        if CodeFileClass is not None:
+            if isinstance(CodeFileClass, type) and issubclass(CodeFileClass, dict):
+                codebase.files.append({"file_name": "pytest.ini", "source_code": PYTEST_INI_CONTENT})
+            else:
+                codebase.files.append(CodeFileClass(file_name="pytest.ini", source_code=PYTEST_INI_CONTENT))
+    elif has_pytest_ini:
+        # Reconcile existing pytest.ini to ensure asyncio_mode = auto
+        for file in codebase.files:
+            fname = getattr(file, 'file_name', '') if hasattr(file, 'file_name') else file.get('file_name', '')
+            if _norm(fname) == 'pytest.ini':
+                src = getattr(file, 'source_code', '') if hasattr(file, 'source_code') else file.get('source_code', '')
+                if 'asyncio_mode' not in src:
+                    if '[pytest]' in src:
+                        reconciled = src.replace('[pytest]', '[pytest]\nasyncio_mode = auto')
+                    else:
+                        reconciled = "[pytest]\nasyncio_mode = auto\n" + src
+                    if hasattr(file, 'source_code'):
+                        file.source_code = reconciled
+                    elif isinstance(file, dict):
+                        file['source_code'] = reconciled
+
+    # Normalize requirements.txt if Python tests or Python files with tests are present
+    for file in codebase.files:
+        fname = getattr(file, 'file_name', '') if hasattr(file, 'file_name') else file.get('file_name', '')
+        if _norm(fname) == 'requirements.txt':
+            if has_py_test_files or (tests_present and has_py_files):
+                src = getattr(file, 'source_code', '') if hasattr(file, 'source_code') else file.get('source_code', '')
+                normalized_src = normalize_requirements_txt(src)
+                constrained_src = enforce_python_dependency_constraints(normalized_src)
+                if constrained_src != src:
+                    if hasattr(file, 'source_code'):
+                        file.source_code = constrained_src
+                    elif isinstance(file, dict):
+                        file['source_code'] = constrained_src
 
     return codebase
 

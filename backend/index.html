@@ -609,12 +609,60 @@
             }
         }
 
+        let isStreamConnected = false;
+
+        window.appendTerminalLog = function(msg, type='info') {
+            const termContent = document.getElementById('terminalContent');
+            if (!termContent) return;
+            const span = document.createElement('span');
+            
+            let colorClass = 'text-slate-400'; // info
+            if (type === 'error') colorClass = 'text-red-400 font-bold';
+            else if (type === 'warn') colorClass = 'text-yellow-400';
+            else if (type === 'success') colorClass = 'text-emerald-400';
+            else if (type === 'system') colorClass = 'text-blue-400 font-bold';
+            else if (type === 'revision') colorClass = 'text-purple-400 font-semibold italic';
+            
+            span.className = colorClass + ' block mb-1';
+            span.innerText = msg;
+            termContent.appendChild(span);
+            if (termContent.scrollHeight - termContent.scrollTop < termContent.clientHeight + 150) {
+                termContent.scrollTop = termContent.scrollHeight;
+            }
+        };
+
+        // Mirror relevant frontend console logs to the live terminal
+        const originalConsoleLog = console.log;
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            if (args.length > 0 && typeof args[0] === 'string') {
+                const msg = args.join(' ');
+                if (msg.includes('[AutoDev]') || msg.includes('[QUICK Mode]') || msg.includes('[CountdownManager]')) {
+                    if (window.appendTerminalLog) {
+                        let type = 'info';
+                        let lowerMsg = msg.toLowerCase();
+                        if (lowerMsg.includes('error') || lowerMsg.includes('fail')) type = 'error';
+                        else if (lowerMsg.includes('success') || lowerMsg.includes('pass') || lowerMsg.includes('completed')) type = 'success';
+                        else if (lowerMsg.includes('revising') || lowerMsg.includes('revision') || lowerMsg.includes('integration')) type = 'revision';
+                        
+                        window.appendTerminalLog(msg, type);
+                    }
+                }
+            }
+        };
+
         function initLogStream() {
             const termContent = document.getElementById('terminalContent');
             const eventSource = new EventSource('/api/logs/stream');
             
             eventSource.onopen = function() {
-                termContent.innerHTML = '<span class="text-slate-500 mb-2 block border-b border-slate-800 pb-2">[System] Connected to AutoDev Uvicorn Backend Stream...</span>';
+                if (termContent.innerHTML.trim() === '') {
+                    termContent.innerHTML = '<span class="text-slate-500 mb-2 block border-b border-slate-800 pb-2">[System] Connected to AutoDev Uvicorn Backend Stream...</span>';
+                }
+                if (!isStreamConnected && termContent.innerHTML.trim() !== '') {
+                    window.appendTerminalLog('[System] Connection to AutoDev Backend successfully established/reestablished.', 'system');
+                }
+                isStreamConnected = true;
             };
             
             eventSource.onmessage = function(event) {
@@ -636,6 +684,12 @@
                     colorClass = 'text-emerald-400';
                 }
                 
+                // Highlight differential revision events specifically
+                if (lower.includes('differential revision') || lower.includes('broken file')) {
+                    colorClass = 'text-fuchsia-400 font-bold uppercase tracking-wide';
+                    logText = '🔄 ' + logText;
+                }
+                
                 const span = document.createElement('span');
                 span.className = colorClass + ' block mb-1';
                 span.innerText = logText;
@@ -648,10 +702,10 @@
             };
             
             eventSource.onerror = function() {
-                const span = document.createElement('span');
-                span.className = 'text-red-500 block mb-1 font-bold';
-                span.innerText = '[System] Lost connection to backend stream. Reconnecting...';
-                termContent.appendChild(span);
+                if (isStreamConnected) {
+                    window.appendTerminalLog('[System] Connection to Backend stream lost. Retrying...', 'error');
+                    isStreamConnected = false;
+                }
             };
         }
         
@@ -1667,6 +1721,18 @@
                 rawStr = rawStr.slice(0, usageIdx);
             }
 
+            rawStr = rawStr.trim();
+            const fenceMatch = rawStr.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+            if (fenceMatch) {
+                rawStr = fenceMatch[1].trim();
+            } else if (rawStr.startsWith('```')) {
+                const firstEnd = rawStr.indexOf('\n');
+                if (firstEnd !== -1) rawStr = rawStr.slice(firstEnd + 1);
+                const lastFence = rawStr.lastIndexOf('```');
+                if (lastFence !== -1) rawStr = rawStr.slice(0, lastFence);
+                rawStr = rawStr.trim();
+            }
+
             const VALID_SINGLE_ESCAPES = new Set(['"', '\\', '/', 'f', 'n', 'r', 't']);
             const HEX_CHARS = new Set("0123456789abcdefABCDEF");
             
@@ -2122,19 +2188,60 @@
             // Synchronously flush state so state indicates aborted and data is preserved for inspection
             StateStore.save(getCurrentState(), true);
 
-            // Update abort button UI to show aborted state
+            // Update abort button UI to show aborted state and allow retry
             const abortBtn = document.getElementById('abortDevBtn');
             if (abortBtn) {
-                abortBtn.disabled = true;
-                abortBtn.className = "w-full sm:w-1/2 bg-slate-600 text-slate-400 font-semibold py-3 px-4 rounded-lg cursor-not-allowed flex justify-center items-center gap-2 shadow-sm";
+                abortBtn.disabled = false;
+                abortBtn.className = "w-full sm:w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400";
                 const text = document.getElementById('abortDevBtnText');
-                if (text) text.textContent = "Development Aborted";
+                if (text) text.textContent = "Retry Development";
+                abortBtn.setAttribute("onclick", "retryDevelopment()");
             }
 
             const toast = document.getElementById('networkOfflineToast');
             if (toast) toast.classList.add('hidden');
 
-            console.log("[AutoDev] Development successfully aborted. All sections preserved for inspection.");
+            console.log("[AutoDev] Development successfully aborted. Ready to retry.");
+        }
+
+        function retryDevelopment() {
+            console.log("[AutoDev] Retrying development from the beginning.");
+            CountdownManager.cancelAll();
+            if (activeAbortController) { activeAbortController.abort(); activeAbortController = null; }
+            if (pipelineInterval) { clearInterval(pipelineInterval); pipelineInterval = null; }
+
+            StateStore.clear();
+
+            // Store feature request before reset
+            const featureInput = document.getElementById('featureRequest');
+            const currentRequest = featureInput ? featureInput.value : '';
+
+            // Deep reset of all DOM cards, editors, steppers, and memory variables
+            resetUI();
+            
+            if (featureInput) {
+                featureInput.value = currentRequest;
+            }
+
+            // Reset abort button UI back to default
+            const abortBtn = document.getElementById('abortDevBtn');
+            if (abortBtn) {
+                abortBtn.disabled = false;
+                abortBtn.className = "w-full sm:w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500";
+                const text = document.getElementById('abortDevBtnText');
+                if (text) text.textContent = "Abort Development";
+                abortBtn.setAttribute("onclick", "abortDevelopment()");
+            }
+            
+            const group = document.getElementById('pipelineControlGroup');
+            if (group) group.classList.remove('hidden');
+
+            // Hide submit button to mimic the active pipeline state
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) { submitBtn.classList.add('hidden'); }
+
+            // Kick off pipeline
+            generateRequirements();
         }
 
         function requestNewProduct() {
@@ -2167,7 +2274,9 @@
                 abortBtn.disabled = false;
                 abortBtn.className = "w-full sm:w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500";
                 const text = document.getElementById('abortDevBtnText');
-                if (text) text.textContent = "Abort Development"; }
+                if (text) text.textContent = "Abort Development"; 
+                abortBtn.setAttribute("onclick", "abortDevelopment()");
+            }
 
             const resBanner = document.getElementById('restorationBanner');
             if (resBanner) resBanner.classList.add('hidden');
@@ -2412,12 +2521,13 @@
                 if (group) group.classList.remove('hidden');
                 const abortBtn = document.getElementById('abortDevBtn');
                 if (abortBtn) {
-                    abortBtn.disabled = true;
-                    abortBtn.className = "w-full sm:w-1/2 bg-slate-600 text-slate-400 font-semibold py-3 px-4 rounded-lg cursor-not-allowed flex justify-center items-center gap-2 shadow-sm";
+                    abortBtn.disabled = false;
+                    abortBtn.className = "w-full sm:w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-400";
                     const text = document.getElementById('abortDevBtnText');
-                    if (text) text.textContent = "Development Aborted";
+                    if (text) text.textContent = "Retry Development";
+                    abortBtn.setAttribute("onclick", "retryDevelopment()");
                 }
-                console.log("[AutoDev] Session restored in ABORTED status. Preserved for inspection.");
+                console.log("[AutoDev] Session restored in ABORTED status. Ready for retry.");
                 return;
             }
 
@@ -2958,8 +3068,35 @@
                 }
                 
                 // Done streaming. Now parse and set up IDE
-                const data = safeJsonParse(fullJsonStr);
+                let data = safeJsonParse(fullJsonStr);
                 if (data.error) throw new Error(data.error);
+                if (data && data.modified_files && !data.files && currentCodebase && Array.isArray(currentCodebase.files)) {
+                    const norm = p => (p || '').replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
+                    const modMap = new Map();
+                    data.modified_files.forEach(f => {
+                        if (f && f.file_name) modMap.set(norm(f.file_name), f);
+                    });
+                    const merged = [];
+                    const seen = new Set();
+                    currentCodebase.files.forEach(orig => {
+                        const key = norm(orig.file_name);
+                        if (modMap.has(key)) {
+                            merged.push({ file_name: orig.file_name, source_code: modMap.get(key).source_code });
+                            seen.add(key);
+                        } else {
+                            merged.push(orig);
+                            seen.add(key);
+                        }
+                    });
+                    data.modified_files.forEach(mod => {
+                        const key = norm(mod.file_name);
+                        if (!seen.has(key)) {
+                            merged.push(mod);
+                            seen.add(key);
+                        }
+                    });
+                    data = { files: merged };
+                }
 
                 currentCodebase = data;
                 
@@ -4270,14 +4407,20 @@
                 document.getElementById(`body-${cId}`).classList.remove('hidden');
                 document.getElementById(`design-section-${cId}`).classList.remove('hidden');
                 document.getElementById(`design-text-${cId}`).value = "Agent is designing blueprint...";
-                renderPipelineTracks();
-                
-                const contextStr = "Tech Stack: " + currentDecomposition.shared_tech_stack.join(', ') + "\nDocker Image: " + currentDecomposition.shared_docker_image + "\nScoped Requirements:\n" + component.scoped_requirements;
+                const effectiveTechStack = (component.tech_stack && component.tech_stack.length > 0) ? component.tech_stack : (currentDecomposition ? currentDecomposition.shared_tech_stack : []);
+                const effectiveDockerImage = component.docker_image || (currentDecomposition ? currentDecomposition.shared_docker_image : "");
+                const contextStr = "Tech Stack: " + (effectiveTechStack || []).join(', ') + "\nDocker Image: " + effectiveDockerImage + "\nScoped Requirements:\n" + component.scoped_requirements;
                 
                 const designRes = await fetch('/api/generate-design', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ requirements: currentRequirements, component_context: contextStr, component_name: component.component_name })
+                    body: JSON.stringify({
+                        requirements: currentRequirements,
+                        component_context: contextStr,
+                        component_name: component.component_name,
+                        component: component,
+                        decomposition: currentDecomposition
+                    })
                 });
                 
                 const blueprint = await readJsonStream(designRes);
@@ -4402,7 +4545,7 @@
                     })
                 });
                 
-                const codebase = await readJsonStream(codeRes);
+                const codebase = await readJsonStream(codeRes, prevCodebase);
                 state.codebase = JSON.parse(JSON.stringify(codebase)); // deep copy
                 if (!state.revisionHistory) state.revisionHistory = [];
                 state.revisionHistory.push({ codebase: JSON.parse(JSON.stringify(codebase)) });
@@ -4439,7 +4582,12 @@
                 const execRes = await fetch('/api/execute-code', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codebase: state.codebase, blueprint: state.blueprint })
+                    body: JSON.stringify({
+                        codebase: state.codebase,
+                        blueprint: state.blueprint,
+                        component: component,
+                        decomposition: currentDecomposition
+                    })
                 });
                 
                 const exec = await execRes.json();
@@ -4682,7 +4830,7 @@
             processPipeline();
         }
 
-        async function readJsonStream(response) {
+        async function readJsonStream(response, baseCodebase = null) {
             if (!response.ok) throw new Error(await response.text());
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
@@ -4709,8 +4857,36 @@
                 StateStore.save(getCurrentState(), false);
             }
             
-            const data = robustJsonParse(fullJsonStr);
+            let data = robustJsonParse(fullJsonStr);
             if (data && data.error) throw new Error(data.error);
+            const targetBase = baseCodebase || currentCodebase;
+            if (data && data.modified_files && !data.files && targetBase && Array.isArray(targetBase.files)) {
+                const norm = p => (p || '').replace(/\\/g, '/').replace(/^\.\//, '').toLowerCase();
+                const modMap = new Map();
+                data.modified_files.forEach(f => {
+                    if (f && f.file_name) modMap.set(norm(f.file_name), f);
+                });
+                const merged = [];
+                const seen = new Set();
+                targetBase.files.forEach(orig => {
+                    const key = norm(orig.file_name);
+                    if (modMap.has(key)) {
+                        merged.push({ file_name: orig.file_name, source_code: modMap.get(key).source_code });
+                        seen.add(key);
+                    } else {
+                        merged.push(orig);
+                        seen.add(key);
+                    }
+                });
+                data.modified_files.forEach(mod => {
+                    const key = norm(mod.file_name);
+                    if (!seen.has(key)) {
+                        merged.push(mod);
+                        seen.add(key);
+                    }
+                });
+                data = { files: merged };
+            }
             return data;
         }
 

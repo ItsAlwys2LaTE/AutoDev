@@ -1,5 +1,7 @@
 import sys
-from pydantic import BaseModel, Field, model_validator
+import json
+import re
+from pydantic import BaseModel, Field, model_validator, field_validator
 from typing import List, Optional, Any
 
 # Ensure singleton module registration across both 'models' and 'backend.models'
@@ -21,8 +23,8 @@ class UserStory(BaseModel):
     title: str = Field(description="Short title of the feature")
     as_a: str = Field(description="The user persona (e.g., 'As a regular user')")
     i_want_to: str = Field(description="The action the user wants to perform")
-    so_that: str = Field(description="The benefit or value of the action")
-    acceptance_criteria: List[AcceptanceCriteria] = Field(description="List of acceptance criteria for this story")
+    so_that: str = Field(description="The business value or benefit")
+    acceptance_criteria: List[AcceptanceCriteria] = Field(description="Acceptance criteria for this story")
 
 class RequirementsDocument(BaseModel):
     """The final structured output from the Requirements Agent."""
@@ -93,8 +95,51 @@ class ComponentSpec(BaseModel):
     component_name: str = Field(description="Human-readable name, e.g., 'User Authentication System'")
     description: str = Field(description="What this component does and its scope boundaries")
     scoped_requirements: str = Field(description="Focused requirements text for this component only, containing enough detail for the Design Agent to independently produce a complete blueprint")
-    dependencies_on: List[str] = Field(description="IDs of components this depends on (empty list if none). Used for pipeline ordering.")
+    dependencies_on: List[str] = Field(default_factory=list, description="IDs of components this depends on (empty list if none). Used for pipeline ordering.")
     priority_order: int = Field(description="Pipeline execution order (1 = first). Components with no dependencies should have lower numbers.")
+    docker_image: Optional[str] = Field(default=None, description="Optional Docker image override for this specific component (e.g. 'python:3.11-slim' or 'mcr.microsoft.com/playwright:v1.48.0-jammy'). If omitted or null, falls back to shared_docker_image.")
+    tech_stack: Optional[List[str]] = Field(default=None, description="Optional tech stack override for this specific component (e.g. ['Python', 'FastAPI', 'pytest']). If omitted or null, falls back to shared_tech_stack.")
+
+    @field_validator("component_id", mode="before")
+    @classmethod
+    def validate_component_id(cls, v: Any) -> str:
+        if v is None or not str(v).strip():
+            raise ValueError("component_id must be a non-empty string")
+        return str(v).strip()
+
+    @field_validator("docker_image", mode="before")
+    @classmethod
+    def normalize_docker_image(cls, v: Any) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s else None
+
+    @field_validator("dependencies_on", mode="before")
+    @classmethod
+    def normalize_dependencies_on(cls, v: Any) -> List[str]:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            items = [s.strip() for s in v.split(",") if s.strip()]
+            return list(dict.fromkeys(items))
+        if isinstance(v, (list, tuple, set)):
+            items = [str(s).strip() for s in v if str(s).strip()]
+            return list(dict.fromkeys(items))
+        return list(v)
+
+    @field_validator("tech_stack", mode="before")
+    @classmethod
+    def normalize_tech_stack(cls, v: Any) -> Optional[List[str]]:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            parts = [s.strip() for s in v.split(",") if s.strip()]
+            return parts if parts else None
+        if isinstance(v, (list, tuple, set)):
+            cleaned = [str(s).strip() for s in v if str(s).strip()]
+            return cleaned if cleaned else None
+        return list(v)
 
 class ComponentDecomposition(BaseModel):
     """Output of the Master Architect Agent."""
@@ -102,8 +147,246 @@ class ComponentDecomposition(BaseModel):
     project_overview: str = Field(description="High-level product vision describing the overall system")
     shared_tech_stack: List[str] = Field(description="Common tech stack that all components must use (e.g., ['HTML', 'CSS', 'JavaScript', 'Node.js'])")
     shared_docker_image: str = Field(description="Base Docker image all components should use (e.g., 'node:20-alpine')")
-    components: List[ComponentSpec] = Field(description="The decomposed component list. Empty if is_complex is False.")
+    components: List[ComponentSpec] = Field(default_factory=list, description="The decomposed component list. Empty if is_complex is False.")
     integration_strategy: str = Field(description="How to merge components: describes routing, shared state, navigation, and cross-component wiring approach")
+
+    @field_validator("components", mode="before")
+    @classmethod
+    def normalize_components(cls, v: Any) -> List[Any]:
+        if v is None:
+            return []
+        return v
+
+    @field_validator("shared_docker_image", mode="before")
+    @classmethod
+    def normalize_shared_docker_image(cls, v: Any) -> str:
+        if v is None:
+            return ""
+        return str(v).strip()
+
+    @field_validator("shared_tech_stack", mode="before")
+    @classmethod
+    def normalize_shared_tech_stack(cls, v: Any) -> List[str]:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [s.strip() for s in v.split(",") if s.strip()]
+        if isinstance(v, (list, tuple, set)):
+            return [str(s).strip() for s in v if str(s).strip()]
+        return list(v)
+
+def validate_decomposition(decomposition: Any, requirements: Optional[Any] = None) -> ComponentDecomposition:
+    """
+    Post-LLM validation guard that enforces >= 3 components for complex projects.
+    Raises ValueError if is_complex is True and len(components) < 3.
+    Also validates JSON strings with surrounding markdown prose, __USAGE__ tokens,
+    error objects, component uniqueness, DAG acyclicity, and requirements complexity alignment.
+    """
+    decomp = None
+    if isinstance(decomposition, str):
+        text = decomposition.strip()
+        if "__RESET__" in text:
+            text = text.split("__RESET__")[-1].strip()
+        if "__USAGE__" in text:
+            text = text.split("__USAGE__")[0].strip()
+
+        # Extract JSON from markdown fences (case-insensitive) if present
+        fence_matches = re.findall(r"```(?:json)?\s*(\{[\s\S]*?\})\s*```", text, re.IGNORECASE)
+        candidate_texts = []
+        if fence_matches:
+            # Prioritize candidates containing "is_complex"
+            for m in reversed(fence_matches):
+                if "is_complex" in m:
+                    candidate_texts.insert(0, m.strip())
+                else:
+                    candidate_texts.append(m.strip())
+        else:
+            candidate_text = text
+            if "```json" in candidate_text.lower():
+                idx = candidate_text.lower().find("```json")
+                candidate_text = candidate_text[idx + 7:]
+                if "```" in candidate_text:
+                    candidate_text = candidate_text.split("```", 1)[0]
+            elif "```" in candidate_text:
+                candidate_text = candidate_text.split("```", 1)[1]
+                if "```" in candidate_text:
+                    candidate_text = candidate_text.split("```", 1)[0]
+            candidate_texts.append(candidate_text.strip())
+
+        data = None
+        for cand in candidate_texts:
+            # 1. Direct JSON parse
+            try:
+                parsed = json.loads(cand)
+                if isinstance(parsed, dict) and ("is_complex" in parsed or "error" in parsed):
+                    data = parsed
+                    break
+            except Exception:
+                pass
+
+            # 2. Slice outermost braces
+            first_brace = cand.find("{")
+            last_brace = cand.rfind("}")
+            if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+                sliced = cand[first_brace:last_brace + 1]
+                try:
+                    parsed = json.loads(sliced)
+                    if isinstance(parsed, dict) and ("is_complex" in parsed or "error" in parsed):
+                        data = parsed
+                        break
+                except Exception:
+                    pass
+
+                # 3. Trailing comma cleanup
+                cleaned = re.sub(r',\s*([\]}])', r'\1', sliced)
+                try:
+                    parsed = json.loads(cleaned)
+                    if isinstance(parsed, dict) and ("is_complex" in parsed or "error" in parsed):
+                        data = parsed
+                        break
+                except Exception:
+                    pass
+
+                # 4. AST literal eval (for Python dict with single quotes / True / False)
+                try:
+                    import ast
+                    evaluated = ast.literal_eval(sliced)
+                    if isinstance(evaluated, dict) and ("is_complex" in evaluated or "error" in evaluated):
+                        data = evaluated
+                        break
+                except Exception:
+                    pass
+
+        if isinstance(data, dict):
+            if "error" in data:
+                raise ValueError(f"Decomposition validation failed: {data['error']}")
+            if not data.get("is_complex") and data.get("components") is None:
+                data["components"] = []
+            try:
+                decomp = ComponentDecomposition.model_validate(data)
+            except Exception as e:
+                raise ValueError(f"Decomposition validation failed: {e}")
+        elif candidate_texts:
+            try:
+                decomp = ComponentDecomposition.model_validate_json(candidate_texts[0])
+            except Exception as e:
+                raise ValueError(f"Decomposition validation failed: {e}")
+        else:
+            try:
+                decomp = ComponentDecomposition.model_validate_json(candidate_text)
+            except Exception as e:
+                raise ValueError(f"Decomposition validation failed: {e}")
+
+    elif isinstance(decomposition, dict):
+        if "error" in decomposition:
+            raise ValueError(f"Decomposition validation failed: {decomposition['error']}")
+        if not decomposition.get("is_complex") and decomposition.get("components") is None:
+            decomposition["components"] = []
+        try:
+            decomp = ComponentDecomposition.model_validate(decomposition)
+        except Exception as e:
+            raise ValueError(f"Decomposition validation failed: {e}")
+    elif isinstance(decomposition, ComponentDecomposition):
+        decomp = decomposition
+    else:
+        raise ValueError(f"Expected ComponentDecomposition, dict, or JSON string, got {type(decomposition)}")
+
+    # 1. Complexity vs Component count rule (>= 3 components for complex projects)
+    if decomp.is_complex and len(decomp.components) < 3:
+        raise ValueError(
+            f"Decomposition validation failed: Complex projects must have at least 3 components, but got {len(decomp.components)}."
+        )
+
+    # 2. Simple products must have empty components list
+    if not decomp.is_complex and len(decomp.components) > 0:
+        raise ValueError(
+            f"Decomposition validation failed: Simple products (is_complex=False) must have an empty components list, but got {len(decomp.components)} components."
+        )
+
+    # 3. Requirements complexity alignment rule (handles dict, RequirementsDocument, and JSON string)
+    if requirements:
+        stories = None
+        if isinstance(requirements, dict):
+            stories = requirements.get("user_stories")
+        elif isinstance(requirements, str):
+            try:
+                req_obj = json.loads(requirements)
+                if isinstance(req_obj, dict):
+                    stories = req_obj.get("user_stories")
+            except Exception:
+                pass
+        else:
+            stories = getattr(requirements, "user_stories", None)
+
+        if isinstance(stories, list) and len(stories) >= 3 and not decomp.is_complex:
+            raise ValueError(
+                f"Decomposition validation failed: Product has {len(stories)} user stories (>= 3) and must be marked is_complex=True with at least 3 components, but got is_complex=False."
+            )
+
+    # 4. Component ID uniqueness, validity, and DAG integrity checks
+    if decomp.components:
+        comp_ids = []
+        for c in decomp.components:
+            cid = str(c.component_id).strip() if c.component_id else ""
+            if not cid:
+                raise ValueError(
+                    f"Decomposition validation failed: Component '{c.component_name}' has an empty component_id. Each component must have a valid non-empty identifier."
+                )
+            comp_ids.append(cid)
+
+        seen_ids = set()
+        duplicates = []
+        for cid in comp_ids:
+            if cid in seen_ids and cid not in duplicates:
+                duplicates.append(cid)
+            seen_ids.add(cid)
+        if duplicates:
+            raise ValueError(
+                f"Decomposition validation failed: Duplicate component_id found: {duplicates}. Each component must have a unique component_id."
+            )
+
+        valid_ids = set(comp_ids)
+        for c in decomp.components:
+            cid = str(c.component_id).strip()
+            if cid in c.dependencies_on:
+                raise ValueError(
+                    f"Decomposition validation failed: Component '{cid}' cannot depend on itself."
+                )
+            invalid_deps = [dep for dep in c.dependencies_on if dep not in valid_ids]
+            if invalid_deps:
+                raise ValueError(
+                    f"Decomposition validation failed: Component '{cid}' references non-existent dependencies: {invalid_deps}."
+                )
+
+        # Cycle detection via DFS
+        adj = {c.component_id.strip(): list(c.dependencies_on) for c in decomp.components}
+        visited = {}  # 0: unvisited, 1: visiting, 2: visited
+        cycle_found = []
+
+        def dfs(node, path):
+            visited[node] = 1
+            path.append(node)
+            for neighbor in adj.get(node, []):
+                if visited.get(neighbor, 0) == 1:
+                    cycle_path = " -> ".join(path[path.index(neighbor):] + [neighbor])
+                    cycle_found.append(cycle_path)
+                    return True
+                if visited.get(neighbor, 0) == 0:
+                    if dfs(neighbor, path):
+                        return True
+            path.pop()
+            visited[node] = 2
+            return False
+
+        for node in adj:
+            if visited.get(node, 0) == 0:
+                if dfs(node, []):
+                    raise ValueError(
+                        f"Decomposition validation failed: Circular dependency detected in component DAG: {cycle_found[0]}."
+                    )
+
+    return decomp
+
 
 class ComponentResult(BaseModel):
     """The fully tested output of a single component after passing Critics."""

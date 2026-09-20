@@ -71,15 +71,32 @@ def pipeline_init(payload: PipelineInitInput):
             cycle_policy=CycleResolutionPolicy.ABORT
         )
     )
+    seen_ids = set()
     records = []
     for c in payload.components:
+        cid = (c.get("component_id") or "").strip()
+        if not cid:
+            raise HTTPException(status_code=400, detail="Component ID cannot be empty")
+        if cid in seen_ids:
+            raise HTTPException(status_code=400, detail=f"Duplicate component_id detected: {cid}")
+        seen_ids.add(cid)
+        deps = c.get("dependencies") or c.get("dependencies_on") or []
         records.append(ComponentStateRecord(
-            component_id=c.get("component_id", ""),
-            name=c.get("component_name", c.get("component_id", "Unnamed")),
-            dependencies=c.get("dependencies") or c.get("dependencies_on") or [],
+            component_id=cid,
+            name=c.get("component_name", cid),
+            dependencies=deps,
             priority_order=c.get("priority_order", 0),
             max_revisions=max_revs,
         ))
+
+    valid_ids = set(seen_ids)
+    for r in records:
+        for dep in r.dependencies:
+            if dep == r.component_id:
+                raise HTTPException(status_code=400, detail=f"Component '{r.component_id}' cannot depend on itself")
+            if dep not in valid_ids:
+                raise HTTPException(status_code=400, detail=f"Component '{r.component_id}' references non-existent dependency: '{dep}'")
+
     success = scheduler.register_components(records)
     if not success:
         raise HTTPException(status_code=400, detail="Cyclic dependencies detected in components")

@@ -56,8 +56,44 @@ def generate_code_stream(
          * REDIRECT YOUR ENTIRE TOKEN BUDGET: Dedicate 100% of your generated code to writing complete, production-grade, robust application code. Implement rich interactive features, complete UI components, thorough error boundary / error state handling, responsive layout styles (Tailwind CSS), robust input validation, and clean state management.
          * Ensure the project cleanly compiles and builds under `npm run build` with zero syntax, import, or bundling errors.
        - CASE B: BACKEND / LOGIC UNIT TESTING (When `run_tests_command` is a test command such as `pytest`, `npm test`, or `npm run test:unit`, AND/OR test files are listed in the blueprint):
-         * You MUST write comprehensive, non-trivial unit tests for all test files listed in the blueprint.
-         * For Python (pytest): Test files MUST be prefixed with `test_` and functions must start with `def test_...`. ALWAYS use raw string literals `r"..."` for all regular expressions (e.g. `re.search(r"\d+", text)`) to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
+          * For Python (pytest):
+            - Test files MUST be prefixed with `test_` and functions must start with `def test_...`.
+            - PYTHON SYNTAX CRITICAL RULE — SAFE PROMPT TEMPLATES / F-STRINGS:
+              NEVER use backslash-escaped double quotes inside double-quoted f-strings (e.g. `f"... {{\"valid\": true}} ..."`). In Python 3.11 and earlier, backslashes inside f-string expression parts or nested quote collisions raise fatal `SyntaxError: f-string expression part cannot include a backslash` or `SyntaxError: invalid syntax`.
+              To safely generate prompt templates, JSON examples, or nested strings:
+              1. Use single quotes inside braces: `f"... {{'valid': True, 'reason': '...'}} ..."`
+              2. Use raw triple-quoted strings: r'''...''' or standard multiline strings with `.format(...)`
+              3. Define template strings as separate constants outside the f-string.
+              4. For regular expressions, ALWAYS use raw strings `r"..."` (e.g. `r"\d+\s+\w+"`).
+            - SAFE FASTAPI ENDPOINT TESTING:
+              When testing FastAPI applications, NEVER call `uvicorn.run()` or start a background server process in test files (this will hang the container).
+              Use in-process testing:
+              1. Synchronous `TestClient`:
+                 ```python
+                 from fastapi.testclient import TestClient
+                 from main import app
+                 client = TestClient(app)
+                 def test_endpoint():
+                     response = client.get("/api/endpoint")
+                     assert response.status_code == 200
+                 ```
+              2. Asynchronous tests with `httpx.AsyncClient` and `pytest-asyncio`:
+                 ```python
+                 import pytest
+                 from httpx import AsyncClient, ASGITransport
+                 from main import app
+                 @pytest.mark.asyncio
+                 async def test_async_endpoint():
+                     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+                         response = await ac.get("/api/endpoint")
+                     assert response.status_code == 200
+                 ```
+            - EXTERNAL API & DATABASE MOCKING:
+              Tests execute in an isolated sandbox with no internet access or running database servers. You MUST mock all external service calls using `unittest.mock.patch`, `MagicMock`, and `AsyncMock`:
+              - Gemini API: Mock `google.genai.Client` or `google.generativeai.GenerativeModel`.
+              - MongoDB / Databases: Mock `motor.motor_asyncio.AsyncIOMotorClient` or `pymongo.MongoClient`.
+              - PyMuPDF / Document Parsers: Mock `fitz.open()` or return mock document objects.
+              - Tests must never require real API keys (`GEMINI_API_KEY`), live MongoDB connections, or live network access to pass.
          * For JS/Node backend logic: Write tests to run under Vitest (`.test.js`, `.test.ts`, `.spec.js`).
          * STRICT PROHIBITION OF `supertest`: NEVER import or require `supertest` or `superagent` (e.g., `import request from 'supertest'` is STRICTLY FORBIDDEN). Real HTTP listeners and supertest instances hang the container sandbox, resulting in 180s timeout failures or module resolution crashes (`Failed to load url supertest`).
          * HOW TO TEST SERVER/API LOGIC SAFELY: Test server logic and API endpoints by importing route handler/controller functions directly and passing mock Request/Response objects with `vi.fn()`:
@@ -82,6 +118,34 @@ def generate_code_stream(
     8. ROBUSTNESS: You MUST implement robust edge-case handling, bounds checking (e.g., max lengths), state management, and error recovery to make the system production-ready. Do not just implement the happy path. If the blueprint implies edge cases (or if a senior engineer would normally handle them), implement them.
     9. MODERN JS (ESM) MANDATE: For JavaScript/Node/React projects, enforce modern ES modules (`import`/`export`). Always add `"type": "module"` in `package.json`. If unit tests are present, include `vitest` in devDependencies and import `{ describe, it, test, expect }` from 'vitest'. DO NOT use CommonJS `require()` or `__dirname`. For file path resolution, use `process.cwd()` or `import.meta.url`.
     10. REACT ICONS: If generating React apps, remember that "lucide-react" does NOT export brand icons (Facebook, Twitter, Instagram, GitHub, etc.). Do NOT import brand icons from lucide-react (it will crash the app). Either use generic icons (e.g. Globe, Mail) or use "react-icons" if brand icons are strictly required.
+    11. REACT JSX SYNTAX GUARDRAILS: When writing React / JSX (.jsx, .tsx):
+        - In JSX map iterations (e.g. carousel indicators, list items): if using arrow function parentheses for implicit return: `{items.map((item, idx) => (<button key={idx} ... />))}`, you MUST close with `))` or `}))`. NEVER write `=> (` and close with `})}` (this is a fatal syntax error: "Expected ')' but found '}'). If using curly braces, use an explicit return: `{items.map((item, idx) => { return <button key={idx} ... />; })}`.
+        - All imported local files (e.g. `import AboutPage from './pages/AboutPage'`) MUST actually exist and be defined in your files list. Never import a local component that is omitted from the codebase.
+    12. DEPENDENCY VERSION CONFLICTS: If a revision error is an ImportError from a pip-installed package (e.g. motor, pymongo, django), this implies a transitive dependency version conflict. You MUST fix the version pin in requirements.txt (e.g. adding `pymongo<4.8`) rather than patching the application source code.
+    13. DEFENSIVE DICTIONARY ACCESS (Python): When removing or reading optional keys from dictionaries (especially MongoDB documents), ALWAYS use `dict.pop("key", None)` or `dict.get("key")` instead of `dict.pop("key")` or `dict["key"]`. Bare `.pop()` and bracket access raise `KeyError` when the key is absent, which is a common crash in endpoints that strip sensitive fields (e.g. password) before returning user data.
+    14. MOTOR / MONGODB MOCK PATTERN (Python + FastAPI): When the application uses motor (AsyncIOMotorClient) with FastAPI, the database client is typically initialized at module level. Using `@patch("main.get_database")` will NOT work because motor's real MongoClient initializes at import time (when `from main import app` runs), causing a 30-second `ServerSelectionTimeoutError` followed by `Event loop is closed` cascading failures. Instead, use this pattern:
+        In main.py — expose the db as an overridable dependency or module-level variable:
+        ```python
+        db = None  # Lazy initialization
+        def get_db():
+            global db
+            if db is None:
+                client = AsyncIOMotorClient(MONGO_URI)
+                db = client[DB_NAME]
+            return db
+        ```
+        In test files — patch the module-level `db` variable BEFORE importing TestClient:
+        ```python
+        from unittest.mock import patch, MagicMock, AsyncMock
+        mock_db = MagicMock()
+        mock_db.users.find_one = AsyncMock(return_value={{...}})
+        with patch("main.get_db", return_value=mock_db):
+            from main import app
+            from fastapi.testclient import TestClient
+            client = TestClient(app)
+        ```
+        Or use FastAPI's dependency override system (`app.dependency_overrides[get_db] = lambda: mock_db`).
+        CRITICAL: Never let `from main import app` execute without the database mock already active, or motor will attempt a real connection to localhost:27017.
     """
 
     system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(GeneratedCodeBase.model_json_schema())}"
@@ -97,6 +161,33 @@ def generate_code_stream(
     """
 
     if previous_codebase and revision_plan:
+        if previous_codebase.files:
+            try:
+                from agents.revision_extractor import extract_broken_files
+                from agents.differential_revision_agent import stream_and_merge_differential_revision
+
+                broken_files = extract_broken_files(
+                    test_output=revision_plan,
+                    critic_report=revision_plan,
+                    codebase=previous_codebase,
+                    allow_fallback=True,
+                )
+                if broken_files and len(broken_files) < len(previous_codebase.files):
+                    print(f"CodeGen Agent: Engaged targeted differential revision on {len(broken_files)} broken file(s): {broken_files}")
+                    yield from stream_and_merge_differential_revision(
+                        codebase=previous_codebase,
+                        broken_files=broken_files,
+                        revision_plan=revision_plan,
+                        blueprint=blueprint,
+                        mode=mode,
+                        stage="CODEGEN",
+                        primary_model=primary_model,
+                        secondary_model=secondary_model,
+                    )
+                    return
+            except Exception as diff_err:
+                print(f"CodeGen Agent: Differential revision bypass/fallback ({diff_err}), falling back to full prompt.")
+
         prompt_content += f"""
     PREVIOUS CODEBASE (FAILED TESTS/CRITIQUES):
     {previous_codebase.model_dump_json(indent=2)}

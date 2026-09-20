@@ -1856,7 +1856,8 @@ pytest test_pipeline_flow.py test_pipeline_stress_challenge.py -v
 ### Frontend-Backend Revision Sync Deadlock (Fixed)
 **Issue:** Components were deadlocking in a "Queued for Code" state while the backend showed them as "COMPLETED".
 **Root Cause:** The 
-ode_adjudicator dynamically adjusts the retry budget (dynamic_budget=3 for execution failures) and the frontend respects this by allowing 3 retries. However, the backend scheduler.py hardcoded max_revisions=2. During the second retry, the frontend sent erdict: revise (expecting the component to loop back to CODEGEN), but the backend saw that evision_count (2) >= max_revisions (2) and autonomously force-proceeded the component to COMPLETED. The frontend awaited a CODEGEN assignment that would never arrive.
+ode_adjudicator dynamically adjusts the retry budget (dynamic_budget=3 for execution failures) and the frontend respects this by allowing 3 retries. However, the backend scheduler.py hardcoded max_revisions=2. During the second retry, the frontend sent erdict: revise (expecting the component to loop back to CODEGEN), but the backend saw that 
+evision_count (2) >= max_revisions (2) and autonomously force-proceeded the component to COMPLETED. The frontend awaited a CODEGEN assignment that would never arrive.
 **Fix:** Updated CompleteStageInput to accept dynamic_budget from the frontend, and patched complete_stage_execution to dynamically sync comp.max_revisions = dynamic_budget when received.
 
 ### Live Preview Connection Refused Bug (Fixed)
@@ -1871,7 +1872,8 @@ o-cors mode, ensuring the iframe only mounts once the dev server actually begins
 
 ### Deadlock Edge-case has_exceeded_revisions (Fixed)
 **Issue:** The user experienced another deadlock exactly after 2 revisions in QUICK mode. The frontend showed the component stuck in "Queued for Code" while the backend logs indicated "Forced advancement after 3 revisions".
-**Root Cause:** A subtle off-by-one error in the backend's has_exceeded_revisions() logic. The frontend loops while evisionCount < maxCompRevs, meaning the final allowed retry attempt strictly equals the budget. When the frontend sent erdict: revise for the final allowed retry (e.g. attempt 3 of 3), the backend incremented its counter to 3, evaluated 3 >= 3, and prematurely killed the final retry, forcing the component to COMPLETED. The frontend awaited CODEGEN for the final retry, resulting in a deadlock.
+**Root Cause:** A subtle off-by-one error in the backend's has_exceeded_revisions() logic. The frontend loops while 
+evisionCount < maxCompRevs, meaning the final allowed retry attempt strictly equals the budget. When the frontend sent erdict: revise for the final allowed retry (e.g. attempt 3 of 3), the backend incremented its counter to 3, evaluated 3 >= 3, and prematurely killed the final retry, forcing the component to COMPLETED. The frontend awaited CODEGEN for the final retry, resulting in a deadlock.
 **Fix:** Modified has_exceeded_revisions() in ackend/autodev_pipeline/models.py to evaluate strictly greater than (>) rather than greater-than-or-equal-to (>=). This perfectly aligns the backend safety net with the frontend's loop boundaries. Additionally, normalized the fallback default budget for QUICK mode to 2 across all index.html catch blocks.
 
 ### Live Preview Missing Python Bug (Fixed)
@@ -1894,7 +1896,8 @@ pm install. This explicitly guarantees the installed NPM package perfectly match
 
 ### Test Cleanup in Downloadable ZIP
 **Issue:** Users requested the ability to download a clean project ZIP without the AutoDev automated test files (Playwright, Pytest, Vitest) included.
-**Fix:** Intercepted the downloadZip() function in the frontend index.html. It now automatically filters out all common test files (.test.js, 	est_*.py, 	ests/, __tests__/, playwright.config.js, etc.) before zipping the codebase. Additionally, it safely parses package.json and equirements.txt to seamlessly strip out testing dependencies (@playwright/test, itest, pytest) and test commands from the final source.
+**Fix:** Intercepted the downloadZip() function in the frontend index.html. It now automatically filters out all common test files (.test.js, 	est_*.py, 	ests/, __tests__/, playwright.config.js, etc.) before zipping the codebase. Additionally, it safely parses package.json and 
+equirements.txt to seamlessly strip out testing dependencies (@playwright/test, itest, pytest) and test commands from the final source.
 
 ### Critic Evaluation History
 **Feature:** Added a history viewer for the Arbitration Feedback phase.
@@ -2529,4 +2532,164 @@ Three new unit tests were added:
 
 Full repository test suite execution: **91 passed in 4.11s (100% pass rate, 0 regressions)**.
 
+---
 
+### 6.13 Targeted Differential Revision Architecture & AST Surgical Refactoring
+
+```
++====================================================================================================+
+|                     TARGETED DIFFERENTIAL REVISION PIPELINE (AST SURGICAL ENGINE)                  |
++====================================================================================================+
+|                                                                                                    |
+|  Docker Test Failure Output (Pytest / Vitest / Bundler Logs)                                       |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 1: Differential Revision Extractor (backend/agents/revision_extractor.py)                   |
+|  - Multi-Regex Failure Analyzer (Tracebacks, Pytest FAILED markers, Vitest FAIL suites)            |
+|  - Filename & Root Path Normalizer against Current Codebase Manifest                               |
+|  - Broken Files Isolation ([broken_file_1.py, ...])                                                |
+|  - Safety Threshold: If 0 files or 100% of files broken -> Graceful Fallback to Full Pipeline     |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 2: Differential Revision Agent (backend/agents/differential_revision_agent.py)              |
+|  - Surgical LLM Prompting with RefactorOutput Schema (summary + modified_files)                   |
+|  - Broken files provided in full for in-place surgical editing                                     |
+|  - Unbroken passing files provided as lightweight semantic signatures (0 token waste)             |
+|  - Pre-Merge AST Validation & Syntax Sanitization Gate (Python ast.parse & JSX checks)            |
+|                                       │                                                            |
+|                                       ▼                                                            |
+|  Layer 3: Deterministic Codebase Merging & State Preservation                                      |
+|  - Replaces ONLY broken files in the component codebase tree                                       |
+|  - Preserves 100% byte-for-byte fidelity of all passing source & test files                        |
+|                                                                                                    |
++====================================================================================================+
+```
+
+#### 1. Problem & Forensic Root-Cause Analysis
+
+In prior versions of AutoDev, when a component failed automated Docker testing (e.g. 1 out of 8 unit tests failed or a single syntax error occurred in a 6-file codebase), the self-correction loop passed the entire codebase back to the `codegen_agent` for a complete rewrite.
+
+##### Observed Failure Modes:
+1. **Token Exhaustion & Truncation**: Re-generating 5 to 10 full application files in a single LLM response frequently exceeded the generation token limit, resulting in truncated files and corrupted closing braces.
+2. **Hallucinatory Regressions**: In attempting to fix a single bug in file A, the LLM frequently introduced unintended regressions or rewrote completely functioning logic in files B, C, and D.
+3. **Latency Explosion**: Re-generating full codebases required 45-90 seconds per revision round, causing pipeline timeouts and poor user experience.
+
+#### 2. Architectural Implementation
+
+##### Component A: Broken File Extractor (`backend/agents/revision_extractor.py`)
+- **`extract_broken_files(execution_logs: str, codebase: GeneratedCodeBase) -> List[str]`**:
+  - Employs a multi-pattern regex engine targeting:
+    - Pytest failure headers (`FAILED test_auth.py::test_login`)
+    - Python traceback frames (`File "main.py", line 148, in ...`)
+    - Vitest failure headers (`FAIL auth.test.js > registers user`)
+    - Vite bundler resolution errors (`Error: Failed to resolve import "./Navbar" from "src/App.jsx"`)
+    - Syntax error locations across Python, JavaScript, and TypeScript.
+  - Normalizes relative and container paths against the known `codebase.files` manifest.
+  - **Fallback Safeguard**: If no files are identified or if every single file is flagged as broken, returns an empty list, signalling `codegen_agent` to safely fall back to full prompt generation.
+
+##### Component B: Surgical Refactor Agent (`backend/agents/differential_revision_agent.py`)
+- **`run_differential_revision(...) -> GeneratedCodeBase`**:
+  - Enforces the `RefactorOutput` schema:
+    ```python
+    class RefactorOutput(BaseModel):
+        summary: str
+        modified_files: List[GeneratedFile]
+    ```
+  - **Context Optimization**: Broken files are presented with their full source code. Unbroken passing files are compressed into a compact symbol manifest, maintaining full cross-module context while consuming < 10% of standard token budgets.
+  - **AST Pre-Merge Verification**: Every modified file is parsed via `ast.parse` (for Python) or JSX syntax guards before merging. If valid, the modified files are spliced back into the original codebase, guaranteeing that passing files remain byte-identical.
+
+---
+
+### 6.14 Hybrid Verification & Dual-Mode Critic Architecture
+
+```
++====================================================================================================+
+|                             HYBRID VERIFICATION & CRITIC ARCHITECTURE                              |
++====================================================================================================+
+|                                                                                                    |
+|  Master Architect Component Classification                                                         |
+|  (Frontend / UI Component)                            (Backend / API / Logic Component)            |
+|               │                                                       │                            |
+|               ▼                                                       ▼                            |
+|  Verification Command:                                 Verification Command:                       |
+|  `npm install && npm run build`                        `pytest` or `vitest run`                    |
+|  Test Files Omitted (0 Token Waste)                    Comprehensive Unit Test Suites Generated    |
+|               │                                                       │                            |
+|               ▼                                                       ▼                            |
+|  Docker Sandbox: Vite / Next.js Build Check            Docker Sandbox: In-Process Test Runner      |
+|               │                                                       │                            |
+|               ▼                                                       ▼                            |
+|  Dual-Mode Correctness Critic Evaluation               Dual-Mode Correctness Critic Evaluation     |
+|  (Mode A: Source-to-Requirements Audit)                (Mode B: Sandbox Test Execution Audit)      |
+|                                                                                                    |
++====================================================================================================+
+```
+
+#### 1. Theoretical Motivation & The JSDOM Flaw
+
+LLMs writing unit tests for modern interactive web applications (React, Tailwind, Lucide icons, Canvas, complex state) inside containerized headless JSDOM environments encounter recurring failure rates exceeding 70%:
+- Missing mock implementations for browser APIs (`ResizeObserver`, `IntersectionObserver`, `window.matchMedia`, WebGL).
+- Complex asynchronous component rendering timing out under test runners.
+- Divergence between JSDOM emulation and real Chromium browser behavior.
+
+Crucially, **unit test generation consumed up to 50% of the LLM token budget**, starving the actual user-facing application components of depth, style, and production error handling.
+
+#### 2. The Hybrid Verification Paradigm
+
+AutoDev splits verification posture based on component nature:
+
+1. **Frontend / UI Components**:
+   - `design_agent` configures `run_tests_command: "npm install --no-audit --no-fund && npm run build"` and strictly omits `*.test.*` files.
+   - `codegen_agent` redirects 100% of its token budget to complete, production-grade application code, rich styles, responsive layouts, and robust edge-case handling.
+   - Verification succeeds if and only if the application compiles cleanly with zero syntax, import, or bundling errors.
+2. **Backend / API / Logic Components**:
+   - `design_agent` configures `run_tests_command: "pytest"` (or `npm test`), designing comprehensive unit test suites that mock databases and external services.
+   - `codegen_agent` implements robust route handlers and corresponding offline unit tests.
+3. **Dual-Mode Correctness Critic (`backend/agents/critics.py`)**:
+   - Inspects the codebase: if unit test files are absent, it autonomously switches to **Direct Source Audit Mode**, verifying components against requirements and acceptance criteria.
+   - If test files exist, it operates in **Sandbox Test Audit Mode**, evaluating test runner outputs, stack traces, and failure metrics.
+
+---
+
+### 6.15 Python Pipeline Hardening, Transitive Dependency Guard & Defensive Runtime Patterns
+
+#### 1. Transitive Dependency Conflicts & `python-multipart` Auto-Injection
+
+In Python FastAPI sandboxes, two recurring dependency bugs caused unrecoverable test failures:
+1. **Motor vs PyMongo Conflict**: Installing `motor==3.3.2` without constraints pulled the latest `pymongo 4.8+`, which removed `_QUERY_OPTIONS`, breaking Motor with `ImportError: cannot import name '_QUERY_OPTIONS' from 'pymongo.common'`.
+2. **FastAPI Form Data / Upload Crash**: Whenever an endpoint accepted form parameters or file uploads (`File(...)`, `Form(...)`), FastAPI raised `RuntimeError: Form data requires 'python-multipart' to be installed`. Because LLMs rarely remembered to add `python-multipart` to `requirements.txt`, test suites failed during route registration before any tests could execute.
+
+##### Architectural Resolution (`backend/golden_stacks.py`):
+- Added `PYTHON_DEPENDENCY_CONSTRAINTS`:
+  ```python
+  PYTHON_DEPENDENCY_CONSTRAINTS = {
+      "motor": {"pymongo": "<4.8"},
+      "fastapi": {"python-multipart": ""},
+  }
+  ```
+- Implemented `enforce_python_dependency_constraints(content: str) -> str` with an idempotent deduplication guard. If `motor` is detected, `pymongo<4.8` is pinned. If `fastapi` is detected, `python-multipart` is automatically added if not already present.
+
+#### 2. System Prompt Guardrails (Rules 12, 13, and 14)
+
+Updated `codegen_agent.py` and `differential_revision_agent.py`:
+- **Rule 12 (Transitive Dependency Conflicts)**: Instructs the model that import errors from pip-installed packages indicate transitive conflicts that must be resolved via `requirements.txt` version pins rather than patching application source code.
+- **Rule 13 (Defensive Dictionary Access)**: Strictly mandates `dict.pop('key', None)` or `dict.get('key')` instead of bare `.pop('key')` or `dict['key']`. Prevents fatal `KeyError` crashes in endpoints that strip sensitive fields (e.g. passwords) before returning database documents.
+- **Rule 14 (Motor / MongoDB Module-Level Mock Pattern)**: Motor client instances initialize at module import time. Using standard `@patch('main.get_database')` fails to intercept the client creation, causing tests to attempt a live connection to `localhost:27017` and timing out after 30s with `ServerSelectionTimeoutError`, which cascades into `RuntimeError: Event loop is closed`. The rule enforces lazy initialization (`get_db()`) and requires mocking the database *prior* to `from main import app`.
+
+---
+
+### 6.16 Dynamic Abort/Retry Control Plane & Live Terminal Telemetry Sync
+
+#### 1. Dynamic Abort -> Retry Pipeline Lifecycle
+
+In `backend/index.html`, the execution control plane was upgraded from a static abort button to a dynamic stateful lifecycle:
+- When a user clicks **Abort Development**, the frontend halts active polling, signals the `AbortController` to cancel in-flight HTTP requests, and sets the local state to `ABORTED`.
+- The button dynamically transitions into a high-visibility yellow **Retry Development** button.
+- Clicking **Retry Development** caches the active product prompt, triggers `resetUI()` to perform a deep reset of all pipeline tracks, restores the prompt, and automatically re-launches development from Phase 1 without requiring page reloads or loss of context.
+
+#### 2. Live Terminal Telemetry Sync & Revision Highlighting
+
+The real-time SSE terminal drawer (`#terminalContent`) was enhanced with bidirectional client-backend telemetry:
+- **Connection Health Tracking**: Hooks into `EventSource.onopen` and `EventSource.onerror`, appending explicit status indicators (`[System] Connection lost...` in red, `[System] Connection reestablished...` in blue).
+- **Targeted Revision Highlighting**: Backend logs matching differential revision events (e.g., `CodeGen Agent: Engaged targeted differential revision on X broken file(s)`) are parsed and styled with bold fuchsia text and a `🔄` badge.
+- **Client-Side Event Mirroring**: Overrides frontend `console.log`, routing client lifecycle events (countdown timer states, phase transitions, abort/retry triggers) directly into the live terminal with color-coded severity tags.

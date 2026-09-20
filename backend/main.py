@@ -12,8 +12,10 @@ from models import (
     SystemDesignBlueprint,
     GeneratedCodeBase,
     ExecutionResult,
+    ComponentSpec,
     ComponentDecomposition,
     ComponentResult,
+    validate_decomposition,
     PostCompletionModifyRequest,
     PostCompletionQueryRequest,
     RefactorOutput,
@@ -44,7 +46,7 @@ def on_startup():
 
 print("Welcome user")
 
-from typing import Optional
+from typing import Optional, List, Any, Union
 import key_balancer
 from key_balancer import format_phase_transition, get_key_display_for_stage
 from retry import format_concise_error
@@ -113,6 +115,10 @@ class ExecuteInput(BaseModel):
     blueprint: SystemDesignBlueprint
     mode: Optional[str] = "QUICK"
     generation_mode: Optional[str] = None
+    component: Optional[Union[ComponentSpec, dict]] = None
+    decomposition: Optional[Union[ComponentDecomposition, dict]] = None
+    docker_image: Optional[str] = None
+    tech_stack: Optional[List[str]] = None
 
 class ArbitrationInput(BaseModel):
     requirements: RequirementsDocument
@@ -173,7 +179,7 @@ def api_decompose(requirements: RequirementsDocument):
         active_model = resolve_model_for_mode(active_mode)
         print(format_phase_transition("System", "REQUIREMENTS", "MASTER_ARCHITECT", active_model, "MASTER_ARCHITECT", mode=active_mode))
         return StreamingResponse(
-            decompose_requirements_stream(requirements),
+            decompose_requirements_stream(requirements, mode=active_mode),
             media_type="text/plain"
         )
     except Exception as e:
@@ -212,6 +218,10 @@ class DesignInput(BaseModel):
     revision_count: Optional[int] = 0
     mode: Optional[str] = "QUICK"
     generation_mode: Optional[str] = None
+    component: Optional[Union[ComponentSpec, dict]] = None
+    decomposition: Optional[Union[ComponentDecomposition, dict]] = None
+    docker_image: Optional[str] = None
+    tech_stack: Optional[List[str]] = None
 
 @app.post("/api/generate-design")
 def api_generate_design(payload: DesignInput):
@@ -219,9 +229,19 @@ def api_generate_design(payload: DesignInput):
     mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
     active_model = resolve_model_for_mode(mode)
     print(format_phase_transition(comp_name, "CREATED", "DESIGN", active_model, "DESIGN", mode=mode))
+    comp = payload.component
+    if comp is None and (payload.docker_image or payload.tech_stack):
+        comp = {"docker_image": payload.docker_image, "tech_stack": payload.tech_stack}
+
     try:
         return StreamingResponse(
-            generate_design_stream(payload.requirements, payload.component_context),
+            generate_design_stream(
+                payload.requirements,
+                payload.component_context,
+                mode=mode,
+                component=comp,
+                decomposition=payload.decomposition,
+            ),
             media_type="text/plain"
         )
     except Exception as e:
@@ -416,8 +436,17 @@ def api_parse_blueprint(payload: TextUpdateInput):
 
 @app.post("/api/execute-code")
 def api_execute_code(payload: ExecuteInput):
+    comp = payload.component
+    if comp is None and (payload.docker_image or payload.tech_stack):
+        comp = {"docker_image": payload.docker_image, "tech_stack": payload.tech_stack}
+
     try:
-        return execute_code(payload.codebase, payload.blueprint)
+        return execute_code(
+            payload.codebase,
+            payload.blueprint,
+            component=comp,
+            decomposition=payload.decomposition,
+        )
     except Exception as e:
         print(f"Execute code failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
