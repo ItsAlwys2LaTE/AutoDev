@@ -8,7 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs/loader.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Quicksand:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; transition: background-color 0.2s, color 0.2s; }
         .fade-in { animation: fadeIn 0.4s ease-in-out forwards; }
@@ -56,9 +56,190 @@
 
         /* Header cost box */
         html.dark #costBox { background-color: #1e293b !important; border-color: #334155 !important; }
-    </style>
 
-    <style>
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        /* 🌸 KAWAII THEME ("NEKO-SDLC") OVERRIDES                                */
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        [data-theme="kawaii"] body {
+            font-family: 'Quicksand', 'Inter', sans-serif !important;
+            background: radial-gradient(circle at 10% 15%, #fff1f5 0%, #fdf2f8 30%, #faf5ff 60%, #fff0f5 100%) !important;
+            color: #4a044e !important;
+        }
+        [data-theme="kawaii"].dark body {
+            background: radial-gradient(circle at 15% 15%, #231230 0%, #170b22 45%, #0e0517 100%) !important;
+            color: #fce7f3 !important;
+        }
+
+        /* Glassmorphic Rounded Cards in Kawaii Theme */
+        [data-theme="kawaii"] .bg-white {
+            background: rgba(255, 255, 255, 0.90) !important;
+            backdrop-filter: blur(12px);
+            border-color: #fbcfe8 !important;
+            border-radius: 1.5rem !important;
+            box-shadow: 0 10px 30px -5px rgba(244, 114, 182, 0.18), 0 4px 10px -2px rgba(244, 114, 182, 0.1) !important;
+        }
+        [data-theme="kawaii"].dark .bg-white,
+        [data-theme="kawaii"].dark .bg-slate-900,
+        [data-theme="kawaii"].dark .bg-slate-950 {
+            background: rgba(31, 16, 44, 0.90) !important;
+            backdrop-filter: blur(14px);
+            border-color: rgba(244, 114, 182, 0.28) !important;
+            border-radius: 1.5rem !important;
+            box-shadow: 0 12px 35px -5px rgba(244, 114, 182, 0.22) !important;
+        }
+
+        /* Header Title & Accents */
+        [data-theme="kawaii"] h1 {
+            background: linear-gradient(135deg, #ec4899 0%, #d946ef 50%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+        [data-theme="kawaii"] header {
+            border-color: rgba(244, 114, 182, 0.3) !important;
+        }
+
+        /* Candy Primary Execution Button */
+        [data-theme="kawaii"] button#submitBtn {
+            background: linear-gradient(135deg, #f43f5e 0%, #ec4899 50%, #d946ef 100%) !important;
+            box-shadow: 0 6px 20px rgba(236, 72, 153, 0.45) !important;
+            border-radius: 1.25rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.02em;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        [data-theme="kawaii"] button#submitBtn:hover {
+            transform: translateY(-2.5px) scale(1.015);
+            box-shadow: 0 10px 30px rgba(236, 72, 153, 0.55) !important;
+        }
+        [data-theme="kawaii"] button#submitBtn:active {
+            transform: translateY(1px) scale(0.99);
+        }
+
+        /* Kawaii Stepper Overrides */
+        [data-theme="kawaii"] #stepperProgress {
+            background: linear-gradient(90deg, #ec4899, #c084fc) !important;
+            box-shadow: 0 0 15px rgba(236, 72, 153, 0.6);
+        }
+        [data-theme="kawaii"] .stepper-step {
+            border-radius: 1rem !important;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+        }
+        [data-theme="kawaii"] .stepper-step.active,
+        [data-theme="kawaii"] .stepper-step.completed {
+            border-color: #ec4899 !important;
+            background: #fff1f5 !important;
+            box-shadow: 0 0 20px rgba(244, 114, 182, 0.6) !important;
+            transform: scale(1.12);
+        }
+        [data-theme="kawaii"].dark .stepper-step.active,
+        [data-theme="kawaii"].dark .stepper-step.completed {
+            background: #2a1338 !important;
+            border-color: #f472b6 !important;
+            box-shadow: 0 0 25px rgba(244, 114, 182, 0.5) !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        /* 🐱 CUTE MASCOT ("NEKO-CHAN") ANIMATIONS                               */
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        @keyframes earWiggleLeft {
+            0%, 80%, 100% { transform: rotate(0deg); }
+            85% { transform: rotate(-8deg); }
+            92% { transform: rotate(4deg); }
+        }
+        @keyframes earWiggleRight {
+            0%, 80%, 100% { transform: rotate(0deg); }
+            85% { transform: rotate(8deg); }
+            92% { transform: rotate(-4deg); }
+        }
+        .ear-left { transform-origin: 55px 50px; animation: earWiggleLeft 5s infinite ease-in-out; }
+        .ear-right { transform-origin: 165px 50px; animation: earWiggleRight 5s infinite ease-in-out; }
+
+        @keyframes catBreathe {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-2px) scale(1.008); }
+        }
+        #nekoSvg {
+            transform-origin: 110px 140px;
+            animation: catBreathe 3.5s infinite ease-in-out;
+        }
+
+        /* Bongo Cat Typing Paws */
+        @keyframes bongoPawLeft {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(8px); }
+        }
+        @keyframes bongoPawRight {
+            0%, 100% { transform: translateY(8px); }
+            50% { transform: translateY(0px); }
+        }
+        .state-typing .paw-left {
+            transform-origin: 88px 122px;
+            animation: bongoPawLeft 0.14s infinite alternate ease-in-out !important;
+        }
+        .state-typing .paw-right {
+            transform-origin: 132px 122px;
+            animation: bongoPawRight 0.14s infinite alternate ease-in-out !important;
+        }
+
+        /* Floating Particles */
+        @keyframes floatParticle1 {
+            0% { opacity: 0.2; transform: translateY(0) scale(0.8) rotate(0deg); }
+            50% { opacity: 0.9; transform: translateY(-12px) scale(1.1) rotate(10deg); }
+            100% { opacity: 0.2; transform: translateY(-24px) scale(0.8) rotate(-10deg); }
+        }
+        @keyframes floatParticle2 {
+            0% { opacity: 0.3; transform: translateY(0) scale(0.9) rotate(0deg); }
+            50% { opacity: 1; transform: translateY(-15px) scale(1.2) rotate(-12deg); }
+            100% { opacity: 0.3; transform: translateY(-28px) scale(0.9) rotate(8deg); }
+        }
+        .particle-1 { animation: floatParticle1 3s infinite ease-in-out; }
+        .particle-2 { animation: floatParticle2 2.7s infinite ease-in-out 0.8s; }
+        .particle-3 { animation: floatParticle1 3.4s infinite ease-in-out 1.2s; }
+        .particle-4 { animation: floatParticle2 3.1s infinite ease-in-out 0.4s; }
+
+        @keyframes zzzFloat {
+            0% { opacity: 0; transform: translateY(0px) scale(0.7); }
+            50% { opacity: 0.9; transform: translateY(-10px) scale(1.1); }
+            100% { opacity: 0; transform: translateY(-20px) scale(1.3); }
+        }
+        .zzz-text { animation: zzzFloat 2.8s infinite ease-in-out; }
+
+        @keyframes bubbleBounce {
+            0% { transform: scale(0.96); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        .bubble-bounce { animation: bubbleBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        @keyframes petBounce {
+            0%, 100% { transform: scale(1); }
+            30% { transform: scale(1.15) rotate(-3deg); }
+            60% { transform: scale(1.12) rotate(3deg); }
+        }
+        .pet-bounce { animation: petBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        /* ⚡ CYBERPUNK THEME OVERRIDES                                           */
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        [data-theme="cyberpunk"] body {
+            font-family: 'Fira Code', monospace !important;
+            background: #050811 !important;
+            color: #00f0ff !important;
+        }
+        [data-theme="cyberpunk"] .bg-white,
+        [data-theme="cyberpunk"] .bg-slate-900 {
+            background: #090e1f !important;
+            border-color: #00f0ff !important;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15) !important;
+        }
+        [data-theme="cyberpunk"] button#submitBtn {
+            background: linear-gradient(135deg, #00f0ff, #ff007f) !important;
+            color: #050811 !important;
+            font-weight: 800 !important;
+            text-transform: uppercase;
+        }
+
         .custom-scrollbar::-webkit-scrollbar { width: 8px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -74,6 +255,16 @@
                 <p class="text-slate-500 text-sm font-mono tracking-wider">BUILD SYS.v2.0.0.Alpha</p>
             </div>
             <div class="flex items-center gap-3">
+                <!-- Multi-Theme Selector Dropdown -->
+                <div class="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl shadow-sm transition-colors">
+                    <span class="text-xs font-bold text-slate-400 dark:text-slate-500">Theme:</span>
+                    <select id="themeSelector" onchange="changeTheme(this.value)" class="text-xs font-bold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer">
+                        <option value="kawaii" selected>🌸 Kawaii Neko</option>
+                        <option value="classic">🌙 Classic Dark</option>
+                        <option value="cyberpunk">⚡ Cyberpunk</option>
+                    </select>
+                </div>
+
                 <!-- Dark / Light Mode Toggle -->
                 <button id="darkModeToggle" onclick="toggleDarkMode()" title="Toggle dark/light mode"
                     class="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors duration-150 focus:outline-none">
@@ -109,55 +300,236 @@
         </div>
 
         <!-- PIPELINE STEPPER -->
-        <div class="relative max-w-5xl mx-auto mb-12">
+        <div class="relative max-w-5xl mx-auto mb-10">
             <!-- Connecting Line -->
-            <div class="absolute top-5 left-0 w-full h-1 bg-slate-200 z-0 rounded-full"></div>
+            <div class="absolute top-5 left-0 w-full h-1 bg-slate-200 dark:bg-slate-800 z-0 rounded-full"></div>
             <div id="stepperProgress" class="absolute top-5 left-0 w-0 h-1 bg-blue-500 z-0 rounded-full transition-all duration-700 ease-in-out"></div>
             
             <div class="flex justify-between items-start relative z-10">
                 <!-- Step 1: Requirements -->
                 <div class="flex flex-col items-center w-24">
-                    <div id="step1-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">1</div>
+                    <div id="step1-icon" class="stepper-step w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-all duration-300">
+                        <span class="step-num">1</span>
+                        <span class="step-paw hidden">🐾</span>
+                    </div>
                     <span id="step1-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Requirements</span>
                 </div>
                 <!-- Step 2: Architecture -->
                 <div class="flex flex-col items-center w-24">
-                    <div id="step2-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">2</div>
+                    <div id="step2-icon" class="stepper-step w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-all duration-300">
+                        <span class="step-num">2</span>
+                        <span class="step-paw hidden">🐾</span>
+                    </div>
                     <span id="step2-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Decomposition</span>
                 </div>
                 <!-- Step 3: CodeGen -->
                 <div class="flex flex-col items-center w-24">
-                    <div id="step3-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">3</div>
+                    <div id="step3-icon" class="stepper-step w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-all duration-300">
+                        <span class="step-num">3</span>
+                        <span class="step-paw hidden">🐾</span>
+                    </div>
                     <span id="step3-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Parallel Design</span>
                 </div>
                 <!-- Step 4: Execution -->
                 <div class="flex flex-col items-center w-24">
-                    <div id="step4-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">4</div>
+                    <div id="step4-icon" class="stepper-step w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-all duration-300">
+                        <span class="step-num">4</span>
+                        <span class="step-paw hidden">🐾</span>
+                    </div>
                     <span id="step4-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Parallel Coding</span>
                 </div>
                 <!-- Step 5: Arbitration -->
                 <div class="flex flex-col items-center w-24">
-                    <div id="step5-icon" class="w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-colors duration-300">5</div>
+                    <div id="step5-icon" class="stepper-step w-10 h-10 rounded-full bg-white text-slate-400 border-2 border-slate-200 flex items-center justify-center font-bold text-sm transition-all duration-300">
+                        <span class="step-num">5</span>
+                        <span class="step-paw hidden">🐾</span>
+                    </div>
                     <span id="step5-text" class="text-xs font-semibold text-slate-400 mt-2 text-center transition-colors duration-300">Final Integration</span>
                 </div>
             </div>
         </div>
 
+        <!-- ═══════════════════════════════════════════════════════════════════════ -->
+        <!-- 🐱 KAWAII MASCOT HERO SECTION ("NEKO-CHAN")                           -->
+        <!-- ═══════════════════════════════════════════════════════════════════════ -->
+        <div id="mascotHeroSection" class="flex flex-col items-center justify-center -mt-2 mb-6 transition-all duration-500">
+            <!-- Speech Bubble (Live Agent Thoughts) -->
+            <div id="catSpeechBubble" class="relative bg-white/95 dark:bg-[#1f132b]/95 border-2 border-pink-300 dark:border-pink-500/50 rounded-2xl px-5 py-3.5 shadow-[0_8px_25px_rgba(244,114,182,0.25)] flex items-center gap-3.5 max-w-xl mb-3 transition-all duration-300 transform hover:scale-[1.01]">
+                <div id="catStatusEmoji" class="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-900/60 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
+                    ✨
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between gap-2">
+                        <span id="catAgentName" class="text-xs font-extrabold tracking-wider text-pink-600 dark:text-pink-400 flex items-center gap-1">
+                            <span>🐾</span> Neko-chan (SYS.AGENT)
+                        </span>
+                        <span id="catStageBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-50 dark:bg-pink-950 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
+                            Idle & Ready
+                        </span>
+                    </div>
+                    <p id="catThoughtText" class="text-sm font-semibold text-slate-700 dark:text-pink-100 mt-1 leading-snug">
+                        Ready to synthesize your dream software! Tell me what to build, nya~! 💖
+                    </p>
+                </div>
+                <!-- Speech Tail -->
+                <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-3.5 h-3.5 bg-white dark:bg-[#1f132b] border-b-2 border-r-2 border-pink-300 dark:border-pink-500/50 rotate-45"></div>
+            </div>
+
+            <!-- SVG Animated Cat Mascot -->
+            <div id="nekoMascotWrapper" class="relative group cursor-pointer select-none state-idle" onclick="petCat()" title="Click to pet Neko-chan!">
+                <svg id="nekoSvg" width="220" height="155" viewBox="0 0 220 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="transition-transform duration-300 hover:scale-105">
+                    <defs>
+                        <radialGradient id="earInner" cx="0.5" cy="0.5" r="0.5">
+                            <stop offset="0%" stop-color="#FFB6C1"/>
+                            <stop offset="100%" stop-color="#FF69B4"/>
+                        </radialGradient>
+                        <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#FFFFFF"/>
+                            <stop offset="100%" stop-color="#FFF0F5"/>
+                        </linearGradient>
+                        <linearGradient id="hoodieGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#E9D5FF"/>
+                            <stop offset="100%" stop-color="#D8B4FE"/>
+                        </linearGradient>
+                        <linearGradient id="kbBase" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stop-color="#FBCFE8"/>
+                            <stop offset="100%" stop-color="#F472B6"/>
+                        </linearGradient>
+                    </defs>
+
+                    <!-- Floating Particles -->
+                    <g id="catParticles">
+                        <text x="25" y="45" class="particle particle-1" font-size="16">💖</text>
+                        <text x="180" y="40" class="particle particle-2" font-size="14">✨</text>
+                        <text x="20" y="80" class="particle particle-3" font-size="13">🐾</text>
+                        <text x="185" y="85" class="particle particle-4" font-size="13">🌸</text>
+                    </g>
+
+                    <!-- Cat Ears -->
+                    <g id="catEars">
+                        <!-- Left Ear -->
+                        <g class="ear-left">
+                            <polygon points="55,50 35,15 75,32" fill="#FFFFFF" stroke="#3D1E3A" stroke-width="3" stroke-linejoin="round"/>
+                            <polygon points="53,46 41,23 70,34" fill="url(#earInner)"/>
+                        </g>
+                        <!-- Right Ear -->
+                        <g class="ear-right">
+                            <polygon points="165,50 185,15 145,32" fill="#FFFFFF" stroke="#3D1E3A" stroke-width="3" stroke-linejoin="round"/>
+                            <polygon points="167,46 179,23 150,34" fill="url(#earInner)"/>
+                        </g>
+                    </g>
+
+                    <!-- Headphones Band -->
+                    <path d="M 45,65 C 45,15 175,15 175,65" stroke="#EC4899" stroke-width="7" fill="none" stroke-linecap="round"/>
+                    <path d="M 45,65 C 45,15 175,15 175,65" stroke="#F472B6" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+                    <!-- Headphone Earcups -->
+                    <rect x="36" y="52" width="16" height="26" rx="8" fill="#F472B6" stroke="#3D1E3A" stroke-width="2.5"/>
+                    <circle cx="44" cy="65" r="4" fill="#FFFFFF"/>
+                    <rect x="168" y="52" width="16" height="26" rx="8" fill="#F472B6" stroke="#3D1E3A" stroke-width="2.5"/>
+                    <circle cx="176" cy="65" r="4" fill="#FFFFFF"/>
+
+                    <!-- Body & Hoodie -->
+                    <path d="M 68,95 C 60,110 50,135 50,145 L 170,145 C 170,135 160,110 152,95 Z" fill="url(#hoodieGrad)" stroke="#3D1E3A" stroke-width="3"/>
+                    <text x="110" y="132" font-family="'Quicksand', sans-serif" font-weight="bold" font-size="9" fill="#7C3AED" text-anchor="middle" letter-spacing="1">AutoDev</text>
+
+                    <!-- Cat Head -->
+                    <ellipse cx="110" cy="68" rx="55" ry="46" fill="url(#bodyGrad)" stroke="#3D1E3A" stroke-width="3"/>
+
+                    <!-- Blushing Cheeks -->
+                    <ellipse cx="78" cy="78" rx="9" ry="5.5" fill="#FF9EBB" opacity="0.85"/>
+                    <ellipse cx="142" cy="78" rx="9" ry="5.5" fill="#FF9EBB" opacity="0.85"/>
+
+                    <!-- Normal Sparkle Eyes -->
+                    <g id="catEyesNormal" class="cat-eyes-normal">
+                        <ellipse cx="86" cy="64" rx="7.5" ry="9" fill="#2E1065"/>
+                        <circle cx="83.5" cy="60.5" r="3" fill="#FFFFFF"/>
+                        <circle cx="88" cy="67" r="1.5" fill="#FFFFFF"/>
+                        <ellipse cx="134" cy="64" rx="7.5" ry="9" fill="#2E1065"/>
+                        <circle cx="131.5" cy="60.5" r="3" fill="#FFFFFF"/>
+                        <circle cx="136" cy="67" r="1.5" fill="#FFFFFF"/>
+                    </g>
+
+                    <!-- Happy Eyes (Celebration) -->
+                    <g id="catEyesHappy" class="cat-eyes-happy hidden">
+                        <path d="M 78,66 Q 86,57 94,66" stroke="#2E1065" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                        <path d="M 126,66 Q 134,57 142,66" stroke="#2E1065" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+                    </g>
+
+                    <!-- Sleepy Eyes (Idle) -->
+                    <g id="catEyesSleepy" class="cat-eyes-sleepy hidden">
+                        <path d="M 78,63 Q 86,70 94,63" stroke="#2E1065" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <path d="M 126,63 Q 134,70 142,63" stroke="#2E1065" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <text x="145" y="45" font-size="14" font-weight="bold" fill="#A855F7" class="zzz-text">zZz</text>
+                    </g>
+
+                    <!-- Nose & Mouth -->
+                    <polygon points="110,72 107,69 113,69" fill="#F472B6"/>
+                    <path d="M 104,75 Q 107,78 110,75 Q 113,78 116,75" stroke="#3D1E3A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+                    <!-- Reading Glasses (Requirements / Docs) -->
+                    <g id="catGlasses" class="cat-glasses hidden">
+                        <circle cx="86" cy="64" r="13" stroke="#F59E0B" stroke-width="2.5" fill="rgba(254, 243, 199, 0.25)"/>
+                        <circle cx="134" cy="64" r="13" stroke="#F59E0B" stroke-width="2.5" fill="rgba(254, 243, 199, 0.25)"/>
+                        <line x1="99" y1="64" x2="121" y2="64" stroke="#F59E0B" stroke-width="2.5"/>
+                    </g>
+
+                    <!-- Science Goggles (Testing / Sandbox) -->
+                    <g id="catGoggles" class="cat-goggles hidden">
+                        <rect x="70" y="52" width="32" height="24" rx="10" stroke="#06B6D4" stroke-width="3" fill="rgba(6, 182, 212, 0.25)"/>
+                        <rect x="118" y="52" width="32" height="24" rx="10" stroke="#06B6D4" stroke-width="3" fill="rgba(6, 182, 212, 0.25)"/>
+                        <line x1="102" y1="64" x2="118" y2="64" stroke="#06B6D4" stroke-width="3"/>
+                        <line x1="45" y1="64" x2="70" y2="64" stroke="#06B6D4" stroke-width="3"/>
+                        <line x1="150" y1="64" x2="175" y2="64" stroke="#06B6D4" stroke-width="3"/>
+                    </g>
+
+                    <!-- Mechanical Keyboard -->
+                    <g id="catKeyboard">
+                        <rect x="42" y="125" width="136" height="28" rx="8" fill="url(#kbBase)" stroke="#3D1E3A" stroke-width="2.5"/>
+                        <rect x="48" y="129" width="10" height="8" rx="2" fill="#FFFFFF"/>
+                        <rect x="61" y="129" width="10" height="8" rx="2" fill="#C084FC"/>
+                        <rect x="74" y="129" width="10" height="8" rx="2" fill="#F472B6"/>
+                        <rect x="87" y="129" width="10" height="8" rx="2" fill="#93C5FD"/>
+                        <rect x="100" y="129" width="10" height="8" rx="2" fill="#FDE047"/>
+                        <rect x="113" y="129" width="10" height="8" rx="2" fill="#86EFAC"/>
+                        <rect x="126" y="129" width="10" height="8" rx="2" fill="#F472B6"/>
+                        <rect x="139" y="129" width="10" height="8" rx="2" fill="#C084FC"/>
+                        <rect x="152" y="129" width="20" height="8" rx="2" fill="#FDA4AF"/>
+                        <rect x="48" y="139" width="16" height="9" rx="2" fill="#FFFFFF"/>
+                        <rect x="67" y="139" width="12" height="9" rx="2" fill="#93C5FD"/>
+                        <rect x="82" y="139" width="56" height="9" rx="3" fill="#FFFFFF"/>
+                        <rect x="141" y="139" width="14" height="9" rx="2" fill="#C084FC"/>
+                        <rect x="158" y="139" width="14" height="9" rx="2" fill="#F472B6"/>
+                    </g>
+
+                    <!-- Bongo Paws -->
+                    <g id="leftPaw" class="paw-left">
+                        <ellipse cx="88" cy="122" rx="11" ry="8.5" fill="#FFFFFF" stroke="#3D1E3A" stroke-width="2.5"/>
+                        <ellipse cx="88" cy="123" rx="5" ry="4" fill="#FFAEC9"/>
+                    </g>
+                    <g id="rightPaw" class="paw-right">
+                        <ellipse cx="132" cy="122" rx="11" ry="8.5" fill="#FFFFFF" stroke="#3D1E3A" stroke-width="2.5"/>
+                        <ellipse cx="132" cy="123" rx="5" ry="4" fill="#FFAEC9"/>
+                    </g>
+                </svg>
+            </div>
+        </div>
+
         <!-- INPUT SECTION -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 space-y-4">
             <!-- TOP HEADER WITH GENERATION MODE TOGGLE -->
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-4 border-b border-slate-100">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <div>
-                    <label for="featureRequest" class="block font-bold text-slate-800 text-base">Enter Feature Request:</label>
-                    <p id="modeHelperText" class="text-xs text-slate-500 font-medium mt-1">
-                        ⚡ <span class="font-semibold text-slate-700">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, dynamic revision budget, skips documentation.
+                    <label for="featureRequest" class="block font-bold text-slate-800 dark:text-slate-100 text-base">Enter Feature Request:</label>
+                    <p id="modeHelperText" class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                        ⚡ <span class="font-semibold text-slate-700 dark:text-slate-200">QUICK Mode:</span> Fully autonomous, flash-lite API keys, read-only phase outputs, dynamic revision budget, skips documentation.
                     </p>
                 </div>
                 
                 <!-- PILL-SHAPED TOGGLE -->
                 <div class="flex items-center gap-2 self-start sm:self-auto">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Mode:</span>
-                    <div class="inline-flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner" id="generationModeToggle" role="radiogroup" aria-label="Generation Mode">
+                    <div class="inline-flex bg-slate-100 dark:bg-slate-900 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-inner" id="generationModeToggle" role="radiogroup" aria-label="Generation Mode">
                         <button type="button" id="toggleModeQuick" onclick="setGenerationMode('QUICK')" role="radio" aria-checked="true"
                             class="px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 bg-blue-600 text-white shadow-sm flex items-center gap-1.5 focus:outline-none">
                             <svg class="w-3.5 h-3.5 text-yellow-300" fill="currentColor" viewBox="0 0 20 20">
@@ -166,7 +538,7 @@
                             QUICK
                         </button>
                         <button type="button" id="toggleModeComplex" onclick="setGenerationMode('COMPLEX')" role="radio" aria-checked="false"
-                            class="px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 text-slate-600 hover:text-slate-900 flex items-center gap-1.5 focus:outline-none">
+                            class="px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 focus:outline-none">
                             <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                             </svg>
@@ -177,12 +549,32 @@
             </div>
 
             <textarea id="featureRequest" rows="4" 
-                class="w-full rounded-lg border border-slate-300 p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                class="w-full rounded-xl border border-slate-300 dark:border-slate-700 p-4 focus:ring-2 focus:ring-pink-400 focus:border-pink-400 outline-none transition-all dark:bg-slate-900/60 dark:text-slate-100"
                 placeholder="E.g., Build an email notification system for successful purchases..."></textarea>
             
+            <!-- QUICK IDEAS / INSPIRATION CHIPS -->
+            <div id="quickPromptChips" class="flex flex-wrap items-center gap-2 pt-1 pb-1">
+                <span class="text-xs font-bold text-pink-500 dark:text-pink-400 uppercase tracking-wider flex items-center gap-1">
+                    <span>💡</span> Ideas:
+                </span>
+                <button type="button" onclick="setPromptExample('Build a full-stack Bakery e-commerce API with cart, products, and checkout in FastAPI')" class="chip-btn px-3 py-1 rounded-full text-xs font-semibold bg-pink-50 hover:bg-pink-100 dark:bg-pink-950/60 dark:hover:bg-pink-900/60 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-800/60 transition-all hover:scale-105 active:scale-95 shadow-sm">
+                    🧁 Bakery Shop API
+                </button>
+                <button type="button" onclick="setPromptExample('Build a real-time Cat Adoption service with animal profiles, tags, and adoption applications')" class="chip-btn px-3 py-1 rounded-full text-xs font-semibold bg-pink-50 hover:bg-pink-100 dark:bg-pink-950/60 dark:hover:bg-pink-900/60 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-800/60 transition-all hover:scale-105 active:scale-95 shadow-sm">
+                    🐱 Cat Adoption Service
+                </button>
+                <button type="button" onclick="setPromptExample('Build a JWT Authentication & RBAC user permission service with SQLite database')" class="chip-btn px-3 py-1 rounded-full text-xs font-semibold bg-pink-50 hover:bg-pink-100 dark:bg-pink-950/60 dark:hover:bg-pink-900/60 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-800/60 transition-all hover:scale-105 active:scale-95 shadow-sm">
+                    🔐 JWT Auth & Roles
+                </button>
+                <button type="button" onclick="setPromptExample('Build a real-time WebSocket chat room with message history and notifications')" class="chip-btn px-3 py-1 rounded-full text-xs font-semibold bg-pink-50 hover:bg-pink-100 dark:bg-pink-950/60 dark:hover:bg-pink-900/60 text-pink-600 dark:text-pink-300 border border-pink-200 dark:border-pink-800/60 transition-all hover:scale-105 active:scale-95 shadow-sm">
+                    💬 WebSocket Chat Room
+                </button>
+            </div>
+
             <button id="submitBtn" onclick="generateRequirements()" 
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 shadow-sm">
-                <span>Execute SYS.REQ_COMPILER (v1.3.0)</span>
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all flex justify-center items-center gap-2 shadow-md">
+                <span id="submitBtnPaw" class="hidden text-base">🐾</span>
+                <span id="submitBtnText">Execute SYS.REQ_COMPILER (v1.3.0)</span>
                 <svg id="spinner" class="animate-spin h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -696,6 +1088,11 @@
                 
                 termContent.appendChild(span);
                 
+                // Update Neko-chan thought bubble if on Kawaii theme
+                if (currentTheme === 'kawaii' && logText.length > 5 && !logText.startsWith('[System]')) {
+                    updateNekoFromLog(logText);
+                }
+                
                 if (termContent.scrollHeight - termContent.scrollTop < termContent.clientHeight + 150) {
                     termContent.scrollTop = termContent.scrollHeight;
                 }
@@ -709,6 +1106,147 @@
             };
         }
         
+        // ── Multi-Theme Engine ─────────────────────────────────────────────
+        let currentTheme = 'kawaii'; // Default to Kawaii Neko theme
+
+        function setTheme(theme) {
+            currentTheme = theme || 'kawaii';
+            const html = document.documentElement;
+            html.setAttribute('data-theme', currentTheme);
+            localStorage.setItem('autodev_theme', currentTheme);
+            
+            const selector = document.getElementById('themeSelector');
+            if (selector) selector.value = currentTheme;
+            
+            const mascot = document.getElementById('mascotHeroSection');
+            const submitPaw = document.getElementById('submitBtnPaw');
+            const submitBtnText = document.getElementById('submitBtnText');
+            const pawSpans = document.querySelectorAll('.step-paw');
+            const numSpans = document.querySelectorAll('.step-num');
+
+            if (currentTheme === 'kawaii') {
+                if (mascot) mascot.classList.remove('hidden');
+                if (submitPaw) submitPaw.classList.remove('hidden');
+                if (submitBtnText) submitBtnText.textContent = "Summon Code Magic (SYS.REQ_COMPILER)";
+                pawSpans.forEach(el => el.classList.remove('hidden'));
+                numSpans.forEach(el => el.classList.add('hidden'));
+            } else {
+                if (mascot) mascot.classList.add('hidden');
+                if (submitPaw) submitPaw.classList.add('hidden');
+                if (submitBtnText) submitBtnText.textContent = "Execute SYS.REQ_COMPILER (v1.3.0)";
+                pawSpans.forEach(el => el.classList.add('hidden'));
+                numSpans.forEach(el => el.classList.remove('hidden'));
+            }
+        }
+
+        function changeTheme(theme) {
+            setTheme(theme);
+        }
+
+        // ── Kawaii Mascot ("Neko-chan") Controller ────────────────────────
+        let currentCatState = 'idle';
+
+        function setCatState(state, message, agentName = "Neko-chan (SYS.AGENT)") {
+            currentCatState = state;
+            const wrapper = document.getElementById('nekoMascotWrapper');
+            const thoughtText = document.getElementById('catThoughtText');
+            const statusEmoji = document.getElementById('catStatusEmoji');
+            const stageBadge = document.getElementById('catStageBadge');
+            const agentNameEl = document.getElementById('catAgentName');
+            const bubble = document.getElementById('catSpeechBubble');
+
+            if (wrapper) {
+                wrapper.className = `relative group cursor-pointer select-none state-${state}`;
+            }
+
+            // Toggle facial accessories and eyes
+            const glasses = document.getElementById('catGlasses');
+            const goggles = document.getElementById('catGoggles');
+            const eyesNormal = document.getElementById('catEyesNormal');
+            const eyesHappy = document.getElementById('catEyesHappy');
+            const eyesSleepy = document.getElementById('catEyesSleepy');
+
+            if (glasses) glasses.classList.toggle('hidden', state !== 'reading');
+            if (goggles) goggles.classList.toggle('hidden', state !== 'testing');
+            if (eyesHappy) eyesHappy.classList.toggle('hidden', state !== 'celebrating' && state !== 'happy');
+            if (eyesSleepy) eyesSleepy.classList.toggle('hidden', state !== 'idle');
+            if (eyesNormal) eyesNormal.classList.toggle('hidden', state === 'celebrating' || state === 'happy' || state === 'idle');
+
+            const emojis = {
+                idle: '💤',
+                reading: '👓',
+                thinking: '🧩',
+                typing: '⌨️',
+                testing: '🧪',
+                celebrating: '🎉',
+                happy: '✨',
+                sad: '😿'
+            };
+            if (statusEmoji) statusEmoji.textContent = emojis[state] || '✨';
+
+            const badges = {
+                idle: 'Idle & Ready',
+                reading: 'Reading Specs',
+                thinking: 'Architecting',
+                typing: 'Coding Fast',
+                testing: 'Sandbox Run',
+                celebrating: 'Verified!',
+                happy: 'Completed',
+                sad: 'Debugging'
+            };
+            if (stageBadge) stageBadge.textContent = badges[state] || 'Active';
+            if (agentNameEl) agentNameEl.innerHTML = `<span>🐾</span> ${agentName}`;
+            if (thoughtText && message) {
+                thoughtText.textContent = message;
+            }
+
+            if (bubble) {
+                bubble.classList.remove('bubble-bounce');
+                void bubble.offsetWidth;
+                bubble.classList.add('bubble-bounce');
+            }
+        }
+
+        function petCat() {
+            setCatState('happy', 'Purrrrr~! You petted Neko-chan! (+100 Coding Motivation) 💖🐾', 'Neko-chan');
+            const wrapper = document.getElementById('nekoMascotWrapper');
+            if (wrapper) {
+                wrapper.classList.add('pet-bounce');
+                setTimeout(() => wrapper.classList.remove('pet-bounce'), 600);
+            }
+        }
+
+        function setPromptExample(text) {
+            const textarea = document.getElementById('featureRequest');
+            if (textarea) {
+                textarea.value = text;
+                textarea.focus();
+                setCatState('reading', `Ooh! "${text.substring(0, 42)}..." sounds delicious, nya! Click Summon Code Magic to begin! ✨`, 'Neko-chan');
+            }
+        }
+
+        function updateNekoFromLog(logText) {
+            if (currentTheme !== 'kawaii' || !logText) return;
+            const lower = logText.toLowerCase();
+            if (lower.includes('error') || lower.includes('failed')) {
+                setCatState('thinking', 'Diagnosing issue and preparing self-healing fix... 🔍', 'Self-Healing');
+            } else if (lower.includes('requirements') && (lower.includes('compil') || lower.includes('validat'))) {
+                setCatState('reading', 'Compiling and structuring acceptance criteria... 👓', 'Requirements Agent');
+            } else if (lower.includes('decomposition') || lower.includes('master architect')) {
+                setCatState('thinking', 'Master Architect is analyzing component boundaries... 📐', 'Master Architect');
+            } else if (lower.includes('blueprint') || lower.includes('design')) {
+                setCatState('thinking', 'Structuring schemas, models and API routes... 🎨', 'Design Agent');
+            } else if (lower.includes('codegen') || lower.includes('generating code') || lower.includes('writing')) {
+                setCatState('typing', 'Writing clean code! Paws clicking fast on the keyboard! ⌨️💖', 'CodeGen Agent');
+            } else if (lower.includes('docker') || lower.includes('pytest') || lower.includes('sandbox')) {
+                setCatState('testing', 'Running test suites in Docker sandbox... goggles on! 🧪🐳', 'Test Sandbox');
+            } else if (lower.includes('critic') || lower.includes('arbitration')) {
+                setCatState('thinking', 'Critics evaluating correctness, architecture & completeness... ⚖️', 'Arbitration Engine');
+            } else if (lower.includes('all components complete') || lower.includes('verdict: pass')) {
+                setCatState('celebrating', 'Step completed successfully! Neko is proud! 🎉✨', 'Neko-chan');
+            }
+        }
+
         // ── Dark / Light Mode ──────────────────────────────────────────────
         function applyDarkMode(dark) {
             const html = document.documentElement;
@@ -740,9 +1278,11 @@
         // Apply saved preference on page load
         (function() {
             const saved = localStorage.getItem('autodev_dark_mode');
-            // Default to system preference if nothing stored
             const prefersDark = saved !== null ? saved === '1' : window.matchMedia('(prefers-color-scheme: dark)').matches;
             applyDarkMode(prefersDark);
+
+            const savedTheme = localStorage.getItem('autodev_theme') || 'kawaii';
+            setTheme(savedTheme);
         })();
 
         // Generation Modes State & Management
@@ -2730,6 +3270,7 @@
             pipelineActive = true;
             inFlightPhase = 'requirements';
             StateStore.save(getCurrentState(), true);
+            setCatState('reading', 'Studying your feature request with glasses on, nya~! 👓📖', 'Requirements Agent');
 
             setButtonLoading('submitBtn', 'spinner', true);
             updateStepper(1, 'loading');
@@ -2831,6 +3372,7 @@
 
             inFlightPhase = 'single_design';
             StateStore.save(getCurrentState(), true);
+            setCatState('thinking', 'Master Architect is drafting system blueprints and schemas... 🎨📐', 'Design Agent');
 
             if (currentMode !== 'QUICK') {
                 try {
@@ -2977,6 +3519,7 @@
             inFlightPhase = 'single_codegen';
             pipelineStatus = 'running';
             StateStore.save(getCurrentState(), true);
+            setCatState('typing', 'Writing code! Paws typing furiously on the mechanical keyboard! ⌨️💖', 'CodeGen Agent');
 
             setVisible('errorSection', false);
             
@@ -3148,6 +3691,7 @@
             inFlightPhase = 'single_execution';
             pipelineStatus = 'running';
             StateStore.save(getCurrentState(), true);
+            setCatState('testing', 'Putting on safety goggles! Running test sandbox in Docker container... 🧪🐳', 'Sandbox Runner');
 
             // Flush active editor edits back to the codebase payload before sending!
             if (activeFileIndex >= 0 && editorInstance) {
@@ -3240,6 +3784,7 @@
             inFlightPhase = 'single_critics';
             pipelineStatus = 'running';
             StateStore.save(getCurrentState(), true);
+            setCatState('thinking', 'Arbitration Engine: Correctness, Architecture & Completeness critics evaluating! ⚖️', 'Arbitration Engine');
 
             setVisible('errorSection', false);
             setVisible('criticOutputSection', false);
@@ -3950,6 +4495,7 @@
             inFlightPhase = 'decomposition';
             pipelineStatus = 'running';
             StateStore.save(getCurrentState(), true);
+            setCatState('thinking', 'Master Architect is analyzing component boundaries and dependencies... 📐🧩', 'Master Architect');
 
             try {
                 // Ensure requirements are parsed if in complex/interactive mode
