@@ -403,7 +403,7 @@
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- COLUMN 1: LEFT ASSISTANT & SDLC CONTROLS                        -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <aside id="leftAssistantCol" class="w-[360px] xl:w-[410px] flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
+            <aside id="leftAssistantCol" class="w-[320px] lg:w-[340px] xl:w-[360px] flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
                 <!-- Assistant Header -->
                 <div class="h-10 px-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/50 flex-shrink-0">
                     <span class="text-xs font-bold text-slate-600 dark:text-pink-300 flex items-center gap-1.5 uppercase tracking-wider">
@@ -867,10 +867,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-
-                </div>
             </aside>
 
             <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -1032,12 +1028,13 @@
                     <!-- DIFF CONTAINER -->
                     <div id="diffContainer" class="hidden h-full w-full bg-[#1e1e1e] overflow-hidden"></div>
                 </div>
+                </div>
             </main>
 
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- COLUMN 3: RIGHT LIVE PREVIEW & VERIFICATION DOCK                -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <aside id="rightInspectionCol" class="w-[380px] xl:w-[460px] flex-shrink-0 flex flex-col bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
+            <aside id="rightInspectionCol" class="w-[350px] lg:w-[380px] xl:w-[420px] flex-shrink-0 flex flex-col bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
                 <!-- Inspection Dock Tabs -->
                 <div class="h-10 px-3 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/50 flex-shrink-0">
                     <div class="flex items-center gap-1">
@@ -1167,8 +1164,8 @@
                         <span>Download Final Project (.zip)</span>
                     </button>
                 </div>
-
-
+                </div>
+                </div>
                 </div>
             </aside>
 
@@ -2257,24 +2254,24 @@
                 if (stepNumber === 5 && status === 'success') progress.style.width = '100%';
             }
             
-            icon.className = "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors duration-300 z-10 ";
-            text.className = "text-xs font-semibold mt-2 text-center transition-colors duration-300 ";
+            icon.className = "stepper-step w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 z-10 ";
+            text.className = "text-[10px] font-semibold mt-0.5 text-center transition-colors duration-300 ";
             
             if (status === 'idle') {
-                icon.className += "bg-white text-slate-400 border-2 border-slate-200";
-                text.className += "text-slate-400";
+                icon.className += "bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700";
+                text.className += "text-slate-400 dark:text-slate-500";
                 icon.innerHTML = stepNumber;
             } else if (status === 'loading') {
-                icon.className += "bg-blue-600 text-white border-2 border-blue-600 animate-pulse shadow-md shadow-blue-500/30";
-                text.className += "text-blue-600";
-                icon.innerHTML = `<svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>`;
+                icon.className += "bg-pink-500 text-white border-2 border-pink-400 animate-pulse shadow-md shadow-pink-500/40";
+                text.className += "text-pink-500 dark:text-pink-400 font-bold";
+                icon.innerHTML = `<svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>`;
             } else if (status === 'success') {
-                icon.className += "bg-green-500 text-white border-2 border-green-500 shadow-md shadow-green-500/30";
-                text.className += "text-green-600";
-                icon.innerHTML = '✓';
+                icon.className += "bg-emerald-500 text-white border-2 border-emerald-400 shadow-sm shadow-emerald-500/30";
+                text.className += "text-emerald-600 dark:text-emerald-400 font-bold";
+                icon.innerHTML = '🐾';
             } else if (status === 'error') {
-                icon.className += "bg-red-500 text-white border-2 border-red-500 shadow-md shadow-red-500/30";
-                text.className += "text-red-600";
+                icon.className += "bg-rose-500 text-white border-2 border-rose-400 shadow-sm shadow-rose-500/30";
+                text.className += "text-rose-600 dark:text-rose-400 font-bold";
                 icon.innerHTML = '✗';
             }
         }
