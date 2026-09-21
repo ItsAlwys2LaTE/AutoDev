@@ -285,7 +285,6 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
     </style>
 </head>
-</head>
 <body class="h-screen w-screen overflow-hidden text-slate-800 dark:text-slate-100 flex flex-col select-none">
     <!-- STUDIO VIEWPORT WRAPPER -->
     <div class="h-full w-full flex flex-col overflow-hidden">
@@ -911,6 +910,28 @@
 
                 <!-- Main Code Work Area -->
                 <div class="flex-1 relative flex flex-col overflow-hidden">
+                    <!-- EMPTY STATE PLACEHOLDER (Visible until code generation starts) -->
+                    <div id="studioEmptyState" class="flex-1 flex flex-col items-center justify-center text-center p-8 select-none">
+                        <div class="w-16 h-16 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-center text-3xl mb-4 shadow-xl shadow-pink-500/5">
+                            💻
+                        </div>
+                        <h3 class="text-base font-bold text-slate-200 mb-1.5">AutoDev Cloud Studio</h3>
+                        <p class="text-xs text-slate-400 max-w-md leading-relaxed mb-5">
+                            Enter your requirements on the left or click a starter idea chip to begin. The synthesized multi-file codebase, Monaco IDE, and visual diff viewer will activate right here.
+                        </p>
+                        <div class="flex items-center gap-4 text-[11px] text-slate-500 font-mono">
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-pink-400"></span> Neko SDLC
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-indigo-400"></span> Docker Sandbox
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Instant Preview
+                            </span>
+                        </div>
+                    </div>
+
                     <!-- COMPONENT PIPELINE DASHBOARD -->
                             <!-- COMPONENT PIPELINE DASHBOARD -->
         <div id="pipelineDashboard" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
@@ -2196,6 +2217,10 @@
             if (!el) return;
             if (isVisible) {
                 el.classList.remove('hidden');
+                if (elementId === 'pipelineDashboard' || elementId === 'codeOutputSection' || elementId === 'ideContainer') {
+                    const emptyState = document.getElementById('studioEmptyState');
+                    if (emptyState) emptyState.classList.add('hidden');
+                }
             } else {
                 el.classList.add('hidden');
             }
@@ -3340,6 +3365,12 @@
             setVisible('docGenerationSection', false);
             setVisible('finalDownloadBtn', false);
             setVisible('quickRunGuideSection', false);
+            setVisible('studioEmptyState', true);
+
+            const ideC = document.getElementById('ideContainer');
+            if (ideC) ideC.classList.add('hidden');
+            const diffC = document.getElementById('diffContainer');
+            if (diffC) diffC.classList.add('hidden');
 
             const adjSection = document.getElementById('adjudicatorSection');
             if (adjSection) adjSection.classList.add('hidden');
@@ -3834,7 +3865,7 @@
                 
                 // Hide streaming container and show IDE container
                 container.classList.add('hidden');
-                document.getElementById('ideContainer').classList.remove('hidden');
+                setVisible('ideContainer', true);
 
                 // Set up Explorer and Monaco
                 buildFileExplorer();
@@ -5942,7 +5973,7 @@
                     ? `Unified Integrated Codebase (Revision ${integrationRevisionCount}/${maxIntegrationRevs})`
                     : 'Unified Integrated Codebase';
                 document.getElementById('codeFilesContainer').classList.add('hidden');
-                document.getElementById('ideContainer').classList.remove('hidden');
+                setVisible('ideContainer', true);
                 
                 buildFileExplorer();
                 if (currentCodebase.files.length > 0) initMonaco(0);
