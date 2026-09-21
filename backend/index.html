@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="glassmorphism" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -283,6 +283,150 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        /* 🔮 CONCEPT B: GLASSMORPHISM THEME (DEFAULT)                             */
+        /* ═══════════════════════════════════════════════════════════════════════ */
+        :root,
+        [data-theme="glassmorphism"] {
+            --canvas-bg: #050810;
+            --glow-purple: #8B5CF6;
+            --glow-cyan: #06B6D4;
+            --glass-surface: rgba(15, 23, 42, 0.65);
+            --glass-surface-elevated: rgba(30, 41, 59, 0.55);
+            --glass-border-purple: rgba(139, 92, 246, 0.22);
+            --glass-border-cyan: rgba(6, 182, 212, 0.22);
+        }
+
+        [data-theme="glassmorphism"] body,
+        body:not([data-theme="kawaii"]):not([data-theme="cyberpunk"]):not([data-theme="classic"]) {
+            background-color: #050810 !important;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.15) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(15, 23, 42, 0.5) 0px, transparent 100%) !important;
+            color: #f8fafc !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+
+        [data-theme="glassmorphism"] header {
+            background: rgba(15, 23, 42, 0.65) !important;
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-color: rgba(139, 92, 246, 0.22) !important;
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="glassmorphism"] #leftAssistantCol,
+        [data-theme="glassmorphism"] #rightInspectionCol {
+            background: rgba(15, 23, 42, 0.65) !important;
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-color: rgba(139, 92, 246, 0.22) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="glassmorphism"] #centerStudioCol {
+            background: #050810 !important;
+            border-color: rgba(139, 92, 246, 0.22) !important;
+        }
+
+        [data-theme="glassmorphism"] .bg-white,
+        [data-theme="glassmorphism"] .bg-slate-900,
+        [data-theme="glassmorphism"] .bg-slate-950 {
+            background: rgba(15, 23, 42, 0.65) !important;
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-color: rgba(139, 92, 246, 0.22) !important;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        [data-theme="glassmorphism"] h1 {
+            background: linear-gradient(135deg, #06B6D4 0%, #8B5CF6 50%, #EC4899 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            font-weight: 800;
+        }
+
+        [data-theme="glassmorphism"] #stepperProgress {
+            background: linear-gradient(90deg, #8B5CF6, #06B6D4) !important;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.6) !important;
+        }
+
+        [data-theme="glassmorphism"] button#submitBtn {
+            background: linear-gradient(135deg, #8B5CF6 0%, #06B6D4 100%) !important;
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45) !important;
+            border-radius: 0.75rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.02em;
+            color: #ffffff !important;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        [data-theme="glassmorphism"] button#submitBtn:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 10px 25px rgba(6, 182, 212, 0.55) !important;
+        }
+
+        /* 🌙 CLASSIC DARK THEME OVERRIDES */
+        [data-theme="classic"] body {
+            font-family: 'Inter', sans-serif !important;
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+        }
+        [data-theme="classic"] .bg-white {
+            background: #1e293b !important;
+            border-color: #334155 !important;
+        }
+
+        /* ── Draggable Splitters ────────────────────────────────────────── */
+        .resizer-col {
+            position: relative;
+            cursor: col-resize;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            z-index: 25;
+            background: rgba(15, 23, 42, 0.85);
+            border-left: 1px solid rgba(139, 92, 246, 0.15);
+            border-right: 1px solid rgba(6, 182, 212, 0.15);
+            transition: background-color 0.15s, box-shadow 0.15s, width 0.15s;
+        }
+        .resizer-col:hover,
+        .resizer-col.dragging {
+            background: rgba(139, 92, 246, 0.6) !important;
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
+        }
+        #splitterCol2Col3:hover,
+        #splitterCol2Col3.dragging {
+            background: rgba(6, 182, 212, 0.6) !important;
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+        }
+
+        /* ── Stepper Node States ────────────────────────────────────────── */
+        .stepper-step {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: pointer;
+        }
+        .stepper-step:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+        }
+        .stepper-step.step-viewed {
+            box-shadow: 0 0 0 2px #050810, 0 0 0 4px #06B6D4, 0 0 16px rgba(6, 182, 212, 0.8) !important;
+            border-color: #06B6D4 !important;
+        }
+        .stepper-step.step-active {
+            animation: activeStepPulse 1.8s infinite ease-in-out;
+            border-color: #8B5CF6 !important;
+        }
+        @keyframes activeStepPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 2px #050810, 0 0 0 4px #8B5CF6, 0 0 10px rgba(139, 92, 246, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 0 2px #050810, 0 0 0 5px #06B6D4, 0 0 22px rgba(6, 182, 212, 0.85);
+            }
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden text-slate-800 dark:text-slate-100 flex flex-col select-none">
@@ -290,64 +434,64 @@
     <div class="h-full w-full flex flex-col overflow-hidden">
         
         <!-- TOP STUDIO NAVBAR -->
-        <header class="h-14 flex-shrink-0 flex items-center justify-between px-4 sm:px-6 border-b border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md z-30 transition-colors">
+        <header class="h-16 flex-shrink-0 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-800/80 bg-white/85 dark:bg-[#050810]/85 backdrop-blur-md z-30 transition-colors">
             <!-- Left: Studio Branding & Mode -->
             <div class="flex items-center gap-3 select-none">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl hover:scale-110 transition-transform cursor-pointer" onclick="petCat()" title="Click to pet Neko-chan!">🐱</span>
                     <div>
-                        <h1 class="font-extrabold text-base tracking-tight bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 bg-clip-text text-transparent leading-none">AutoDev Studio</h1>
+                        <h1 class="font-extrabold text-base tracking-tight bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 bg-clip-text text-transparent leading-none">AutoDev Studio</h1>
                         <p class="text-[10px] text-slate-400 font-mono mt-0.5 leading-none">v2.0.0.Alpha</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Center: Compact Glowing Paw Stepper -->
-            <div class="hidden md:flex items-center relative min-w-[340px] max-w-md w-full px-2 mx-auto">
+            <!-- Center: Connected Interactive Stepper -->
+            <div class="hidden md:flex items-center relative min-w-[360px] max-w-lg w-full px-2 mx-auto">
                 <!-- Connecting Line -->
-                <div class="absolute top-3.5 left-4 right-4 h-1 bg-slate-200 dark:bg-slate-800 z-0 rounded-full"></div>
-                <div id="stepperProgress" class="absolute top-3.5 left-4 h-1 bg-pink-500 z-0 rounded-full transition-all duration-700 ease-in-out w-0"></div>
+                <div class="absolute top-[18px] left-4 right-4 h-1 bg-slate-200 dark:bg-slate-800/80 z-0 rounded-full"></div>
+                <div id="stepperProgress" class="absolute top-[18px] left-4 h-1 bg-pink-500 z-0 rounded-full transition-all duration-700 ease-in-out w-0"></div>
                 
                 <div class="flex justify-between items-center w-full relative z-10">
                     <!-- Step 1: Requirements -->
-                    <div class="flex flex-col items-center group cursor-default" title="Phase 1: Requirements">
-                        <div id="step1-icon" class="stepper-step w-7 h-7 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300">
+                    <div class="flex flex-col items-center group cursor-pointer" title="Phase 1: Requirements (Click to inspect)" onclick="inspectPhase(1)">
+                        <div id="step1-icon" onclick="inspectPhase(1)" class="stepper-step w-9 h-9 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300 cursor-pointer">
                             <span class="step-num">1</span>
                             <span class="step-paw hidden text-xs">🐾</span>
                         </div>
-                        <span id="step1-text" class="text-[10px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Requirements</span>
+                        <span id="step1-text" class="text-[11px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Requirements</span>
                     </div>
-                    <!-- Step 2: Architecture -->
-                    <div class="flex flex-col items-center group cursor-default" title="Phase 2: Decomposition">
-                        <div id="step2-icon" class="stepper-step w-7 h-7 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300">
+                    <!-- Step 2: Architecture / Decompose -->
+                    <div class="flex flex-col items-center group cursor-pointer" title="Phase 2: Decomposition (Click to inspect)" onclick="inspectPhase(2)">
+                        <div id="step2-icon" onclick="inspectPhase(2)" class="stepper-step w-9 h-9 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300 cursor-pointer">
                             <span class="step-num">2</span>
                             <span class="step-paw hidden text-xs">🐾</span>
                         </div>
-                        <span id="step2-text" class="text-[10px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Decomp</span>
+                        <span id="step2-text" class="text-[11px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Decomp</span>
                     </div>
-                    <!-- Step 3: Design -->
-                    <div class="flex flex-col items-center group cursor-default" title="Phase 3: Blueprint">
-                        <div id="step3-icon" class="stepper-step w-7 h-7 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300">
+                    <!-- Step 3: Design / Blueprint -->
+                    <div class="flex flex-col items-center group cursor-pointer" title="Phase 3: Blueprint (Click to inspect)" onclick="inspectPhase(3)">
+                        <div id="step3-icon" onclick="inspectPhase(3)" class="stepper-step w-9 h-9 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300 cursor-pointer">
                             <span class="step-num">3</span>
                             <span class="step-paw hidden text-xs">🐾</span>
                         </div>
-                        <span id="step3-text" class="text-[10px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Blueprint</span>
+                        <span id="step3-text" class="text-[11px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Blueprint</span>
                     </div>
                     <!-- Step 4: Coding -->
-                    <div class="flex flex-col items-center group cursor-default" title="Phase 4: Code Synthesis">
-                        <div id="step4-icon" class="stepper-step w-7 h-7 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300">
+                    <div class="flex flex-col items-center group cursor-pointer" title="Phase 4: Code Synthesis (Click to inspect)" onclick="inspectPhase(4)">
+                        <div id="step4-icon" onclick="inspectPhase(4)" class="stepper-step w-9 h-9 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300 cursor-pointer">
                             <span class="step-num">4</span>
                             <span class="step-paw hidden text-xs">🐾</span>
                         </div>
-                        <span id="step4-text" class="text-[10px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Coding</span>
+                        <span id="step4-text" class="text-[11px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Coding</span>
                     </div>
                     <!-- Step 5: Arbitration -->
-                    <div class="flex flex-col items-center group cursor-default" title="Phase 5: Integration & Arbitration">
-                        <div id="step5-icon" class="stepper-step w-7 h-7 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300">
+                    <div class="flex flex-col items-center group cursor-pointer" title="Phase 5: Integration & Arbitration (Click to inspect)" onclick="inspectPhase(5)">
+                        <div id="step5-icon" onclick="inspectPhase(5)" class="stepper-step w-9 h-9 rounded-full bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs transition-all duration-300 cursor-pointer">
                             <span class="step-num">5</span>
                             <span class="step-paw hidden text-xs">🐾</span>
                         </div>
-                        <span id="step5-text" class="text-[10px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Arbitration</span>
+                        <span id="step5-text" class="text-[11px] font-semibold text-slate-400 mt-1 text-center transition-colors duration-300">Arbitration</span>
                     </div>
                 </div>
             </div>
@@ -358,8 +502,9 @@
                 <div class="flex items-center gap-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-xl shadow-sm transition-colors">
                     <span class="text-[11px] font-bold text-slate-400 dark:text-slate-500">Theme:</span>
                     <select id="themeSelector" onchange="changeTheme(this.value)" class="text-xs font-bold bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer">
-                        <option value="kawaii" selected>🌸 Kawaii Neko</option>
+                        <option value="glassmorphism" selected>🔮 Glassmorphism</option>
                         <option value="classic">🌙 Classic Dark</option>
+                        <option value="kawaii">🌸 Kawaii Neko</option>
                         <option value="cyberpunk">⚡ Cyberpunk</option>
                     </select>
                 </div>
@@ -379,7 +524,7 @@
                 </button>
 
                 <!-- Token Cost Display -->
-                <div id="costBox" class="text-right bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-2">
+                <div id="costBox" class="text-right bg-white dark:bg-slate-800 px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm flex items-center gap-2">
                     <div class="text-[10px] text-slate-400 uppercase font-bold tracking-wider hidden xl:block">Session Cost:</div>
                     <div id="costDisplay" class="text-xs font-mono font-semibold text-emerald-600 dark:text-emerald-400">₹0.0000 <span class="text-[10px] text-slate-400 ml-0.5">(0)</span></div>
                 </div>
@@ -392,18 +537,18 @@
                 <span class="w-2 h-2 rounded-full bg-blue-400 animate-ping"></span>
                 <span id="restorationBannerText">Restored previous development session. Resuming...</span>
             </div>
-            <button type="button" onclick="document.getElementById('restorationBanner').classList.add('hidden')" class="text-blue-300 hover:text-white px-2 py-0.5 rounded transition-colors focus:outline-none">
+            <button type="button" onclick="document.getElementById('restorationBanner').classList.add('hidden')" class="text-blue-300 hover:text-white px-3 py-1 rounded transition-colors focus:outline-none">
                 ✕ Dismiss
             </button>
         </div>
 
         <!-- MAIN 3-COLUMN STUDIO LAYOUT -->
-        <div class="flex-1 flex overflow-hidden relative">
+        <div id="studioLayoutContainer" class="flex-1 flex overflow-hidden relative select-none">
 
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- COLUMN 1: LEFT ASSISTANT & SDLC CONTROLS                        -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <aside id="leftAssistantCol" class="w-[320px] lg:w-[340px] xl:w-[360px] flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
+            <aside id="leftAssistantCol" style="width: 340px;" class="flex-shrink-0 flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
                 <!-- Assistant Header -->
                 <div class="h-10 px-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/50 flex-shrink-0">
                     <span class="text-xs font-bold text-slate-600 dark:text-pink-300 flex items-center gap-1.5 uppercase tracking-wider">
@@ -683,7 +828,7 @@
                 <span class="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full font-medium border border-green-500/20">Success</span>
             </div>
             
-            <div class="bg-white p-6 sm:p-10 rounded-lg border border-slate-200 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
+            <div class="bg-white dark:bg-slate-900/90 p-5 rounded-xl border border-slate-200 dark:border-slate-800 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
                 <span id="jsonOutputBadge" class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-purple-500 transition-colors">READ-ONLY DOCUMENT</span>
                 <div id="jsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap bg-slate-50 cursor-default select-text" contenteditable="false" spellcheck="true"></div>
             </div>
@@ -713,7 +858,7 @@
                 </h2>
                 <span id="decomposeStatus" class="px-3 py-1 bg-cyan-500/20 text-cyan-400 text-sm rounded-full font-medium border border-cyan-500/20">Analyzing...</span>
             </div>
-            <div id="decomposeCards" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div id="decomposeCards" class="grid grid-cols-1 gap-4 mb-6">
                 <!-- Dynamically injected component cards -->
             </div>
             <div id="decomposeSimpleMsg" class="text-center text-slate-400 py-4 hidden">
@@ -746,7 +891,7 @@
                 <span class="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-sm rounded-full font-medium border border-indigo-500/20">Success</span>
             </div>
             
-            <div class="bg-white p-6 sm:p-10 rounded-lg border border-slate-200 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
+            <div class="bg-white dark:bg-slate-900/90 p-5 rounded-xl border border-slate-200 dark:border-slate-800 mb-6 shadow-sm relative group overflow-y-auto max-h-[600px]">
                 <span id="designJsonOutputBadge" class="absolute top-2 right-4 text-xs font-bold text-slate-300 uppercase tracking-wide group-focus-within:text-indigo-500 transition-colors">READ-ONLY BLUEPRINT</span>
                 <div id="designJsonOutput" class="w-full min-h-[400px] text-slate-800 text-sm sm:text-base focus:outline-none leading-relaxed whitespace-pre-wrap bg-slate-50 cursor-default select-text" contenteditable="false" spellcheck="true"></div>
             </div>
@@ -868,6 +1013,11 @@
                 </div>
             </div>
             </aside>
+
+            <!-- Splitter 1: Left Assistant <-> Center Studio -->
+            <div id="splitterCol1Col2" class="resizer-col w-1.5 hover:w-2 bg-slate-800/80 hover:bg-purple-500/80 active:bg-cyan-400 cursor-col-resize flex-shrink-0 relative z-20 transition-all flex items-center justify-center select-none" title="Drag to resize, double-click to reset">
+                <div class="resizer-handle w-0.5 h-8 rounded-full bg-slate-600/70 pointer-events-none"></div>
+            </div>
 
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- COLUMN 2: CENTER MONACO CODE STUDIO                             -->
@@ -1031,10 +1181,15 @@
                 </div>
             </main>
 
+            <!-- Splitter 2: Center Studio <-> Right Inspection -->
+            <div id="splitterCol2Col3" class="resizer-col w-1.5 hover:w-2 bg-slate-800/80 hover:bg-cyan-500/80 active:bg-purple-400 cursor-col-resize flex-shrink-0 relative z-20 transition-all flex items-center justify-center select-none" title="Drag to resize, double-click to reset">
+                <div class="resizer-handle w-0.5 h-8 rounded-full bg-slate-600/70 pointer-events-none"></div>
+            </div>
+
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- COLUMN 3: RIGHT LIVE PREVIEW & VERIFICATION DOCK                -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <aside id="rightInspectionCol" class="w-[350px] lg:w-[380px] xl:w-[420px] flex-shrink-0 flex flex-col bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
+            <aside id="rightInspectionCol" style="width: 380px;" class="flex-shrink-0 flex flex-col bg-white/75 dark:bg-[#140b20]/75 backdrop-blur-md overflow-hidden z-10 transition-all duration-300">
                 <!-- Inspection Dock Tabs -->
                 <div class="h-10 px-3 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/50 flex-shrink-0">
                     <div class="flex items-center gap-1">
@@ -1053,12 +1208,12 @@
                 <!-- TAB 1: LIVE PREVIEW PANE -->
                 <div id="rightPreviewPane" class="flex-1 flex flex-col overflow-hidden">
                     <!-- Browser Mockup Address Bar -->
-                    <div class="h-10 px-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-100/80 dark:bg-slate-950/60 flex-shrink-0">
+                    <div class="h-12 px-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 bg-slate-100/80 dark:bg-slate-950/60 flex-shrink-0">
                         <!-- Device Switcher -->
-                        <div class="flex items-center gap-0.5 bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg">
-                            <button type="button" onclick="setPreviewDevice('desktop')" id="deviceDesktopBtn" class="px-2 py-0.5 rounded text-xs font-medium bg-white dark:bg-slate-700 shadow-sm" title="Desktop View (100%)">💻</button>
-                            <button type="button" onclick="setPreviewDevice('tablet')" id="deviceTabletBtn" class="px-2 py-0.5 rounded text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" title="Tablet View (768px)">📟</button>
-                            <button type="button" onclick="setPreviewDevice('mobile')" id="deviceMobileBtn" class="px-2 py-0.5 rounded text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" title="Mobile View (375px)">📱</button>
+                        <div class="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-1 rounded-lg">
+                            <button type="button" onclick="setPreviewDevice('desktop')" id="deviceDesktopBtn" class="px-2.5 py-1 min-h-[30px] rounded-md text-xs font-medium bg-white dark:bg-slate-700 shadow-sm" title="Desktop View (100%)">💻</button>
+                            <button type="button" onclick="setPreviewDevice('tablet')" id="deviceTabletBtn" class="px-2.5 py-1 min-h-[30px] rounded-md text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" title="Tablet View (768px)">📟</button>
+                            <button type="button" onclick="setPreviewDevice('mobile')" id="deviceMobileBtn" class="px-2.5 py-1 min-h-[30px] rounded-md text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200" title="Mobile View (375px)">📱</button>
                         </div>
 
                         <!-- URL Mockup Input -->
@@ -1168,6 +1323,9 @@
                 </div>
                 </div>
             </aside>
+
+            <!-- Iframe Drag Protection Shield Overlay -->
+            <div id="dragShieldOverlay" class="fixed inset-0 z-50 hidden cursor-col-resize select-none"></div>
 
         </div>
     </div>
@@ -1315,10 +1473,10 @@
         }
         
         // ── Multi-Theme Engine ─────────────────────────────────────────────
-        let currentTheme = 'kawaii'; // Default to Kawaii Neko theme
+        let currentTheme = 'glassmorphism'; // Default to Glassmorphism (Concept B)
 
         function setTheme(theme) {
-            currentTheme = theme || 'kawaii';
+            currentTheme = theme || 'glassmorphism';
             const html = document.documentElement;
             html.setAttribute('data-theme', currentTheme);
             localStorage.setItem('autodev_theme', currentTheme);
@@ -1341,11 +1499,18 @@
             } else {
                 if (mascot) mascot.classList.add('hidden');
                 if (submitPaw) submitPaw.classList.add('hidden');
-                if (submitBtnText) submitBtnText.textContent = "Execute SYS.REQ_COMPILER (v1.3.0)";
+                if (submitBtnText) {
+                    submitBtnText.textContent = currentTheme === 'glassmorphism' 
+                        ? "Synthesize Architecture (SYS.REQ_COMPILER)" 
+                        : "Execute SYS.REQ_COMPILER (v1.3.0)";
+                }
                 pawSpans.forEach(el => el.classList.add('hidden'));
                 numSpans.forEach(el => el.classList.remove('hidden'));
             }
         }
+
+        window.setTheme = setTheme;
+        window.changeTheme = changeTheme;
 
         function changeTheme(theme) {
             setTheme(theme);
@@ -1489,7 +1654,7 @@
             const prefersDark = saved !== null ? saved === '1' : window.matchMedia('(prefers-color-scheme: dark)').matches;
             applyDarkMode(prefersDark);
 
-            const savedTheme = localStorage.getItem('autodev_theme') || 'kawaii';
+            const savedTheme = localStorage.getItem('autodev_theme') || 'glassmorphism';
             setTheme(savedTheme);
         })();
 
@@ -1749,6 +1914,7 @@
         let pipelineQueue = [];
         let pipelineLocks = { design: false, code: false, critic: false };
         let componentEditors = {};
+        window.componentEditors = componentEditors;
         let isProgrammaticComponentEditorUpdate = {};
 
         // Session Cost Tracker
@@ -1767,6 +1933,7 @@
         
         // Monaco Editor state
         let editorInstance = null;
+        window.editorInstance = null;
         let activeFileIndex = -1;
 
         require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
@@ -1782,6 +1949,7 @@
                         minimap: { enabled: false },
                         readOnly: (currentMode === 'QUICK')
                     });
+                    window.editorInstance = editorInstance;
                     editorInstance.onDidFocusEditorText(() => {
                         if (currentMode === 'COMPLEX') {
                             CountdownManager.pausePermanently('execBtn', 'Monaco editor clicked/focused');
@@ -1890,6 +2058,7 @@
         }
 
         let diffEditorInstance = null;
+        window.diffEditorInstance = null;
         let isDiffMode = false;
 
         function snapshotRevision() {
@@ -2113,6 +2282,7 @@
                         readOnly: true,
                         renderSideBySide: true
                     });
+                    window.diffEditorInstance = diffEditorInstance;
                     const fileName = (currFile && currFile.file_name) || (prevFile && prevFile.file_name) || '';
                     const ext = fileName.split('.').pop();
                     const langMap = { 'py': 'python', 'json': 'json', 'md': 'markdown', 'js': 'javascript', 'html': 'html', 'css': 'css', 'ts': 'typescript' };
@@ -2130,6 +2300,7 @@
                     const oldM = (typeof diffEditorInstance.getModel === 'function') ? diffEditorInstance.getModel() : null;
                     diffEditorInstance.dispose();
                     diffEditorInstance = null;
+                    window.diffEditorInstance = null;
                     if (oldM) {
                         if (oldM.original) oldM.original.dispose();
                         if (oldM.modified) oldM.modified.dispose();
@@ -2243,38 +2414,193 @@
             }
         }
 
+        // ── Interactive Stepper & Decoupled Phase Inspection ─────────────────
+        window.activePipelinePhase = null; // 1..5 or null (active background stage)
+        window.viewedPhase = 1;            // 1..5 (currently viewed stage)
+        window.stepperStatuses = { 1: 'idle', 2: 'idle', 3: 'idle', 4: 'idle', 5: 'idle' };
+
         function updateStepper(stepNumber, status) {
-            const icon = document.getElementById(`step${stepNumber}-icon`);
-            const text = document.getElementById(`step${stepNumber}-text`);
-            const progress = document.getElementById('stepperProgress');
-            
-            if (status === 'success' || status === 'error') {
-                const percentage = Math.max(0, (stepNumber - 1) * 25);
-                progress.style.width = `${percentage}%`;
-                if (stepNumber === 5 && status === 'success') progress.style.width = '100%';
+            if (stepNumber >= 1 && stepNumber <= 5) {
+                window.stepperStatuses[stepNumber] = status;
+                if (status === 'loading') {
+                    window.activePipelinePhase = stepNumber;
+                    window.viewedPhase = stepNumber;
+                } else if (status === 'success') {
+                    if (window.activePipelinePhase === stepNumber) {
+                        window.activePipelinePhase = null;
+                    }
+                } else if (status === 'error') {
+                    if (window.activePipelinePhase === stepNumber) {
+                        window.activePipelinePhase = null;
+                    }
+                }
             }
-            
-            icon.className = "stepper-step w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 z-10 ";
-            text.className = "text-[10px] font-semibold mt-0.5 text-center transition-colors duration-300 ";
-            
-            if (status === 'idle') {
-                icon.className += "bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-200 dark:border-slate-700";
-                text.className += "text-slate-400 dark:text-slate-500";
-                icon.innerHTML = stepNumber;
-            } else if (status === 'loading') {
-                icon.className += "bg-pink-500 text-white border-2 border-pink-400 animate-pulse shadow-md shadow-pink-500/40";
-                text.className += "text-pink-500 dark:text-pink-400 font-bold";
-                icon.innerHTML = `<svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>`;
-            } else if (status === 'success') {
-                icon.className += "bg-emerald-500 text-white border-2 border-emerald-400 shadow-sm shadow-emerald-500/30";
-                text.className += "text-emerald-600 dark:text-emerald-400 font-bold";
-                icon.innerHTML = '🐾';
-            } else if (status === 'error') {
-                icon.className += "bg-rose-500 text-white border-2 border-rose-400 shadow-sm shadow-rose-500/30";
-                text.className += "text-rose-600 dark:text-rose-400 font-bold";
-                icon.innerHTML = '✗';
+            updateStepperVisuals();
+        }
+
+        function updateStepperVisuals() {
+            const progress = document.getElementById('stepperProgress');
+            let maxCompleted = 0;
+            for (let i = 1; i <= 5; i++) {
+                if (window.stepperStatuses[i] === 'success') maxCompleted = i;
+            }
+
+            if (progress) {
+                if (maxCompleted === 5) {
+                    progress.style.width = '100%';
+                } else if (maxCompleted > 0) {
+                    const pct = (maxCompleted - 1) * 25;
+                    progress.style.width = `${pct}%`;
+                    if (window.activePipelinePhase && window.activePipelinePhase > maxCompleted) {
+                        progress.style.width = `${(window.activePipelinePhase - 1) * 25}%`;
+                    }
+                } else if (window.activePipelinePhase) {
+                    progress.style.width = `${(window.activePipelinePhase - 1) * 25}%`;
+                } else {
+                    progress.style.width = '0%';
+                }
+            }
+
+            for (let i = 1; i <= 5; i++) {
+                const icon = document.getElementById(`step${i}-icon`);
+                const text = document.getElementById(`step${i}-text`);
+                if (!icon || !text) continue;
+
+                const status = window.stepperStatuses[i] || 'idle';
+                const isActive = (window.activePipelinePhase === i);
+                const isViewed = (window.viewedPhase === i);
+
+                let iconClasses = "stepper-step w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 cursor-pointer z-10 ";
+                let textClasses = "text-[11px] font-semibold mt-1 text-center transition-colors duration-300 ";
+
+                if (status === 'idle') {
+                    iconClasses += "bg-white dark:bg-slate-900 text-slate-400 border-2 border-slate-300 dark:border-slate-700 ";
+                    textClasses += "text-slate-400 dark:text-slate-500 ";
+                    icon.innerHTML = `<span class="step-num">${i}</span><span class="step-paw hidden text-xs">🐾</span>`;
+                } else if (status === 'loading') {
+                    iconClasses += "bg-gradient-to-r from-purple-600 to-cyan-500 text-white border-2 border-cyan-400 shadow-md shadow-cyan-500/40 ";
+                    textClasses += "text-cyan-400 font-bold ";
+                    icon.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+                } else if (status === 'success') {
+                    iconClasses += "bg-emerald-500 text-white border-2 border-emerald-400 shadow-sm shadow-emerald-500/30 ";
+                    textClasses += "text-emerald-500 dark:text-emerald-400 font-bold ";
+                    if (currentTheme === 'kawaii') {
+                        icon.innerHTML = '<span class="step-paw text-xs">🐾</span>';
+                    } else {
+                        icon.innerHTML = '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>';
+                    }
+                } else if (status === 'error') {
+                    iconClasses += "bg-rose-500 text-white border-2 border-rose-400 shadow-sm shadow-rose-500/30 ";
+                    textClasses += "text-rose-500 dark:text-rose-400 font-bold ";
+                    icon.innerHTML = '✗';
+                }
+
+                if (isActive) {
+                    iconClasses += "step-active ring-2 ring-purple-400 ";
+                }
+                if (isViewed) {
+                    iconClasses += "step-viewed ring-2 ring-cyan-400 ring-offset-2 ring-offset-[#050810] shadow-[0_0_15px_rgba(6,182,212,0.8)] ";
+                    textClasses += "text-cyan-400 font-extrabold ";
+                }
+
+                icon.className = iconClasses.trim();
+                text.className = textClasses.trim();
             }
         }
+
+        function inspectPhase(phaseNumber) {
+            if (phaseNumber < 1 || phaseNumber > 5) return;
+            window.viewedPhase = phaseNumber;
+
+            const existingNotice = document.getElementById('phaseInspectionEmptyNotice');
+            if (existingNotice) existingNotice.remove();
+
+            if (phaseNumber === 1) {
+                const outputSec = document.getElementById('outputSection');
+                const jsonOut = document.getElementById('jsonOutput');
+                if (outputSec) {
+                    outputSec.classList.remove('hidden');
+                    if ((!jsonOut || !jsonOut.innerText.trim()) && !currentRequirements) {
+                        showPhaseEmptyState(outputSec, 'Phase 1: Requirements', 'Requirements specification has not been generated yet. Enter a feature prompt and click execute to begin.');
+                    }
+                    scrollToSection('outputSection');
+                }
+            } else if (phaseNumber === 2) {
+                const decompSec = document.getElementById('decomposeSection');
+                const decompCards = document.getElementById('decomposeCards');
+                if (decompSec) {
+                    decompSec.classList.remove('hidden');
+                    if ((!decompCards || decompCards.children.length === 0) && !currentDecomposition) {
+                        showPhaseEmptyState(decompSec, 'Phase 2: Decomposition', 'Master Architect component breakdown has not run yet. It will decompose your project into modular components.');
+                    }
+                    scrollToSection('decomposeSection');
+                }
+            } else if (phaseNumber === 3) {
+                const designSec = document.getElementById('designOutputSection');
+                const designJson = document.getElementById('designJsonOutput');
+                if (designSec) {
+                    designSec.classList.remove('hidden');
+                    if ((!designJson || !designJson.innerText.trim()) && !currentBlueprint) {
+                        showPhaseEmptyState(designSec, 'Phase 3: Blueprint', 'Architectural blueprint and schema specifications will be displayed here once generated.');
+                    }
+                    scrollToSection('designOutputSection');
+                }
+            } else if (phaseNumber === 4) {
+                const ideContainer = document.getElementById('ideContainer');
+                const codeOutputSec = document.getElementById('codeOutputSection');
+                const dashboard = document.getElementById('pipelineDashboard');
+                const emptyState = document.getElementById('studioEmptyState');
+
+                if (currentCodebase && currentCodebase.files && currentCodebase.files.length > 0) {
+                    if (ideContainer) ideContainer.classList.remove('hidden');
+                    if (emptyState) emptyState.classList.add('hidden');
+                    if (window.editorInstance && typeof window.editorInstance.layout === 'function') {
+                        window.editorInstance.layout();
+                    }
+                } else if (codeOutputSec && !codeOutputSec.classList.contains('hidden')) {
+                    // Streaming in progress
+                } else if (dashboard && !dashboard.classList.contains('hidden')) {
+                    // DAG pipeline in progress
+                } else {
+                    if (emptyState) emptyState.classList.remove('hidden');
+                }
+            } else if (phaseNumber === 5) {
+                switchRightTab('verify');
+                const verifyPane = document.getElementById('rightVerifyPane');
+                const criticCards = document.getElementById('criticCardsContainer');
+                const execLogs = document.getElementById('execLogsOutput');
+                if (verifyPane) {
+                    verifyPane.classList.remove('hidden');
+                    if ((!criticCards || criticCards.children.length === 0) && (!execLogs || !execLogs.textContent.trim())) {
+                        showPhaseEmptyState(verifyPane, 'Phase 5: Arbitration & Tests', 'Docker sandbox execution logs and multi-agent critic reviews (Syntax, Security, Logic) will appear here after code generation.');
+                    }
+                }
+            }
+
+            updateStepperVisuals();
+        }
+
+        function showPhaseEmptyState(container, title, message) {
+            let notice = document.getElementById('phaseInspectionEmptyNotice');
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = 'phaseInspectionEmptyNotice';
+                notice.className = 'p-4 rounded-xl border border-cyan-500/30 bg-slate-900/80 backdrop-blur-md text-cyan-300 text-xs mb-4 shadow-lg flex items-start gap-3 fade-in';
+            }
+            notice.innerHTML = `
+                <div class="text-xl">ℹ️</div>
+                <div>
+                    <div class="font-bold text-slate-100 text-sm mb-1">${title} (Unreached)</div>
+                    <div class="text-slate-300 leading-relaxed">${message}</div>
+                </div>
+            `;
+            if (container.firstChild) {
+                container.insertBefore(notice, container.firstChild);
+            } else {
+                container.appendChild(notice);
+            }
+        }
+        window.inspectPhase = inspectPhase;
 
         function renderCriticTabs(cId) {
             const state = componentStates[cId];
@@ -6245,6 +6571,181 @@
                 if (wrapper) wrapper.style.maxWidth = '100%';
             }
         }
-</script>
+
+        // ── Draggable Resizable Layout Columns Controller (R2) ───────────────
+        (function initDraggableColumns() {
+            const col1 = document.getElementById('leftAssistantCol');
+            const col2 = document.getElementById('centerStudioCol');
+            const col3 = document.getElementById('rightInspectionCol');
+            const splitter1 = document.getElementById('splitterCol1Col2');
+            const splitter2 = document.getElementById('splitterCol2Col3');
+            const previewIframe = document.getElementById('livePreviewFrame');
+            const dragShield = document.getElementById('dragShieldOverlay');
+
+            if (!col1 || !col2 || !col3 || !splitter1 || !splitter2) return;
+
+            const DEFAULT_COL1_W = 340;
+            const DEFAULT_COL3_W = 380;
+            const MIN_COL1_W = 260;
+            const MAX_COL1_W = 600;
+            const MIN_COL3_W = 280;
+            const MAX_COL3_W = 700;
+            const MIN_COL2_W = 350;
+
+            let isDragging = null; // 'col1' | 'col3' | null
+            let startX = 0;
+            let startW1 = 0;
+            let startW3 = 0;
+            let animFrameId = null;
+
+            function syncMonacoLayout() {
+                if (window.editorInstance && typeof window.editorInstance.layout === 'function') {
+                    window.editorInstance.layout();
+                }
+                if (window.diffEditorInstance && typeof window.diffEditorInstance.layout === 'function') {
+                    window.diffEditorInstance.layout();
+                }
+                if (window.componentEditors) {
+                    Object.values(window.componentEditors).forEach(ed => {
+                        if (ed && typeof ed.layout === 'function') {
+                            ed.layout();
+                        }
+                    });
+                }
+            }
+
+            function setColWidths(w1, w3, persist = true) {
+                const container = col1.parentElement;
+                const containerWidth = container ? container.getBoundingClientRect().width : window.innerWidth;
+                const splittersTotal = 16; // width of both splitters
+
+                let targetW1 = Math.max(MIN_COL1_W, Math.min(MAX_COL1_W, w1));
+                let targetW3 = Math.max(MIN_COL3_W, Math.min(MAX_COL3_W, w3));
+
+                // Safety: Center column (col2) must never drop below MIN_COL2_W (350px)
+                const availableForSideCols = Math.max(MIN_COL1_W + MIN_COL3_W, containerWidth - MIN_COL2_W - splittersTotal);
+
+                if (isDragging === 'col1') {
+                    targetW1 = Math.min(targetW1, availableForSideCols - targetW3);
+                    targetW1 = Math.max(MIN_COL1_W, targetW1);
+                } else if (isDragging === 'col3') {
+                    targetW3 = Math.min(targetW3, availableForSideCols - targetW1);
+                    targetW3 = Math.max(MIN_COL3_W, targetW3);
+                } else {
+                    if (targetW1 + targetW3 > availableForSideCols) {
+                        const ratio = targetW1 / (targetW1 + targetW3);
+                        targetW1 = Math.max(MIN_COL1_W, Math.floor(availableForSideCols * ratio));
+                        targetW3 = Math.max(MIN_COL3_W, availableForSideCols - targetW1);
+                    }
+                }
+
+                col1.style.width = targetW1 + 'px';
+                col3.style.width = targetW3 + 'px';
+
+                if (persist) {
+                    try {
+                        localStorage.setItem('autodev_col1_w', targetW1);
+                        localStorage.setItem('autodev_col3_w', targetW3);
+                        localStorage.setItem('autodev_col1_width', targetW1);
+                        localStorage.setItem('autodev_col3_width', targetW3);
+                    } catch (_) {}
+                }
+
+                syncMonacoLayout();
+            }
+
+            // Expose globally for testing/verification
+            window.setColumnWidths = setColWidths;
+            window.resetColumnWidths = function() {
+                setColWidths(DEFAULT_COL1_W, DEFAULT_COL3_W, true);
+            };
+
+            // Restore saved widths on initial page load
+            const savedW1 = parseInt(localStorage.getItem('autodev_col1_w') || localStorage.getItem('autodev_col1_width'), 10);
+            const savedW3 = parseInt(localStorage.getItem('autodev_col3_w') || localStorage.getItem('autodev_col3_width'), 10);
+            setColWidths(
+                !isNaN(savedW1) ? savedW1 : DEFAULT_COL1_W,
+                !isNaN(savedW3) ? savedW3 : DEFAULT_COL3_W,
+                false
+            );
+
+            function startDrag(e, target) {
+                e.preventDefault();
+                isDragging = target;
+                startX = e.clientX;
+                startW1 = col1.getBoundingClientRect().width;
+                startW3 = col3.getBoundingClientRect().width;
+
+                document.body.style.cursor = 'col-resize';
+                document.body.classList.add('select-none');
+                if (previewIframe) previewIframe.style.pointerEvents = 'none';
+                if (dragShield) dragShield.classList.remove('hidden');
+
+                // Temporarily disable CSS transitions during active dragging for zero lag
+                col1.classList.remove('transition-all', 'duration-300');
+                col3.classList.remove('transition-all', 'duration-300');
+
+                if (target === 'col1') splitter1.classList.add('dragging');
+                if (target === 'col3') splitter2.classList.add('dragging');
+
+                window.addEventListener('mousemove', onDragMove);
+                window.addEventListener('mouseup', endDrag);
+            }
+
+            function onDragMove(e) {
+                if (!isDragging) return;
+                const deltaX = e.clientX - startX;
+
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+                animFrameId = requestAnimationFrame(() => {
+                    if (isDragging === 'col1') {
+                        setColWidths(startW1 + deltaX, col3.getBoundingClientRect().width, true);
+                    } else if (isDragging === 'col3') {
+                        setColWidths(col1.getBoundingClientRect().width, startW3 - deltaX, true);
+                    }
+                });
+            }
+
+            function endDrag() {
+                if (!isDragging) return;
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+
+                if (isDragging === 'col1') splitter1.classList.remove('dragging');
+                if (isDragging === 'col3') splitter2.classList.remove('dragging');
+
+                isDragging = null;
+                document.body.style.cursor = '';
+                document.body.classList.remove('select-none');
+                if (previewIframe) previewIframe.style.pointerEvents = 'auto';
+                if (dragShield) dragShield.classList.add('hidden');
+
+                // Restore transitions for normal UI state changes
+                col1.classList.add('transition-all', 'duration-300');
+                col3.classList.add('transition-all', 'duration-300');
+
+                window.removeEventListener('mousemove', onDragMove);
+                window.removeEventListener('mouseup', endDrag);
+
+                syncMonacoLayout();
+            }
+
+            // Drag event bindings
+            splitter1.addEventListener('mousedown', (e) => startDrag(e, 'col1'));
+            splitter2.addEventListener('mousedown', (e) => startDrag(e, 'col3'));
+
+            // Double-click to reset adjacent column
+            splitter1.addEventListener('dblclick', () => {
+                setColWidths(DEFAULT_COL1_W, col3.getBoundingClientRect().width, true);
+            });
+            splitter2.addEventListener('dblclick', () => {
+                setColWidths(col1.getBoundingClientRect().width, DEFAULT_COL3_W, true);
+            });
+
+            // Recalculate on viewport resize
+            window.addEventListener('resize', () => {
+                setColWidths(col1.getBoundingClientRect().width, col3.getBoundingClientRect().width, false);
+            });
+        })();
+    </script>
 </body>
 </html>
