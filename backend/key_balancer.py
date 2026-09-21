@@ -9,8 +9,10 @@ from enum import Enum
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, TypeVar, Union
 from dotenv import load_dotenv
-from google import genai
-import google.api_core.exceptions as g_exc
+try:
+    import google.api_core.exceptions as g_exc
+except ImportError:
+    g_exc = None
 
 # Thread-safe and async-safe context variable tracking active generation mode ('QUICK' or 'COMPLEX')
 # Defaults to None internally, but get_generation_mode() defaults to _GLOBAL_MODE ("QUICK")
@@ -128,7 +130,7 @@ RATE_LIMIT_KEYWORDS = (
 
 def is_rate_limit_error(exc: Exception) -> bool:
     """Check whether an exception represents a rate limit / 429 / quota error."""
-    if isinstance(exc, (g_exc.ResourceExhausted, g_exc.TooManyRequests)):
+    if g_exc is not None and isinstance(exc, (getattr(g_exc, "ResourceExhausted", ()), getattr(g_exc, "TooManyRequests", ()))):
         return True
 
     # Check status codes

@@ -9,3 +9,4 @@ SQLAlchemy
 python-dotenv
 pytest
 docker
+google-api-core
