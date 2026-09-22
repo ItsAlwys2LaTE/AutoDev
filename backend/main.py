@@ -88,6 +88,10 @@ class FeatureRequestInput(BaseModel):
     mode: Optional[str] = "QUICK"
     generation_mode: Optional[str] = None
 
+class RefinePromptInput(BaseModel):
+    prompt: str
+    mode: Optional[str] = "QUICK"
+
 class TextUpdateInput(BaseModel):
     text: str
     mode: Optional[str] = "QUICK"
@@ -168,6 +172,64 @@ def api_generate_requirements(user_input: FeatureRequestInput):
         raise HTTPException(status_code=400, detail=str(pe))
     except Exception as e:
         print(f"Generate requirements failed: {format_concise_error(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/refine-prompt")
+def api_refine_prompt(payload: RefinePromptInput):
+    raw_prompt = (payload.prompt or "").strip()
+    if not raw_prompt:
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty.")
+    try:
+        from google import genai
+        from google.genai import types
+        from key_balancer import get_gemini_keys_for_stage
+        
+        mode = payload.mode or "QUICK"
+        keys = get_gemini_keys_for_stage("REQUIREMENTS", mode=mode)
+        primary_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS") or os.environ.get("GEMINI_API_KEY_1") or os.environ.get("GEMINI_API_KEY")
+        if primary_key and primary_key.strip() and primary_key.strip() not in keys:
+            keys = [primary_key.strip()] + keys
+            
+        if not keys:
+            raise HTTPException(status_code=500, detail="No Gemini API keys configured.")
+            
+        system_instruction = (
+            "You are a Senior Principal Software Architect and AI Prompt Engineer. "
+            "Your task is to take a brief or rough user software feature request and expand it into a "
+            "clear, comprehensive, and highly specific technical specification prompt.\n"
+            "Include:\n"
+            "1. Core Purpose & Architectural Goals\n"
+            "2. Essential Features & Functionality\n"
+            "3. Key API Endpoints or Components (with inputs/outputs)\n"
+            "4. Critical Edge Cases, Data Validation & Error Handling\n"
+            "Keep the output clean, highly actionable, concise (under 250 words), and formatted in markdown. "
+            "Do not include meta-conversational filler, greetings, or sign-offs."
+        )
+        
+        last_err = None
+        for key in keys:
+            try:
+                client = genai.Client(api_key=key)
+                response = client.models.generate_content(
+                    model="gemini-3.5-flash-lite" if mode == "QUICK" else "gemini-3.7-flash",
+                    contents=f"User Idea:\n{raw_prompt}\n\nPlease expand and refine this into an exact, production-grade technical specification prompt:",
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.3,
+                        max_output_tokens=700,
+                    )
+                )
+                if response and response.text:
+                    return {"refined_prompt": response.text.strip()}
+            except Exception as ex:
+                last_err = ex
+                continue
+                
+        if last_err:
+            raise last_err
+        raise HTTPException(status_code=500, detail="Failed to refine prompt across all available keys.")
+    except Exception as e:
+        print(f"Refine prompt error: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 from agents.master_architect import decompose_requirements_stream
