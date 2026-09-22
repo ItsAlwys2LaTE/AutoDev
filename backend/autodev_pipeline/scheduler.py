@@ -288,12 +288,29 @@ class PipelineScheduler:
         with self._scheduler_lock:
             norm_stage = _normalize_stage(stage)
             comp = self.dag.get_component(component_id)
-            if not comp or comp.status != ComponentStatus.IN_STAGE or comp.current_stage != norm_stage:
+            if not comp:
+                return False
+
+            # Resilience: If component was reset to READY by a lease timeout but lock is free or held, re-attach
+            if comp.status == ComponentStatus.READY and not comp.current_stage:
+                if not self.lock_manager.is_stage_occupied(norm_stage) or self.lock_manager.get_stage_holder(norm_stage) == component_id:
+                    reacquired = self.lock_manager.try_acquire_stage(norm_stage, component_id)
+                    if reacquired:
+                        comp.status = ComponentStatus.IN_STAGE
+                        comp.current_stage = norm_stage
+                        comp.active_lease = reacquired
+
+            if comp.status != ComponentStatus.IN_STAGE or comp.current_stage != norm_stage:
                 return False
 
             lease = comp.active_lease
             if not lease:
-                return False
+                holder_lease = self.lock_manager.get_active_lease(norm_stage)
+                if holder_lease and holder_lease.component_id == component_id:
+                    lease = holder_lease
+                    comp.active_lease = lease
+                else:
+                    return False
 
             if dynamic_budget is not None and dynamic_budget > comp.max_revisions:
                 comp.max_revisions = dynamic_budget

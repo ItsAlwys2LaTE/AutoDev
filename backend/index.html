@@ -1167,6 +1167,9 @@
 
                     <!-- STAGE 3: BLUEPRINT PANE -->
                     <div id="centerStageDesignPane" class="hidden flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                        <!-- COMPONENT MODE BLUEPRINTS CONTAINER -->
+                        <div id="componentBlueprintsView" class="hidden space-y-4"></div>
+
                         <!-- PHASE 2A OUTPUT -->
                         <div id="designOutputSection" class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 hidden fade-in">
                             <div class="flex justify-between items-center mb-4">
@@ -1994,6 +1997,7 @@
             if (jsonOut) {
                 ['click', 'focus', 'input'].forEach(evt => {
                     jsonOut.addEventListener(evt, () => {
+                        if (evt === 'input') window.isRequirementsDirty = true;
                         if (currentMode === 'COMPLEX') {
                             CountdownManager.pausePermanently('decomposeBtn', 'Requirements document clicked/edited');
                         }
@@ -2005,6 +2009,7 @@
             if (designJsonOut) {
                 ['click', 'focus', 'input'].forEach(evt => {
                     designJsonOut.addEventListener(evt, () => {
+                        if (evt === 'input') window.isBlueprintDirty = true;
                         if (currentMode === 'COMPLEX') {
                             CountdownManager.pausePermanently('codeBtn', 'Design blueprint clicked/edited');
                         }
@@ -2017,8 +2022,10 @@
             const txt = document.getElementById(`design-text-${cId}`);
             if (txt && !txt._editHandlerAttached) {
                 txt._editHandlerAttached = true;
+                txt._isDirty = false;
                 ['click', 'focus', 'input'].forEach(evt => {
                     txt.addEventListener(evt, () => {
+                        if (evt === 'input') txt._isDirty = true;
                         if (currentMode === 'COMPLEX') {
                             CountdownManager.pausePermanently(`approve-design-${cId}`, `Component ${cId} blueprint clicked/edited`);
                         }
@@ -2565,19 +2572,36 @@
         window.activePipelinePhase = null; // 1..5 or null (active background stage)
         window.viewedPhase = 1;            // 1..5 (currently viewed stage)
         window.stepperStatuses = { 1: 'idle', 2: 'idle', 3: 'idle', 4: 'idle', 5: 'idle' };
+        window.userManuallySelectedTab = false; // Prevents background scheduler from overriding user view
+        window.isRequirementsDirty = false;
+        window.isBlueprintDirty = false;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
 
         function updateStepper(stepNumber, status) {
             if (stepNumber >= 1 && stepNumber <= 5) {
+                const prevStatus = window.stepperStatuses[stepNumber];
                 window.stepperStatuses[stepNumber] = status;
+
                 if (status === 'loading') {
                     window.activePipelinePhase = stepNumber;
-                    window.viewedPhase = stepNumber;
-                    // Automatically focus center tab for the running stage
-                    if (stepNumber === 1) switchCenterTab('req', false);
-                    else if (stepNumber === 2) switchCenterTab('decomp', false);
-                    else if (stepNumber === 3) switchCenterTab('design', false);
-                    else if (stepNumber === 4) switchCenterTab('code', false);
-                    else if (stepNumber === 5) switchRightTab('verify');
+                    // Auto-switch tabs ONLY on initial transition into loading, and ONLY if the user hasn't manually selected a tab
+                    if (prevStatus !== 'loading' && !window.userManuallySelectedTab) {
+                        window.viewedPhase = stepNumber;
+                        if (stepNumber === 1) switchCenterTab('req', false, false);
+                        else if (stepNumber === 2) switchCenterTab('decomp', false, false);
+                        else if (stepNumber === 3) switchCenterTab('design', false, false);
+                        else if (stepNumber === 4) switchCenterTab('code', false, false);
+                        else if (stepNumber === 5) switchRightTab('verify');
+                    }
                 } else if (status === 'success' || status === 'error') {
                     if (window.activePipelinePhase === stepNumber) {
                         window.activePipelinePhase = null;
@@ -2658,7 +2682,66 @@
             }
         }
 
-        function switchCenterTab(tabName, updateViewed = true) {
+        function renderComponentBlueprintsTab() {
+            let container = document.getElementById('componentBlueprintsView');
+            if (!container) return;
+            container.classList.remove('hidden');
+
+            if (!componentStates || Object.keys(componentStates).length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-12 text-center text-slate-400 select-none">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-center text-2xl mb-3 shadow-lg">📐</div>
+                        <h3 class="text-sm font-bold text-slate-200 mb-1">Component Architectural Blueprints</h3>
+                        <p class="text-xs max-w-md text-slate-400 leading-relaxed">
+                            Component blueprints will be synthesized as each component in the DAG starts the DESIGN phase.
+                        </p>
+                    </div>`;
+                return;
+            }
+
+            let html = `
+                <div class="bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 fade-in mb-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-semibold text-slate-200 flex items-center gap-2">
+                            <span class="bg-indigo-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                            Component Architectural Blueprints
+                        </h2>
+                        <span class="px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xs rounded-full font-medium border border-indigo-500/30">Modular DAG Architecture</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">
+                        System architectural blueprints, file hierarchies, and tech stack configurations for each decoupled component.
+                    </p>
+                    <div class="space-y-4">
+            `;
+
+            for (const cId in componentStates) {
+                const state = componentStates[cId];
+                const c = state.component || {};
+                const bp = state.blueprint;
+                const txt = document.getElementById(`design-text-${cId}`) ? document.getElementById(`design-text-${cId}`).value : '';
+                const isReady = Boolean(bp || (txt && !txt.startsWith('Agent is')));
+
+                let displayContent = txt || (bp ? formatBlueprintText(bp) : 'Blueprint synthesis queued...');
+
+                html += `
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 shadow-sm">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-800/80">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-indigo-500/20 text-indigo-400 text-[11px] font-mono px-2 py-0.5 rounded border border-indigo-500/30">${cId}</span>
+                                <h4 class="font-bold text-slate-200 text-sm">${escapeHtml(c.component_name || cId)}</h4>
+                            </div>
+                            <span class="text-xs font-mono px-2 py-0.5 rounded ${isReady ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}">${state.status || 'queued'}</span>
+                        </div>
+                        <div class="text-xs font-mono text-slate-300 bg-slate-900/90 p-3 rounded-lg max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed border border-slate-800/50">${escapeHtml(displayContent)}</div>
+                    </div>
+                `;
+            }
+
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
+        function switchCenterTab(tabName, updateViewed = true, fromUser = true) {
             const tabs = {
                 'req': { btn: 'centerTabReqBtn', pane: 'centerStageReqPane', phase: 1 },
                 'decomp': { btn: 'centerTabDecompBtn', pane: 'centerStageDecompPane', phase: 2 },
@@ -2667,6 +2750,10 @@
             };
 
             if (!tabs[tabName]) return;
+
+            if (fromUser) {
+                window.userManuallySelectedTab = true;
+            }
 
             if (updateViewed) {
                 window.viewedPhase = tabs[tabName].phase;
@@ -2694,7 +2781,7 @@
                 const outSec = document.getElementById('outputSection');
                 const reqNotice = document.getElementById('reqEmptyNotice');
                 const jsonOut = document.getElementById('jsonOutput');
-                const hasReq = (jsonOut && jsonOut.innerText.trim().length > 0) || Boolean(currentRequirements);
+                const hasReq = (jsonOut && jsonOut.innerText.trim().length > 0) || Boolean(currentRequirements) || (inFlightPhase === 'requirements');
                 if (outSec) {
                     if (hasReq) {
                         outSec.classList.remove('hidden');
@@ -2707,7 +2794,7 @@
                 const decompSec = document.getElementById('decomposeSection');
                 const decompNotice = document.getElementById('decompEmptyNotice');
                 const cards = document.getElementById('decomposeCards');
-                const hasDecomp = (cards && cards.children.length > 0) || Boolean(currentDecomposition);
+                const hasDecomp = (cards && cards.children.length > 0) || Boolean(currentDecomposition) || (inFlightPhase === 'decomposition' || inFlightPhase === 'component_dag');
                 if (decompSec) {
                     if (hasDecomp) {
                         decompSec.classList.remove('hidden');
@@ -2720,13 +2807,23 @@
                 const designSec = document.getElementById('designOutputSection');
                 const designNotice = document.getElementById('designEmptyNotice');
                 const designOut = document.getElementById('designJsonOutput');
-                const hasDesign = (designOut && designOut.innerText.trim().length > 0) || Boolean(currentBlueprint);
-                if (designSec) {
-                    if (hasDesign) {
-                        designSec.classList.remove('hidden');
-                        if (designNotice) designNotice.classList.add('hidden');
-                    } else {
-                        if (designNotice) designNotice.classList.remove('hidden');
+                const compBlueprintsView = document.getElementById('componentBlueprintsView');
+
+                if (isComponentMode && componentStates && Object.keys(componentStates).length > 0) {
+                    // In component mode, render all component blueprints in the Blueprint tab
+                    if (designSec) designSec.classList.add('hidden');
+                    if (designNotice) designNotice.classList.add('hidden');
+                    renderComponentBlueprintsTab();
+                } else {
+                    if (compBlueprintsView) compBlueprintsView.classList.add('hidden');
+                    const hasDesign = (designOut && designOut.innerText.trim().length > 0) || Boolean(currentBlueprint) || (inFlightPhase === 'single_design');
+                    if (designSec) {
+                        if (hasDesign) {
+                            designSec.classList.remove('hidden');
+                            if (designNotice) designNotice.classList.add('hidden');
+                        } else {
+                            if (designNotice) designNotice.classList.remove('hidden');
+                        }
                     }
                 }
             } else if (tabName === 'code') {
@@ -2735,6 +2832,11 @@
                     if (window.editorInstance && typeof window.editorInstance.layout === 'function') {
                         window.editorInstance.layout();
                     }
+                    if (typeof componentEditors !== 'undefined' && componentEditors) {
+                        Object.values(componentEditors).forEach(ed => {
+                            if (ed && typeof ed.layout === 'function') ed.layout();
+                        });
+                    }
                 }, 50);
             }
         }
@@ -2742,16 +2844,17 @@
 
         function inspectPhase(phaseNumber) {
             if (phaseNumber < 1 || phaseNumber > 5) return;
+            window.userManuallySelectedTab = true;
             window.viewedPhase = phaseNumber;
 
             if (phaseNumber === 1) {
-                switchCenterTab('req', true);
+                switchCenterTab('req', true, true);
             } else if (phaseNumber === 2) {
-                switchCenterTab('decomp', true);
+                switchCenterTab('decomp', true, true);
             } else if (phaseNumber === 3) {
-                switchCenterTab('design', true);
+                switchCenterTab('design', true, true);
             } else if (phaseNumber === 4) {
-                switchCenterTab('code', true);
+                switchCenterTab('code', true, true);
             } else if (phaseNumber === 5) {
                 switchRightTab('verify');
             }
@@ -4062,6 +4165,9 @@
                 if (text) text.textContent = "Abort Development";
             }
 
+            window.userManuallySelectedTab = false;
+            window.isRequirementsDirty = false;
+            window.isBlueprintDirty = false;
             activeAbortController = new AbortController();
             pipelineStatus = 'running';
             pipelineActive = true;
@@ -4076,6 +4182,7 @@
                 const response = await fetch('/api/generate-requirements', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    signal: activeAbortController.signal,
                     body: JSON.stringify({ 
                         feature_request: input,
                         mode: currentMode 
@@ -4128,11 +4235,13 @@
                 }
                 
                 // Done streaming. Now parse and format as rich text
+                if (!fullJsonStr.trim()) throw new Error("Empty response received from requirements generator.");
                 const data = safeJsonParse(fullJsonStr);
                 if (data.error) throw new Error(data.error);
 
                 currentRequirements = data; 
                 document.getElementById('jsonOutput').innerText = formatRequirementsText(data);
+                window.isRequirementsDirty = false;
                 
                 updateStepper(1, 'success');
                 applyModeUIRules();
@@ -4165,13 +4274,13 @@
             const activeDesignBtn = document.getElementById('simpleDesignBtn') ? 'simpleDesignBtn' : 'designBtn';
             const activeDesignSpinner = document.getElementById('simpleDesignSpinner') ? 'simpleDesignSpinner' : 'designSpinner';
             setButtonLoading(activeDesignBtn, activeDesignSpinner, true);
-            updateStepper(2, 'loading');
+            updateStepper(3, 'loading');
 
             inFlightPhase = 'single_design';
             StateStore.save(getCurrentState(), true);
             setCatState('thinking', 'Master Architect is drafting system blueprints and schemas... 🎨📐', 'Design Agent');
 
-            if (currentMode !== 'QUICK') {
+            if (currentMode !== 'QUICK' && (window.isRequirementsDirty || !currentRequirements)) {
                 try {
                     const text = document.getElementById('jsonOutput').innerText;
                     const parseRes = await fetch('/api/parse-requirements', {
@@ -4181,16 +4290,17 @@
                     });
                     if (!parseRes.ok) throw new Error("Failed to parse requirements text.");
                     currentRequirements = await parseRes.json();
+                    window.isRequirementsDirty = false;
                 } catch (err) {
                     setButtonLoading(activeDesignBtn, activeDesignSpinner, false);
-                    updateStepper(2, 'error');
+                    updateStepper(3, 'error');
                     return showError("Error parsing Requirements: " + err.message);
                 }
             }
 
             if (!currentRequirements) {
                 setButtonLoading(activeDesignBtn, activeDesignSpinner, false);
-                updateStepper(2, 'error');
+                updateStepper(3, 'error');
                 return showError("Missing requirements data.");
             }
             
@@ -4258,8 +4368,9 @@
 
                 currentBlueprint = data;
                 document.getElementById('designJsonOutput').innerText = formatBlueprintText(data);
+                window.isBlueprintDirty = false;
                 
-                updateStepper(2, 'success');
+                updateStepper(3, 'success');
                 applyModeUIRules();
 
                 // Milestone: Design complete -> Codegen
@@ -4277,7 +4388,7 @@
                     console.log("[AutoDev] generateDesign aborted.");
                     return;
                 }
-                updateStepper(2, 'error');
+                updateStepper(3, 'error');
                 showError(`Phase 2 Failed: ${error.message}`);
             } finally {
                 const activeDesignBtn = document.getElementById('simpleDesignBtn') ? 'simpleDesignBtn' : 'designBtn';
@@ -4288,10 +4399,10 @@
 
         async function generateCode(isRevision = false) {
             CountdownManager.cancel('codeBtn');
-            // Re-sync currentBlueprint from the editable rich text area via LLM
+            // Re-sync currentBlueprint from the editable rich text area via LLM only if dirty or missing
             if (document.getElementById('designOutputSection').classList.contains('hidden') === false && !isRevision) {
-                if (currentMode === 'QUICK') {
-                    console.log("[QUICK Mode] Skipping /api/parse-blueprint round-trip; using currentBlueprint directly.");
+                if (currentMode === 'QUICK' || (!window.isBlueprintDirty && currentBlueprint)) {
+                    console.log("[AutoDev] Skipping /api/parse-blueprint round-trip; using currentBlueprint directly.");
                 } else {
                     setButtonLoading('codeBtn', 'codeSpinner', true);
                     try {
@@ -4303,6 +4414,7 @@
                         });
                         if (!parseRes.ok) throw new Error("Failed to parse blueprint text.");
                         currentBlueprint = await parseRes.json();
+                        window.isBlueprintDirty = false;
                     } catch (err) {
                         setButtonLoading('codeBtn', 'codeSpinner', false);
                         return showError("Error parsing Blueprint: " + err.message);
@@ -4336,7 +4448,7 @@
             }
             
             setButtonLoading('codeBtn', 'codeSpinner', true);
-            updateStepper(3, 'loading');
+            updateStepper(4, 'loading');
 
             try {
                 const payload = {
@@ -4453,7 +4565,7 @@
                 // Add to revision history BEFORE we execute
                 snapshotRevision();
                 
-                updateStepper(3, 'success');
+                updateStepper(4, 'success');
                 applyModeUIRules();
 
                 inFlightPhase = 'single_execution';
@@ -4473,7 +4585,7 @@
                     console.log("[AutoDev] Code generation aborted.");
                     return;
                 }
-                updateStepper(3, 'error');
+                updateStepper(4, 'error');
                 showError(`Phase 2b Failed: ${error.message}`);
             } finally {
                 setButtonLoading('codeBtn', 'codeSpinner', false);
@@ -4499,7 +4611,7 @@
             setVisible('execOutputSection', false);
             setVisible('criticOutputSection', false);
             setButtonLoading('execBtn', 'execSpinner', true);
-            updateStepper(4, 'loading');
+            updateStepper(5, 'loading');
 
             try {
                 const response = await fetch('/api/execute-code', {
@@ -4545,8 +4657,6 @@
                 
                 // Save execution results to active revision
                 saveCurrentRevisionMeta(null, null);
-                
-                updateStepper(4, 'success');
 
                 inFlightPhase = 'single_critics';
                 StateStore.save(getCurrentState(), true);
@@ -4565,7 +4675,7 @@
                     console.log("[AutoDev] Code execution aborted.");
                     return;
                 }
-                updateStepper(4, 'error');
+                updateStepper(5, 'error');
                 showError(`Phase 2c Failed: ${error.message}`);
             } finally {
                 setButtonLoading('execBtn', 'execSpinner', false);
@@ -5285,6 +5395,7 @@
         async function runDecomposition() {
             CountdownManager.cancel('decomposeBtn');
             setButtonLoading('decomposeBtn', 'decomposeSpinner', true);
+            updateStepper(2, 'loading');
             setVisible('errorSection', false);
             setVisible('decomposeSection', true);
             document.getElementById('decomposeStatus').innerText = "Analyzing...";
@@ -5296,7 +5407,7 @@
 
             try {
                 // Ensure requirements are parsed if in complex/interactive mode
-                if (currentMode !== 'QUICK') {
+                if (currentMode !== 'QUICK' && (window.isRequirementsDirty || !currentRequirements)) {
                     const parseReqRes = await fetch('/api/parse-requirements', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -5304,6 +5415,7 @@
                     });
                     if (!parseReqRes.ok) throw new Error("Failed to parse requirements.");
                     currentRequirements = await parseReqRes.json();
+                    window.isRequirementsDirty = false;
                 }
                 
                 const response = await fetch('/api/decompose', {
@@ -5317,6 +5429,7 @@
                 currentDecomposition = data;
                 
                 document.getElementById('decomposeStatus').innerText = "Decomposed";
+                updateStepper(2, 'success');
                 
                 if (!currentDecomposition.is_complex) {
                     setVisible('decomposeSimpleMsg', true);
@@ -5388,6 +5501,7 @@
                     console.log("[AutoDev] Decomposition aborted.");
                     return;
                 }
+                updateStepper(2, 'error');
                 showError("Decomposition Error: " + error.message);
                 setVisible('decomposeSection', false);
             } finally {
@@ -5667,7 +5781,8 @@
             
             if (passedCount === pipelineQueue.length && pipelineQueue.length > 0) {
                 setVisible('integrationSection', true);
-                updateStepper(3, 'success');
+                if (window.stepperStatuses[3] !== 'success') updateStepper(3, 'success');
+                if (window.stepperStatuses[4] !== 'success') updateStepper(4, 'success');
                 if (currentMode === 'QUICK') {
                     if (!window._quickIntegrationTriggered) {
                         window._quickIntegrationTriggered = true;
@@ -5699,18 +5814,18 @@
             }
             
             if (anyDesign) {
-                updateStepper(3, 'loading');
+                if (window.stepperStatuses[3] !== 'loading') updateStepper(3, 'loading');
             } else if (allDesignDone && !anyCoding && !allCodingDone) {
-                updateStepper(3, 'success');
-                updateStepper(4, 'loading');
+                if (window.stepperStatuses[3] !== 'success') updateStepper(3, 'success');
+                if (window.stepperStatuses[4] !== 'loading') updateStepper(4, 'loading');
             } else if (anyCoding) {
-                updateStepper(3, 'success');
-                updateStepper(4, 'loading');
+                if (window.stepperStatuses[3] !== 'success') updateStepper(3, 'success');
+                if (window.stepperStatuses[4] !== 'loading') updateStepper(4, 'loading');
             } else if (allCodingDone) {
-                updateStepper(3, 'success');
-                updateStepper(4, 'success');
+                if (window.stepperStatuses[3] !== 'success') updateStepper(3, 'success');
+                if (window.stepperStatuses[4] !== 'success') updateStepper(4, 'success');
                 if (document.getElementById('integrateBtn') && !document.getElementById('integrateBtn').disabled) {
-                    updateStepper(5, 'loading');
+                    if (window.stepperStatuses[5] !== 'loading') updateStepper(5, 'loading');
                 }
             }
         }
@@ -5803,7 +5918,8 @@
                     );
                 }
             } catch(e) {
-                alert("Design Error (" + cId + "): " + e.message);
+                console.error("Design Error (" + cId + "):", e);
+                showError("Design Error (" + cId + "): " + e.message);
                 state.status = 'failed';
                 // pipelineLocks.design = false;
                 renderPipelineTracks();
@@ -5820,11 +5936,14 @@
             btn.innerText = "Parsing Design...";
             btn.className = "w-full bg-slate-700 text-slate-400 font-bold py-3.5 rounded-lg flex items-center justify-center gap-2 shadow-sm";
             
-            if (currentMode === 'QUICK') {
-                console.log(`[QUICK Mode] Bypassing parse-blueprint in approveDesign for component ${cId}`);
+            const designTxt = document.getElementById(`design-text-${cId}`);
+            const isDirty = designTxt ? Boolean(designTxt._isDirty) : false;
+
+            if (currentMode === 'QUICK' || (!isDirty && state.blueprint)) {
+                console.log(`[AutoDev] Reusing in-memory blueprint for component ${cId}`);
             } else {
                 try {
-                    const text = document.getElementById(`design-text-${cId}`).value;
+                    const text = designTxt ? designTxt.value : '';
                     const parseRes = await fetch('/api/parse-blueprint', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -5832,8 +5951,10 @@
                     });
                     if (!parseRes.ok) throw new Error("Failed to parse blueprint text.");
                     state.blueprint = await parseRes.json();
+                    if (designTxt) designTxt._isDirty = false;
                 } catch(e) {
-                    alert("Error parsing Design: " + e.message);
+                    console.error("Error parsing Design:", e);
+                    showError("Error parsing Design: " + e.message);
                     state.status = 'failed';
                     fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'DESIGN', verdict: 'error' }) });
                     btn.disabled = false;
@@ -5901,7 +6022,8 @@
                 renderPipelineTracks();
                 processPipeline();
             } catch(e) {
-                alert("Code Error (" + cId + "): " + e.message);
+                console.error("Code Error (" + cId + "):", e);
+                showError("Code Error (" + cId + "): " + e.message);
                 state.status = 'failed';
                 fetch('/api/pipeline/complete', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ component_id: cId, stage: 'CODEGEN', verdict: 'error' }) });
                 renderPipelineTracks();

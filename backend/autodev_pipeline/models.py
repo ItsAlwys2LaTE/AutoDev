@@ -419,7 +419,7 @@ class PipelineConfig:
         return cls(
             max_revisions=int(data["max_revisions"]) if "max_revisions" in data and data["max_revisions"] is not None else default_max_revs,
             generation_mode=gen_mode,
-            lease_duration_sec=float(data.get("lease_duration_sec", 30.0)),
+            lease_duration_sec=float(data.get("lease_duration_sec", 3600.0)),
             lease_heartbeat_interval_sec=float(data.get("lease_heartbeat_interval_sec", 10.0)),
             stage_timeout_sec=float(data.get("stage_timeout_sec", 120.0)),
             docker_timeout_sec=float(data.get("docker_timeout_sec", 45.0)),

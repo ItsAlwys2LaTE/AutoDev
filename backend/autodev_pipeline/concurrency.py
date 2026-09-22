@@ -47,7 +47,7 @@ class StageMutex:
     Enforces <= 1 occupancy with strictly monotonic epoch fencing and TTL expiration.
     """
 
-    def __init__(self, stage: Union[StageEnum, str], default_lease_duration: float = 30.0):
+    def __init__(self, stage: Union[StageEnum, str], default_lease_duration: float = 3600.0):
         self.stage: StageEnum = _normalize_stage(stage)
         self.default_lease_duration: float = float(default_lease_duration)
         self._lock: threading.RLock = threading.RLock()

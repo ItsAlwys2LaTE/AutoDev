@@ -165,7 +165,7 @@ def api_generate_requirements(user_input: FeatureRequestInput):
         active_model = resolve_model_for_mode(mode)
         print(format_phase_transition("System", "INIT", "REQUIREMENTS", active_model, "REQUIREMENTS", mode=mode))
         return StreamingResponse(
-            generate_requirements_stream(user_input.feature_request),
+            generate_requirements_stream(user_input.feature_request, mode=mode),
             media_type="text/plain"
         )
     except PromptGuardError as pe:
@@ -353,7 +353,27 @@ from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
 
 @app.post("/api/parse-requirements")
 def api_parse_requirements(payload: TextUpdateInput):
+    # Fast path: check if text is already valid JSON matching RequirementsDocument
+    stripped = payload.text.strip()
+    if (stripped.startswith("{") and stripped.endswith("}")) or (stripped.startswith("```json") and "{" in stripped):
+        clean_text = stripped
+        if clean_text.startswith("```json"):
+            clean_text = clean_text[7:]
+        elif clean_text.startswith("```"):
+            clean_text = clean_text[3:]
+        if clean_text.endswith("```"):
+            clean_text = clean_text[:-3]
+        clean_text = clean_text.strip()
+        try:
+            validated = RequirementsDocument.model_validate_json(clean_text)
+            return validated
+        except Exception:
+            pass
+
     try:
+        mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
+        primary_model = resolve_model_for_mode(mode)
+        fallback_model = "gemini-3.5-flash-lite"
         primary_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         keys = get_gemini_keys_for_stage("PARSE_REQUIREMENTS")
         if primary_key and primary_key.strip() and primary_key.strip() not in keys:
@@ -365,7 +385,7 @@ def api_parse_requirements(payload: TextUpdateInput):
             @with_exponential_backoff
             def _parse_primary():
                 response = client.models.generate_content(
-                    model="gemini-3.7-flash",
+                    model=primary_model,
                     contents=f"Extract the requirements from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
@@ -435,6 +455,8 @@ def api_parse_blueprint(payload: TextUpdateInput):
             pass
 
     try:
+        mode = payload.mode or getattr(payload, "generation_mode", None) or get_current_generation_mode()
+        primary_model = resolve_model_for_mode(mode)
         primary_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY_CODEGEN")
         keys = get_gemini_keys_for_stage("PARSE_BLUEPRINT")
         if primary_key and primary_key.strip() and primary_key.strip() not in keys:
@@ -446,7 +468,7 @@ def api_parse_blueprint(payload: TextUpdateInput):
             @with_exponential_backoff
             def _parse_primary():
                 response = client.models.generate_content(
-                    model="gemini-3.7-flash",
+                    model=primary_model,
                     contents=f"Extract the system design blueprint from this document into the strict JSON schema. Ensure no details are lost:\n\n{payload.text}",
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
