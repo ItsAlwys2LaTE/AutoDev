@@ -2,12 +2,109 @@ import sys
 import json
 import re
 from pydantic import BaseModel, Field, model_validator, field_validator
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Literal
 
 # Ensure singleton module registration across both 'models' and 'backend.models'
 if __name__ in ("models", "backend.models") and __name__ in sys.modules:
     sys.modules.setdefault("models", sys.modules[__name__])
     sys.modules.setdefault("backend.models", sys.modules[__name__])
+
+
+# --- INTENT CLASSIFICATION MODELS (Layer 2) ---
+
+class IntentClassification(BaseModel):
+    """Structured classification output determining user intent and follow-up actions."""
+    intent: Literal["software_request", "ambiguous", "not_software"] = Field(
+        description="The primary classification of the user request"
+    )
+    confidence: float = Field(
+        description="Confidence score for this classification, clamped between 0.0 and 1.0"
+    )
+    reasoning: str = Field(
+        description="Explanation of why this intent was selected"
+    )
+    follow_up_questions: Optional[List[str]] = Field(
+        default=None,
+        description="2-3 clarifying questions when intent is ambiguous"
+    )
+    direct_answer: Optional[str] = Field(
+        default=None,
+        description="Direct factual answer to the query when intent is not_software"
+    )
+
+    @field_validator("intent", mode="before")
+    @classmethod
+    def normalize_intent(cls, val: Any) -> str:
+        if not val or not isinstance(val, str):
+            return "software_request"
+        cleaned = val.strip().lower().replace("-", "_").replace(" ", "_")
+        if cleaned in ("software_request", "ambiguous", "not_software"):
+            return cleaned
+        if "ambig" in cleaned or "clarif" in cleaned:
+            return "ambiguous"
+        if "not" in cleaned or "non" in cleaned:
+            return "not_software"
+        if "software" in cleaned or "code" in cleaned or "app" in cleaned:
+            return "software_request"
+        return "software_request"
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def clamp_confidence(cls, val: Any) -> float:
+        try:
+            val_f = float(val)
+        except (ValueError, TypeError):
+            return 0.5
+        return max(0.0, min(1.0, val_f))
+
+    @field_validator("reasoning", mode="before")
+    @classmethod
+    def clean_reasoning(cls, val: Any) -> str:
+        if val is None or not str(val).strip():
+            return "Intent classified based on prompt analysis."
+        return str(val).strip()
+
+    @field_validator("follow_up_questions", mode="before")
+    @classmethod
+    def clean_follow_up_questions(cls, val: Any) -> Optional[List[str]]:
+        if not val:
+            return None
+        if isinstance(val, str):
+            val = [val]
+        if isinstance(val, (list, tuple)):
+            cleaned = [str(q).strip() for q in val if q and str(q).strip()]
+            return cleaned if cleaned else None
+        return None
+
+    @field_validator("direct_answer", mode="before")
+    @classmethod
+    def clean_direct_answer(cls, val: Any) -> Optional[str]:
+        if val is None:
+            return None
+        s = str(val).strip()
+        return s if s else None
+
+
+class ClassifyIntentInput(BaseModel):
+    """Payload for intent classification request."""
+    prompt: Optional[str] = Field(default=None, description="The user's prompt or feature request")
+    feature_request: Optional[str] = Field(default=None, description="Alias for prompt")
+    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
+    generation_mode: Optional[str] = Field(default=None, description="Alias for mode")
+    context: Optional[str] = Field(default=None, description="Optional multi-round clarification history")
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_prompt_and_mode(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            p = data.get("prompt") or data.get("feature_request")
+            if p is not None:
+                data["prompt"] = str(p)
+                data["feature_request"] = str(p)
+            m = data.get("mode") or data.get("generation_mode") or "QUICK"
+            data["mode"] = str(m)
+            data["generation_mode"] = str(m)
+        return data
 
 
 # --- PHASE 1 MODELS (Requirements) ---
@@ -45,7 +142,7 @@ class SystemDesignBlueprint(BaseModel):
     """The final structured output from the Design Agent."""
     architecture_overview: str = Field(description="High level explanation of the design choice")
     tech_stack: List[str] = Field(description="The selected languages and frameworks (e.g., ['HTML', 'CSS', 'JavaScript'] or ['Python', 'pytest'])")
-    docker_image: str = Field(description="The Docker image to use (e.g., 'node:20-alpine', 'python:3.11-slim')")
+    docker_image: str = Field(description="The Docker image to use (e.g., 'mcr.microsoft.com/playwright:v1.48.0-jammy', 'python:3.11-slim')")
     dev_server_command: str = Field(description="Command to start the dev server, bound to 0.0.0.0 (e.g., 'npm run dev -- --host 0.0.0.0' for Vite port 5173, 'npx --yes serve -p 8080 -H 0.0.0.0' for Node static HTML, or 'python3 -m http.server 8080 --bind 0.0.0.0' strictly for Python images). Must be strictly compatible with docker_image. Set to 'NONE' if no server needed.")
     dev_server_port: int = Field(description="The internal port the dev server binds to (e.g., 5173, 3000, 8080). Set to 0 if none.")
     run_tests_command: str = Field(description="Terminal command to run tests (e.g., 'npm install && npm test' or 'pytest'). Must not be skipped.")
@@ -146,7 +243,7 @@ class ComponentDecomposition(BaseModel):
     is_complex: bool = Field(description="If False, the product is simple enough for the single-pass pipeline. If True, decompose into components.")
     project_overview: str = Field(description="High-level product vision describing the overall system")
     shared_tech_stack: List[str] = Field(description="Common tech stack that all components must use (e.g., ['HTML', 'CSS', 'JavaScript', 'Node.js'])")
-    shared_docker_image: str = Field(description="Base Docker image all components should use (e.g., 'node:20-alpine')")
+    shared_docker_image: str = Field(description="Base Docker image all components should use (e.g., 'mcr.microsoft.com/playwright:v1.48.0-jammy')")
     components: List[ComponentSpec] = Field(default_factory=list, description="The decomposed component list. Empty if is_complex is False.")
     integration_strategy: str = Field(description="How to merge components: describes routing, shared state, navigation, and cross-component wiring approach")
 
@@ -405,8 +502,9 @@ class PostCompletionModifyRequest(BaseModel):
     codebase: GeneratedCodeBase = Field(description="The current codebase snapshot to be selectively refactored")
     blueprint: Optional[SystemDesignBlueprint] = Field(default=None, description="The system architecture blueprint providing tech stack and verification context")
     run_verification: Optional[bool] = Field(default=True, description="Whether to invoke executor sandbox verification after applying modifications")
-    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK or COMPLEX")
+    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
     generation_mode: Optional[str] = Field(default=None, description="Alias for mode to maintain backward compatibility")
+    requirements: Optional[RequirementsDocument] = Field(default=None, description="Optional requirements document for arbitration context")
 
 
 class PostCompletionQueryRequest(BaseModel):
@@ -415,7 +513,7 @@ class PostCompletionQueryRequest(BaseModel):
     query: Optional[str] = Field(default=None, description="Alias for prompt")
     codebase: GeneratedCodeBase = Field(description="The current codebase snapshot to inspect (read-only)")
     blueprint: Optional[SystemDesignBlueprint] = Field(default=None, description="Optional system architecture blueprint for context")
-    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK or COMPLEX")
+    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
     generation_mode: Optional[str] = Field(default=None, description="Alias for mode")
 
     @model_validator(mode="before")
@@ -442,4 +540,6 @@ class PostCompletionModifyResponse(BaseModel):
     modified_files: List[str] = Field(description="List of file paths that were modified or created")
     codebase: GeneratedCodeBase = Field(description="The updated, fully-merged codebase")
     execution_result: Optional[ExecutionResult] = Field(default=None, description="Sandbox build/test verification result if run_verification was True")
+    critic_feedbacks: Optional[List[CriticFeedback]] = Field(default_factory=list, description="Critic evaluations (Correctness, Completeness, Architecture)")
+    decision: Optional[AdjudicatorDecision] = Field(default=None, description="Master adjudicator verdict and scoring")
 

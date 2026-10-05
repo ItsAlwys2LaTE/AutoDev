@@ -9,8 +9,8 @@ from models import RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBas
 from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
-PRIMARY_MODEL = "gemini-3.7-flash"
-FALLBACK_MODEL = "gemini-3.5-flash-lite"
+PRIMARY_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODEL = "gemini-3.1-flash-lite"
 QUICK_MODEL = "gemini-3.5-flash-lite"
 
 def generate_code_stream(
@@ -20,23 +20,18 @@ def generate_code_stream(
     revision_plan: str = None,
     mode: str = None,
     primary_model: str = None,
-    secondary_model: str = FALLBACK_MODEL,
+    secondary_model: str = None,
+    component_id: str = None,
 ):
-    active_mode = (mode or get_generation_mode()).upper()
-    # QUICK mode: strictly use flash-lite (3.7-flash hits rate limits too aggressively)
-    # COMPLEX mode: use 3.7-flash with flash-lite fallback
-    if active_mode == "QUICK":
-        primary_model = QUICK_MODEL
-        secondary_model = QUICK_MODEL  # no fallback needed, already at lite
-    else:
-        primary_model = primary_model or PRIMARY_MODEL
-        secondary_model = secondary_model or FALLBACK_MODEL
-    keys = get_gemini_keys_for_stage("CODEGEN", mode=mode)
-    primary_key = os.environ.get("GEMINI_API_KEY_CODEGEN")
-    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
-        keys = [primary_key.strip()] + keys
+    primary_model = primary_model or PRIMARY_MODEL
+    secondary_model = secondary_model or FALLBACK_MODEL
+    keys = get_gemini_keys_for_stage("CODEGEN", mode=mode, component_id=component_id)
     if not keys:
-        raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
+        primary_key = os.environ.get("GEMINI_API_KEY_CODEGEN") or os.environ.get("GEMINI_API_KEY")
+        if primary_key:
+            keys = [primary_key.strip()]
+        else:
+            raise ValueError("GEMINI_API_KEY_CODEGEN is not set in the environment variables.")
 
 
 
@@ -94,6 +89,23 @@ def generate_code_stream(
               - MongoDB / Databases: Mock `motor.motor_asyncio.AsyncIOMotorClient` or `pymongo.MongoClient`.
               - PyMuPDF / Document Parsers: Mock `fitz.open()` or return mock document objects.
               - Tests must never require real API keys (`GEMINI_API_KEY`), live MongoDB connections, or live network access to pass.
+            - FASTAPI DEPENDENCY OVERRIDES & MOCKING:
+              FastAPI's `Depends(get_db)` binds the dependency function reference at route declaration time. Standard `@patch("main.get_db")` does NOT override `Depends(get_db)` unless mapped via `app.dependency_overrides[get_db] = lambda: mock_db`. In test files, ALWAYS set `app.dependency_overrides[get_db] = lambda: mock_db` (or `app.dependency_overrides[database.get_db] = lambda: mock_db`).
+            - PATCH TARGET DISCIPLINE:
+              When patching external functions or services imported into route modules (e.g. `from services import send_brevo_email` in `main.py`), ALWAYS patch where the function is used (`@patch("main.send_brevo_email")`) or patch both `services` and `main`.
+            - DESCRIPTIVE TEST ASSERTIONS:
+              Never write bare `assert response.status_code == 200` without diagnostics. ALWAYS write:
+              `assert response.status_code == 200, f"Error {response.status_code}: {response.text}"`
+              so that any 4xx or 500 error prints the complete error response and traceback in test logs.
+            - PYDANTIC EMAILSTR AND DEPENDENCY PINNING:
+              Whenever Pydantic models use `EmailStr` or email validation (e.g. `SendOTPModel`, `RegisterModel`), ALWAYS declare `email-validator>=2.0.0` in `requirements.txt` to prevent test collection crashes.
+            - DEFENSIVE EXTERNAL NOTIFICATION SERVICES:
+              In `services.py`, external notification functions (e.g. `send_brevo_email`, `send_email`, `send_sms`) must be defensive: check whether API keys are configured and fallback gracefully or return a mock success payload when unconfigured in test/offline environments.
+            - SQLALCHEMY / SQLITE DATABASE TEST INITIALIZATION:
+              When tests interact with SQLite / SQLAlchemy databases:
+              - ALWAYS include an autouse fixture `@pytest.fixture(autouse=True)` in test files or `conftest.py` that calls `Base.metadata.create_all(bind=engine)` to guarantee all tables exist before tests run.
+              - Ensure all model classes are imported before `create_all()` is invoked.
+              - Prefer file-based SQLite (`sqlite:///./app.db` or `sqlite:///./test.db`) over pure volatile in-memory connections to avoid connection isolation issues across multi-step test workflows.
          * For JS/Node backend logic: Write tests to run under Vitest (`.test.js`, `.test.ts`, `.spec.js`).
          * STRICT PROHIBITION OF `supertest`: NEVER import or require `supertest` or `superagent` (e.g., `import request from 'supertest'` is STRICTLY FORBIDDEN). Real HTTP listeners and supertest instances hang the container sandbox, resulting in 180s timeout failures or module resolution crashes (`Failed to load url supertest`).
          * HOW TO TEST SERVER/API LOGIC SAFELY: Test server logic and API endpoints by importing route handler/controller functions directly and passing mock Request/Response objects with `vi.fn()`:
@@ -108,7 +120,7 @@ def generate_code_stream(
            });
            ```
            Alternatively, if testing an Express `app` instance, invoke `app(req, res)` directly in-process without calling `app.listen()`.
-         * DATABASE MOCKING: NEVER connect to a real database (like `mongodb://localhost`). ALWAYS use `mongodb-memory-server` or mock the database layer with `vi.mock()`. Tests that start servers or real connections will hang the sandbox and fail with a 180s timeout.
+         * DATABASE MOCKING (Node.js & MongoDB): NEVER connect to a real database (like `mongodb://localhost`). STRICT PROHIBITION OF `mongodb-memory-server` ON ALPINE: `mongodb-memory-server` has NO official build for Alpine Linux and will fail with `Unknown/unsupported linux "alpine"`. PREFERRED PATTERN (vi.mock): ALWAYS mock the database layer using `vi.mock('mongoose')` or mock model methods (`Model.create = vi.fn()`, `Model.find = vi.fn()`). This requires zero binary downloads, executes in 5ms, and never fails across any Linux distro. If using `mongodb-memory-server`, ensure the container image is a glibc distribution like `mcr.microsoft.com/playwright:v1.48.0-jammy` or `node:20-bookworm` (NEVER `node:*-alpine`). Tests that start servers or real connections will hang the sandbox and fail with a 180s timeout.
          * For async operations, ensure all promises resolve. Use explicit `afterAll` blocks to close mock databases or timers.
     3. EXTERNAL LIBRARIES & DEPENDENCIES: You MUST generate the appropriate package manager file (e.g., package.json, requirements.txt) with all required dependencies. For projects running unit tests, include the necessary test runners ('vitest', 'jsdom', etc.). For frontend projects validated via `npm run build`, ensure build dependencies (such as `vite`, `@vitejs/plugin-react`) and all runtime dependencies are declared. Do NOT include '@playwright/test' in package.json at this stage.
     4. SCHEMA & BLUEPRINT COMPLIANCE: The output must strictly match the GeneratedCodeBase Pydantic schema, containing the exact file_names from the blueprint and their complete source_code. Do NOT invent additional test files that were not specified in the blueprint.
@@ -145,7 +157,29 @@ def generate_code_stream(
             client = TestClient(app)
         ```
         Or use FastAPI's dependency override system (`app.dependency_overrides[get_db] = lambda: mock_db`).
-        CRITICAL: Never let `from main import app` execute without the database mock already active, or motor will attempt a real connection to localhost:27017.
+        CRITICAL: Never let `from main import app` execute without the database mock already active, or motor will attempt a real connection to localhost:27017. In test fixtures (such as `clean_database`), NEVER run unmocked live queries like `await db.users.delete_many({})` against localhost:27017 because no MongoDB daemon runs in the sandbox. Use `app.dependency_overrides` or an in-memory dictionary-backed fixture.
+    15. SQLALCHEMY / SQLITE DATABASE SCHEMA & TEST FIXTURE MANDATE:
+        When using SQLAlchemy ORM (e.g. FastAPI with SQLite):
+        - Model Import Before Table Creation: ALWAYS import all model classes (e.g. `import models` or `from models import Event, User`) BEFORE calling `Base.metadata.create_all(bind=engine)`. If `create_all()` executes before model classes are defined or imported, SQLAlchemy's metadata contains 0 tables and no database tables are created.
+        - In main.py: ALWAYS call `models.Base.metadata.create_all(bind=engine)` at module scope (outside functions, lifespan, or startup events) immediately after importing models and engine:
+          ```python
+          from database import engine, Base
+          import models
+          models.Base.metadata.create_all(bind=engine)
+          ```
+          NEVER place `create_all()` ONLY inside FastAPI's `@asynccontextmanager lifespan` or `@app.on_event("startup")` without module-level execution, because `TestClient(app)` DOES NOT trigger lifespan handlers unless used as a context manager (`with TestClient(app) as client:`). Module-level execution guarantees tables exist for both `client = TestClient(app)` and Uvicorn.
+        - In database.py: Use file-based SQLite (`SQLALCHEMY_DATABASE_URL = "sqlite:///./app.db"`) with `connect_args={"check_same_thread": False}`. Avoid pure `sqlite:///:memory:` unless explicitly configured with `StaticPool` (`from sqlalchemy.pool import StaticPool; engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)`), because default SQLite in-memory connections wipe schema between connections.
+        - In test files (test_main.py, conftest.py): ALWAYS define an `autouse=True` fixture that ensures tables exist before tests run:
+          ```python
+          import pytest
+          from database import Base, engine
+          import models  # Ensures all model tables are registered
+          @pytest.fixture(autouse=True)
+          def setup_db():
+              Base.metadata.create_all(bind=engine)
+              yield
+          ```
+        - This completely prevents `sqlite3.OperationalError: no such table: <tablename>` fatal test failures.
     """
 
     system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(GeneratedCodeBase.model_json_schema())}"
@@ -183,10 +217,12 @@ def generate_code_stream(
                         stage="CODEGEN",
                         primary_model=primary_model,
                         secondary_model=secondary_model,
+                        component_id=component_id,
                     )
                     return
             except Exception as diff_err:
                 print(f"CodeGen Agent: Differential revision bypass/fallback ({diff_err}), falling back to full prompt.")
+                yield "\n__RESET__\n"
 
         prompt_content += f"""
     PREVIOUS CODEBASE (FAILED TESTS/CRITIQUES):

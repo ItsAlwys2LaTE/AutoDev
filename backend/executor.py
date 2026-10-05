@@ -226,7 +226,19 @@ def resolve_docker_image(
     if is_python_service and ("playwright" in image_lower or "node" in image_lower or "golang" in image_lower or "rust" in image_lower or not image):
         return "python:3.11-slim"
 
-    if is_pure_node and ("python" in image_lower or "golang" in image_lower or "rust" in image_lower or not image):
+    has_mongo = any(
+        bool(re.search(r'\b(mongo|mongoose|mongodb|mongodb-memory-server)\b', getattr(f, 'source_code', '') or '', re.I))
+        for f in codebase_files
+    )
+
+    # Alpine Linux Defense: Alpine uses musl libc, which lacks official MongoDB builds (causing
+    # MongoMemoryServer 'UnknownLinuxDistro [Error]: Unknown/unsupported linux "alpine"' crashes),
+    # breaks Playwright browsers, and causes native module compilation failures. Automatically upgrade any
+    # Node/JS service or MongoDB component configured with Alpine to our battle-tested Ubuntu glibc container image.
+    if is_pure_node and ("python" in image_lower or "golang" in image_lower or "rust" in image_lower or "alpine" in image_lower or not image):
+        return "mcr.microsoft.com/playwright:v1.48.0-jammy"
+
+    if (has_package_json or (has_js_files and not has_py_files) or has_mongo) and "alpine" in image_lower:
         return "mcr.microsoft.com/playwright:v1.48.0-jammy"
 
     if is_go_service and ("python" in image_lower or "playwright" in image_lower or "node" in image_lower or "rust" in image_lower or not image):
@@ -423,11 +435,11 @@ def resolve_test_runner_command(
     is_pytest_runner = "pytest" in base_cmd or is_python_runner
     if (is_python_env or is_pytest_runner) and not is_go_runner and not is_rust_runner and not is_node_runner and "pip install" not in base_cmd:
         pip_install_cmd = (
-            "(pip install --break-system-packages pytest pytest-asyncio httpx -r requirements.txt 2>/dev/null || "
-            "pip install pytest pytest-asyncio httpx -r requirements.txt 2>/dev/null || "
-            "pip install --break-system-packages pytest pytest-asyncio httpx 2>/dev/null || "
-            "pip install pytest pytest-asyncio httpx 2>/dev/null || "
-            "python3 -m pip install --break-system-packages pytest pytest-asyncio httpx 2>/dev/null || "
+            "(pip install --break-system-packages pytest pytest-asyncio httpx email-validator mongomock -r requirements.txt 2>/dev/null || "
+            "pip install pytest pytest-asyncio httpx email-validator mongomock -r requirements.txt 2>/dev/null || "
+            "pip install --break-system-packages pytest pytest-asyncio httpx email-validator mongomock 2>/dev/null || "
+            "pip install pytest pytest-asyncio httpx email-validator mongomock 2>/dev/null || "
+            "python3 -m pip install --break-system-packages pytest pytest-asyncio httpx email-validator mongomock 2>/dev/null || "
             "true) && "
         )
         base_cmd = f"{pip_install_cmd}{base_cmd}"
@@ -500,6 +512,11 @@ def execute_code(
                 return ExecutionResult(success=False, logs=error_log)
 
     effective_docker_image = resolve_docker_image(blueprint, codebase, component=component, decomposition=decomposition)
+    if blueprint is not None and getattr(blueprint, 'docker_image', None) != effective_docker_image:
+        try:
+            blueprint.docker_image = effective_docker_image
+        except Exception:
+            pass
     
     try:
         client = docker.from_env()

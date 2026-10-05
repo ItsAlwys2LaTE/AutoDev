@@ -52,8 +52,8 @@ from agents.revision_extractor import (
 
 logger = logging.getLogger("autodev.differential_revision_agent")
 
-PRIMARY_MODEL = "gemini-3.7-flash"
-FALLBACK_MODEL = "gemini-3.5-flash-lite"
+PRIMARY_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODEL = "gemini-3.1-flash-lite"
 QUICK_MODEL = "gemini-3.5-flash-lite"
 
 # ---------------------------------------------------------------------------
@@ -101,6 +101,16 @@ CRITICAL REFACTORING LAWS:
      * SAFE F-STRINGS / PROMPT TEMPLATES: NEVER use backslash-escaped double quotes inside double-quoted f-strings (e.g. f"... {{\"valid\": true}} ..."). In Python 3.11, backslashes inside f-string expressions raise fatal SyntaxError. Use single quotes inside braces (f"... {{'valid': True}} ..."), raw triple-quoted strings (r'''...'''), or .format().
      * REGULAR EXPRESSIONS: ALWAYS use raw string literals `r"..."` for all regex patterns (e.g. `re.search(r"\d+\s+\w+", text)`).
      * FASTAPI ENDPOINT TESTING: NEVER call `uvicorn.run()` or spawn server processes in test files (this hangs the test container). Use synchronous `from fastapi.testclient import TestClient` or async tests with `httpx.AsyncClient` and `pytest-asyncio`.
+     * SQLITE & SQLALCHEMY TABLE INITIALIZATION: When fixing `no such table: <name>` or `sqlite3.OperationalError`:
+       1. In `main.py`, ALWAYS call `models.Base.metadata.create_all(bind=engine)` at module scope (outside functions, lifespan, or startup events) immediately after importing models and engine:
+          ```python
+          from database import engine, Base
+          import models
+          models.Base.metadata.create_all(bind=engine)
+          ```
+          Never place `create_all()` ONLY inside FastAPI's lifespan or startup event handlers because `client = TestClient(app)` does NOT trigger lifespan handlers unless used with a context manager (`with client:`).
+       2. In `database.py` and test files: ALWAYS use file-based SQLite (`SQLALCHEMY_DATABASE_URL = "sqlite:///./app.db"`) with `connect_args={"check_same_thread": False}`. Avoid volatile `sqlite:///:memory:` without `StaticPool` (`from sqlalchemy.pool import StaticPool; engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)`), because default SQLite in-memory connections wipe schema between connections and fail across FastAPI threadpool worker threads.
+       3. In test files (`test_main.py`, `conftest.py`), ALWAYS provide an `autouse=True` fixture that executes `Base.metadata.create_all(bind=engine)` before any tests run.
      * SANDBOX MOCKING: Tests run in an isolated sandbox with no internet access or running database servers. You MUST mock all external services using `unittest.mock.patch`, `MagicMock`, or `AsyncMock`:
        - Mock `google.genai.Client` and `google.generativeai.GenerativeModel`.
        - Mock MongoDB (`motor.motor_asyncio.AsyncIOMotorClient`, `pymongo.MongoClient`).
@@ -116,6 +126,14 @@ CRITICAL REFACTORING LAWS:
      * DEPENDENCY VERSION CONFLICTS: If a revision error is an ImportError from a pip-installed package (e.g. motor, pymongo, django), this implies a transitive dependency version conflict. You MUST fix the version pin in requirements.txt (e.g. adding `pymongo<4.8`) rather than patching the application source code.
      * DEFENSIVE DICTIONARY ACCESS (Python): When removing or reading optional keys from dictionaries (especially MongoDB documents), ALWAYS use `dict.pop("key", None)` or `dict.get("key")` instead of `dict.pop("key")` or `dict["key"]`. Bare `.pop()` and bracket access raise `KeyError` when the key is absent, which is a common crash in endpoints that strip sensitive fields (e.g. password) before returning user data.
      * MOTOR / MONGODB MOCK PATTERN (Python + FastAPI): When using motor (AsyncIOMotorClient) with FastAPI, do not use `@patch("main.get_database")` because motor initializes at import time, causing a 30-second `ServerSelectionTimeoutError` / `Event loop is closed`. Instead, expose db as a global lazy-initialized variable in main.py, and in test files, patch the module-level variable BEFORE importing TestClient. Or use FastAPI's dependency override system (`app.dependency_overrides[get_db] = lambda: mock_db`). Never let `from main import app` execute without the database mock already active.
+     * FASTAPI HTTP 500 & DEPENDENCY INJECTION: When tests fail with HTTP 500 (e.g. `assert 500 == 200`):
+       1. FastAPI routes using `Depends(get_db)` do NOT respond to `@patch("main.get_db")` or `@patch("database.get_db")` because FastAPI caches the original function reference at route decoration time. In `test_main.py`, ALWAYS override the dependency directly: `app.dependency_overrides[get_db] = lambda: mock_db` (or ensure `conftest.py` has the AutoDev bridge).
+       2. External Notification Services: When route modules import functions (e.g. `from services import send_brevo_email` in `main.py`), patching `services.send_brevo_email` does not patch `main.send_brevo_email`. Patch where used: `@patch("main.send_brevo_email")` or patch both modules.
+       3. In `services.py`, make external notification callers defensive so they do not throw unhandled exceptions if API keys are missing in the test environment.
+       4. In test assertions, ALWAYS include diagnostic payloads: `assert response.status_code == 200, f"HTTP {response.status_code}: {response.text}"`.
+     * PYDANTIC EMAILSTR & EMAIL-VALIDATOR: If a test fails during collection with `ImportError: email-validator is not installed, run pip install pydantic[email]`, you MUST add `email-validator>=2.0.0` to `requirements.txt`.
+     * MONGODB / MONGODBMEMORYSERVER ON ALPINE: If a test fails with `UnknownLinuxDistro [Error]: Unknown/unsupported linux "alpine"` or `There is no official build of MongoDB for Alpine!`, this is because `mongodb-memory-server` cannot run on Alpine Linux. You MUST replace `mongodb-memory-server` in the test file with `vi.mock('mongoose')` or in-memory model mocks, removing `MongoMemoryServer.create()`, and remove `mongodb-memory-server` from dependencies in `package.json`.
+     * PYMONGO / MOTOR SERVERSELECTIONTIMEOUTERROR (localhost:27017 Connection Refused): If a test crashes with `pymongo.errors.ServerSelectionTimeoutError: localhost:27017: Connection refused` or `[Errno 111] Connection refused` at setup (e.g. `await db.users.delete_many({})`), this is because the sandbox has no running MongoDB daemon. In `test_*.py` / `test_integration.py`, you MUST replace live database calls with an in-memory dictionary-backed mock fixture or `app.dependency_overrides[get_db] = lambda: mock_db`. NEVER attempt to connect to a live MongoDB instance on localhost:27017.
 
 6. STRICT JSON SCHEMA COMPLIANCE:
    - Your output MUST strictly match the `RefactorOutput` JSON schema:
@@ -162,20 +180,23 @@ class SchemaValidationError(DifferentialRevisionError):
 # Key Balancer Integration Helper
 # ---------------------------------------------------------------------------
 
-def get_api_key_for_stage(stage: str = "CODEGEN", mode: Optional[str] = None) -> List[str]:
+def get_api_key_for_stage(stage: str = "CODEGEN", mode: Optional[str] = None, component_id: Optional[str] = None) -> List[str]:
     """
     Resolves dynamically load-balanced Gemini API keys for the given SDLC stage.
+    When component_id is provided, coordinates with KeyReservationManager so that concurrent
+    components executing in the same pipeline stage are strictly assigned DIFFERENT API keys.
     """
     active_mode = mode or get_generation_mode()
-    keys = get_gemini_keys_for_stage(stage, mode=active_mode)
-    primary_key = (
-        os.environ.get(f"GEMINI_API_KEY_{stage.upper()}")
-        or os.environ.get("GEMINI_API_KEY_CODEGEN")
-        or os.environ.get("GEMINI_API_KEY_1")
-        or os.environ.get("GEMINI_API_KEY")
-    )
-    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
-        keys = [primary_key.strip()] + keys
+    keys = get_gemini_keys_for_stage(stage, mode=active_mode, component_id=component_id)
+    if not keys:
+        primary_key = (
+            os.environ.get(f"GEMINI_API_KEY_{stage.upper()}")
+            or os.environ.get("GEMINI_API_KEY_CODEGEN")
+            or os.environ.get("GEMINI_API_KEY_1")
+            or os.environ.get("GEMINI_API_KEY")
+        )
+        if primary_key:
+            keys = [primary_key.strip()]
     return keys
 
 
@@ -673,8 +694,8 @@ def run_differential_revision(
     active_mode = (mode or get_generation_mode()).upper()
     eff_primary, eff_secondary = resolve_models_for_mode(
         mode=active_mode,
-        primary_model="gemini-3.7-flash",
-        secondary_model="gemini-3.5-flash-lite",
+        primary_model="gemini-3.5-flash-lite",
+        secondary_model="gemini-3.1-flash-lite",
     )
     p_model = primary_model or eff_primary
     s_model = secondary_model or eff_secondary
@@ -748,6 +769,7 @@ def stream_differential_revision(
     stage: str = "CODEGEN",
     primary_model: Optional[str] = None,
     secondary_model: Optional[str] = None,
+    component_id: Optional[str] = None,
 ) -> Generator[str, None, None]:
     """
     Streams differential revision tokens in real time, yielding token chunks,
@@ -756,13 +778,13 @@ def stream_differential_revision(
     active_mode = (mode or get_generation_mode()).upper()
     eff_primary, eff_secondary = resolve_models_for_mode(
         mode=active_mode,
-        primary_model="gemini-3.7-flash",
-        secondary_model="gemini-3.5-flash-lite",
+        primary_model="gemini-3.5-flash-lite",
+        secondary_model="gemini-3.1-flash-lite",
     )
     p_model = primary_model or eff_primary
     s_model = secondary_model or eff_secondary
 
-    keys = get_api_key_for_stage(stage=stage, mode=active_mode)
+    keys = get_api_key_for_stage(stage=stage, mode=active_mode, component_id=component_id)
     if not keys:
         yield json.dumps({"error": "No Gemini API keys configured for differential revision streaming."})
         return
@@ -830,6 +852,7 @@ def stream_and_merge_differential_revision(
     stage: str = "CODEGEN",
     primary_model: Optional[str] = None,
     secondary_model: Optional[str] = None,
+    component_id: Optional[str] = None,
 ) -> Generator[str, None, None]:
     """
     Streams differential revision tokens in real time, then deterministically merges the
@@ -858,6 +881,7 @@ def stream_and_merge_differential_revision(
         stage=stage,
         primary_model=primary_model,
         secondary_model=secondary_model,
+        component_id=component_id,
     ):
         if "__RESET__" in chunk:
             raw_tokens.clear()
@@ -901,9 +925,11 @@ def stream_and_merge_differential_revision(
             return
         except Exception as merge_err:
             logger.error(f"Failed to merge differential revision: {merge_err}")
+            raise DifferentialRevisionError(f"Differential revision merge failed: {merge_err}") from merge_err
 
-    if usage_part:
-        yield f"\n__USAGE__{usage_part}"
+    raise DifferentialRevisionError(
+        f"Differential revision failed to extract valid modified files from stream. Preview: {full_output_text[:200]}"
+    )
 
 
 # ---------------------------------------------------------------------------

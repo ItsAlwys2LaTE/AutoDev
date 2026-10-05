@@ -80,6 +80,8 @@ def generate_design_stream(
     mode: str = None,
     component: Optional[Any] = None,
     decomposition: Optional[Any] = None,
+    primary_model: str = None,
+    component_id: Optional[str] = None,
 ):
     """
     Takes a structured RequirementsDocument and yields a stream of JSON text 
@@ -115,13 +117,14 @@ def generate_design_stream(
         injected = "\n".join(extra_context_parts)
         component_context = f"{injected}\n\n{component_context}" if component_context else injected
 
-    primary_model, secondary_model = resolve_models_for_mode(mode)
-    keys = get_gemini_keys_for_stage("DESIGN", mode=mode)
-    primary_key = os.environ.get("GEMINI_API_KEY_DESIGN")
-    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
-        keys = [primary_key.strip()] + keys
+    primary_model, secondary_model = resolve_models_for_mode(mode, primary_model=primary_model)
+    keys = get_gemini_keys_for_stage("DESIGN", mode=mode, component_id=component_id)
     if not keys:
-        raise ValueError("GEMINI_API_KEY_DESIGN is not set in the environment variables.")
+        primary_key = os.environ.get("GEMINI_API_KEY_DESIGN") or os.environ.get("GEMINI_API_KEY")
+        if primary_key:
+            keys = [primary_key.strip()]
+        else:
+            raise ValueError("GEMINI_API_KEY_DESIGN is not set in the environment variables.")
 
 
 
@@ -142,6 +145,7 @@ def generate_design_stream(
             - Blueprint `files` MUST include `requirements.txt` declaring `pytest`, `pytest-asyncio`, and `httpx` (alongside FastAPI, Uvicorn, and any business libraries). If any endpoint handles file uploads (`File(...)`) or form data (`Form(...)`), also include `python-multipart`.
             - Blueprint `files` MUST include comprehensive unit test files prefixed with `test_` (e.g., `test_main.py`, `test_api.py`).
             - EXTERNAL SERVICE & DATABASE MOCKING: AutoDev test suites execute in an isolated sandbox without internet access or live database daemons. You MUST design all test files to mock external services (Gemini API / `google.genai`, MongoDB / databases, PyMuPDF / `fitz`, OCR, external HTTP APIs) using `unittest.mock.patch` and `AsyncMock`. NEVER design tests that make live network calls or connect to external databases, as they will hang the sandbox and timeout.
+            - SQLALCHEMY & RELATIONAL DATABASES: If the component uses SQLAlchemy with SQLite, blueprint `files` MUST include `database.py`, `models.py`, `main.py`, and `test_main.py` (and/or `conftest.py`). Design `main.py` to create tables at module load (`models.Base.metadata.create_all(bind=engine)`), configure file-based SQLite (`sqlite:///./app.db`) or `StaticPool`, declare `sqlalchemy` in `requirements.txt`, and specify an `autouse=True` fixture in test files ensuring `Base.metadata.create_all(bind=engine)` executes before any endpoint calls to prevent `sqlite3.OperationalError: no such table` failures.
           * NODE / JS BACKEND SERVICES: Set `run_tests_command` to 'npm install --no-audit --no-fund && npm test' or 'npm install --no-audit --no-fund && npm run test:unit', and include unit test files ending with `.test.js` or `.test.ts`.
           * GO / RUST: Set `run_tests_command` to 'go test ./...' for Go, or 'cargo test' for Rust.
         - FULLSTACK / SINGLE-PASS PROJECTS: If the project is primarily a client-side frontend web app (e.g. React SPA with Vite), treat it as a frontend component (`npm install --no-audit --no-fund && npm run build`, omitting test files). If it contains a standalone backend API server or non-UI business logic, include unit tests for the backend logic.
@@ -156,8 +160,8 @@ def generate_design_stream(
     4. HYBRID TEST & BUILD ARCHITECTURE:
        - For Frontend / UI components (where `run_tests_command` is a build command): DO NOT design or include test files (`*.test.*`, `*.spec.*`) in your blueprint `files` list! Instead, direct all architectural focus and file definitions to complete, robust application source files (components, state management, routing, styles, assets). Ensure `package.json` contains standard build scripts (`"build": "vite build"`).
        - For Backend / Logic components (where `run_tests_command` runs unit tests): You MUST include comprehensive unit test suite files in your blueprint:
-          * For Python (pytest): Test files MUST start with `test_` (e.g., 'test_main.py'). ALWAYS design tests to use raw string literals `r"..."` for regular expressions (e.g. `re.search(r"\d+", text)`) to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures. For FastAPI endpoint testing, design tests using `from fastapi.testclient import TestClient` or async tests with `pytest-asyncio`. Ensure tests mock external services (Gemini, MongoDB, PyMuPDF) using `unittest.mock.patch` and `AsyncMock` so test suites never make blocking real network calls.
-          * For Node/JS backend services using Vitest: Test files MUST end with `.test.js`, `.test.ts`, `.spec.js`, etc. Test server logic by importing handler/controller functions directly with mock req/res. If using MongoDB, use `mongodb-memory-server`. STRICT PROHIBITION: Do NOT design or include `supertest` or `superagent` in dependencies, devDependencies, or test file descriptions.
+          * For Python (pytest): Test files MUST start with `test_` (e.g., 'test_main.py'). ALWAYS design tests to use raw string literals `r"..."` for regular expressions (e.g. `re.search(r"\d+", text)`) to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures. For FastAPI endpoint testing, design tests using `from fastapi.testclient import TestClient` or async tests with `pytest-asyncio`. Ensure tests mock external services (Gemini, MongoDB, PyMuPDF) using `unittest.mock.patch` and `AsyncMock` so test suites never make blocking real network calls. For SQLAlchemy projects, include an autouse database fixture (`@pytest.fixture(autouse=True)`) that calls `Base.metadata.create_all(bind=engine)` before tests run.
+          * For Node/JS backend services using Vitest: Test files MUST end with `.test.js`, `.test.ts`, `.spec.js`, etc. Test server logic by importing handler/controller functions directly with mock req/res. DATABASE TESTING MANDATE: If the service uses MongoDB/Mongoose, ALWAYS mock the database layer using `vi.mock('mongoose')` or in-memory models. STRICT PROHIBITION: Do NOT use `mongodb-memory-server` on Alpine Linux (`node:*-alpine` has no official MongoDB builds). If `mongodb-memory-server` is used, the Docker image MUST be `mcr.microsoft.com/playwright:v1.48.0-jammy` or `node:20-bookworm`. STRICT PROHIBITION: Do NOT design or include `supertest` or `superagent` in dependencies, devDependencies, or test file descriptions.
     5. Architecture Overview: Break it down using clear markers (e.g., "Data Flow:", "Key Components:", "Design Patterns:").
     6. File Order: Present files in a logical dependency order (e.g., Models first, then Services, then Tests, then UI).
     7. Pseudocode: Use proper multi-line formatting, line breaks, and indentation. Clearly annotate classes, methods, inputs, and return types. 

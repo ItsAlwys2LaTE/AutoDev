@@ -18,6 +18,7 @@ class GraphState(TypedDict, total=False):
     execution_result: ExecutionResult
     master_decomposition: Optional[ComponentDecomposition]
     component_name: Optional[str]
+    component_id: Optional[str]
     # operator.add ensures that when parallel nodes return lists, they are concatenated together
     feedbacks: Annotated[List[CriticFeedback], operator.add]
     decision: AdjudicatorDecision
@@ -27,6 +28,8 @@ class GraphState(TypedDict, total=False):
     previous_composite: Optional[float]
     delta: Optional[float]
     dynamic_budget: Optional[int]
+    phase: Optional[str]
+    stage: Optional[str]
 
 def node_correctness(state: GraphState):
     feedback = evaluate_correctness(
@@ -35,16 +38,17 @@ def node_correctness(state: GraphState):
         codebase=state.get("codebase"),
         master_decomposition=state.get("master_decomposition"),
         component_name=state.get("component_name"),
-        mode=state.get("mode")
+        mode=state.get("mode"),
+        component_id=state.get("component_id") or state.get("component_name")
     )
     return {"feedbacks": [feedback]}
 
 def node_architecture(state: GraphState):
-    feedback = evaluate_architecture(state["blueprint"], state["codebase"], state.get("master_decomposition"))
+    feedback = evaluate_architecture(state["blueprint"], state["codebase"], state.get("master_decomposition"), mode=state.get("mode"), component_id=state.get("component_id") or state.get("component_name"))
     return {"feedbacks": [feedback]}
 
 def node_completeness(state: GraphState):
-    feedback = evaluate_completeness(state["requirements"], state["blueprint"], state["codebase"], state.get("master_decomposition"))
+    feedback = evaluate_completeness(state["requirements"], state["blueprint"], state["codebase"], state.get("master_decomposition"), mode=state.get("mode"), component_id=state.get("component_id") or state.get("component_name"))
     return {"feedbacks": [feedback]}
 
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error
@@ -189,6 +193,12 @@ def node_adjudicator(state: GraphState):
     gen_mode = str(state.get("generation_mode") or state.get("mode") or "QUICK").upper()
     previous_composite = state.get("previous_composite")
 
+    comp_name = (state.get("component_name") or "").strip().lower()
+    comp_id = (state.get("component_id") or "").strip().lower()
+    phase = (str(state.get("phase") or state.get("stage") or "")).strip().lower()
+    is_integration = (comp_name == "integration" or comp_id == "integration" or phase == "integration")
+    max_allowed = 5 if is_integration else 3
+
     # GATE 1: Execution failure = mandatory revise
     # We must check if execution failed before even looking at critics.
     exec_success = True
@@ -202,8 +212,9 @@ def node_adjudicator(state: GraphState):
             exec_logs = getattr(execution_result, "logs", "")
 
     if not exec_success:
-        print("Adjudicator: Execution failed. Mandatory revise.")
-        budget = 3 if gen_mode == "QUICK" else 4
+        phase_label = "Integration" if is_integration else "Component"
+        print(f"Adjudicator: Execution failed. Mandatory revise ({phase_label}).")
+        budget = 5 if is_integration else 3
         log_snippet = str(exec_logs)[-2000:] if exec_logs else "No logs provided."
         critic_analysis = synthesize_revision_plan(feedbacks)
 
@@ -231,7 +242,7 @@ def node_adjudicator(state: GraphState):
                 revision_plan=f"Adjudicator System Error: Evaluation failed due to critic system error ({sys_err}).",
                 weighted_composite=10.0,
                 delta=0.0,
-                dynamic_budget=3,
+                dynamic_budget=max_allowed,
                 early_stop=False,
             )
         }
@@ -275,7 +286,7 @@ def node_adjudicator(state: GraphState):
             corr_score_val = float(corr_score)
         except (ValueError, TypeError):
             corr_score_val = 5.0
-        budget = min(5, max(1, math.ceil(corr_score_val / 3))) if corr_score_val > 0 else (2 if gen_mode == "QUICK" else 3)
+        budget = min(5, max(1, math.ceil(corr_score_val / 2.0))) if is_integration else min(3, max(1, math.ceil(corr_score_val / 3.0)))
         plan = synthesize_revision_plan([corr_fb])
         return {
             "decision": AdjudicatorDecision(
@@ -290,7 +301,7 @@ def node_adjudicator(state: GraphState):
 
     # Score calculation across all critics (when Correctness passed or all critics were run)
     composite = calculate_composite_score(feedbacks)
-    budget = min(5, max(1, math.ceil(composite / 3)))
+    budget = min(5, max(1, math.ceil(composite / 2.0))) if is_integration else min(3, max(1, math.ceil(composite / 3.0)))
 
     delta = None
     if previous_composite is not None and previous_composite != "" and not isinstance(previous_composite, bool):
@@ -400,21 +411,25 @@ def route_decision(state: GraphState):
             except (ValueError, TypeError):
                 pass
 
-    # Dynamic budget resolution
-    max_revisions = None
+    comp_name = (state.get("component_name") or "").strip().lower()
+    comp_id = (state.get("component_id") or "").strip().lower()
+    phase = (str(state.get("phase") or state.get("stage") or "")).strip().lower()
+    is_integration = (comp_name == "integration" or comp_id == "integration" or phase == "integration")
+    max_allowed = 5 if is_integration else 3
+
+    # Dynamic budget resolution: strictly 3 revisions in component phase, strictly 5 in integration phase
+    max_revisions = max_allowed
     if decision and getattr(decision, "dynamic_budget", None) is not None:
         try:
             budget_val = int(decision.dynamic_budget)
             if budget_val > 0:
-                max_revisions = budget_val
+                max_revisions = min(max_allowed, budget_val)
         except (ValueError, TypeError):
             pass
-
-    if max_revisions is None:
-        max_revisions = 2 if gen_mode == "QUICK" else 3
     
     verdict = decision.verdict.upper() if decision and getattr(decision, "verdict", None) else "UNKNOWN"
-    print(f"Adjudicator Verdict: {verdict} (Revision: {revision_count}/{max_revisions}, Mode: {gen_mode})")
+    phase_label = "Integration" if is_integration else "Component"
+    print(f"Adjudicator Verdict ({phase_label}): {verdict} (Revision: {revision_count}/{max_revisions})")
     
     verdict_lower = decision.verdict.lower() if decision and getattr(decision, "verdict", None) else ""
 
@@ -422,13 +437,13 @@ def route_decision(state: GraphState):
         return END
 
     if verdict_lower == "pass" or revision_count >= max_revisions:
-        if gen_mode == "QUICK" and revision_count >= max_revisions and verdict_lower != "pass":
-            print(f"[QUICK MODE] Component exceeded {max_revisions} revisions. Forcing proceed.")
+        if revision_count >= max_revisions and verdict_lower != "pass":
+            print(f"{phase_label} exceeded maximum {max_revisions} revisions. Forcing proceed.")
             if decision:
                 decision.verdict = "pass"
-                decision.revision_plan = f"Forced proceed after {max_revisions} revisions in QUICK mode."
+                decision.revision_plan = f"Forced proceed after {max_revisions} revisions."
             else:
-                state["decision"] = AdjudicatorDecision(verdict="pass", revision_plan=f"Forced proceed after {max_revisions} revisions in QUICK mode.")
+                state["decision"] = AdjudicatorDecision(verdict="pass", revision_plan=f"Forced proceed after {max_revisions} revisions.")
         return END
     else:
         # In a fully autonomous loop, this would route to a 'node_codegen_revise'

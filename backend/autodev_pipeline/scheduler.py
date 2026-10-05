@@ -83,6 +83,259 @@ class PipelineScheduler:
         self._scheduler_lock: threading.RLock = threading.RLock()
         self._is_running: bool = False
         self._event_history: List[StateTransitionEvent] = []
+        self.is_paused: bool = False
+        self._paused_at: Optional[float] = None
+
+    @property
+    def paused_at_timestamp(self) -> Optional[float]:
+        with self._scheduler_lock:
+            return self._paused_at
+
+    def pause(
+        self,
+        paused_at: Optional[float] = None,
+        now: Optional[float] = None,
+        active_phase: Optional[str] = None,
+        active_component_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Freezes pipeline execution, pauses stage lease timers, and prevents stage dispatches.
+        Thread-safe and idempotent.
+        """
+        with self._scheduler_lock:
+            inferred_comp = active_component_id
+            inferred_phase = active_phase
+            if not inferred_comp or not inferred_phase:
+                for stage in StageEnum.linear_order():
+                    sem = self.lock_manager._get_semaphore(stage)
+                    if sem.active_leases:
+                        if not inferred_comp:
+                            inferred_comp = sem.active_leases[0].component_id
+                        if not inferred_phase:
+                            inferred_phase = stage.value
+                        break
+
+            phase_display = inferred_phase or "requirements"
+            comp_display = inferred_comp or "none"
+
+            if self.is_paused:
+                print(f"[PAUSE] Development paused. Active phase: {phase_display}, active component: {comp_display}")
+                return {
+                    "already_paused": True,
+                    "paused_at": self._paused_at if self._paused_at is not None else time.time(),
+                    "active_leases_count": self.lock_manager.count_active_leases(),
+                }
+
+            ts = paused_at if paused_at is not None else (now if now is not None else time.time())
+            ts = float(ts)
+            self.is_paused = True
+            self._paused_at = ts
+            self.lock_manager.pause(paused_at=ts)
+            active_count = self.lock_manager.count_active_leases()
+
+            print(f"[PAUSE] Development paused. Active phase: {phase_display}, active component: {comp_display}")
+
+            return {
+                "already_paused": False,
+                "paused_at": ts,
+                "active_leases_count": active_count,
+            }
+
+    def resume(
+        self,
+        resume_time: Optional[float] = None,
+        now: Optional[float] = None,
+        target_stage: Optional[str] = None,
+        modifications_detected: Optional[bool] = None,
+        earliest_target: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Resumes pipeline execution, extends active leases by paused duration,
+        resynchronizes ComponentStateRecord active leases, and unblocks scheduler steps.
+        Thread-safe and idempotent.
+        """
+        with self._scheduler_lock:
+            inferred_target = target_stage
+            if not inferred_target:
+                for stage in StageEnum.linear_order():
+                    sem = self.lock_manager._get_semaphore(stage)
+                    if sem.active_leases:
+                        inferred_target = stage.value
+                        break
+            if not inferred_target:
+                inferred_target = "component_dag"
+
+            mods_str = "yes" if modifications_detected else "no"
+            rewind_info = earliest_target or "none"
+
+            if not self.is_paused:
+                print(f"[RESUME] Development resumed. Target phase/stage: {inferred_target}, modifications detected: {mods_str}, earliest rewind target: {rewind_info}")
+                return {
+                    "already_active": True,
+                    "paused_duration": 0.0,
+                    "extended_leases_count": 0,
+                }
+
+            t_now = resume_time if resume_time is not None else (now if now is not None else time.time())
+            t_now = float(t_now)
+            duration = self.lock_manager.resume(resume_time=t_now)
+            self.is_paused = False
+            self._paused_at = None
+
+            extended_count = self._sync_component_leases()
+
+            print(f"[RESUME] Development resumed. Target phase/stage: {inferred_target}, modifications detected: {mods_str}, earliest rewind target: {rewind_info}")
+
+            return {
+                "already_active": False,
+                "paused_duration": duration,
+                "extended_leases_count": extended_count,
+            }
+
+    def _sync_component_leases(self) -> int:
+        """Synchronizes ComponentStateRecord active leases with extended LeaseTokens in semaphores."""
+        count = 0
+        for stage in StageEnum.linear_order():
+            sem = self.lock_manager._get_semaphore(stage)
+            for lease in sem.active_leases:
+                comp = self.dag.get_component(lease.component_id)
+                if comp:
+                    comp.active_lease = lease
+                    count += 1
+        return count
+
+    def reset(self) -> Dict[str, Any]:
+        """Completely resets scheduler in-memory state."""
+        with self._scheduler_lock:
+            cleared_count = len(self.dag.nodes)
+            if hasattr(self.dag, "clear"):
+                self.dag.clear()
+            else:
+                self.dag._nodes.clear()
+                self.dag._downstream.clear()
+                self.dag._upstream.clear()
+
+            if hasattr(self.queue_manager, "clear_all"):
+                self.queue_manager.clear_all()
+            if hasattr(self.lock_manager, "clear_all"):
+                self.lock_manager.clear_all()
+            if self.state_store and hasattr(self.state_store, "clear"):
+                self.state_store.clear()
+            if self.fault_tolerance:
+                if hasattr(self.fault_tolerance, "_stalled_components"):
+                    self.fault_tolerance._stalled_components.clear()
+                if hasattr(self.fault_tolerance, "circuit_breaker") and hasattr(self.fault_tolerance.circuit_breaker, "reset"):
+                    self.fault_tolerance.circuit_breaker.reset()
+
+            self.is_paused = False
+            self._paused_at = None
+            self._is_running = False
+            self._event_history.clear()
+            print("[RESTART] Development restarted. Restarting development from requirements phase.")
+            return {"cleared_components": cleared_count}
+
+    restart = reset
+
+    def rewind_component(
+        self,
+        component_id: str,
+        target_stage: Union[StageEnum, str] = StageEnum.CRITICS,
+        invalidate_dependents: bool = True,
+        subsequent_component_ids: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Rewinds a component's lifecycle to a specified target stage (e.g. CRITICS, CODEGEN, DESIGN)
+        following user edits during pipeline pause.
+        1. Revokes any active stage lease held by component_id.
+        2. Evicts component_id from all queues.
+        3. Resets component status to READY, clears current_stage and active_lease.
+        4. Enqueues component_id into target_stage with high priority (is_revision=True).
+        5. If invalidate_dependents is True:
+           Finds all downstream dependents (and any subsequent components specified).
+           Evicts them from queues, revokes any leases, enforces dependency ordering,
+           and resets their status to PENDING_DEPS so they redevelop after component_id finishes.
+        """
+        with self._scheduler_lock:
+            norm_target = _normalize_stage(target_stage)
+            comp = self.dag.get_component(component_id)
+            if not comp:
+                return {"success": False, "error": f"Component '{component_id}' not found"}
+
+            from_status = comp.status
+            from_stage = comp.current_stage
+
+            # 1. Release active leases across all stages for this component
+            for stg in StageEnum.linear_order():
+                self.lock_manager.release_stage(stg, component_id)
+            comp.active_lease = None
+            comp.current_stage = None
+
+            # 2. Evict component from all stage queues
+            self.queue_manager.remove_from_all_queues(component_id)
+
+            # 3. Transition component to READY and enqueue into target stage
+            comp.transition_to(ComponentStatus.READY)
+            self.queue_manager.enqueue(
+                norm_target,
+                component_id,
+                priority_order=comp.priority_order,
+                is_revision=True,
+            )
+
+            self.log_event(
+                TransitionEventType.STATUS_TRANSITION,
+                component_id=component_id,
+                from_status=from_status,
+                to_status=ComponentStatus.READY,
+                stage=norm_target,
+                metadata={
+                    "reason": "USER_REWIND",
+                    "previous_stage": from_stage.value if from_stage else None,
+                    "target_stage": norm_target.value,
+                },
+            )
+
+            # 4. Invalidate downstream dependents and subsequent components
+            invalidated_ids: Set[str] = set()
+            if invalidate_dependents:
+                dependents = self.dag.get_downstream_dependents(component_id, transitive=True)
+                invalidated_ids.update(dependents)
+
+            if subsequent_component_ids:
+                invalidated_ids.update(subsequent_component_ids)
+
+            invalidated_ids.discard(component_id)
+
+            for dep_id in invalidated_ids:
+                dep_comp = self.dag.get_component(dep_id)
+                if not dep_comp:
+                    continue
+                dep_from_status = dep_comp.status
+                # Release leases and evict from all queues
+                for stg in StageEnum.linear_order():
+                    self.lock_manager.release_stage(stg, dep_id)
+                self.queue_manager.remove_from_all_queues(dep_id)
+                dep_comp.active_lease = None
+                dep_comp.current_stage = None
+
+                # Enforce dependency edge so dep cannot run until component_id finishes
+                self.dag.add_dependency(component_id=dep_id, depends_on_id=component_id)
+
+                dep_comp.status = ComponentStatus.PENDING_DEPS
+                self.log_event(
+                    TransitionEventType.STATUS_TRANSITION,
+                    component_id=dep_id,
+                    from_status=dep_from_status,
+                    to_status=dep_comp.status,
+                    metadata={"reason": f"INVALIDATED_BY_UPSTREAM_REWIND_{component_id}"},
+                )
+
+            return {
+                "success": True,
+                "component_id": component_id,
+                "target_stage": norm_target.value,
+                "invalidated_dependents": sorted(list(invalidated_ids)),
+            }
 
     @property
     def components(self) -> Dict[str, ComponentStateRecord]:
@@ -168,6 +421,13 @@ class PipelineScheduler:
         Returns a summary dictionary of all actions performed in this tick.
         """
         with self._scheduler_lock:
+            if self.is_paused:
+                return {
+                    "unblocked_components": [],
+                    "dispatched_stages": {},
+                    "expired_leases": [],
+                }
+
             actions_summary: Dict[str, Any] = {
                 "unblocked_components": [],
                 "dispatched_stages": {},
@@ -220,56 +480,86 @@ class PipelineScheduler:
 
             # 3. Stage Dispatching
             for stage in StageEnum.linear_order():
-                if not self.lock_manager.is_stage_occupied(stage):
+                while self.lock_manager.has_available_slot(stage):
                     candidate_id = self.queue_manager.peek(stage)
-                    if candidate_id:
-                        comp = self.dag.get_component(candidate_id)
-                        if comp and comp.status == ComponentStatus.READY:
-                            lease = self.lock_manager.try_acquire_stage(stage, candidate_id)
-                            if lease:
-                                self.queue_manager.dequeue(stage)
-                                from_status = comp.status
-                                comp.transition_to(
-                                    ComponentStatus.IN_STAGE, stage=stage, lease=lease
-                                )
-                                self.log_event(
-                                    TransitionEventType.STAGE_LEASE_ACQUIRED,
-                                    component_id=candidate_id,
-                                    from_status=from_status,
-                                    to_status=ComponentStatus.IN_STAGE,
-                                    stage=stage,
-                                    epoch=lease.epoch,
-                                )
-                                actions_summary["dispatched_stages"][stage.value] = candidate_id
+                    if not candidate_id:
+                        break
+                        
+                    comp = self.dag.get_component(candidate_id)
+                    if not comp or comp.status != ComponentStatus.READY:
+                        # Remove stale entry from queue and try next
+                        self.queue_manager.dequeue(stage)
+                        continue
+
+                    if not self._can_dispatch_concurrently(stage, comp):
+                        break
+
+                    lease = self.lock_manager.try_acquire_stage(stage, candidate_id)
+                    if not lease:
+                        break  # No slot available (race condition guard)
+
+                    self.queue_manager.dequeue(stage)
+                    from_status = comp.status
+                    comp.transition_to(ComponentStatus.IN_STAGE, stage=stage, lease=lease)
+                    self.log_event(
+                        TransitionEventType.STAGE_LEASE_ACQUIRED,
+                        component_id=candidate_id,
+                        from_status=from_status,
+                        to_status=ComponentStatus.IN_STAGE,
+                        stage=stage,
+                        epoch=lease.epoch,
+                    )
+                    
+                    if "dispatched_stages" not in actions_summary:
+                        actions_summary["dispatched_stages"] = {}
+                    dispatched_list = actions_summary["dispatched_stages"].setdefault(stage.value, [])
+                    dispatched_list.append(candidate_id)
 
             return actions_summary
 
+    def _can_dispatch_concurrently(
+        self,
+        stage: StageEnum,
+        candidate: ComponentStateRecord,
+    ) -> bool:
+        """
+        Validates that dispatching this candidate into a stage slot does not
+        violate DAG ordering constraints.
+        """
+        semaphore = self.lock_manager._get_semaphore(stage)
+        current_holders = semaphore.current_holders
+
+        # A lower-priority component already in stage is fine since candidate has higher/equal priority
+        # (lower priority_order value = higher priority)
+
+        # Check if there's a higher-priority component waiting in queue
+        queue_items = self.queue_manager.peek_all(stage)
+        for queued_id in queue_items:
+            if queued_id == candidate.component_id:
+                continue
+            queued_comp = self.dag.get_component(queued_id)
+            if queued_comp and queued_comp.priority_order < candidate.priority_order:
+                # A higher-priority component is waiting - don't skip it
+                return False
+
+        return True
+
     def tick_schedule(self) -> List[Tuple[str, StageEnum, int]]:
         """
-        Runs a scheduling tick and returns list of dispatched and active (component_id, stage, epoch) tuples.
+        Runs a scheduling tick (if not paused) and returns list of dispatched and active (component_id, stage, epoch) tuples.
         Provides compatibility with test harnesses and polling UI clients.
         """
-        summary = self.step()
-        assignments_map: Dict[StageEnum, Tuple[str, int]] = {}
+        with self._scheduler_lock:
+            if not self.is_paused:
+                self.step()
+            assignments: List[Tuple[str, StageEnum, int]] = []
 
-        # 1. Active stage leases currently held in lock manager
-        for stage in StageEnum.linear_order():
-            if self.lock_manager.is_stage_occupied(stage):
-                holder = self.lock_manager.get_stage_holder(stage)
-                epoch = self.lock_manager.get_stage_epoch(stage)
-                if holder:
-                    assignments_map[stage] = (holder, epoch)
+            for stage in StageEnum.linear_order():
+                semaphore = self.lock_manager._get_semaphore(stage)
+                for lease in semaphore.active_leases:
+                    assignments.append((lease.component_id, stage, lease.epoch))
 
-        # 2. Newly dispatched stages from this tick
-        for stage_val, cid in summary.get("dispatched_stages", {}).items():
-            stg = _normalize_stage(stage_val)
-            epoch = self.lock_manager.get_stage_epoch(stg)
-            assignments_map[stg] = (cid, epoch)
-
-        dispatched: List[Tuple[str, StageEnum, int]] = [
-            (cid, stg, epoch) for stg, (cid, epoch) in assignments_map.items()
-        ]
-        return dispatched
+            return assignments
 
     def complete_stage_execution(
         self,
@@ -288,15 +578,53 @@ class PipelineScheduler:
         with self._scheduler_lock:
             norm_stage = _normalize_stage(stage)
             comp = self.dag.get_component(component_id)
-            if not comp or comp.status != ComponentStatus.IN_STAGE or comp.current_stage != norm_stage:
+            if not comp:
                 return False
+
+            # If component already completed, return True idempotently
+            if comp.status == ComponentStatus.COMPLETED:
+                return True
+
+            # Recover only from benign desyncs (lease expiry reverted the component to READY for this
+            # same stage). Never revive components that were invalidated (PENDING_DEPS/CREATED) or
+            # are executing a different stage, so stale completions from aborted runs are ignored.
+            if comp.status != ComponentStatus.IN_STAGE or comp.current_stage != norm_stage:
+                if comp.status in (ComponentStatus.PENDING_DEPS, ComponentStatus.CREATED):
+                    return False
+                if comp.status == ComponentStatus.IN_STAGE and comp.current_stage != norm_stage:
+                    return False
+                comp.status = ComponentStatus.IN_STAGE
+                comp.current_stage = norm_stage
+                self.queue_manager.remove(norm_stage, comp.component_id)
 
             lease = comp.active_lease
             if not lease:
-                return False
+                # Adopt the live semaphore lease for this component/stage if one exists
+                sem = self.lock_manager._get_semaphore(norm_stage)
+                for live in sem.active_leases:
+                    if live.component_id == comp.component_id:
+                        lease = live
+                        break
+            if not lease:
+                lease = LeaseToken(
+                    token_id=str(uuid.uuid4()),
+                    component_id=component_id,
+                    stage=norm_stage,
+                    epoch=0,
+                    acquired_at=time.time(),
+                    expires_at=time.time() + 300.0,
+                    lease_duration_sec=300.0,
+                )
+            comp.active_lease = lease
 
-            if dynamic_budget is not None and dynamic_budget > comp.max_revisions:
-                comp.max_revisions = dynamic_budget
+            max_cap = 5 if norm_stage == StageEnum.INTEGRATION else 3
+            if dynamic_budget is not None:
+                budget_to_set = min(max_cap, int(dynamic_budget))
+                comp.max_revisions = budget_to_set
+            elif norm_stage == StageEnum.INTEGRATION and comp.max_revisions < 5:
+                comp.max_revisions = 5
+            elif norm_stage != StageEnum.INTEGRATION and comp.max_revisions > 3:
+                comp.max_revisions = 3
 
             if force_proceed:
                 self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
@@ -380,77 +708,51 @@ class PipelineScheduler:
                 if verdict_lower == "revise":
                     comp.increment_revision()
                     if comp.has_exceeded_revisions():
-                        is_quick = (
-                            getattr(self.config, "generation_mode", "QUICK").upper() == "QUICK"
+                        # Force proceed after revisions exhausted (max_revisions reached)
+                        self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                        comp.active_lease = None
+                        comp.current_stage = None
+                        comp.force_proceeded = True
+                        if comp.revision_count == 0:
+                            comp.revision_count = 1
+                        reason = f"Forced advancement after {comp.revision_count} revisions"
+                        comp.transition_to(
+                            ComponentStatus.COMPLETED,
+                            stage=None,
+                            lease=None,
+                            reason=reason,
                         )
-                        if is_quick:
-                            # In QUICK mode: FORCE PROCEED rather than QUARANTINE!
-                            self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
-                            comp.active_lease = None
-                            comp.current_stage = None
-                            comp.force_proceeded = True
-                            if comp.revision_count == 0:
-                                comp.revision_count = 1
-                            reason = f"Forced advancement after {comp.revision_count} revisions in QUICK mode"
-                            comp.transition_to(
-                                ComponentStatus.COMPLETED,
-                                stage=None,
-                                lease=None,
-                                reason=reason,
-                            )
-                            self.log_event(
-                                TransitionEventType.STATUS_TRANSITION,
-                                component_id=component_id,
-                                from_status=ComponentStatus.IN_STAGE,
-                                to_status=ComponentStatus.COMPLETED,
-                                stage=norm_stage,
-                                metadata={
-                                    "forced_proceed": True,
-                                    "revision_count": comp.revision_count,
-                                    "reason": reason,
-                                },
-                            )
-                            # Unblock downstream DAG dependencies so pipeline can finish
-                            ready_ids = self.dag.get_ready_components()
-                            for cid in ready_ids:
-                                dep_comp = self.dag.get_component(cid)
-                                if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
-                                    from_st = dep_comp.status
-                                    dep_comp.transition_to(ComponentStatus.READY)
-                                    self.log_event(
-                                        TransitionEventType.DEPENDENCY_RESOLVED,
-                                        component_id=cid,
-                                        from_status=from_st,
-                                        to_status=ComponentStatus.READY,
-                                    )
-                                    self.queue_manager.enqueue(
-                                        StageEnum.DESIGN,
-                                        cid,
-                                        priority_order=dep_comp.priority_order,
-                                    )
-                            return True
-                        else:
-                            # Standard COMPLEX mode quarantine
-                            self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
-                            reason = revision_plan or f"Exceeded maximum revision limit ({comp.max_revisions} cycles)"
-                            comp.transition_to(
-                                ComponentStatus.QUARANTINED,
-                                stage=None,
-                                lease=None,
-                                reason=reason,
-                            )
-                            self.log_event(
-                                TransitionEventType.QUARANTINE_ISOLATED,
-                                component_id=component_id,
-                                from_status=ComponentStatus.IN_STAGE,
-                                to_status=ComponentStatus.QUARANTINED,
-                                stage=norm_stage,
-                            )
-                            if self.fault_tolerance:
-                                self.fault_tolerance.trigger_cascade_pause(
-                                    component_id, reason="UPSTREAM_QUARANTINED"
+                        self.log_event(
+                            TransitionEventType.STATUS_TRANSITION,
+                            component_id=component_id,
+                            from_status=ComponentStatus.IN_STAGE,
+                            to_status=ComponentStatus.COMPLETED,
+                            stage=norm_stage,
+                            metadata={
+                                "forced_proceed": True,
+                                "revision_count": comp.revision_count,
+                                "reason": reason,
+                            },
+                        )
+                        # Unblock downstream DAG dependencies so pipeline can finish
+                        ready_ids = self.dag.get_ready_components()
+                        for cid in ready_ids:
+                            dep_comp = self.dag.get_component(cid)
+                            if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
+                                from_st = dep_comp.status
+                                dep_comp.transition_to(ComponentStatus.READY)
+                                self.log_event(
+                                    TransitionEventType.DEPENDENCY_RESOLVED,
+                                    component_id=cid,
+                                    from_status=from_st,
+                                    to_status=ComponentStatus.READY,
                                 )
-                            return True
+                                self.queue_manager.enqueue(
+                                    StageEnum.DESIGN,
+                                    cid,
+                                    priority_order=dep_comp.priority_order,
+                                )
+                        return True
                     else:
                         # Return to CODEGEN (or INTEGRATION) with revision priority bonus
                         rev_stage = StageEnum.INTEGRATION if norm_stage == StageEnum.INTEGRATION else StageEnum.CODEGEN
@@ -474,97 +776,72 @@ class PipelineScheduler:
                         return True
 
                 elif verdict_lower != "pass":
-                    is_quick = (
-                        getattr(self.config, "generation_mode", "QUICK").upper() == "QUICK"
-                    )
-                    if is_quick:
-                        comp.increment_revision()
-                        if comp.has_exceeded_revisions():
-                            # In QUICK mode: FORCE PROCEED after retries exhausted (max_revisions reached)
-                            self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
-                            comp.active_lease = None
-                            comp.current_stage = None
-                            comp.force_proceeded = True
-                            if comp.revision_count == 0:
-                                comp.revision_count = 1
-                            reason = f"Forced advancement after failed critics ({comp.revision_count} revisions) in QUICK mode"
-                            comp.transition_to(
-                                ComponentStatus.COMPLETED,
-                                stage=None,
-                                lease=None,
-                                reason=reason,
-                            )
-                            self.log_event(
-                                TransitionEventType.STATUS_TRANSITION,
-                                component_id=component_id,
-                                from_status=ComponentStatus.IN_STAGE,
-                                to_status=ComponentStatus.COMPLETED,
-                                stage=norm_stage,
-                                metadata={
-                                    "forced_proceed": True,
-                                    "revision_count": comp.revision_count,
-                                    "reason": reason,
-                                },
-                            )
-                            ready_ids = self.dag.get_ready_components()
-                            for cid in ready_ids:
-                                dep_comp = self.dag.get_component(cid)
-                                if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
-                                    from_st = dep_comp.status
-                                    dep_comp.transition_to(ComponentStatus.READY)
-                                    self.log_event(
-                                        TransitionEventType.DEPENDENCY_RESOLVED,
-                                        component_id=cid,
-                                        from_status=from_st,
-                                        to_status=ComponentStatus.READY,
-                                    )
-                                    self.queue_manager.enqueue(
-                                        StageEnum.DESIGN,
-                                        cid,
-                                        priority_order=dep_comp.priority_order,
-                                    )
-                            return True
-                        else:
-                            # In QUICK mode: 1 self-healing retry allowed before forcing proceed
-                            rev_stage = StageEnum.INTEGRATION if norm_stage == StageEnum.INTEGRATION else StageEnum.CODEGEN
-                            StageHandoverProtocol.execute_handover(
-                                component=comp,
-                                current_stage=norm_stage,
-                                lease_token=lease,
-                                lock_manager=self.lock_manager,
-                                queue_manager=self.queue_manager,
-                                next_stage=rev_stage,
-                                is_revision=True,
-                            )
-                            self.log_event(
-                                TransitionEventType.STATUS_TRANSITION,
-                                component_id=component_id,
-                                from_status=ComponentStatus.IN_STAGE,
-                                to_status=comp.status,
-                                stage=rev_stage,
-                                metadata={"revision": comp.revision_count},
-                            )
-                            return True
-                    else:
-                        # Terminal critic failure
+                    comp.increment_revision()
+                    if comp.has_exceeded_revisions():
+                        # FORCE PROCEED after retries exhausted (max_revisions reached)
                         self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)
+                        comp.active_lease = None
+                        comp.current_stage = None
+                        comp.force_proceeded = True
+                        if comp.revision_count == 0:
+                            comp.revision_count = 1
+                        reason = f"Forced advancement after failed critics ({comp.revision_count} revisions)"
                         comp.transition_to(
-                            ComponentStatus.FAILED,
+                            ComponentStatus.COMPLETED,
                             stage=None,
                             lease=None,
-                            reason=revision_plan or "Critic evaluation failed",
+                            reason=reason,
                         )
                         self.log_event(
                             TransitionEventType.STATUS_TRANSITION,
                             component_id=component_id,
                             from_status=ComponentStatus.IN_STAGE,
-                            to_status=ComponentStatus.FAILED,
+                            to_status=ComponentStatus.COMPLETED,
                             stage=norm_stage,
+                            metadata={
+                                "forced_proceed": True,
+                                "revision_count": comp.revision_count,
+                                "reason": reason,
+                            },
                         )
-                        if self.fault_tolerance:
-                            self.fault_tolerance.trigger_cascade_pause(
-                                component_id, reason="UPSTREAM_FAILED"
-                            )
+                        ready_ids = self.dag.get_ready_components()
+                        for cid in ready_ids:
+                            dep_comp = self.dag.get_component(cid)
+                            if dep_comp and dep_comp.status in (ComponentStatus.CREATED, ComponentStatus.PENDING_DEPS):
+                                from_st = dep_comp.status
+                                dep_comp.transition_to(ComponentStatus.READY)
+                                self.log_event(
+                                    TransitionEventType.DEPENDENCY_RESOLVED,
+                                    component_id=cid,
+                                    from_status=from_st,
+                                    to_status=ComponentStatus.READY,
+                                )
+                                self.queue_manager.enqueue(
+                                    StageEnum.DESIGN,
+                                    cid,
+                                    priority_order=dep_comp.priority_order,
+                                )
+                        return True
+                    else:
+                        # Schedule next self-healing revision
+                        rev_stage = StageEnum.INTEGRATION if norm_stage == StageEnum.INTEGRATION else StageEnum.CODEGEN
+                        StageHandoverProtocol.execute_handover(
+                            component=comp,
+                            current_stage=norm_stage,
+                            lease_token=lease,
+                            lock_manager=self.lock_manager,
+                            queue_manager=self.queue_manager,
+                            next_stage=rev_stage,
+                            is_revision=True,
+                        )
+                        self.log_event(
+                            TransitionEventType.STATUS_TRANSITION,
+                            component_id=component_id,
+                            from_status=ComponentStatus.IN_STAGE,
+                            to_status=comp.status,
+                            stage=rev_stage,
+                            metadata={"revision": comp.revision_count},
+                        )
                         return True
 
             # Standard sequential progression: CRITICS passing concludes the per-component unit lifecycle

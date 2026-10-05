@@ -15,6 +15,81 @@ from typing import List
 class DocumentationSet(BaseModel):
     files: List[CodeFile] = Field(description="List of documentation files")
 
+
+def create_fallback_documentation_set(
+    requirements: RequirementsDocument,
+    blueprint: SystemDesignBlueprint,
+    codebase: GeneratedCodeBase,
+) -> DocumentationSet:
+    """Generates high-quality fallback README.md and USER_GUIDE.md files deterministically."""
+    title = requirements.project_title if requirements and requirements.project_title else "Software Project"
+    overview = requirements.overview if requirements and requirements.overview else "Autonomous software application developed with AutoDev."
+    tech_stack = ", ".join(blueprint.tech_stack) if blueprint and blueprint.tech_stack else "Fullstack"
+
+    readme_content = f"""# {title}
+
+{overview}
+
+## Architecture & Technology Stack
+- **Tech Stack**: {tech_stack}
+- **Container Environment**: {blueprint.docker_image if blueprint and blueprint.docker_image else "python:3.11-slim"}
+
+## Codebase Structure
+The project contains the following modules:
+"""
+    if codebase and codebase.files:
+        for f in codebase.files:
+            readme_content += f"- `{f.file_name}`\n"
+    else:
+        readme_content += "- Application source files\n"
+
+    readme_content += """
+## Getting Started
+
+### Installation
+Clone this repository and install necessary dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+### Running the Application
+```bash
+python main.py
+```
+
+### Running Automated Tests
+```bash
+pytest
+```
+"""
+
+    user_guide_content = f"""# {title} - User Guide
+
+## Overview
+{overview}
+
+## Key Features & Capabilities
+"""
+    if requirements and requirements.user_stories:
+        for idx, story in enumerate(requirements.user_stories, 1):
+            user_guide_content += f"### {idx}. {story.title}\n"
+            user_guide_content += f"As a {story.as_a}, I want to {story.i_want_to} so that {story.so_that}.\n\n"
+            if story.acceptance_criteria:
+                user_guide_content += "**Acceptance Criteria:**\n"
+                for ac in story.acceptance_criteria:
+                    user_guide_content += f"- {ac.description}: {ac.expected_behavior}\n"
+                user_guide_content += "\n"
+    else:
+        user_guide_content += """### 1. Primary Feature Set
+Refer to the application specifications in `README.md` for running and interacting with the system.
+"""
+
+    return DocumentationSet(files=[
+        CodeFile(file_name="README.md", source_code=readme_content.strip()),
+        CodeFile(file_name="USER_GUIDE.md", source_code=user_guide_content.strip())
+    ])
+
+
 def generate_documentation_stream(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, mode: str = None):
     primary_model, secondary_model = resolve_models_for_mode(mode)
     keys = get_gemini_keys_for_stage("DOCUMENTATION", mode=mode)
@@ -22,7 +97,10 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
         keys = [primary_key.strip()] + keys
     if not keys:
-        raise ValueError("GEMINI_API_KEY_DOCUMENTATION is not set in the environment variables.")
+        print("No API keys configured for documentation. Yielding fallback documentation set.")
+        fallback = create_fallback_documentation_set(requirements, blueprint, codebase)
+        yield fallback.model_dump_json(indent=2)
+        return
 
 
     system_prompt = """
@@ -55,21 +133,21 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
 
     print(f"Documentation Agent is generating documentation using {primary_model} (Model: {primary_model})...")
     for idx, key in enumerate(keys):
-        client = genai.Client(api_key=key)
-
-        @with_exponential_backoff
-        def get_stream(model_name: str):
-            return client.models.generate_content_stream(
-                model=model_name,
-                contents=prompt_content,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt,
-                    temperature=0.3,
-                    response_mime_type="application/json",
-                )
-            )
-
         try:
+            client = genai.Client(api_key=key)
+
+            @with_exponential_backoff
+            def get_stream(model_name: str):
+                return client.models.generate_content_stream(
+                    model=model_name,
+                    contents=prompt_content,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=0.3,
+                        response_mime_type="application/json",
+                    )
+                )
+
             stream = get_stream(primary_model)
             last_usage = None
             for chunk in stream:
@@ -89,20 +167,21 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
             else:
                 print(f"Falling back to {secondary_model} (Model: {secondary_model}) in Documentation Agent...")
                 for fb_idx, fb_key in enumerate(keys):
-                    fb_client = genai.Client(api_key=fb_key)
-
-                    @with_exponential_backoff
-                    def get_fallback_stream(model_name: str):
-                        return fb_client.models.generate_content_stream(
-                            model=model_name,
-                            contents=prompt_content,
-                            config=types.GenerateContentConfig(
-                                system_instruction=system_prompt,
-                                temperature=0.3,
-                                response_mime_type="application/json",
-                            )
-                        )
                     try:
+                        fb_client = genai.Client(api_key=fb_key)
+
+                        @with_exponential_backoff
+                        def get_fallback_stream(model_name: str):
+                            return fb_client.models.generate_content_stream(
+                                model=model_name,
+                                contents=prompt_content,
+                                config=types.GenerateContentConfig(
+                                    system_instruction=system_prompt,
+                                    temperature=0.3,
+                                    response_mime_type="application/json",
+                                )
+                            )
+
                         fallback_stream = get_fallback_stream(secondary_model)
                         last_usage = None
                         for chunk in fallback_stream:
@@ -117,6 +196,9 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
                         print(f"Fallback model ({secondary_model}) on key {fb_idx+1} failed in Documentation Agent: {format_concise_error(fallback_e)}")
                         if fb_idx + 1 < len(keys):
                             continue
-                        yield f'{{"error": "API Error during documentation generation: {format_concise_error(fallback_e)}" }}'
+                        print("All documentation model attempts failed. Yielding deterministic fallback documentation set...")
+                        fallback = create_fallback_documentation_set(requirements, blueprint, codebase)
+                        yield fallback.model_dump_json(indent=2)
                         return
+
 

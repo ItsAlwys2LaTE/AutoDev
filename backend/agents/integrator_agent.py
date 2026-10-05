@@ -20,8 +20,9 @@ def generate_integration_stream(
     previous_codebase: Optional[GeneratedCodeBase] = None,
     revision_plan: Optional[str] = None,
     mode: Optional[str] = None,
+    primary_model: Optional[str] = None,
 ):
-    primary_model, secondary_model = resolve_models_for_mode(mode)
+    primary_model, secondary_model = resolve_models_for_mode(mode, primary_model=primary_model)
     keys = get_gemini_keys_for_stage("INTEGRATION", mode=mode)
     primary_key = os.environ.get("GEMINI_API_KEY_INTEGRATION")
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:
@@ -57,6 +58,8 @@ def generate_integration_stream(
             - Test data persistence, session state, calculations, and AI routing/orchestration logic (mocking external third-party API calls where needed).
          b) Comprehensive Acceptance Criteria Validation: Ensure all major user stories from the requirements are verified with assertions.
          c) ALWAYS use raw string literals `r"..."` for all regular expressions to prevent Python 3.12+ `SyntaxWarning` / `SyntaxError` failures.
+         d) SQLAlchemy / Database Table Initialization: In unified `main.py` and integration tests (`test_integration.py` / `conftest.py`), ALWAYS ensure `Base.metadata.create_all(bind=engine)` is executed at module load or in an `@pytest.fixture(autouse=True)` with all model classes imported. Use file-based SQLite (`sqlite:///./app.db`) to ensure tables and records persist across test assertions and prevent `sqlite3.OperationalError: no such table` errors.
+         e) MongoDB / Motor In-Memory Testing Mandate: In FastAPI + MongoDB/Motor integration tests (`test_integration.py` / `test_app.py`): The test execution sandbox does NOT run a background MongoDB server on localhost:27017. NEVER attempt to connect to a real database in test fixtures (such as calling unmocked `await db.users.delete_many({})`). Instead, either use FastAPI's dependency override (`app.dependency_overrides[get_db] = lambda: mock_db`) or an in-memory dictionary-backed mock collection fixture. If a test fixture needs to clean the database, ensure it operates on mock state or an in-memory store, NEVER an unmocked live Motor/PyMongo client.
        - For Node.js/JavaScript/TypeScript projects:
          a) Test Separation: Unit and component tests run under Vitest in JSDOM; end-to-end browser workflows run in Playwright.
          b) File Naming Convention: Name all Playwright browser tests with the `.e2e.test.ts` or `.e2e.spec.ts` suffix, or place them strictly inside an `e2e/` directory (e.g., `e2e/checkout.test.ts`). Never mix Playwright `{ page }` fixtures into unit test files (`*.test.tsx`, `*.test.ts`, `*.test.js`).
@@ -73,7 +76,7 @@ def generate_integration_stream(
              - 0.0.0.0 Host Binding: All dev servers must explicitly bind to `0.0.0.0` to permit port forwarding.
          f) In React/Vite unit tests, Vitest runs in JSDOM with `src/setupTests.ts` pre-loaded (`window.matchMedia`, `ResizeObserver`, `@testing-library/jest-dom` matchers are globally available).
          g) For Vanilla HTML/JS projects, `"type": "module"` is enforced in `package.json`, so `__dirname` is undefined in ES module scope; resolve `index.html` using `process.cwd()` (e.g., `path.resolve(process.cwd(), 'index.html')`) or `import.meta.url`.
-       - DATABASE TESTS: If testing a Node backend with MongoDB, use `mongodb-memory-server` to mock the DB in tests. Do NOT try connecting to a real local MongoDB instance.
+       - DATABASE TESTS: If testing a Node backend with MongoDB, mock the DB in tests using `vi.mock('mongoose')` or in-memory model stubs. Do NOT use `mongodb-memory-server` on Alpine Linux (there is no official MongoDB build for Alpine), and never connect to a real local MongoDB instance.
        - STRICT PROHIBITION: Do NOT use `supertest` or `superagent` (`import request from 'supertest'` is BANNED). Test server logic by importing route handlers directly with mock req/res or by invoking `app(req, res)` in-memory.
        - IMPORTANT: In ALL .jsx and .tsx test files, you MUST include `import React from 'react';` at the very top.
        - These tests must verify the seams between components (e.g., login -> browse -> add to cart -> checkout).
@@ -151,11 +154,17 @@ def generate_integration_stream(
                 )
                 if broken_files and len(broken_files) < len(previous_codebase.files):
                     print(f"Integration Agent: Engaged targeted differential revision on {len(broken_files)} broken file(s): {broken_files}")
+                    synthetic_blueprint = {
+                        "architecture_overview": decomposition.integration_strategy or decomposition.project_overview,
+                        "tech_stack": decomposition.shared_tech_stack,
+                        "docker_image": decomposition.shared_docker_image,
+                        "run_tests_command": "pytest" if "python" in (decomposition.shared_docker_image or "").lower() else "npm test",
+                    }
                     yield from stream_and_merge_differential_revision(
                         codebase=previous_codebase,
                         broken_files=broken_files,
                         revision_plan=revision_plan,
-                        blueprint=None,
+                        blueprint=synthetic_blueprint,
                         mode=mode,
                         stage="INTEGRATION",
                         primary_model=primary_model,
@@ -164,6 +173,7 @@ def generate_integration_stream(
                     return
             except Exception as diff_err:
                 print(f"Integration Agent: Differential revision bypass/fallback ({diff_err}), falling back to full prompt.")
+                yield "\n__RESET__\n"
 
         prompt_content += f"""
     PREVIOUS INTEGRATED CODEBASE (FAILED ARBITRATION / TESTS):

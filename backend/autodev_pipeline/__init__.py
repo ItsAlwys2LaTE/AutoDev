@@ -26,6 +26,7 @@ from autodev_pipeline.dag_engine import (
 )
 
 from autodev_pipeline.concurrency import (
+    StageSemaphore,
     StageMutex,
     StageLockManager,
     QueueItem,
@@ -64,6 +65,7 @@ __all__ = [
     "CycleResolutionResult",
     "PipelineDAG",
     # Concurrency Controller & Stage Handover (M3)
+    "StageSemaphore",
     "StageMutex",
     "StageLockManager",
     "QueueItem",

@@ -118,6 +118,8 @@ class TransitionEventType(str, Enum):
     CYCLE_RESOLVED = "CYCLE_RESOLVED"
     SNAPSHOT_CREATED = "SNAPSHOT_CREATED"
     CRASH_RECOVERY = "CRASH_RECOVERY"
+    PIPELINE_PAUSED = "PIPELINE_PAUSED"
+    PIPELINE_RESUMED = "PIPELINE_RESUMED"
 
 
 @dataclass(frozen=True)
@@ -137,6 +139,18 @@ class LeaseToken:
         """Checks whether the lease is currently active and unexpired."""
         now = time.time() if current_time is None else current_time
         return now < self.expires_at
+
+    def extend_expiry(self, delta_sec: float) -> "LeaseToken":
+        """Returns a new immutable LeaseToken with expires_at extended by delta_sec."""
+        return LeaseToken(
+            token_id=self.token_id,
+            component_id=self.component_id,
+            stage=self.stage,
+            epoch=self.epoch,
+            acquired_at=self.acquired_at,
+            expires_at=self.expires_at + delta_sec,
+            lease_duration_sec=self.lease_duration_sec,
+        )
 
     def time_remaining(self, current_time: Optional[float] = None) -> float:
         """Returns the seconds remaining before lease expiration."""
@@ -198,7 +212,7 @@ class ComponentStateRecord:
     current_stage: Optional[StageEnum] = None
     active_lease: Optional[LeaseToken] = None
     revision_count: int = 0
-    max_revisions: int = 2
+    max_revisions: int = 3
     force_proceeded: bool = False
 
     # Generated Artifacts & Metadata
@@ -260,8 +274,14 @@ class ComponentStateRecord:
                 ComponentStatus.COMPLETED,
                 ComponentStatus.FAILED,
             },
-            ComponentStatus.COMPLETED: set(),  # Terminal state
-            ComponentStatus.FAILED: set(),     # Terminal state
+            ComponentStatus.COMPLETED: {
+                ComponentStatus.READY,
+                ComponentStatus.PENDING_DEPS,
+            },
+            ComponentStatus.FAILED: {
+                ComponentStatus.READY,
+                ComponentStatus.PENDING_DEPS,
+            },
         },
         init=False,
         repr=False,
@@ -269,7 +289,7 @@ class ComponentStateRecord:
 
     def __post_init__(self):
         if self.max_revisions is None:
-            self.max_revisions = 2
+            self.max_revisions = 3
 
     def can_transition_to(self, target: ComponentStatus) -> bool:
         """Validates if target status is reachable from current status."""
@@ -301,6 +321,8 @@ class ComponentStateRecord:
             self.stage_entered_at = now
         elif new_status == ComponentStatus.COMPLETED:
             self.completed_at = now
+        elif new_status in (ComponentStatus.READY, ComponentStatus.PENDING_DEPS):
+            self.completed_at = None
         elif new_status == ComponentStatus.QUARANTINED:
             self.quarantine_reason = reason
         elif new_status == ComponentStatus.FAILED:
@@ -355,7 +377,7 @@ class ComponentStateRecord:
             current_stage=StageEnum(data["current_stage"]) if data.get("current_stage") else None,
             active_lease=LeaseToken.from_dict(data["active_lease"]) if data.get("active_lease") else None,
             revision_count=int(data.get("revision_count", 0)),
-            max_revisions=int(data["max_revisions"]) if data.get("max_revisions") is not None else 2,
+            max_revisions=int(data["max_revisions"]) if data.get("max_revisions") is not None else 3,
             force_proceeded=bool(data.get("force_proceeded", False)),
             blueprint_artifact=data.get("blueprint_artifact"),
             codebase_artifact=data.get("codebase_artifact"),
@@ -387,12 +409,14 @@ class PipelineConfig:
     state_log_path: str = "pipeline_state.json"    # Persistence path
     quarantine_on_poison_pill: bool = True          # Auto-isolate failing nodes
 
+    max_stage_concurrency: int = 2                 # Max parallel components per stage
+
     def __post_init__(self):
         gen_mode = str(self.generation_mode or "QUICK").upper()
         if self.generation_mode != gen_mode:
             object.__setattr__(self, "generation_mode", gen_mode)
         if self.max_revisions is None:
-            default_revs = 2 if gen_mode == "QUICK" else 3
+            default_revs = 3
             object.__setattr__(self, "max_revisions", default_revs)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -409,17 +433,18 @@ class PipelineConfig:
             "enable_wass": self.enable_wass,
             "state_log_path": self.state_log_path,
             "quarantine_on_poison_pill": self.quarantine_on_poison_pill,
+            "max_stage_concurrency": self.max_stage_concurrency,
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> PipelineConfig:
         """Deserializes a dictionary into a PipelineConfig instance."""
         gen_mode = str(data.get("generation_mode") or "QUICK").upper()
-        default_max_revs = 2 if gen_mode == "QUICK" else 3
+        default_max_revs = 3
         return cls(
             max_revisions=int(data["max_revisions"]) if "max_revisions" in data and data["max_revisions"] is not None else default_max_revs,
             generation_mode=gen_mode,
-            lease_duration_sec=float(data.get("lease_duration_sec", 30.0)),
+            lease_duration_sec=float(data.get("lease_duration_sec", 300.0)),
             lease_heartbeat_interval_sec=float(data.get("lease_heartbeat_interval_sec", 10.0)),
             stage_timeout_sec=float(data.get("stage_timeout_sec", 120.0)),
             docker_timeout_sec=float(data.get("docker_timeout_sec", 45.0)),
@@ -428,6 +453,7 @@ class PipelineConfig:
             enable_wass=bool(data.get("enable_wass", True)),
             state_log_path=str(data.get("state_log_path", "pipeline_state.json")),
             quarantine_on_poison_pill=bool(data.get("quarantine_on_poison_pill", True)),
+            max_stage_concurrency=int(data.get("max_stage_concurrency", 2)),
         )
 
 
@@ -511,7 +537,7 @@ class PipelineSnapshot:
     timestamp: float = field(default_factory=time.time)
     pipeline_status: str = "RUNNING"
     components: Dict[str, ComponentStateRecord] = field(default_factory=dict)
-    stage_leases: Dict[str, Optional[LeaseToken]] = field(default_factory=dict)
+    stage_leases: Dict[str, List[LeaseToken]] = field(default_factory=dict)
     reservation_counter: int = 0
     event_sequence_num: int = 0
 
@@ -523,8 +549,8 @@ class PipelineSnapshot:
             "pipeline_status": self.pipeline_status,
             "components": {cid: c.to_dict() for cid, c in self.components.items()},
             "stage_leases": {
-                stage_str: (lease.to_dict() if lease else None)
-                for stage_str, lease in self.stage_leases.items()
+                stage_str: [lease.to_dict() for lease in leases_list] if leases_list else []
+                for stage_str, leases_list in self.stage_leases.items()
             },
             "reservation_counter": self.reservation_counter,
             "event_sequence_num": self.event_sequence_num,
@@ -537,9 +563,14 @@ class PipelineSnapshot:
             cid: ComponentStateRecord.from_dict(c_data)
             for cid, c_data in data.get("components", {}).items()
         }
-        leases: Dict[str, Optional[LeaseToken]] = {}
+        leases: Dict[str, List[LeaseToken]] = {}
         for stage_str, lease_data in data.get("stage_leases", {}).items():
-            leases[stage_str] = LeaseToken.from_dict(lease_data) if lease_data else None
+            if isinstance(lease_data, list):
+                leases[stage_str] = [LeaseToken.from_dict(l) for l in lease_data]
+            elif lease_data: # Backward compat
+                leases[stage_str] = [LeaseToken.from_dict(lease_data)]
+            else:
+                leases[stage_str] = []
 
         return cls(
             snapshot_id=data.get("snapshot_id", str(uuid.uuid4())),

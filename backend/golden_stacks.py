@@ -595,6 +595,787 @@ filterwarnings =
     ignore::PendingDeprecationWarning
 """
 
+CONFTEST_MOTOR_INTERCEPTOR_BLOCK = """
+# ---------------------------------------------------------------------------
+# AutoDev Universal Motor & PyMongo In-Memory Interceptor:
+# Intercepts motor.motor_asyncio.AsyncIOMotorClient and pymongo.MongoClient
+# so that test suites run against an in-memory document store without requiring
+# a real MongoDB instance running on localhost:27017, preventing
+# pymongo.errors.ServerSelectionTimeoutError: Connection refused.
+# ---------------------------------------------------------------------------
+class _AutoDevHybridResult:
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        if 'acknowledged' not in kwargs:
+            self.acknowledged = True
+    def __await__(self):
+        async def _r():
+            return self
+        return _r().__await__()
+
+class _AutoDevHybridDict(dict):
+    def __await__(self):
+        async def _r():
+            return self
+        return _r().__await__()
+
+class _AutoDevHybridNone:
+    def __bool__(self):
+        return False
+    def __eq__(self, other):
+        return other is None or isinstance(other, _AutoDevHybridNone)
+    def __await__(self):
+        async def _r():
+            return None
+        return _r().__await__()
+
+class _AutoDevHybridCursor:
+    def __init__(self, docs):
+        self._docs = list(docs)
+    def __iter__(self):
+        return iter(self._docs)
+    def __aiter__(self):
+        self._aiter = iter(self._docs)
+        return self
+    async def __anext__(self):
+        try:
+            return next(self._aiter)
+        except StopIteration:
+            raise StopAsyncIteration
+    def to_list(self, length=None):
+        docs = list(self._docs) if length is None else list(self._docs[:length])
+        class _List(list):
+            def __await__(self):
+                async def _r():
+                    return self
+                return _r().__await__()
+        return _List(docs)
+    def sort(self, *args, **kwargs):
+        return self
+    def limit(self, n):
+        self._docs = self._docs[:n]
+        return self
+    def skip(self, n):
+        self._docs = self._docs[n:]
+        return self
+    def __await__(self):
+        async def _r():
+            return list(self._docs)
+        return _r().__await__()
+
+class _AutoDevHybridCollection:
+    def __init__(self, name='collection'):
+        self.name = name
+        self._docs = []
+
+    def _matches(self, doc, f):
+        if not f:
+            return True
+        for k, v in f.items():
+            if k.startswith('$'):
+                continue
+            doc_val = doc.get(k)
+            if isinstance(v, dict):
+                for op, op_val in v.items():
+                    if op == '$eq' and doc_val != op_val:
+                        return False
+                    elif op == '$ne' and doc_val == op_val:
+                        return False
+                    elif op == '$in' and doc_val not in op_val:
+                        return False
+                    elif op == '$nin' and doc_val in op_val:
+                        return False
+            elif doc_val != v:
+                return False
+        return True
+
+    def delete_many(self, filter=None, *args, **kwargs):
+        f = filter or {}
+        before = len(self._docs)
+        self._docs = [d for d in self._docs if not self._matches(d, f)]
+        deleted = before - len(self._docs)
+        return _AutoDevHybridResult(deleted_count=deleted)
+
+    def delete_one(self, filter=None, *args, **kwargs):
+        f = filter or {}
+        for i, d in enumerate(self._docs):
+            if self._matches(d, f):
+                self._docs.pop(i)
+                return _AutoDevHybridResult(deleted_count=1)
+        return _AutoDevHybridResult(deleted_count=0)
+
+    def insert_one(self, document, *args, **kwargs):
+        d = dict(document)
+        if '_id' not in d:
+            d['_id'] = f'mock_{len(self._docs)+1}'
+        self._docs.append(d)
+        return _AutoDevHybridResult(inserted_id=d['_id'])
+
+    def insert_many(self, documents, *args, **kwargs):
+        ids = []
+        for doc in documents:
+            d = dict(doc)
+            if '_id' not in d:
+                d['_id'] = f'mock_{len(self._docs)+1}'
+            self._docs.append(d)
+            ids.append(d['_id'])
+        return _AutoDevHybridResult(inserted_ids=ids)
+
+    def find_one(self, filter=None, *args, **kwargs):
+        f = filter or {}
+        for d in self._docs:
+            if self._matches(d, f):
+                return _AutoDevHybridDict(dict(d))
+        return _AutoDevHybridNone()
+
+    def find(self, filter=None, *args, **kwargs):
+        f = filter or {}
+        matched = [dict(d) for d in self._docs if self._matches(d, f)]
+        return _AutoDevHybridCursor(matched)
+
+    def update_one(self, filter, update, upsert=False, *args, **kwargs):
+        f = filter or {}
+        for d in self._docs:
+            if self._matches(d, f):
+                if '$set' in update:
+                    d.update(update['$set'])
+                if '$unset' in update:
+                    for k in update['$unset']:
+                        d.pop(k, None)
+                if '$inc' in update:
+                    for k, inc_val in update['$inc'].items():
+                        d[k] = d.get(k, 0) + inc_val
+                return _AutoDevHybridResult(matched_count=1, modified_count=1, upserted_id=None)
+        if upsert:
+            new_doc = dict(f)
+            if '$set' in update:
+                new_doc.update(update['$set'])
+            if '_id' not in new_doc:
+                new_doc['_id'] = f'mock_{len(self._docs)+1}'
+            self._docs.append(new_doc)
+            return _AutoDevHybridResult(matched_count=0, modified_count=0, upserted_id=new_doc['_id'])
+        return _AutoDevHybridResult(matched_count=0, modified_count=0, upserted_id=None)
+
+    def update_many(self, filter, update, upsert=False, *args, **kwargs):
+        f = filter or {}
+        matched = 0
+        for d in self._docs:
+            if self._matches(d, f):
+                matched += 1
+                if '$set' in update:
+                    d.update(update['$set'])
+                if '$unset' in update:
+                    for k in update['$unset']:
+                        d.pop(k, None)
+                if '$inc' in update:
+                    for k, inc_val in update['$inc'].items():
+                        d[k] = d.get(k, 0) + inc_val
+        return _AutoDevHybridResult(matched_count=matched, modified_count=matched, upserted_id=None)
+
+    def count_documents(self, filter=None, *args, **kwargs):
+        f = filter or {}
+        count = sum(1 for d in self._docs if self._matches(d, f))
+        class _Int(int):
+            def __await__(self):
+                async def _r():
+                    return self
+                return _r().__await__()
+        return _Int(count)
+
+    def replace_one(self, filter, replacement, upsert=False, *args, **kwargs):
+        f = filter or {}
+        for i, d in enumerate(self._docs):
+            if self._matches(d, f):
+                rep = dict(replacement)
+                if '_id' not in rep and '_id' in d:
+                    rep['_id'] = d['_id']
+                self._docs[i] = rep
+                return _AutoDevHybridResult(matched_count=1, modified_count=1, upserted_id=None)
+        if upsert:
+            rep = dict(replacement)
+            if '_id' not in rep:
+                rep['_id'] = f'mock_{len(self._docs)+1}'
+            self._docs.append(rep)
+            return _AutoDevHybridResult(matched_count=0, modified_count=0, upserted_id=rep['_id'])
+        return _AutoDevHybridResult(matched_count=0, modified_count=0, upserted_id=None)
+
+    def create_index(self, keys, *args, **kwargs):
+        class _Str(str):
+            def __await__(self):
+                async def _r():
+                    return self
+                return _r().__await__()
+        return _Str('mock_idx')
+
+    def drop(self, *args, **kwargs):
+        self._docs.clear()
+        return _AutoDevHybridResult()
+
+    def aggregate(self, pipeline, *args, **kwargs):
+        return _AutoDevHybridCursor(self._docs)
+
+    def distinct(self, key, filter=None, *args, **kwargs):
+        f = filter or {}
+        vals = list(set(d[key] for d in self._docs if key in d and self._matches(d, f)))
+        class _List(list):
+            def __await__(self):
+                async def _r():
+                    return self
+                return _r().__await__()
+        return _List(vals)
+
+class _AutoDevHybridDatabase:
+    def __init__(self, name='test_db', client=None):
+        self.name = name
+        self.client = client
+        self._collections = {}
+
+    def __getitem__(self, name):
+        if name not in self._collections:
+            self._collections[name] = _AutoDevHybridCollection(name)
+        return self._collections[name]
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        return self[name]
+
+    def get_collection(self, name):
+        return self[name]
+
+    def list_collection_names(self, *args, **kwargs):
+        class _List(list):
+            def __await__(self):
+                async def _r():
+                    return self
+                return _r().__await__()
+        return _List(list(self._collections.keys()))
+
+    def command(self, cmd, *args, **kwargs):
+        class _Dict(dict):
+            def __await__(self):
+                async def _r():
+                    return self
+                return _r().__await__()
+        return _Dict({'ok': 1.0})
+
+    def drop_collection(self, name):
+        if name in self._collections:
+            self._collections[name].drop()
+        return _AutoDevHybridResult()
+
+    def __await__(self):
+        async def _r():
+            return self
+        return _r().__await__()
+
+class _AutoDevHybridClient:
+    def __init__(self, *args, **kwargs):
+        self._databases = {}
+
+    def __getitem__(self, name):
+        if name not in self._databases:
+            self._databases[name] = _AutoDevHybridDatabase(name, self)
+        return self._databases[name]
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        return self[name]
+
+    def get_database(self, name='test_db'):
+        return self[name]
+
+    def close(self):
+        pass
+
+    def server_info(self, *args, **kwargs):
+        class _Dict(dict):
+            def __await__(self):
+                async def _r():
+                    return self
+                return _r().__await__()
+        return _Dict({'version': '7.0.0', 'ok': 1.0})
+
+    def __await__(self):
+        async def _r():
+            return self
+        return _r().__await__()
+
+_autodev_shared_hybrid_client = _AutoDevHybridClient()
+
+try:
+    import motor.motor_asyncio
+    motor.motor_asyncio.AsyncIOMotorClient = _AutoDevHybridClient
+except Exception:
+    pass
+
+try:
+    import motor
+    if hasattr(motor, 'AsyncIOMotorClient'):
+        motor.AsyncIOMotorClient = _AutoDevHybridClient
+except Exception:
+    pass
+
+try:
+    import pymongo
+    pymongo.MongoClient = _AutoDevHybridClient
+except Exception:
+    pass
+"""
+
+CONFTEST_FASTAPI_SERVICE_SYNC_BLOCK = CONFTEST_MOTOR_INTERCEPTOR_BLOCK + """
+# ---------------------------------------------------------------------------
+# AutoDev FastAPI & Service Mock Bridge:
+# 1. Dynamically maps FastAPI Depends(get_db/...) to in-memory store or mocks
+# 2. Synchronizes patched external services across modules (e.g. send_brevo_email)
+# 3. Intercepts TestClient / httpx requests to output diagnostic traces on >=500
+# ---------------------------------------------------------------------------
+def _autodev_sync_fastapi_and_mocks():
+    import sys
+    import unittest.mock as mock
+
+    apps = []
+    SKIP_MODS = ('pytest', '_pytest', 'unittest', 'typing', 'starlette', 'pydantic', 'anyio', 'asyncio', 'websockets', 'cryptography', 'urllib', 'http', 'email', 'encodings', 'importlib')
+    try:
+        for mod in list(sys.modules.values()):
+            if not mod or not hasattr(mod, '__name__') or mod.__name__.startswith(SKIP_MODS):
+                continue
+            try:
+                for attr_name in dir(mod):
+                    try:
+                        candidate = getattr(mod, attr_name, None)
+                        if hasattr(candidate, 'dependency_overrides') and hasattr(candidate, 'routes') and isinstance(getattr(candidate, 'routes', None), (list, tuple)):
+                            if candidate not in apps:
+                                apps.append(candidate)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    try:
+        for app in apps:
+            routes = getattr(app, 'routes', [])
+            if not isinstance(routes, (list, tuple)):
+                continue
+            for route in routes:
+                dependant = getattr(route, 'dependant', None)
+                if not dependant:
+                    continue
+                raw_deps = getattr(dependant, 'dependencies', [])
+                if not isinstance(raw_deps, (list, tuple)):
+                    continue
+                deps_to_visit = list(raw_deps)
+                visited = set()
+                while deps_to_visit:
+                    curr_dep = deps_to_visit.pop(0)
+                    if curr_dep in visited:
+                        continue
+                    visited.add(curr_dep)
+                    sub_deps = getattr(curr_dep, 'dependencies', [])
+                    if isinstance(sub_deps, (list, tuple)):
+                        deps_to_visit.extend(sub_deps)
+
+                    call = getattr(curr_dep, 'call', None)
+                    if callable(call):
+                        cname = getattr(call, '__name__', '')
+                        if cname in ('get_db', 'get_database', 'get_db_session', 'db_dependency', 'get_db_conn', 'db') or 'db' in cname.lower() or 'database' in cname.lower():
+                            active_mock = None
+                            for mod_name in ['main', 'app', 'database', 'db', 'app.main', 'app.database']:
+                                m = sys.modules.get(mod_name)
+                                if m and hasattr(m, cname):
+                                    attr = getattr(m, cname)
+                                    if isinstance(attr, (mock.Mock, mock.MagicMock)):
+                                        active_mock = attr
+                                        break
+                            if not active_mock and isinstance(call, (mock.Mock, mock.MagicMock)):
+                                active_mock = call
+
+                            if active_mock is not None:
+                                def make_resolver(target_mock):
+                                    def _dynamic_resolver():
+                                        if hasattr(target_mock, 'return_value') and not isinstance(target_mock.return_value, mock.MagicMock):
+                                            return target_mock.return_value
+                                        return target_mock()
+                                    return _dynamic_resolver
+
+                                app.dependency_overrides[call] = make_resolver(active_mock)
+    except Exception:
+        pass
+
+    try:
+        if '_autodev_shared_hybrid_client' in globals():
+            shared_db = _autodev_shared_hybrid_client.get_database("test_db")
+            for mod_name in list(sys.modules.keys()):
+                if not mod_name or mod_name.startswith(('pytest', '_pytest', 'unittest', 'typing', 'starlette', 'pydantic')):
+                    continue
+                m = sys.modules.get(mod_name)
+                if not m:
+                    continue
+                for attr in ('db', 'database', 'client', 'mongo_client', 'mongodb'):
+                    if hasattr(m, attr):
+                        try:
+                            val = getattr(m, attr, None)
+                            val_type = type(val).__name__
+                            val_mod = getattr(type(val), '__module__', '')
+                            if 'mongo' in val_type.lower() or 'motor' in val_type.lower() or 'mongo' in val_mod.lower() or 'motor' in val_mod.lower():
+                                if 'client' in attr.lower():
+                                    setattr(m, attr, _autodev_shared_hybrid_client)
+                                else:
+                                    setattr(m, attr, shared_db)
+                        except Exception:
+                            pass
+    except Exception:
+        pass
+
+    try:
+        for svc_name in ['services', 'service', 'app.services', 'app.service']:
+            svc_mod = sys.modules.get(svc_name)
+            if not svc_mod:
+                continue
+            for main_name in ['main', 'app', 'app.main']:
+                m_mod = sys.modules.get(main_name)
+                if not m_mod:
+                    continue
+                for attr in dir(svc_mod):
+                    if attr.startswith('_'):
+                        continue
+                    try:
+                        svc_val = getattr(svc_mod, attr, None)
+                        main_val = getattr(m_mod, attr, None)
+                        if isinstance(svc_val, (mock.Mock, mock.MagicMock)) and not isinstance(main_val, (mock.Mock, mock.MagicMock)):
+                            setattr(m_mod, attr, svc_val)
+                        elif isinstance(main_val, (mock.Mock, mock.MagicMock)) and not isinstance(svc_val, (mock.Mock, mock.MagicMock)):
+                            setattr(svc_mod, attr, main_val)
+                        elif callable(svc_val) and not isinstance(svc_val, (mock.Mock, mock.MagicMock)):
+                            if any(kw in attr.lower() for kw in ('brevo', 'sendgrid', 'mailgun', 'send_email', 'send_otp', 'send_sms', 'ses')):
+                                safe_mock = mock.MagicMock(return_value={"status": "sent", "messageId": "<mock@autodev>"})
+                                setattr(svc_mod, attr, safe_mock)
+                                setattr(m_mod, attr, safe_mock)
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
+# Intercept Starlette/FastAPI TestClient.request
+try:
+    from starlette.testclient import TestClient
+    if not getattr(TestClient.request, '_autodev_wrapped', False):
+        _orig_tc_request = TestClient.request
+        def _wrapped_tc_request(self, method, url, *args, **kwargs):
+            _autodev_sync_fastapi_and_mocks()
+            resp = _orig_tc_request(self, method, url, *args, **kwargs)
+            if getattr(resp, 'status_code', 0) >= 500:
+                import sys
+                sys.stderr.write(f"\\n[AutoDev Test Diagnostic] HTTP {resp.status_code} on {method} {url}:\\n{getattr(resp, 'text', '')}\\n")
+            return resp
+        _wrapped_tc_request._autodev_wrapped = True
+        TestClient.request = _wrapped_tc_request
+except Exception:
+    pass
+
+# Intercept httpx.Client and AsyncClient
+try:
+    import httpx
+    if not getattr(httpx.Client.request, '_autodev_wrapped', False):
+        _orig_httpx_sync_request = httpx.Client.request
+        def _wrapped_httpx_sync_request(self, method, url, *args, **kwargs):
+            _autodev_sync_fastapi_and_mocks()
+            resp = _orig_httpx_sync_request(self, method, url, *args, **kwargs)
+            if getattr(resp, 'status_code', 0) >= 500:
+                import sys
+                sys.stderr.write(f"\\n[AutoDev Test Diagnostic] HTTP {resp.status_code} on {method} {url}:\\n{getattr(resp, 'text', '')}\\n")
+            return resp
+        _wrapped_httpx_sync_request._autodev_wrapped = True
+        httpx.Client.request = _wrapped_httpx_sync_request
+
+    if not getattr(httpx.AsyncClient.request, '_autodev_wrapped', False):
+        _orig_httpx_async_request = httpx.AsyncClient.request
+        async def _wrapped_httpx_async_request(self, method, url, *args, **kwargs):
+            _autodev_sync_fastapi_and_mocks()
+            resp = await _orig_httpx_async_request(self, method, url, *args, **kwargs)
+            if getattr(resp, 'status_code', 0) >= 500:
+                import sys
+                sys.stderr.write(f"\\n[AutoDev Test Diagnostic] HTTP {resp.status_code} on {method} {url}:\\n{getattr(resp, 'text', '')}\\n")
+            return resp
+        _wrapped_httpx_async_request._autodev_wrapped = True
+        httpx.AsyncClient.request = _wrapped_httpx_async_request
+except Exception:
+    pass
+
+@pytest.fixture(autouse=True)
+def _autodev_fastapi_and_service_sync():
+    _autodev_sync_fastapi_and_mocks()
+    yield
+    _autodev_sync_fastapi_and_mocks()
+"""
+
+CONFTEST_SQLITE_CONTENT = """# conftest.py - Auto-injected universal database & test fixture initialization
+import os
+import sys
+import pytest
+
+# Ensure workspace root and common directories are always on sys.path
+for _path in [os.getcwd(), '.', 'src', 'app']:
+    if os.path.exists(_path) and _path not in sys.path:
+        sys.path.insert(0, _path)
+
+# ---------------------------------------------------------------------------
+# AutoDev Universal SQLite Engine Interceptor:
+# Automatically enforces check_same_thread=False and StaticPool for in-memory
+# SQLite engines so that FastAPI TestClient worker threads share tables/state!
+# ---------------------------------------------------------------------------
+try:
+    import sqlalchemy
+    from sqlalchemy.pool import StaticPool
+
+    if hasattr(sqlalchemy, 'create_engine') and not getattr(sqlalchemy.create_engine, '_autodev_patched', False):
+        _orig_create_engine = sqlalchemy.create_engine
+        def _autodev_create_engine(*args, **kwargs):
+            url_str = str(args[0]) if args else str(kwargs.get('url', ''))
+            if 'sqlite' in url_str.lower():
+                cargs = kwargs.get('connect_args')
+                if not isinstance(cargs, dict):
+                    cargs = {}
+                cargs['check_same_thread'] = False
+                kwargs['connect_args'] = cargs
+                if ':memory:' in url_str.lower() or url_str.strip() in ('sqlite://', 'sqlite:///', 'sqlite:///:memory:'):
+                    kwargs['poolclass'] = StaticPool
+            return _orig_create_engine(*args, **kwargs)
+        _autodev_create_engine._autodev_patched = True
+        sqlalchemy.create_engine = _autodev_create_engine
+except Exception:
+    pass
+
+def _autodev_init_all_tables():
+    \"\"\"
+    Discovers all SQLAlchemy models and engines across candidate modules and sys.modules,
+    guaranteeing that all database tables are created before pytest execution.
+    \"\"\"
+    try:
+        import os, sys, importlib
+
+        # Pre-import common module names to register ORM models and engines
+        for candidate in ['models', 'database', 'main', 'app', 'db', 'schemas', 'app.models', 'app.database', 'app.main']:
+            try:
+                importlib.import_module(candidate)
+            except Exception:
+                pass
+
+        # Also import any root or package .py files that might declare models or database connections
+        try:
+            for root, dirs, files in os.walk('.'):
+                dirs[:] = [d for d in dirs if not d.startswith(('.', '__')) and d not in ('node_modules', 'venv', '.venv', 'dist', 'build')]
+                for f in files:
+                    if f.endswith('.py') and not f.startswith(('test_', 'conftest')):
+                        rel = os.path.relpath(root, '.')
+                        mod_name = f[:-3] if rel == '.' else os.path.join(rel, f[:-3]).replace(os.sep, '.')
+                        try:
+                            importlib.import_module(mod_name)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+        engines = []
+        metadatas = []
+
+        SKIP_PREFIXES = ('pytest', '_pytest', 'unittest', 'cryptography', 'websockets', 'starlette', 'fastapi', 'pydantic', 'anyio', 'asyncio', 'http', 'urllib', 'email', 'encodings', 'importlib')
+        for mod in list(sys.modules.values()):
+            if not mod or not hasattr(mod, '__name__') or mod.__name__.startswith(SKIP_PREFIXES):
+                continue
+            for attr_name in dir(mod):
+                try:
+                    val = getattr(mod, attr_name)
+                    # Check for SQLAlchemy Engine
+                    if hasattr(val, 'connect') and hasattr(val, 'dispose') and hasattr(val, 'dialect'):
+                        if val not in engines:
+                            engines.append(val)
+                    # Check for DeclarativeBase / Base / MetaData / SQLModel
+                    if hasattr(val, 'metadata') and hasattr(val.metadata, 'create_all') and hasattr(val.metadata, 'tables'):
+                        if val.metadata not in metadatas:
+                            metadatas.append(val.metadata)
+                    elif hasattr(val, 'create_all') and hasattr(val, 'tables'):
+                        if val not in metadatas:
+                            metadatas.append(val)
+                except Exception:
+                    pass
+
+        # If metadatas exist but no engine was found, fallback to creating a default engine
+        if metadatas and not engines:
+            try:
+                import sqlalchemy
+                fallback_eng = sqlalchemy.create_engine('sqlite:///./app.db', connect_args={'check_same_thread': False})
+                engines.append(fallback_eng)
+            except Exception:
+                pass
+
+        for meta in metadatas:
+            for eng in engines:
+                try:
+                    meta.create_all(bind=eng)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+# Initialize schema immediately at conftest load time
+_autodev_init_all_tables()
+
+@pytest.fixture(autouse=True, scope="session")
+def _autodev_db_init_session():
+    _autodev_init_all_tables()
+    yield
+
+@pytest.fixture(autouse=True, scope="function")
+def _autodev_db_init_function():
+    _autodev_init_all_tables()
+    yield
+""" + CONFTEST_FASTAPI_SERVICE_SYNC_BLOCK
+
+CONFTEST_SQLITE_APPEND_BLOCK = """
+# --- AutoDev Universal Database Fixture Injected ---
+try:
+    import os, sys
+    for _path in [os.getcwd(), '.', 'src', 'app']:
+        if os.path.exists(_path) and _path not in sys.path:
+            sys.path.insert(0, _path)
+
+    import sqlalchemy
+    from sqlalchemy.pool import StaticPool
+
+    if hasattr(sqlalchemy, 'create_engine') and not getattr(sqlalchemy.create_engine, '_autodev_patched', False):
+        _orig_create_engine = sqlalchemy.create_engine
+        def _autodev_create_engine(*args, **kwargs):
+            url_str = str(args[0]) if args else str(kwargs.get('url', ''))
+            if 'sqlite' in url_str.lower():
+                cargs = kwargs.get('connect_args')
+                if not isinstance(cargs, dict):
+                    cargs = {}
+                cargs['check_same_thread'] = False
+                kwargs['connect_args'] = cargs
+                if ':memory:' in url_str.lower() or url_str.strip() in ('sqlite://', 'sqlite:///', 'sqlite:///:memory:'):
+                    kwargs['poolclass'] = StaticPool
+            return _orig_create_engine(*args, **kwargs)
+        _autodev_create_engine._autodev_patched = True
+        sqlalchemy.create_engine = _autodev_create_engine
+except Exception:
+    pass
+
+def _autodev_init_all_tables():
+    try:
+        import os, sys, importlib
+        for candidate in ['models', 'database', 'main', 'app', 'db', 'schemas', 'app.models', 'app.database', 'app.main']:
+            try:
+                importlib.import_module(candidate)
+            except Exception:
+                pass
+        try:
+            for root, dirs, files in os.walk('.'):
+                dirs[:] = [d for d in dirs if not d.startswith(('.', '__')) and d not in ('node_modules', 'venv', '.venv', 'dist', 'build')]
+                for f in files:
+                    if f.endswith('.py') and not f.startswith(('test_', 'conftest')):
+                        rel = os.path.relpath(root, '.')
+                        mod_name = f[:-3] if rel == '.' else os.path.join(rel, f[:-3]).replace(os.sep, '.')
+                        try:
+                            importlib.import_module(mod_name)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
+        engines, metadatas = [], []
+        SKIP_PREFIXES = ('pytest', '_pytest', 'unittest', 'cryptography', 'websockets', 'starlette', 'fastapi', 'pydantic', 'anyio', 'asyncio', 'http', 'urllib', 'email', 'encodings', 'importlib')
+        for mod in list(sys.modules.values()):
+            if not mod or not hasattr(mod, '__name__') or mod.__name__.startswith(SKIP_PREFIXES):
+                continue
+            for attr_name in dir(mod):
+                try:
+                    val = getattr(mod, attr_name)
+                    if hasattr(val, 'connect') and hasattr(val, 'dispose') and hasattr(val, 'dialect'):
+                        if val not in engines:
+                            engines.append(val)
+                    if hasattr(val, 'metadata') and hasattr(val.metadata, 'create_all') and hasattr(val.metadata, 'tables'):
+                        if val.metadata not in metadatas:
+                            metadatas.append(val.metadata)
+                    elif hasattr(val, 'create_all') and hasattr(val, 'tables'):
+                        if val not in metadatas:
+                            metadatas.append(val)
+                except Exception:
+                    pass
+
+        if metadatas and not engines:
+            try:
+                import sqlalchemy
+                fallback_eng = sqlalchemy.create_engine('sqlite:///./app.db', connect_args={'check_same_thread': False})
+                engines.append(fallback_eng)
+            except Exception:
+                pass
+
+        for meta in metadatas:
+            for eng in engines:
+                try:
+                    meta.create_all(bind=eng)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+# Initialize schema immediately
+_autodev_init_all_tables()
+
+@pytest.fixture(autouse=True, scope="session")
+def _autodev_db_init_session():
+    _autodev_init_all_tables()
+    yield
+
+@pytest.fixture(autouse=True, scope="function")
+def _autodev_db_init_function():
+    _autodev_init_all_tables()
+    yield
+""" + CONFTEST_FASTAPI_SERVICE_SYNC_BLOCK
+
+MAIN_PY_SQLITE_INIT = """
+# AutoDev database schema initialization safeguard
+try:
+    import sys, os, importlib
+    for _m in ['models', 'database', 'db', 'schemas', 'app.models', 'app.database']:
+        try:
+            importlib.import_module(_m)
+        except Exception:
+            pass
+    _engs = []
+    _metas = []
+    for _mod in list(sys.modules.values()):
+        if not _mod or not hasattr(_mod, '__name__') or _mod.__name__.startswith(('pytest', '_pytest', 'unittest')):
+            continue
+        for _attr in dir(_mod):
+            try:
+                _v = getattr(_mod, _attr)
+                if hasattr(_v, 'connect') and hasattr(_v, 'dispose') and hasattr(_v, 'dialect'):
+                    if _v not in _engs:
+                        _engs.append(_v)
+                if hasattr(_v, 'metadata') and hasattr(_v.metadata, 'create_all') and hasattr(_v.metadata, 'tables'):
+                    if _v.metadata not in _metas:
+                        _metas.append(_v.metadata)
+                elif hasattr(_v, 'create_all') and hasattr(_v, 'tables'):
+                    if _v not in _metas:
+                        _metas.append(_v)
+            except Exception:
+                pass
+    for _metadata in _metas:
+        for _eng in _engs:
+            try:
+                _metadata.create_all(bind=_eng)
+            except Exception:
+                pass
+except Exception:
+    pass
+"""
+
 SETUP_CONFIG_EXCLUSIONS = {
     'setuptests.ts', 'setuptests.js', 'src/setuptests.ts', 'src/setuptests.js',
     'setupsupertest.js', 'setupsupertest.ts', 'src/setupsupertest.js', 'src/setupsupertest.ts',
@@ -826,18 +1607,28 @@ def sanitize_lucide_brand_icons(source_code: str) -> str:
 
     return sanitized
 
-def normalize_requirements_txt(content: str) -> str:
+def normalize_requirements_txt(content: str, uses_sqlalchemy: bool = False, uses_email_validator: bool = False) -> str:
     """
     Normalizes requirements.txt for Python testing pipelines:
-    1. Ensures pytest, pytest-asyncio, and httpx are declared.
+    1. Ensures pytest, pytest-asyncio, and httpx (and sqlalchemy / email-validator if detected) are declared.
     2. Strips broken pins (e.g. 'pytest==', 'pytest>=', empty versions, invalid placeholders).
     3. Removes conflicting upper-bound pins (e.g. 'pytest-asyncio<0.18') that break asyncio_mode = auto.
     4. Preserves all other valid requirements, comments, and options.
     """
     if not content or not isinstance(content, str):
-        return "pytest\npytest-asyncio\nhttpx\n"
+        base = "pytest\npytest-asyncio\nhttpx\n"
+        if uses_sqlalchemy:
+            base += "sqlalchemy\n"
+        if uses_email_validator:
+            base += "email-validator>=2.0.0\n"
+        return base
 
     target_deps = {'pytest', 'pytest-asyncio', 'httpx'}
+    if uses_sqlalchemy:
+        target_deps.add('sqlalchemy')
+    if uses_email_validator or 'emailstr' in content.lower() or 'email-validator' in content.lower() or 'pydantic[email]' in content.lower():
+        target_deps.add('email-validator')
+        uses_email_validator = True
     seen_deps = set()
     lines = content.splitlines()
     output_lines = []
@@ -886,8 +1677,14 @@ def normalize_requirements_txt(content: str) -> str:
             output_lines.append(line)
 
     # Ensure all target dependencies are present
-    for req in ['pytest', 'pytest-asyncio', 'httpx']:
-        if req not in seen_deps:
+    required_pkgs = ['pytest', 'pytest-asyncio', 'httpx']
+    if uses_sqlalchemy:
+        required_pkgs.append('sqlalchemy')
+    if uses_email_validator:
+        required_pkgs.append('email-validator>=2.0.0')
+    for req in required_pkgs:
+        req_canonical = re.sub(r'[-_.]+', '-', req.split('>=')[0].split('==')[0].split('<')[0]).strip().lower()
+        if req_canonical not in seen_deps:
             output_lines.append(req)
 
     result = '\n'.join(output_lines)
@@ -897,7 +1694,8 @@ def normalize_requirements_txt(content: str) -> str:
 
 PYTHON_DEPENDENCY_CONSTRAINTS = {
     "motor": {"pymongo": "<4.8"},
-    "fastapi": {"python-multipart": ""},
+    "fastapi": {"python-multipart": "", "email-validator": ">=2.0.0"},
+    "pydantic": {"email-validator": ">=2.0.0"},
 }
 
 def enforce_python_dependency_constraints(content: str) -> str:
@@ -1321,13 +2119,104 @@ def enforce_golden_dependencies(codebase: Any) -> Any:
                     elif isinstance(file, dict):
                         file['source_code'] = reconciled
 
+    # Detect if SQLAlchemy or relational SQLite is used in the codebase
+    uses_sqlalchemy = False
+    for f in codebase.files:
+        fn = (getattr(f, 'file_name', '') if hasattr(f, 'file_name') else f.get('file_name', '')).lower()
+        fc = getattr(f, 'source_code', '') if hasattr(f, 'source_code') else f.get('source_code', '')
+        if _norm(fn) == 'requirements.txt' and ('sqlalchemy' in fc.lower() or 'sqlmodel' in fc.lower()):
+            uses_sqlalchemy = True
+            break
+        if fn.endswith('.py') and (
+            'sqlalchemy' in fc or 'declarative_base' in fc or 'Base.metadata' in fc or 'Column(' in fc
+            or 'create_engine' in fc or 'SessionLocal' in fc or 'sessionmaker' in fc or 'sqlite3' in fc
+            or 'sqlmodel' in fc or 'DeclarativeBase' in fc
+        ):
+            uses_sqlalchemy = True
+            break
+
+    # Sanitize SQLite in-memory connections in source code if StaticPool is missing
+    for file in codebase.files:
+        fname = getattr(file, 'file_name', '') if hasattr(file, 'file_name') else file.get('file_name', '')
+        if fname.lower().endswith('.py'):
+            src = getattr(file, 'source_code', '') if hasattr(file, 'source_code') else file.get('source_code', '')
+            if 'sqlite:///:memory:' in src and 'StaticPool' not in src:
+                # Rewrite volatile sqlite:///:memory: to file-based sqlite:///./app.db to guarantee persistence across threads
+                reconciled = src.replace('sqlite:///:memory:', 'sqlite:///./app.db')
+                if hasattr(file, 'source_code'):
+                    file.source_code = reconciled
+                elif isinstance(file, dict):
+                    file['source_code'] = reconciled
+
+    # Detect if email validation or Pydantic EmailStr is used in the codebase
+    uses_email_validator = False
+    for f in codebase.files:
+        fn = (getattr(f, 'file_name', '') if hasattr(f, 'file_name') else f.get('file_name', '')).lower()
+        fc = getattr(f, 'source_code', '') if hasattr(f, 'source_code') else f.get('source_code', '')
+        if _norm(fn) == 'requirements.txt' and ('email-validator' in fc.lower() or 'pydantic[email]' in fc.lower()):
+            uses_email_validator = True
+            break
+        if fn.endswith('.py') and ('EmailStr' in fc or 'email_validator' in fc or 'validate_email' in fc):
+            uses_email_validator = True
+            break
+
+    # If Python tests or Python files with tests or SQLAlchemy exist, inject or reconcile conftest.py
+    if has_py_test_files or (has_py_files and tests_present) or uses_sqlalchemy:
+        has_conftest = any(
+            _norm(getattr(f, 'file_name', '') if hasattr(f, 'file_name') else f.get('file_name', '')) == 'conftest.py'
+            for f in codebase.files
+        )
+        if not has_conftest:
+            if CodeFileClass is not None:
+                if isinstance(CodeFileClass, type) and issubclass(CodeFileClass, dict):
+                    codebase.files.append({"file_name": "conftest.py", "source_code": CONFTEST_SQLITE_CONTENT})
+                else:
+                    codebase.files.append(CodeFileClass(file_name="conftest.py", source_code=CONFTEST_SQLITE_CONTENT))
+        else:
+            # Reconcile existing conftest.py to ensure universal interceptor & auto-init fixture are present
+            for file in codebase.files:
+                fname = getattr(file, 'file_name', '') if hasattr(file, 'file_name') else file.get('file_name', '')
+                if _norm(fname) == 'conftest.py':
+                    src = getattr(file, 'source_code', '') if hasattr(file, 'source_code') else file.get('source_code', '')
+                    needed_blocks = []
+                    if '_autodev_create_engine' not in src:
+                        needed_blocks.append(CONFTEST_SQLITE_APPEND_BLOCK)
+                    if '_autodev_shared_hybrid_client' not in src:
+                        needed_blocks.append(CONFTEST_MOTOR_INTERCEPTOR_BLOCK)
+                    if '_autodev_sync_fastapi_and_mocks' not in src:
+                        needed_blocks.append(CONFTEST_FASTAPI_SERVICE_SYNC_BLOCK)
+                    if needed_blocks:
+                        reconciled = src.rstrip() + "\n\n" + "\n\n".join(needed_blocks)
+                        if hasattr(file, 'source_code'):
+                            file.source_code = reconciled
+                        elif isinstance(file, dict):
+                            file['source_code'] = reconciled
+
+        # Reconcile main.py / app.py to include safe schema initialization if module-level create_all is omitted
+        if uses_sqlalchemy:
+            for file in codebase.files:
+                fname = getattr(file, 'file_name', '') if hasattr(file, 'file_name') else file.get('file_name', '')
+                if _norm(fname) in ['main.py', 'app.py']:
+                    src = getattr(file, 'source_code', '') if hasattr(file, 'source_code') else file.get('source_code', '')
+                    if 'AutoDev database schema initialization' not in src:
+                        has_top_level_create_all = any(
+                            not line.startswith((' ', '\t')) and 'create_all' in line
+                            for line in src.splitlines()
+                        )
+                        if not has_top_level_create_all and ('Base' in src or 'engine' in src or 'database' in src or 'models' in src or 'app' in src):
+                            reconciled = src.rstrip() + "\n" + MAIN_PY_SQLITE_INIT
+                            if hasattr(file, 'source_code'):
+                                file.source_code = reconciled
+                            elif isinstance(file, dict):
+                                file['source_code'] = reconciled
+
     # Normalize requirements.txt if Python tests or Python files with tests are present
     for file in codebase.files:
         fname = getattr(file, 'file_name', '') if hasattr(file, 'file_name') else file.get('file_name', '')
         if _norm(fname) == 'requirements.txt':
-            if has_py_test_files or (tests_present and has_py_files):
+            if has_py_test_files or (tests_present and has_py_files) or uses_sqlalchemy or uses_email_validator:
                 src = getattr(file, 'source_code', '') if hasattr(file, 'source_code') else file.get('source_code', '')
-                normalized_src = normalize_requirements_txt(src)
+                normalized_src = normalize_requirements_txt(src, uses_sqlalchemy=uses_sqlalchemy, uses_email_validator=uses_email_validator)
                 constrained_src = enforce_python_dependency_constraints(normalized_src)
                 if constrained_src != src:
                     if hasattr(file, 'source_code'):

@@ -77,8 +77,13 @@ class PipelineDAG:
         return self._nodes
 
     def get_component(self, component_id: str) -> Optional[ComponentStateRecord]:
-        """Retrieves a component record by its ID."""
-        return self._nodes.get(component_id)
+        """Retrieves a component record by its ID or name."""
+        if component_id in self._nodes:
+            return self._nodes[component_id]
+        for node in self._nodes.values():
+            if getattr(node, "name", None) == component_id:
+                return node
+        return None
 
     def get_node(self, component_id: str) -> Optional[ComponentStateRecord]:
         """Alias for get_component."""

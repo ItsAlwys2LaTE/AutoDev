@@ -162,9 +162,9 @@ JS_FAIL_HEADER_PATTERN = re.compile(
     re.MULTILINE
 )
 
-# Vitest pointer lines: ❯ {file}:{line}:{col}
+# Vitest pointer lines: > {file}:{line}:{col}
 VITEST_POINTER_PATTERN = re.compile(
-    r'❯\s+([^\s():]+\.(?:jsx?|tsx?|mjs|cjs|vue|svelte|py)):(?:\d+)',
+    r'\u276f\s+([^\s():]+\.(?:jsx?|tsx?|mjs|cjs|vue|svelte|py)):(?:\d+)',
     re.MULTILINE
 )
 
@@ -727,6 +727,16 @@ def should_include_manifest(
         if not _is_local_python_module(pkg, indices):
             has_external_py_missing = True
             break
+    if not has_external_py_missing:
+        clean_lower = clean_output.lower()
+        if (
+            "email-validator is not installed" in clean_lower
+            or "pydantic[email]" in clean_lower
+            or "email_validator" in clean_lower
+            or "serverselectiontimeouterror" in clean_lower
+            or "connection refused" in clean_lower and "27017" in clean_lower
+        ):
+            has_external_py_missing = True
 
     if has_external_py_missing:
         req_file = _find_codebase_manifest("requirements.txt", indices["file_names"])
@@ -1203,6 +1213,40 @@ def extract_broken_files(
             if m not in seen:
                 seen.add(m)
                 matched_files.append(m)
+
+        # 6b. Augment with database and model files if relational database table errors occur
+        lower_output = output_str.lower()
+        if "no such table" in lower_output or "operationalerror" in lower_output:
+            for f in raw_files:
+                fn = _get_filename(f).lower()
+                norm_base = fn.split('/')[-1].split('\\')[-1]
+                if norm_base in ('database.py', 'models.py', 'db.py', 'schemas.py', 'conftest.py'):
+                    act_name = _get_filename(f)
+                    if act_name not in seen:
+                        seen.add(act_name)
+                        matched_files.append(act_name)
+
+        # 6c. Augment with backend entrypoints, services, and models if HTTP 500 server crashes occur
+        if "500 ==" in lower_output or "== 500" in lower_output or "500 internal server error" in lower_output or "assert 500" in lower_output:
+            for f in raw_files:
+                fn = _get_filename(f).lower()
+                norm_base = fn.split('/')[-1].split('\\')[-1]
+                if norm_base in ('main.py', 'app.py', 'services.py', 'service.py', 'database.py', 'models.py', 'conftest.py'):
+                    act_name = _get_filename(f)
+                    if act_name not in seen:
+                        seen.add(act_name)
+                        matched_files.append(act_name)
+
+        # 6d. Augment with database entrypoints and test files if MongoDB / Motor connection failures occur
+        if any(kw in lower_output for kw in ("serverselectiontimeouterror", "connection refused", "27017", "autoreconnect", "cannot connect to mongodb", "asynciomotorclient")):
+            for f in raw_files:
+                fn = _get_filename(f).lower()
+                norm_base = fn.split('/')[-1].split('\\')[-1]
+                if norm_base in ('database.py', 'main.py', 'app.py', 'db.py', 'conftest.py', 'models.py', 'test_integration.py', 'test_main.py'):
+                    act_name = _get_filename(f)
+                    if act_name not in seen:
+                        seen.add(act_name)
+                        matched_files.append(act_name)
 
         # 7. Fallback resolution when no broken files were isolated
         if not matched_files and allow_fallback:

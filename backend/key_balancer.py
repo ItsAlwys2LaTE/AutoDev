@@ -19,21 +19,20 @@ _GLOBAL_MODE: str = "QUICK"
 
 
 def set_generation_mode(mode: str) -> None:
-    """Sets the active generation mode: 'QUICK' or 'COMPLEX'."""
+    """Sets the active generation mode (defaults to 'QUICK')."""
     global _GLOBAL_MODE
-    val = "COMPLEX" if (mode and str(mode).upper() == "COMPLEX") else "QUICK"
-    _GLOBAL_MODE = val
-    _CURRENT_MODE.set(val)
+    _GLOBAL_MODE = "QUICK"
+    _CURRENT_MODE.set("QUICK")
 
 
 def get_generation_mode() -> str:
-    """Gets the active generation mode: 'QUICK' or 'COMPLEX' (defaults to 'QUICK')."""
+    """Gets the active generation mode (defaults to 'QUICK')."""
     val = _CURRENT_MODE.get()
     return val if val is not None else _GLOBAL_MODE
 
 
 def reset_generation_mode() -> None:
-    """Resets the active generation mode to default (None)."""
+    """Resets the active generation mode to default."""
     global _GLOBAL_MODE
     _GLOBAL_MODE = "QUICK"
     _CURRENT_MODE.set(None)
@@ -41,19 +40,15 @@ def reset_generation_mode() -> None:
 
 def resolve_models_for_mode(
     mode: Optional[str] = None,
-    primary_model: str = "gemini-3.7-flash",
-    secondary_model: str = "gemini-3.5-flash-lite",
+    primary_model: str = "gemini-3.5-flash-lite",
+    secondary_model: str = "gemini-3.1-flash-lite",
 ) -> Tuple[str, str]:
     """
-    Returns (effective_primary, effective_secondary) based on generation mode:
-    - QUICK: ('gemini-3.5-flash-lite', 'gemini-3.5-flash-lite') -> strictly ONLY flash-lite
-    - COMPLEX: ('gemini-3.7-flash', 'gemini-3.5-flash-lite') -> Standard 3.7 prioritized with fallback
-    - Invalid or unrecognized mode strings default to QUICK.
+    Returns (effective_primary, effective_secondary):
+    - Primary: 'gemini-3.5-flash-lite'
+    - Secondary: 'gemini-3.1-flash-lite'
     """
-    active_mode = (mode or get_generation_mode()).upper()
-    if active_mode == "COMPLEX":
-        return (primary_model, secondary_model)
-    return ("gemini-3.5-flash-lite", "gemini-3.5-flash-lite")
+    return (primary_model or "gemini-3.5-flash-lite", secondary_model or "gemini-3.1-flash-lite")
 
 
 
@@ -440,13 +435,174 @@ def discover_gemini_lite_keys() -> List[str]:
     return keys
 
 
-def get_gemini_keys_for_stage(stage: Optional[str] = None, mode: Optional[str] = None) -> List[str]:
+def get_key_env_var_name(key: str, preferred_stage: Optional[str] = None) -> str:
+    """
+    Resolves the exact environment variable name for a given API key string.
+    If preferred_stage is specified, prioritizes environment variables that match that stage.
+    """
+    if not key:
+        return "GEMINI_API_KEY"
+
+    clean_key = str(key).strip()
+    matching_vars = [k for k, v in os.environ.items() if (v or "").strip() == clean_key]
+
+    if not matching_vars:
+        if preferred_stage:
+            stage_upper = str(preferred_stage).strip().upper()
+            if stage_upper in STAGE_KEY_MAP:
+                return STAGE_KEY_MAP[stage_upper]
+        return "GEMINI_API_KEY"
+
+    # If preferred_stage is given, check for exact stage match first
+    if preferred_stage:
+        stage_upper = str(preferred_stage).strip().upper()
+        # 1. Named stage variable (e.g. GEMINI_API_KEY_DESIGN)
+        named_var = STAGE_KEY_MAP.get(stage_upper)
+        if named_var and named_var in matching_vars:
+            return named_var
+        # 2. Numbered stage variable (e.g. GEMINI_API_KEY_3)
+        numbered_var = STAGE_NUMBERED_MAP.get(stage_upper)
+        if numbered_var and numbered_var in matching_vars:
+            return numbered_var
+
+    # Prioritize stage-specific variables first, then numbered variables GEMINI_API_KEY_1..10, then GEMINI_API_KEY
+    for var in list(STAGE_KEY_MAP.values()):
+        if var in matching_vars:
+            return var
+    for i in range(1, 11):
+        num_var = f"GEMINI_API_KEY_{i}"
+        if num_var in matching_vars:
+            return num_var
+
+    return matching_vars[0]
+
+
+class KeyReservationManager:
+    """
+    Manages per-stage API key reservations to guarantee that concurrent
+    components in the same stage use different API keys.
+    """
+
+    def __init__(self):
+        self._lock = threading.RLock()
+        # stage_name -> {component_id: reserved_key}
+        self._reservations: Dict[str, Dict[str, str]] = {}
+
+    @staticmethod
+    def _normalize_stage(stage: str) -> str:
+        s = str(stage).strip().upper()
+        if s.startswith("CRITIC") or s == "ADJUDICATOR":
+            return "CRITICS"
+        if s == "PARSE_BLUEPRINT":
+            return "DESIGN"
+        if s == "PARSE_REQUIREMENTS":
+            return "REQUIREMENTS"
+        return s
+
+    def reserve_key(
+        self,
+        stage: str,
+        component_id: str,
+        available_keys: List[str],
+    ) -> Optional[str]:
+        """
+        Reserves an API key for a component in a stage.
+        Excludes keys already reserved by other components in the same stage.
+        Returns the selected key or None if no keys available.
+        """
+        with self._lock:
+            stage_norm = self._normalize_stage(stage)
+            stage_reservations = self._reservations.setdefault(stage_norm, {})
+
+            # If component already has a reservation in this stage, return it
+            if component_id in stage_reservations:
+                curr_res = stage_reservations[component_id]
+                if curr_res in available_keys:
+                    return curr_res
+
+            # Collect keys already reserved by OTHER components in this stage
+            reserved_keys = set(
+                k for cid, k in stage_reservations.items()
+                if cid != component_id
+            )
+
+            # Filter available keys, excluding already-reserved ones
+            candidates = [k for k in available_keys if k not in reserved_keys]
+            if not candidates:
+                return None  # All available keys are reserved by other components
+
+            # Pick the best candidate (first in the load-balanced order)
+            selected = candidates[0]
+            stage_reservations[component_id] = selected
+            return selected
+
+    def release_reservation(self, stage: str, component_id: str) -> None:
+        """Releases a component's key reservation for a stage."""
+        with self._lock:
+            stage_norm = self._normalize_stage(stage)
+            if stage_norm in self._reservations:
+                self._reservations[stage_norm].pop(component_id, None)
+            s_upper = stage.upper()
+            if s_upper in self._reservations:
+                self._reservations[s_upper].pop(component_id, None)
+
+    def release_component(self, component_id: str) -> None:
+        """Releases all reservations across all stages for a component."""
+        with self._lock:
+            for stage_map in self._reservations.values():
+                stage_map.pop(component_id, None)
+
+    def get_reserved_key(self, stage: str, component_id: str) -> Optional[str]:
+        """Returns the currently reserved key for a component in a stage."""
+        with self._lock:
+            stage_norm = self._normalize_stage(stage)
+            res = self._reservations.get(stage_norm, {}).get(component_id)
+            if res:
+                return res
+            return self._reservations.get(stage.upper(), {}).get(component_id)
+
+    def get_excluded_keys(self, stage: str, component_id: str) -> Set[str]:
+        """Returns keys reserved by OTHER components in this stage."""
+        with self._lock:
+            stage_norm = self._normalize_stage(stage)
+            stage_reservations = self._reservations.get(stage_norm, {})
+            return set(
+                k for cid, k in stage_reservations.items()
+                if cid != component_id
+            )
+
+    def clear_stage(self, stage: str) -> None:
+        """Clears all reservations for a stage."""
+        with self._lock:
+            stage_norm = self._normalize_stage(stage)
+            self._reservations.pop(stage_norm, None)
+            self._reservations.pop(stage.upper(), None)
+
+    def clear_all(self) -> None:
+        """Clears all reservations."""
+        with self._lock:
+            self._reservations.clear()
+
+
+# Global singleton
+_KEY_RESERVATION_MANAGER = KeyReservationManager()
+
+
+def get_key_reservation_manager() -> KeyReservationManager:
+    return _KEY_RESERVATION_MANAGER
+
+
+def get_gemini_keys_for_stage(
+    stage: Optional[str] = None,
+    mode: Optional[str] = None,
+    component_id: Optional[str] = None,
+) -> List[str]:
     """
     Returns a dynamically load-balanced, health-prioritized list of Gemini API keys for a stage.
     Uses Least-Connections and Round-Robin distribution, with affinity preference given to
     the stage's primary key when available and idle.
-    When mode is QUICK, prioritizes dedicated lite keys (GEMINI_API_KEY_LITE_*),
-    falling back to all discovered keys if dedicated lite keys are not explicitly set.
+    When component_id is provided, coordinates with KeyReservationManager so that concurrent
+    components executing in the same pipeline stage are strictly assigned DIFFERENT API keys.
     """
     active_mode = mode or _CURRENT_MODE.get()
     if active_mode and active_mode.upper() == "QUICK":
@@ -458,7 +614,14 @@ def get_gemini_keys_for_stage(stage: Optional[str] = None, mode: Optional[str] =
                 stage_pref_val = os.environ.get(f"GEMINI_API_KEY_LITE_{stage_upper}")
                 if stage_pref_val and stage_pref_val.strip() in lite_keys:
                     stage_pref_lite = stage_pref_val.strip()
-            return _GLOBAL_TRACKER.get_ordered_keys(lite_keys, stage_preferred_key=stage_pref_lite)
+            ordered_keys = _GLOBAL_TRACKER.get_ordered_keys(lite_keys, stage_preferred_key=stage_pref_lite)
+            if component_id:
+                krm = get_key_reservation_manager()
+                reserved = krm.reserve_key(stage or "DEFAULT", component_id, ordered_keys)
+                if reserved:
+                    excluded = krm.get_excluded_keys(stage or "DEFAULT", component_id)
+                    return [reserved] + [k for k in ordered_keys if k != reserved and k not in excluded]
+            return ordered_keys
 
     all_keys = discover_gemini_keys()
     if not all_keys:
@@ -491,17 +654,31 @@ def get_gemini_keys_for_stage(stage: Optional[str] = None, mode: Optional[str] =
             if num_key and num_key.strip() in all_keys:
                 stage_preferred_key = num_key.strip()
 
-    return _GLOBAL_TRACKER.get_ordered_keys(all_keys, stage_preferred_key=stage_preferred_key)
+    ordered = _GLOBAL_TRACKER.get_ordered_keys(all_keys, stage_preferred_key=stage_preferred_key)
+
+    if component_id:
+        krm = get_key_reservation_manager()
+        reserved = krm.reserve_key(stage or "DEFAULT", component_id, ordered)
+        if reserved:
+            excluded = krm.get_excluded_keys(stage or "DEFAULT", component_id)
+            return [reserved] + [k for k in ordered if k != reserved and k not in excluded]
+
+    return ordered
 
 
-def get_gemini_keys_for_mode(stage: Optional[str] = None, mode: Optional[str] = None) -> List[str]:
+def get_gemini_keys_for_mode(stage: Optional[str] = None, mode: Optional[str] = None, component_id: Optional[str] = None) -> List[str]:
     """Alias/Helper returning dynamically load-balanced keys respecting generation mode."""
-    return get_gemini_keys_for_stage(stage=stage, mode=mode)
+    return get_gemini_keys_for_stage(stage=stage, mode=mode, component_id=component_id)
 
 
-def get_key_display_for_stage(stage_name: str, mode: Optional[str] = None) -> Tuple[str, str]:
+def get_key_display_for_stage(
+    stage_name: str,
+    mode: Optional[str] = None,
+    component_id: Optional[str] = None,
+) -> Tuple[str, str]:
     """
-    Returns (env_var_name, masked_key) for a given stage.
+    Returns (env_var_name, masked_key) for a given stage and optional component_id.
+    Guarantees that concurrent components in the same stage display their unique reserved keys.
     """
     if not stage_name or str(stage_name).upper() in ("N/A", "NONE"):
         return ("N/A", "N/A")
@@ -510,8 +687,7 @@ def get_key_display_for_stage(stage_name: str, mode: Optional[str] = None) -> Tu
     stage_upper = stage_str.upper()
 
     # Check if stage_name is already an env var name (like GEMINI_API_KEY_CODEGEN)
-    if stage_upper in STAGE_KEY_MAP.values() or stage_upper.startswith("GEMINI_API_KEY") or stage_upper.startswith("MISTRAL_API_KEY"):
-        key_env = stage_upper
+    if stage_upper in STAGE_KEY_MAP.values() or stage_upper.startswith("GEMINI_API_KEY"):
         stage_id = None
         for k, v in STAGE_KEY_MAP.items():
             if v == stage_upper:
@@ -519,11 +695,11 @@ def get_key_display_for_stage(stage_name: str, mode: Optional[str] = None) -> Tu
                 break
         lookup_stage = stage_id or stage_str
     else:
-        key_env = STAGE_KEY_MAP.get(stage_upper, "GEMINI_API_KEY")
         lookup_stage = stage_str
 
-    keys = get_gemini_keys_for_stage(lookup_stage, mode=mode)
-    raw_key = keys[0] if keys else (os.environ.get(key_env) or os.environ.get("GEMINI_API_KEY", ""))
+    keys = get_gemini_keys_for_stage(lookup_stage, mode=mode, component_id=component_id)
+    raw_key = keys[0] if keys else (os.environ.get(STAGE_KEY_MAP.get(stage_upper, "GEMINI_API_KEY")) or os.environ.get("GEMINI_API_KEY", ""))
+    key_env = get_key_env_var_name(raw_key, preferred_stage=lookup_stage)
     masked = (raw_key[:6] + "..." + raw_key[-4:]) if len(raw_key) > 10 else (raw_key or "UNSET")
     return key_env, masked
 
@@ -536,12 +712,15 @@ def format_phase_transition(
     stage_key: str,
     mode: Optional[str] = None,
     extra: Optional[str] = None,
+    component_id: Optional[str] = None,
 ) -> str:
     """
     Formats standardized phase transition log string:
     [PHASE TRANSITION] [Component: <component_name>] <from_phase> -> <to_phase> | Model: <model> | API Key: <key_name> (<masked_key>)
+    When concurrent components enter the same stage, component_id guarantees different API keys are displayed.
     """
-    key_name, masked_key = get_key_display_for_stage(stage_key, mode=mode)
+    eff_comp_id = component_id or component_name
+    key_name, masked_key = get_key_display_for_stage(stage_key, mode=mode, component_id=eff_comp_id)
     extra_str = f" ({extra})" if extra else ""
     return (
         f"[PHASE TRANSITION] [Component: {component_name}] {from_phase} -> {to_phase}{extra_str} | "
@@ -579,31 +758,29 @@ def _invoke_callable(fn: Callable, client: Any, model: str) -> Any:
         return fn(client)
 
 
+
 def execute_with_key_fallback(
     stage: Union[str, List[str], None] = None,
     call_fn: Optional[Callable[..., T]] = None,
-    primary_model: str = "gemini-3.7-flash",
-    secondary_model: str = "gemini-3.5-flash-lite",
+    primary_model: str = "gemini-3.5-flash-lite",
+    secondary_model: str = "gemini-3.1-flash-lite",
     custom_keys: Optional[List[str]] = None,
     client_factory: Optional[Callable[[str], Any]] = None,
     mode: Optional[str] = None,
+    component_id: Optional[str] = None,
     **kwargs: Any,
 ) -> T:
     """
     Executes an LLM API call with multi-key dynamic load balancing and hierarchical fallback:
-    1. In QUICK mode: strictly restricts execution to 'gemini-3.5-flash-lite' across all keys.
-    2. In COMPLEX mode: attempts 'gemini-3.7-flash' across healthy candidate keys with
-       Least-Connections / Round-Robin distribution, falling back to 'gemini-3.5-flash-lite'.
+    1. Primary execution: attempts 'gemini-3.5-flash-lite' across healthy candidate keys with
+       Least-Connections / Round-Robin distribution.
+    2. Fallback execution: falls back to secondary model 'gemini-3.1-flash-lite'.
     3. If a key encounters a rate limit (429) or error, updates KeyHealthTracker with exponential cooldown
        and immediately fails over to the next candidate key.
     """
-    active_mode = mode or kwargs.get("mode") or _CURRENT_MODE.get()
-    if active_mode and active_mode.upper() == "QUICK":
-        eff_primary = "gemini-3.5-flash-lite"
-        eff_secondary = "gemini-3.5-flash-lite"
-    else:
-        eff_primary = primary_model
-        eff_secondary = secondary_model
+    active_mode = "QUICK"
+    eff_primary = primary_model or "gemini-3.5-flash-lite"
+    eff_secondary = secondary_model or "gemini-3.1-flash-lite"
 
     if isinstance(stage, (list, tuple)):
         keys = list(stage)
@@ -611,6 +788,13 @@ def execute_with_key_fallback(
     else:
         stage_name = str(stage) if stage is not None else "DEFAULT"
         keys = custom_keys if custom_keys is not None else get_gemini_keys_for_stage(stage_name, mode=active_mode)
+
+    if component_id:
+        krm = get_key_reservation_manager()
+        reserved = krm.reserve_key(stage_name, component_id, keys)
+        if reserved:
+            excluded = krm.get_excluded_keys(stage_name, component_id)
+            keys = [reserved] + [k for k in keys if k != reserved and k not in excluded]
 
     fn = call_fn or kwargs.get("func")
     if fn is None:
@@ -684,29 +868,26 @@ def execute_with_key_fallback(
 def execute_stream_with_key_fallback(
     stage: Union[str, List[str], None] = None,
     stream_fn: Optional[Callable[..., Any]] = None,
-    primary_model: str = "gemini-3.7-flash",
-    secondary_model: str = "gemini-3.5-flash-lite",
+    primary_model: str = "gemini-3.5-flash-lite",
+    secondary_model: str = "gemini-3.1-flash-lite",
     custom_keys: Optional[List[str]] = None,
     client_factory: Optional[Callable[[str], Any]] = None,
     mode: Optional[str] = None,
+    component_id: Optional[str] = None,
     **kwargs: Any,
 ) -> Iterator[str]:
     """
     Executes a streaming LLM API call with multi-key dynamic rotation and model fallback:
-    1. In QUICK mode: strictly restricts execution to 'gemini-3.5-flash-lite' across all keys.
-    2. In COMPLEX mode: attempts 'gemini-3.7-flash' across healthy candidate keys with
-       Least-Connections / Round-Robin distribution, falling back to 'gemini-3.5-flash-lite'.
+    1. Primary execution: attempts 'gemini-3.5-flash-lite' across healthy candidate keys with
+       Least-Connections / Round-Robin distribution.
+    2. Fallback execution: falls back to secondary model 'gemini-3.1-flash-lite'.
     3. If rate limit (429) or connection failure occurs before first chunk, records cooldown and rotates to next key.
     4. If all primary attempts fail, degrades to secondary model.
     Yields text chunks and usage metadata string.
     """
-    active_mode = mode or kwargs.get("mode") or _CURRENT_MODE.get()
-    if active_mode and active_mode.upper() == "QUICK":
-        eff_primary = "gemini-3.5-flash-lite"
-        eff_secondary = "gemini-3.5-flash-lite"
-    else:
-        eff_primary = primary_model
-        eff_secondary = secondary_model
+    active_mode = "QUICK"
+    eff_primary = primary_model or "gemini-3.5-flash-lite"
+    eff_secondary = secondary_model or "gemini-3.1-flash-lite"
 
     if isinstance(stage, (list, tuple)):
         keys = list(stage)
@@ -714,6 +895,13 @@ def execute_stream_with_key_fallback(
     else:
         stage_name = str(stage) if stage is not None else "DEFAULT"
         keys = custom_keys if custom_keys is not None else get_gemini_keys_for_stage(stage_name, mode=active_mode)
+
+    if component_id:
+        krm = get_key_reservation_manager()
+        reserved = krm.reserve_key(stage_name, component_id, keys)
+        if reserved:
+            excluded = krm.get_excluded_keys(stage_name, component_id)
+            keys = [reserved] + [k for k in keys if k != reserved and k not in excluded]
 
     fn = stream_fn or kwargs.get("func")
     if fn is None:
@@ -844,3 +1032,189 @@ def execute_stream_with_key_fallback(
 
     yield f'{{"error": "Both primary and fallback models failed across all available keys for {stage_name}. Last error: {last_error}"}}'
 
+import json
+import re
+
+JSON_PARSE_MAX_RETRIES = 3
+JSON_PARSE_FALLBACK_MODEL = "gemini-3.1-flash-lite"
+
+def sanitize_json_backend(raw: str) -> str:
+    """
+    Sanitizes JSON strings by escaping unescaped characters, balancing brackets,
+    and recovering from truncated streams. Mirrors frontend logic.
+    """
+    if not isinstance(raw, str):
+        return ""
+    str_val = raw
+
+    # 1. Resolve LLM retry sentinel (__RESET__)
+    if '__RESET__' in str_val:
+        str_val = str_val.split('__RESET__')[-1]
+
+    # 2. Strip anchored __USAGE__ sentinel
+    import re
+    str_val = re.sub(r'\r?\n?__USAGE__\d+,\d+\s*$', '', str_val)
+    str_val = str_val.strip()
+
+    # 3. Extract from markdown fences
+    fence_match = re.match(r'^`(?:json)?\s*([\s\S]*?)\s*`$', str_val, re.IGNORECASE)
+    if fence_match:
+        str_val = fence_match.group(1).strip()
+    elif str_val.startswith('`'):
+        first_end = str_val.find('\n')
+        if first_end != -1:
+            str_val = str_val[first_end + 1:]
+        last_fence = str_val.rfind('`')
+        if last_fence != -1:
+            str_val = str_val[:last_fence]
+        str_val = str_val.strip()
+    else:
+        embedded_match = re.search(r'`(?:json)?\s*([\s\S]*?)(?:`|$)', str_val, re.IGNORECASE)
+        if embedded_match:
+            candidate = embedded_match.group(1).strip()
+            if candidate.startswith('{') or candidate.startswith('['):
+                str_val = candidate
+
+    if not str_val:
+        return "{}"
+
+    sanitized = ""
+    in_string = False
+    escape_next = False
+    container_stack = []
+    
+    valid_single_escapes = set(['"', '\\', '/', 'f', 'n', 'r', 't'])
+    hex_chars = set('0123456789abcdefABCDEF')
+    
+    i = 0
+    length = len(str_val)
+    while i < length:
+        c = str_val[i]
+        if not in_string:
+            if c == '"':
+                in_string = True
+                sanitized += c
+            elif c in ('{', '['):
+                container_stack.append(c)
+                sanitized += c
+            elif c == '}' and container_stack and container_stack[-1] == '{':
+                container_stack.pop()
+                sanitized += c
+            elif c == ']' and container_stack and container_stack[-1] == '[':
+                container_stack.pop()
+                sanitized += c
+            elif c == ',':
+                next_idx = i + 1
+                while next_idx < length and str_val[next_idx].isspace():
+                    next_idx += 1
+                if next_idx < length and str_val[next_idx] in ('}', ']'):
+                    i += 1
+                    continue
+                sanitized += c
+            else:
+                sanitized += c
+        else:
+            if escape_next:
+                if c == 'u':
+                    hex_candidate = str_val[i+1:i+5]
+                    if len(hex_candidate) == 4 and all(h in hex_chars for h in hex_candidate):
+                        sanitized += c
+                    else:
+                        sanitized += '\\' + c
+                elif c == 'b':
+                    sanitized += '\\' + c
+                elif c in valid_single_escapes:
+                    sanitized += c
+                else:
+                    sanitized += '\\' + c
+                escape_next = False
+            elif c == '\\':
+                sanitized += c
+                escape_next = True
+            elif c == '"':
+                in_string = False
+                sanitized += c
+            elif c == '\n':
+                sanitized += '\\n'
+            elif c == '\r':
+                sanitized += '\\r'
+            elif c == '\t':
+                sanitized += '\\t'
+            elif ord(c) < 32:
+                pass
+            else:
+                sanitized += c
+        i += 1
+
+    if in_string:
+        if escape_next:
+            sanitized += '\\'
+        sanitized += '"'
+
+    while container_stack:
+        open_char = container_stack.pop()
+        sanitized += '}' if open_char == '{' else ']'
+
+    return sanitized
+
+
+def resilient_llm_stream(
+    stage: str,
+    stream_factory: Callable[[str], Iterator[str]],
+    *,
+    primary_model: str = "gemini-3.5-flash-lite",
+    fallback_model: str = JSON_PARSE_FALLBACK_MODEL,
+    max_json_retries: int = JSON_PARSE_MAX_RETRIES,
+    validate_json: bool = True,
+    mode: Optional[str] = None,
+    component_id: Optional[str] = None,
+    **kwargs: Any,
+) -> Iterator[str]:
+    """
+    Wraps a streaming LLM call with JSON parse error detection and retry.
+    """
+    if not validate_json:
+        yield from stream_factory(primary_model)
+        return
+
+    # Attempt 1 to max_json_retries: Primary model
+    for attempt in range(1, max_json_retries + 1):
+        full_text = ""
+        stream = stream_factory(primary_model)
+        for chunk in stream:
+            full_text += chunk
+            yield chunk
+            
+        # End of stream, validate JSON
+        try:
+            cleaned = sanitize_json_backend(full_text)
+            json.loads(cleaned)
+            return  # Success
+        except json.JSONDecodeError as e:
+            print(f"[JSON Retry] Phase {stage} attempt {attempt}/{max_json_retries}: JSON parse failed  {e}. Retrying...")
+            yield "__RESET__"
+            
+    # Final attempt: Fallback model
+    print(f"[JSON Retry] Phase {stage} switching to fallback model {fallback_model}...")
+    full_text = ""
+    try:
+        stream = stream_factory(fallback_model)
+        for chunk in stream:
+            full_text += chunk
+            yield chunk
+            
+        cleaned = sanitize_json_backend(full_text)
+        json.loads(cleaned)
+        return
+    except Exception as e:
+        print(f"[JSON Retry] Phase {stage} fallback attempt failed: {e}")
+        
+    # All attempts exhausted
+    yield "__RESET__"
+    error_json = json.dumps({
+        "error": "Please try again after some time",
+        "json_parse_failure": True,
+        "attempts": max_json_retries + 1
+    })
+    yield error_json
+

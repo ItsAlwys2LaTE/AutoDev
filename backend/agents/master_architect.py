@@ -9,8 +9,8 @@ from models import RequirementsDocument, ComponentDecomposition, ComponentSpec, 
 from retry import with_exponential_backoff, format_concise_error
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 
-def decompose_requirements_stream(requirements: RequirementsDocument, mode: str = None, max_retries: int = 2):
-    primary_model, secondary_model = resolve_models_for_mode(mode)
+def decompose_requirements_stream(requirements: RequirementsDocument, mode: str = None, max_retries: int = 2, primary_model: str = None):
+    primary_model, secondary_model = resolve_models_for_mode(mode, primary_model=primary_model)
     keys = get_gemini_keys_for_stage("DECOMPOSITION", mode=mode)
     primary_key = os.environ.get("GEMINI_API_KEY_MASTER_ARCHITECT") or os.environ.get("GEMINI_API_KEY_2") or os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
     if primary_key and primary_key.strip() and primary_key.strip() not in keys:

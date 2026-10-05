@@ -10,16 +10,16 @@ from models import RequirementsDocument
 from key_balancer import get_gemini_keys_for_stage, is_rate_limit_error, resolve_models_for_mode, get_generation_mode
 from retry import with_exponential_backoff, format_concise_error
 
-PRIMARY_MODEL = "gemini-3.7-flash"
-FALLBACK_MODEL = "gemini-3.5-flash-lite"
+PRIMARY_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODEL = "gemini-3.1-flash-lite"
 
-def generate_requirements_stream(feature_request: str, mode: str = None):
+def generate_requirements_stream(feature_request: str, mode: str = None, primary_model: str = None):
     """
     Takes a plain text feature request and yields a stream of JSON text 
     representing a structured RequirementsDocument.
     """
     primary_model, secondary_model = resolve_models_for_mode(
-        mode, primary_model=PRIMARY_MODEL, secondary_model=FALLBACK_MODEL
+        mode, primary_model=primary_model or PRIMARY_MODEL, secondary_model=FALLBACK_MODEL
     )
     keys = get_gemini_keys_for_stage("REQUIREMENTS", mode=mode)
     primary_key = os.environ.get("GEMINI_API_KEY_REQUIREMENTS")
@@ -42,7 +42,20 @@ def generate_requirements_stream(feature_request: str, mode: str = None):
     CRITICAL INSTRUCTION: You MUST explicitly include Acceptance Criteria for robustness. This includes boundary limits (e.g., maximum input lengths), handling of negative numbers/invalid inputs, error states, and all complex edge cases. Do not assume the downstream team will handle edge cases unless you document them.
     """
 
-    system_prompt += f"\n\nCRITICAL: Your output MUST strictly match this JSON schema (output RAW JSON only):\n{json.dumps(RequirementsDocument.model_json_schema())}"
+    system_prompt += f"""
+
+CRITICAL INSTRUCTION - NON-SOFTWARE REQUEST REJECTION (DEFENSE-IN-DEPTH):
+If the user's prompt is a general knowledge or factual question (e.g. "What is the distance between Earth and Mars?"), a mathematical calculation or unit conversion (e.g. "Calculate 2+2"), a conversational greeting, creative writing, or otherwise NOT a request to design, build, create, or modify software, applications, APIs, libraries, or tools:
+You MUST NOT hallucinate, invent, or fabricate a software specification.
+Instead, you MUST reject the request by returning ONLY a JSON object with this EXACT structure (output RAW JSON only):
+{{
+    "error": "NOT_SOFTWARE_REQUEST",
+    "message": "AutoDev is an automated software engineering platform. The provided input is a factual or conversational query, not a software feature request. Please provide a software feature or application description to build."
+}}
+
+Otherwise, for valid software engineering requests, your output MUST strictly match this JSON schema (output RAW JSON only):
+{json.dumps(RequirementsDocument.model_json_schema())}
+"""
 
     prompt_content = feature_request
 

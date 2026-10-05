@@ -3,8 +3,11 @@ import sys
 import json
 from google import genai
 from google.genai import types
-from mistralai.client import Mistral
-from groq import Groq
+
+try:
+    from groq import Groq
+except Exception:
+    Groq = None
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models import ComponentDecomposition, RequirementsDocument, SystemDesignBlueprint, GeneratedCodeBase, ExecutionResult, CriticFeedback
@@ -101,17 +104,17 @@ def _to_json_str(obj):
     return str(obj)
 
 
-def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult, codebase: GeneratedCodeBase = None, master_decomposition: ComponentDecomposition = None, component_name: str = None, mode: str = None) -> CriticFeedback:
+def evaluate_correctness(requirements: RequirementsDocument, execution_result: ExecutionResult, codebase: GeneratedCodeBase = None, master_decomposition: ComponentDecomposition = None, component_name: str = None, mode: str = None, component_id: str = None) -> CriticFeedback:
     critic_name = "Correctness Critic (Gemini)"
     primary_model, secondary_model = resolve_models_for_mode(mode)
     
-    primary_key = os.environ.get("GEMINI_API_KEY_CRITICS")
-    keys = get_gemini_keys_for_stage("CRITIC_CORRECTNESS", mode=mode)
-    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
-        keys = [primary_key.strip()] + keys
-    
+    keys = get_gemini_keys_for_stage("CRITICS", mode=mode, component_id=component_id)
     if not keys:
-        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GEMINI API keys are not set.")
+        primary_key = os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY")
+        if primary_key:
+            keys = [primary_key.strip()]
+        else:
+            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GEMINI API keys are not set.")
 
     # Partition codebase files into test files vs application files
     all_files = _extract_files(codebase)
@@ -278,15 +281,18 @@ CRITICAL INSTRUCTIONS:
 
 
 
-def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None) -> CriticFeedback:
-    critic_name = "Architecture Critic (Mistral)"
+def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None, component_id: str = None) -> CriticFeedback:
+    critic_name = "Architecture Critic (Gemini)"
     primary_model, secondary_model = resolve_models_for_mode(mode)
-    print(f"Running {critic_name}...")
-    
-    api_key = os.environ.get("MISTRAL_API_KEY")
-    if not api_key:
-        print(f"MISTRAL_API_KEY missing. Forcing fallback...")
-        api_key = "dummy_key_to_force_fallback"
+    print(f"Running {critic_name} (Model: {primary_model})...")
+
+    keys = get_gemini_keys_for_stage("CRITICS", mode=mode, component_id=component_id)
+    if not keys:
+        primary_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR") or os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY")
+        if primary_key:
+            keys = [primary_key.strip()]
+        else:
+            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GEMINI API keys are not set.")
 
     prompt = f"""
     Evaluate the ARCHITECTURE of the codebase against the blueprint.
@@ -309,125 +315,84 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
     CODEBASE:
     {codebase.model_dump_json(indent=2)}
     """
-    
-    client = Mistral(api_key=api_key)
-    
-    @with_exponential_backoff
-    def _call_mistral():
-        return client.chat.complete(
-            model="mistral-small-latest",
-            messages=[
-                {"role": "system", "content": f"You are the {critic_name}. You MUST output ONLY valid JSON matching this exact structure: {{\"severity_score\": int, \"issues_list\": [\"issue1\"], \"overall_comments\": \"string\"}}"},
-                {"role": "user", "content": prompt}
-            ],
-            response_format={"type": "json_object"},
-            temperature=0.1
-        )
 
-    try:
-        response = _call_mistral()
-        content = json.loads(response.choices[0].message.content)
-        
-        # Guard: API sometimes wraps the response in a list
-        if isinstance(content, list):
-            content = content[0] if len(content) > 0 else {}
-        
-        return CriticFeedback(
-            critic_name=critic_name,
-            severity_score=content.get("severity_score", 5),
-            issues_list=content.get("issues_list", []),
-            overall_comments=content.get("overall_comments", "No comments provided.")
-        )
-    except Exception as e:
-        error_msg = str(e).lower()
-        if "429" in error_msg or "rate limit" in error_msg or "quota" in error_msg or "401" in error_msg or "unauthorized" in error_msg or api_key == "dummy_key_to_force_fallback":
-            print(f"Architecture Critic (Mistral) hit rate limit or missing key: {format_concise_error(e)}. Falling back to Gemini (Model: {primary_model})...")
-            gemini_keys = get_gemini_keys_for_stage("CRITIC_ARCHITECTURE", mode=mode)
-            adjudicator_key = os.environ.get("GEMINI_API_KEY_ADJUDICATOR")
-            if adjudicator_key and adjudicator_key.strip() and adjudicator_key.strip() not in gemini_keys:
-                gemini_keys = [adjudicator_key.strip()] + gemini_keys
-            if not gemini_keys:
-                return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error: {format_concise_error(e)}", "No fallback Gemini keys available."], overall_comments="Failed to evaluate architecture.")
-                
-            system_instruction = f"You are the {critic_name} (Fallback Mode). Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
+    system_instruction = f"You are the {critic_name}. Evaluate the provided inputs strictly. Output a severity_score (0-10) and a list of specific issues."
 
-            # Try primary model across available keys
-            for g_idx, g_key in enumerate(gemini_keys):
-                gemini_client = genai.Client(api_key=g_key)
+    for idx, key in enumerate(keys):
+        client = genai.Client(api_key=key)
 
-                @with_exponential_backoff
-                def _call_gemini_primary():
-                    res = gemini_client.models.generate_content(
-                        model=primary_model,
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            system_instruction=system_instruction,
-                            temperature=0.1,
-                            response_mime_type="application/json",
-                            response_schema=CriticFeedback,
+        @with_exponential_backoff
+        def _call_primary():
+            response = client.models.generate_content(
+                model=primary_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.1,
+                    response_mime_type="application/json",
+                    response_schema=CriticFeedback,
+                )
+            )
+            if hasattr(response, 'parsed') and response.parsed is not None:
+                fb = response.parsed
+            else:
+                fb = CriticFeedback.model_validate_json(response.text)
+            fb.critic_name = critic_name
+            return fb
+
+        try:
+            return _call_primary()
+        except Exception as e:
+            print(f"Architecture Critic failed on key {idx+1}/{len(keys)} (Model: {primary_model}): {format_concise_error(e)}")
+            if is_rate_limit_error(e) and idx + 1 < len(keys):
+                print(f"Rate limit hit on key {idx+1}. Rotating to next available primary key ({idx+2}/{len(keys)}) on {primary_model}...")
+                continue
+            else:
+                print(f"Falling back to {secondary_model} (Model: {secondary_model})...")
+                for fb_idx, fb_key in enumerate(keys):
+                    fb_client = genai.Client(api_key=fb_key)
+
+                    @with_exponential_backoff
+                    def _call_fallback():
+                        response = fb_client.models.generate_content(
+                            model=secondary_model,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                system_instruction=system_instruction,
+                                temperature=0.1,
+                                response_mime_type="application/json",
+                                response_schema=CriticFeedback,
+                            )
                         )
-                    )
-                    if hasattr(res, 'parsed') and res.parsed is not None:
-                        fb = res.parsed
-                    else:
-                        fb = CriticFeedback.model_validate_json(res.text)
-                    fb.critic_name = critic_name
-                    return fb
+                        if hasattr(response, 'parsed') and response.parsed is not None:
+                            fb = response.parsed
+                        else:
+                            fb = CriticFeedback.model_validate_json(response.text)
+                        fb.critic_name = critic_name
+                        return fb
 
-                try:
-                    return _call_gemini_primary()
-                except Exception as g_err:
-                    print(f"Gemini fallback ({primary_model}) on key {g_idx+1} failed: {format_concise_error(g_err)}")
-                    if is_rate_limit_error(g_err) and g_idx + 1 < len(gemini_keys):
-                        continue
-
-            # If all primary keys fail, try secondary model
-            print(f"Falling back to {secondary_model} (Model: {secondary_model}) for Architecture Critic...")
-            for g_idx, g_key in enumerate(gemini_keys):
-                gemini_client = genai.Client(api_key=g_key)
-
-                @with_exponential_backoff
-                def _call_gemini_fallback():
-                    res = gemini_client.models.generate_content(
-                        model=secondary_model,
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            system_instruction=system_instruction,
-                            temperature=0.1,
-                            response_mime_type="application/json",
-                            response_schema=CriticFeedback,
-                        )
-                    )
-                    if hasattr(res, 'parsed') and res.parsed is not None:
-                        fb = res.parsed
-                    else:
-                        fb = CriticFeedback.model_validate_json(res.text)
-                    fb.critic_name = critic_name
-                    return fb
-
-                try:
-                    return _call_gemini_fallback()
-                except Exception as fallback_e:
-                    print(f"Gemini fallback ({secondary_model}) on key {g_idx+1} failed: {format_concise_error(fallback_e)}")
-                    if g_idx + 1 < len(gemini_keys):
-                        continue
-                    return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral Error: {format_concise_error(e)}", f"Gemini Fallback Error: {format_concise_error(fallback_e)}"], overall_comments="Failed to evaluate architecture.")
-        else:
-            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Mistral API Error (Non-Rate Limit): {format_concise_error(e)}"], overall_comments="Failed to evaluate architecture.")
+                    try:
+                        return _call_fallback()
+                    except Exception as fallback_e:
+                        print(f"Architecture Critic fallback on key {fb_idx+1} failed (Model: {secondary_model}): {format_concise_error(fallback_e)}")
+                        if fb_idx + 1 < len(keys):
+                            continue
+                        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=[f"Gemini API Error: {format_concise_error(fallback_e)}"], overall_comments="Failed to evaluate architecture.")
 
 
-def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None) -> CriticFeedback:
+
+def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None, component_id: str = None) -> CriticFeedback:
     primary_model, secondary_model = resolve_models_for_mode(mode)
     print(f"Running Completeness Critic (Gemini) (Model: {primary_model})...")
     critic_name = "Completeness Critic (Gemini)"
     
-    primary_key = os.environ.get("GEMINI_API_KEY_CRITICS")
-    keys = get_gemini_keys_for_stage("CRITIC_COMPLETENESS", mode=mode)
-    if primary_key and primary_key.strip() and primary_key.strip() not in keys:
-        keys = [primary_key.strip()] + keys
-    
+    keys = get_gemini_keys_for_stage("CRITICS", mode=mode, component_id=component_id)
     if not keys:
-        return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GEMINI API keys are not set.")
+        primary_key = os.environ.get("GEMINI_API_KEY_CRITICS") or os.environ.get("GEMINI_API_KEY")
+        if primary_key:
+            keys = [primary_key.strip()]
+        else:
+            return CriticFeedback(critic_name=critic_name, severity_score=10, issues_list=["API Key Missing"], overall_comments="GEMINI API keys are not set.")
     
     prompt = f"""
     Evaluate the COMPLETENESS of the codebase against the blueprint and requirements.

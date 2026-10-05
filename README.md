@@ -1,8 +1,8 @@
 # AutoDev: Autonomous Multi-Agent Software Engineering Platform
 
-**Production Build: v2.3.0-Prod (Master Edition)**
+**Production Build: v3.0.0-Prod (Master Edition)**
 
-🔗 **System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, Monaco Editor, and Vanilla ES6+ Web Dashboard.
+🔗 **System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, React 19, TypeScript 5.x, Vite 6, Tailwind CSS, and Monaco Editor.
 
 AutoDev is an autonomous, full-stack Software Development Life Cycle (SDLC) engineering platform that converts natural-language feature requests into fully realized, production-ready, multi-file software repositories. Rather than relying on fragile single-prompt code generation, AutoDev models the disciplined engineering methodologies of high-performing software teams. The system compiles requirements into formal specifications, decomposes complex architectures into mathematical Directed Acyclic Graphs (DAGs) of modular components, schedules concurrent development tracks using lease-backed single-occupancy locks, executes polyglot codebases inside isolated Docker sandboxes, verifies correctness through a LangGraph-powered multi-critic peer review network, and synthesizes components into unified, tested, and documented software packages.
 
@@ -71,6 +71,13 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 
 | Feature | Description |
 |---|---|
+| **3-Page Distinct Routing** | Clean routing separating Landing hero (`StageLanding`), Authentication/Sign-in (`StageSignIn`), and Main System presentation shell |
+| **Modern Light Theme** | High-contrast enterprise light design system (`bg-slate-50`, `bg-white`, `border-slate-200`, `text-slate-900`) with zero visual noise |
+| **12-Stage SDLC Presentation Shell** | Full 12-stage presentation shell covering prompt ingestion, conditional clarifications, specs, DAG, integration, preview, and results |
+| **Maximized Central Stage Geometry** | Dedicated stage workspace box occupying $\approx 80\%$ viewport height for distraction-free code and architecture review |
+| **Dynamic Edge-Hover Navigation** | Ghosted side chevrons (`<` and `>`) revealed dynamically when hovering near screen borders, minimizing UI chrome |
+| **Dynamic Floating Action Button** | Bottom-left floating widget offering live pause and expanding to 3 vertical quick actions when paused |
+| **Dedicated "Request New Product" Flow** | One-click atomic store reset on results view to immediately start building another software product |
 | **Autonomous Requirements Modeling** | Translates unstructured user prompts into structured `RequirementsDocument` schemas with user stories and testable acceptance criteria |
 | **Master Architect Decomposition** | Partitions complex applications into modular, decoupled component specifications with explicit dependency edges and priority scoring |
 | **Parallel DAG Pipeline Scheduler** | Graph-theoretic scheduler executing Kahn's topological sort, Tarjan's SCC cycle detection, and layered concurrency across components |
@@ -88,8 +95,6 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 | **Rich-Text Document Editors** | User-friendly rich-text editors for requirements and blueprints with LLM-backed schema re-parsing |
 | **Real-Time SSE Streaming** | Token-by-token streaming across all generation endpoints via Server-Sent Events (SSE) |
 | **Live Terminal Log Drawer** | Collapsible real-time SSE log terminal streaming backend engine events, agent activations, and test logs |
-| **Horizontal Carousel Dashboard** | Sleek light-themed multi-track UI with quick-jump pill navigation, stage badges, and action buttons |
-| **Real-Time Token & Cost Tracker** | Intercepts SDK usage metadata and dynamically computes session token consumption and estimated cost in INR |
 | **Prompt Guard Security Filter** | Defends against prompt injection attacks, system prompt extraction, and malformed/vague input prompts |
 | **One-Click Production ZIP Export** | Bundles full project trees (source code, test suites, blueprints, documentation) into a downloadable `.zip` file via JSZip |
 | **Write-Ahead State Store (WASS)** | Durable append-only event journal (`pipeline_events.jsonl`) and atomic snapshot checkpointing for crash recovery |
@@ -394,32 +399,42 @@ AutoDev v2.0 isolates code execution and application previews inside ephemeral D
 
 ## 9. Frontend UI & Embedded Monaco IDE
 
-The AutoDev client interface (`backend/index.html`) is a zero-build Single-Page Application built with Vanilla ES6+ and Tailwind CSS.
+The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript Single-Page Application bundled with Vite 6 and styled with Tailwind CSS.
 
-### 9.1 Horizontal Scrolling Carousel & Pill Navigation
-- Renders modular component tracks in a full-width horizontal carousel with `snap-x` mechanics, eliminating vertical scrolling clutter.
-- Features an interactive **Pill Navigation Bar** allowing users to smoothly auto-scroll the carousel to any specific component.
-- Displays live status badges (`Queued`, `Designing...`, `Action Required`, `Coding...`, `Evaluating...`, `Passed ✓`, `Failed ✗`).
+### 9.1 3-Page Distinct Routing Architecture
+- **Landing Page (`StageLanding`)**: Brand hero screen showcasing core capabilities (Multi-Agent DAG, Docker Sandbox, 3-Critic Arbitration, Live Preview) and a direct "Get Started" call to action.
+- **Authentication Page (`StageSignIn`)**: Dedicated sign-in screen featuring email/password validation, OAuth Google sign-in triggers, and return navigation to home.
+- **Main System Presentation Shell (`App.tsx`)**: High-productivity presentation shell managing the full 12-stage autonomous engineering lifecycle.
 
-### 9.2 Embedded Monaco IDE & Multi-File Explorer
-- Integrates Microsoft's Monaco Editor engine directly into the browser.
-- Supports multi-file tab navigation, syntax highlighting for all mainstream languages, inline code editing, and full-screen expansion.
-- Includes a **Revision Diff Viewer** to inspect side-by-side modifications across self-correction iterations.
+### 9.2 Modern Light Theme & Maximized Geometry
+- Full light theme design system (`bg-slate-50`, `bg-white`, `border-slate-200`, `text-slate-900`) with subtle elevation shadows.
+- Maximized central stage workspace occupying $\approx 80\%$ viewport height directly below the brand header and stage navigation sub-bar.
+- Dynamic edge-hover navigation: side chevron buttons (`<` and `>`) reveal dynamically upon hovering extreme left/right viewport boundaries.
 
-### 9.3 Rich-Text Document Editors & LLM Parsing
-- Provides Word-like rich text editors for Requirements and Architecture Blueprints, allowing operators to freely refine specifications.
-- Connects to backend LLM parsers (`POST /api/parse-requirements`, `POST /api/parse-blueprint`) to convert edited rich text back into strict JSON Pydantic schemas.
+### 9.3 12-Stage Main System Lifecycle
+- **Stage 1 (Product Request)**: Natural language prompt input with dedicated "START DEVELOPMENT" button and Enter key submit trigger.
+- **Stage 2 (Product Enquiry Agent)**: Conditional clarification stage displayed only when user requests are ambiguous and follow-up questions are needed.
+- **Stage 3 (Requirements Agent)**: Structured specification display with user stories and acceptance criteria.
+- **Stage 4 (Decomposition Agent)**: 2x2 grid representing parallel component dependency graphs.
+- **Stage 5 (Component Pipeline Dashboard)**: Pill-toggle switching between the Pipeline Visualizer and Component-Wise visualization with nested component/phase dropdowns.
+- **Stage 6 (Integration — Testing)**: Sandbox test execution logs with revision tabs.
+- **Stage 7 (Integration — Arbitration)**: 3-critic multi-perspective consensus evaluations and adjudicator verdict.
+- **Stage 8 (Integration — Final Code)**: Embedded Microsoft Monaco IDE with multi-file tabs, syntax highlighting, and inline editing.
+- **Stage 9 (Live Preview)**: Interactive responsive container preview with Desktop, Tablet, and Mobile viewport emulation.
+- **Stage 10 (Development Results)**: SDLC status, ZIP packaging, GitHub atomic commit modal, Gantt metrics execution timeline, continuous enhancement trigger, and dedicated "REQUEST NEW PRODUCT" button.
+- **Stage 11 (Post-Development Request)**: 3-pill selector (`Feature Request` | `Bug Fixes` | `Product Enquiry`) with dynamic placeholders.
+- **Stage 12 (Feature Request / Bug Fix Execution)**: Multi-phase synthesis with automatic 2.5-second return to Stage 10.
 
-### 9.4 Real-Time SSE Log Stream Drawer
-- Collapsible bottom terminal drawer connected to `GET /api/logs/stream`.
-- Displays syntax-highlighted backend events, agent activations, API key assignments, and test execution logs in real time.
+### 9.4 Dynamic Floating Action Button (FAB)
+- Anchored to the bottom-left edge of the central stage container.
+- Presents a single pause button during active pipeline execution.
+- Expands vertically when paused into 3 quick-action circular buttons with hover tooltips:
+  1. Top: "Request New Product" (instant store reset)
+  2. Middle: "Restart Development" (pipeline retry with confirmation modal)
+  3. Bottom: "Resume Development" (seamless execution continuation)
 
-### 9.5 Real-Time Token & Cost Tracking
-- Intercepts streaming SDK token metrics (`__USAGE__{prompt},{completion}`) and updates session token totals and estimated costs in INR ($84\text{ INR/USD}$).
-
-### 9.6 Input Validation & Prompt Guard
-- Validates prompt length ($\ge 10$ chars) and word count ($\ge 3$ words).
-- Filters prompt injection attempts, system prompt extraction strings, and malformed inputs via `backend/prompt_guard.py`.
+### 9.5 Real-Time Background Terminal Logging
+- Background SSE connection to `GET /api/logs/stream` maintaining continuous telemetry and test execution logging without polluting the visual stage workspace.
 
 ---
 
