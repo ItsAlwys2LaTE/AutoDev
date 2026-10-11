@@ -59,12 +59,15 @@ export const StepperProgress: React.FC<StepperProgressProps> = ({
   }
 
   return (
-    <div className={`relative max-w-5xl mx-auto mb-12 ${className}`}>
+    <div
+      className={`relative max-w-5xl mx-auto mb-10 p-4 px-8 rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] ${className}`}
+      style={{ backdropFilter: 'blur(14px)' }}
+    >
       {/* Connecting Line */}
-      <div className="absolute top-5 left-0 w-full h-1 bg-slate-200 z-0 rounded-full" />
+      <div className="absolute top-9 left-12 right-12 h-1 bg-white/10 z-0 rounded-full" />
       <div
         id="stepperProgress"
-        className="absolute top-5 left-0 h-1 bg-blue-500 z-0 rounded-full transition-all duration-700 ease-in-out"
+        className="absolute top-9 left-12 h-1 bg-white shadow-[0_0_12px_rgba(255,255,255,0.4)] z-0 rounded-full transition-all duration-700 ease-in-out"
         style={{ width: `${progressWidth}%` }}
       />
 
@@ -72,14 +75,14 @@ export const StepperProgress: React.FC<StepperProgressProps> = ({
         {steps.map(({ step, label }) => {
           const status: StepperStatus = stepperStates[step] || 'idle';
 
-          let iconStatusClass = 'bg-white text-slate-400 border-2 border-slate-200';
+          let iconStatusClass = 'bg-slate-800/80 text-slate-400 border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md';
           let textStatusClass = 'text-slate-400';
           let iconContent: React.ReactNode = step;
 
           if (status === 'loading') {
             iconStatusClass =
-              'bg-blue-600 text-white border-2 border-blue-600 animate-pulse shadow-md shadow-blue-500/30';
-            textStatusClass = 'text-blue-600';
+              'bg-white text-black border border-white shadow-[0_0_16px_rgba(255,255,255,0.5)] font-bold animate-pulse backdrop-blur-md';
+            textStatusClass = 'text-white font-semibold';
             iconContent = (
               <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                 <circle
@@ -100,8 +103,8 @@ export const StepperProgress: React.FC<StepperProgressProps> = ({
             );
           } else if (status === 'success') {
             iconStatusClass =
-              'bg-green-500 text-white border-2 border-green-500 shadow-md shadow-green-500/30';
-            textStatusClass = 'text-green-600';
+              'bg-gradient-to-b from-emerald-500 to-emerald-600 text-white border border-white/30 shadow-[0_0_12px_rgba(16,185,129,0.4),inset_0_1px_0_rgba(255,255,255,0.3)] backdrop-blur-md';
+            textStatusClass = 'text-emerald-400 font-semibold';
             iconContent = (
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -109,8 +112,8 @@ export const StepperProgress: React.FC<StepperProgressProps> = ({
             );
           } else if (status === 'error') {
             iconStatusClass =
-              'bg-red-500 text-white border-2 border-red-500 shadow-md shadow-red-500/30';
-            textStatusClass = 'text-red-600';
+              'bg-gradient-to-b from-rose-500 to-rose-600 text-white border border-white/30 shadow-[0_0_12px_rgba(244,63,94,0.4),inset_0_1px_0_rgba(255,255,255,0.3)] backdrop-blur-md';
+            textStatusClass = 'text-rose-400 font-semibold';
             iconContent = (
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />

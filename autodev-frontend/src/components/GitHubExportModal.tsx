@@ -177,16 +177,19 @@ export function GitHubExportModal({
   return (
     <div
       id="githubExportModal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn"
       role="dialog"
       aria-modal="true"
       aria-labelledby="githubModalTitle"
     >
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-5 text-slate-100 relative">
+      <div
+        className="bg-slate-950/[0.25] backdrop-blur-2xl border border-white/15 rounded-3xl p-6 max-w-lg w-full shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_20px_60px_rgba(0,0,0,0.6)] space-y-5 text-slate-100 relative"
+        style={{ backdropFilter: 'blur(20px)' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-white/[0.06] text-white/90 border border-white/[0.08] flex items-center justify-center shrink-0">
               <ArrowUpTrayIcon className="w-4 h-4" />
             </div>
             <div>
@@ -203,7 +206,7 @@ export function GitHubExportModal({
             id="githubExportCancelBtn"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="text-slate-400 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed p-1 rounded-lg hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="Close modal"
           >
             <XMarkIcon className="w-5 h-5" />
@@ -224,14 +227,14 @@ export function GitHubExportModal({
             </div>
 
             {result.repoUrl && (
-              <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700 text-xs space-y-1.5">
+              <div className="p-3 bg-slate-950/[0.25] rounded-xl border border-white/[0.08] text-xs space-y-1.5">
                 <div className="text-slate-400 font-medium">Repository URL:</div>
                 <a
                   id="githubRepoLink"
                   href={result.repoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-indigo-400 hover:text-indigo-300 font-mono flex items-center gap-1.5 break-all underline underline-offset-2"
+                  className="text-white hover:text-slate-200 font-mono flex items-center gap-1.5 break-all underline underline-offset-2"
                 >
                   <span>{result.repoUrl}</span>
                   <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5 shrink-0" />
@@ -248,7 +251,7 @@ export function GitHubExportModal({
               <button
                 type="button"
                 onClick={handleClose}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl border border-white/20 transition-all cursor-pointer shadow-md"
               >
                 Done
               </button>
@@ -273,9 +276,9 @@ export function GitHubExportModal({
 
             {/* In-Flight Status Indicator */}
             {isSubmitting && (
-              <div className="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-200 text-xs flex items-center gap-2.5">
+              <div className="p-3 rounded-xl bg-slate-950/[0.25] border border-white/[0.08] text-slate-200 text-xs flex items-center gap-2.5">
                 <svg
-                  className="animate-spin w-4 h-4 text-indigo-400 shrink-0"
+                  className="animate-spin w-4 h-4 text-white/80 shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -299,7 +302,7 @@ export function GitHubExportModal({
                 placeholder="e.g. octocat or my-organization"
                 disabled={isSubmitting}
                 required
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full px-3 py-2 bg-slate-950/[0.25] border border-white/[0.08] rounded-xl text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10 disabled:opacity-50"
               />
             </div>
 
@@ -316,7 +319,7 @@ export function GitHubExportModal({
                 placeholder="e.g. my-awesome-app"
                 disabled={isSubmitting}
                 required
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                className="w-full px-3 py-2 bg-slate-950/[0.25] border border-white/[0.08] rounded-xl text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10 disabled:opacity-50"
               />
               <p className="text-[11px] text-slate-400">
                 If this repository does not exist, AutoDev will automatically create it for you.
@@ -337,14 +340,14 @@ export function GitHubExportModal({
                   placeholder="ghp_... or github_pat_..."
                   disabled={isSubmitting}
                   required
-                  className="w-full px-3 py-2 pr-10 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 text-xs placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 font-mono"
+                  className="w-full px-3 py-2 pr-10 bg-slate-950/[0.25] border border-white/[0.08] rounded-xl text-white text-xs placeholder:text-white/40 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/10 disabled:opacity-50 font-mono"
                 />
                 <button
                   type="button"
                   id="githubToggleTokenVisibilityBtn"
                   onClick={() => setShowToken(!showToken)}
                   tabIndex={-1}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1 cursor-pointer"
                   aria-label={showToken ? 'Hide token' : 'Show token'}
                 >
                   {showToken ? (
@@ -368,7 +371,7 @@ export function GitHubExportModal({
                   checked={rememberToken}
                   onChange={(e) => setRememberToken(e.target.checked)}
                   disabled={isSubmitting}
-                  className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900"
+                  className="w-4 h-4 rounded border-white/20 bg-slate-950/[0.4] text-white focus:ring-white/20 focus:ring-offset-black"
                 />
                 <span className="text-xs text-slate-300">
                   Remember credentials in this browser session (sessionStorage)
@@ -382,7 +385,7 @@ export function GitHubExportModal({
                   checked={isPrivate}
                   onChange={(e) => setIsPrivate(e.target.checked)}
                   disabled={isSubmitting}
-                  className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900"
+                  className="w-4 h-4 rounded border-white/20 bg-slate-950/[0.4] text-white focus:ring-white/20 focus:ring-offset-black"
                 />
                 <span className="text-xs text-slate-300">
                   Create private repository (if repository is newly created)
@@ -391,12 +394,12 @@ export function GitHubExportModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-40"
+                className="px-4 py-2 bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] text-xs font-semibold rounded-xl transition-colors disabled:opacity-40 cursor-pointer"
               >
                 Cancel
               </button>
@@ -404,7 +407,7 @@ export function GitHubExportModal({
                 type="submit"
                 id="githubExportSubmitBtn"
                 disabled={isSubmitting || !username.trim() || !repoName.trim() || !token.trim()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-600/40 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 shadow-sm disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white text-xs font-semibold rounded-xl border border-white/20 transition-all flex items-center gap-1.5 disabled:cursor-not-allowed shadow-md cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -434,3 +437,4 @@ export function GitHubExportModal({
 }
 
 export default GitHubExportModal;
+

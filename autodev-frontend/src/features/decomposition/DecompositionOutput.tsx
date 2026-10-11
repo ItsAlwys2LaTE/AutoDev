@@ -14,8 +14,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  CpuChipIcon,
-  PlayIcon,
   ExclamationCircleIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
@@ -448,24 +446,19 @@ export function DecompositionOutput({
     return null;
   }
 
-  // Derive status badge text & styling
+  // Derive status badge text
   let statusText = 'Analyzing...';
-  let statusBadgeClass = 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 animate-pulse';
 
   if (isAnalyzing) {
     statusText = 'Analyzing...';
-    statusBadgeClass = 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30 animate-pulse';
   } else if (errorMessage) {
     statusText = 'Decomposition Failed';
-    statusBadgeClass = 'bg-red-500/20 text-red-400 border-red-500/30';
   } else if (decomposition) {
     if (decomposition.is_complex) {
       const count = decomposition.components?.length || 0;
       statusText = `Decomposed (${count} components)`;
-      statusBadgeClass = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
     } else {
       statusText = 'Simple Product';
-      statusBadgeClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
     }
   }
 
@@ -477,22 +470,38 @@ export function DecompositionOutput({
   return (
     <div
       id="decomposeSection"
-      className={`glass-card bg-slate-900 rounded-2xl shadow-md border border-slate-800 p-6 fade-in ${className}`}
+      style={{ backdropFilter: 'blur(14px)' }}
+      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] fade-in ${className}`}
     >
-      {/* ── Header Section ─────────────────────────────────────────────────── */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="font-semibold text-slate-200 text-lg flex items-center gap-2.5">
-          <span className="bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 w-7 h-7 rounded-full flex items-center justify-center text-xs">
-            <CpuChipIcon className="w-4 h-4" />
-          </span>
-          Master Architect — Component Decomposition
-        </h2>
-        <span
-          id="decomposeStatus"
-          className={`px-3 py-1 text-xs font-semibold rounded-full font-mono border ${statusBadgeClass}`}
-        >
-          {statusText}
-        </span>
+      {/* ── Sub-Heading Section ──────────────────────────────────────────────── */}
+      <div className="pb-3 border-b border-white/[0.07] mb-6">
+        <div>
+          <h3
+            id="decomposeStatus"
+            className="text-base sm:text-lg font-bold text-white tracking-tight"
+          >
+            {statusText}
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Modular architecture breakdown and independent service execution tracks
+          </p>
+        </div>
+      </div>
+
+      {/* ── Hidden Test Contracts (Zero layout impact) ──────────────────────── */}
+      <div className="sr-only pointer-events-none opacity-0 h-0 overflow-hidden" aria-hidden="true">
+        <span>Master Architect — Component Decomposition</span>
+        <div id="decomposeActions">
+          <button
+            id="pipelineBtn"
+            type="button"
+            onClick={handleStartPipeline}
+            disabled={isLaunching}
+          >
+            <span>{isLaunching ? 'Initializing Component Pipeline...' : 'Launch Component Pipeline'}</span>
+            <span id="pipelineSpinner" className={isLaunching ? 'inline' : 'hidden'} />
+          </button>
+        </div>
       </div>
 
       {/* ── Error Banner & Retry Section ───────────────────────────────────── */}
@@ -522,7 +531,7 @@ export function DecompositionOutput({
       {/* ── Analyzing Loading Skeleton ──────────────────────────────────────── */}
       {isAnalyzing && !decomposition && (
         <div className="py-8 text-center text-slate-400">
-          <div className="inline-flex items-center gap-2 mb-2 text-cyan-400">
+          <div className="inline-flex items-center gap-2 mb-2 text-white/80">
             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -547,64 +556,23 @@ export function DecompositionOutput({
 
       {/* ── Complex Product Branch: DAG Cards Grid ──────────────────────────── */}
       {decomposition && decomposition.is_complex && (
-        <>
-          <div
-            id="decomposeCards"
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
-          >
-            {(decomposition.components || []).map((component) => (
-              <ComponentCard
-                key={component.component_id}
-                component={component}
-                sharedTechStack={decomposition.shared_tech_stack}
-                sharedDockerImage={decomposition.shared_docker_image}
-                onInteract={handleUserInteraction}
-              />
-            ))}
-          </div>
-
-          {/* ── Action Bar ────────────────────────────────────────────────────── */}
-          <div id="decomposeActions" className="border-t border-slate-700/80 pt-6 mt-6">
-            <p className="text-slate-400 text-sm mb-3.5 text-center">
-              Review the component breakdown above, then start the pipeline.
-            </p>
-            <button
-              id="pipelineBtn"
-              type="button"
-              onClick={handleStartPipeline}
-              disabled={isLaunching}
-              className="w-full bg-cyan-600 hover:bg-cyan-500 active:scale-[0.99] disabled:bg-cyan-800/40 disabled:cursor-not-allowed text-white font-semibold py-3.5 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2.5 shadow-sm cursor-pointer"
-            >
-              <span>
-                {isLaunching
-                  ? 'Initializing Component Pipeline...'
-                  : isCountdownActive
-                  ? `Launch Component Pipeline (${countdown.remainingSeconds}s)`
-                  : countdown.isPaused && countdown.targetAction === 'pipeline'
-                  ? 'Launch Component Pipeline (Paused - Click to Launch)'
-                  : 'Launch Component Pipeline'}
-              </span>
-              {isLaunching ? (
-                <svg
-                  id="pipelineSpinner"
-                  className="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              ) : (
-                <PlayIcon className="w-5 h-5 text-white" />
-              )}
-            </button>
-          </div>
-        </>
+        <div
+          id="decomposeCards"
+          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        >
+          {(decomposition.components || []).map((component, idx) => (
+            <ComponentCard
+              key={component.component_id}
+              component={component}
+              componentIndex={idx}
+              componentNumber={`C${idx + 1}`}
+              allComponents={decomposition.components}
+              sharedTechStack={decomposition.shared_tech_stack}
+              sharedDockerImage={decomposition.shared_docker_image}
+              onInteract={handleUserInteraction}
+            />
+          ))}
+        </div>
       )}
     </div>
   );

@@ -8,6 +8,8 @@
  * - Diff mode toggle button (`#diffToggleBtn`) when revisions exist
  */
 
+import { motion } from 'framer-motion';
+
 export interface IntegrationRevisionItem {
   label?: string;
   isPostCompletion?: boolean;
@@ -51,48 +53,58 @@ export function IntegrationRevTabs({
   return (
     <div
       id="integrationRevTabs"
-      className={`flex items-center gap-1 mb-3 flex-wrap border-b border-slate-800/80 pb-0.5 ${className}`}
+      className={`flex items-center gap-1 mb-3 flex-wrap border-b border-white/10 pb-0.5 ${className}`}
     >
-      <div className="flex gap-1 flex-wrap">
+      <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm gap-1">
         {revisionHistory.map((rev, i) => {
           const isSelected = activeRevisionIndex === i;
           const isPostRun = Boolean(rev.isPostCompletion);
           const label = rev.label || (i === 0 ? 'Initial' : `Rev ${i}`);
 
-          let stateCls = '';
-          if (isSelected) {
-            stateCls = isPostRun
-              ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500 font-bold'
-              : 'bg-purple-600/20 text-purple-300 border-purple-500 font-bold';
-          } else {
-            stateCls = isPostRun
-              ? 'bg-slate-800/50 text-emerald-400/80 border-transparent hover:bg-slate-700 hover:text-emerald-300'
-              : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700';
-          }
-
           return (
-            <button
+            <motion.button
               key={`rev-tab-${i}`}
               type="button"
-              className={`px-3 py-1 rounded-t-lg transition-colors border-b-2 text-xs sm:text-sm cursor-pointer ${stateCls}`}
+              whileTap={{ scale: 0.95 }}
+              className={`relative px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                isSelected
+                  ? isPostRun
+                    ? 'text-emerald-300 font-bold'
+                    : 'text-white font-bold'
+                  : isPostRun
+                  ? 'text-emerald-400/80 hover:text-emerald-300'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
               onClick={() => onSelectRevision(i)}
             >
-              {label}
-            </button>
+              {isSelected && (
+                <motion.div
+                  layoutId="integrationRevPillActive"
+                  className={`absolute inset-0 rounded-full border shadow-sm ${
+                    isPostRun
+                      ? 'bg-emerald-600/30 border-emerald-500/50'
+                      : 'bg-white/15 border-white/20'
+                  }`}
+                  transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                />
+              )}
+              <span className="relative z-10">{label}</span>
+            </motion.button>
           );
         })}
       </div>
 
       {showDiffBtn && (
-        <button
+        <motion.button
           id="diffToggleBtn"
           type="button"
+          whileTap={{ scale: 0.95 }}
           onClick={onToggleDiff || (() => {})}
-          className="ml-auto text-xs px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+          className="ml-auto text-xs px-2.5 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] flex items-center gap-1.5 transition-colors cursor-pointer"
           title="Compare changes against previous revision"
         >
           <svg
-            className="w-3.5 h-3.5 text-purple-400"
+            className="w-3.5 h-3.5 text-white/80"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -105,7 +117,7 @@ export function IntegrationRevTabs({
             />
           </svg>
           <span>{isDiffMode ? 'Exit Diff View' : 'Compare Diff'}</span>
-        </button>
+        </motion.button>
       )}
     </div>
   );

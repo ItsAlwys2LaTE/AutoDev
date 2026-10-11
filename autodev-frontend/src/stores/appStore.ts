@@ -186,8 +186,17 @@ export interface AppStoreState {
   clarificationState: import('../types').ClarificationState | null;
   directAnswer: string | null;
 
+  // --- Product Enquiry Agent (Stage 2) ---
+  productEnquiryResult: import('../types/api').ProductEnquiryResponse | null;
+  productEnquiryAnswers: string[];
+  isEnquiring: boolean;
+  productEnquiryAdditionalNotes: string;
+
   // --- Timeline Metrics Logging (Milestone 1 / R1) ---
   timelineMetrics: PipelineTimelineMetrics;
+
+  // --- Pipeline Matrix Visualizer State Persistence ---
+  pipelineMatrixRows: any[];
 }
 
 
@@ -330,11 +339,22 @@ export interface AppStoreActions {
   resetIntentState: () => void;
   clearIntentGate: () => void;
 
+  // Product Enquiry Agent (Stage 2)
+  setProductEnquiryResult: (result: import('../types/api').ProductEnquiryResponse | null) => void;
+  setProductEnquiryAnswers: (answers: string[]) => void;
+  setIsEnquiring: (v: boolean) => void;
+  setProductEnquiryAdditionalNotes: (notes: string) => void;
+  clearProductEnquiry: () => void;
+
   // Timeline Metrics Logging & Gantt (Milestone 1 / R1)
   startTimelineInterval: (interval: Omit<TimelineInterval, 'endTime' | 'durationMs' | 'id' | 'startTime' | 'status'> & Partial<Pick<TimelineInterval, 'id' | 'startTime' | 'status'>>) => string;
   completeTimelineInterval: (id: string, patch?: Partial<TimelineInterval>) => void;
   recordTimelineInterval: (interval: TimelineInterval) => void;
   resetTimelineMetrics: () => void;
+
+  // Pipeline Matrix Visualizer State Persistence
+  setPipelineMatrixRows: (rows: any[]) => void;
+  clearPipelineMatrixRows: () => void;
 }
 
 // =============================================================================
@@ -464,6 +484,12 @@ export const initialAppStoreState: AppStoreState = {
   clarificationState: null,
   directAnswer: null,
 
+  // Product Enquiry Agent (Stage 2)
+  productEnquiryResult: null,
+  productEnquiryAnswers: [],
+  isEnquiring: false,
+  productEnquiryAdditionalNotes: '',
+
   // Timeline Metrics Logging (Milestone 1 / R1)
   timelineMetrics: {
     pipelineStartTime: null,
@@ -471,6 +497,9 @@ export const initialAppStoreState: AppStoreState = {
     totalDurationMs: 0,
     intervals: [],
   },
+
+  // Pipeline Matrix Visualizer State Persistence
+  pipelineMatrixRows: [],
 };
 
 // =============================================================================
@@ -1520,7 +1549,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     // Stepper updates
     const currentSteppers = { ...get().stepperStates };
     if (fromPhase === 'requirements') {
-      currentSteppers[1] = 'loading';
+      currentSteppers[1] = 'success';
       currentSteppers[2] = 'idle';
       currentSteppers[3] = 'idle';
       currentSteppers[4] = 'idle';
@@ -1529,7 +1558,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       patch.inFlightPhase = 'requirements';
     } else if (fromPhase === 'decomposition' || fromPhase === 'single_design') {
       currentSteppers[1] = 'success';
-      currentSteppers[2] = 'loading';
+      currentSteppers[2] = 'success';
       currentSteppers[3] = 'idle';
       currentSteppers[4] = 'idle';
       currentSteppers[5] = 'idle';
@@ -1570,9 +1599,9 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       currentSteppers[1] = 'success';
       currentSteppers[2] = 'success';
       currentSteppers[3] = 'success';
-      currentSteppers[4] = 'success';
-      currentSteppers[5] = 'loading';
-      patch.stepperStep = 5;
+      currentSteppers[4] = 'loading';
+      currentSteppers[5] = 'idle';
+      patch.stepperStep = 4;
       patch.inFlightPhase = 'integration';
     }
     patch.stepperStates = currentSteppers;
@@ -1753,6 +1782,18 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     directAnswer: null,
   }),
 
+  // --- Product Enquiry Agent (Stage 2) Actions ---
+  setProductEnquiryResult: (result) => set({ productEnquiryResult: result }),
+  setProductEnquiryAnswers: (answers) => set({ productEnquiryAnswers: answers }),
+  setIsEnquiring: (v) => set({ isEnquiring: v }),
+  setProductEnquiryAdditionalNotes: (notes) => set({ productEnquiryAdditionalNotes: notes }),
+  clearProductEnquiry: () => set({
+    productEnquiryResult: null,
+    productEnquiryAnswers: [],
+    isEnquiring: false,
+    productEnquiryAdditionalNotes: '',
+  }),
+
   // ===========================================================================
   // TIMELINE METRICS ACTIONS (MILESTONE 1 / R1)
   // ===========================================================================
@@ -1873,6 +1914,10 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         intervals: [],
       },
     }),
+
+  // Pipeline Matrix Visualizer State Persistence
+  setPipelineMatrixRows: (rows: any[]) => set({ pipelineMatrixRows: rows }),
+  clearPipelineMatrixRows: () => set({ pipelineMatrixRows: [] }),
 
   // ===========================================================================
   // SERIALIZATION & RECOVERY BRIDGE

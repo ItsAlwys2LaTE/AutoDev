@@ -8,4 +8,10 @@ export * from './PauseModifyFAB';
 export * from './DevelopmentGanttChart';
 export * from './GitHubExportModal';
 export * from './GlassToastContainer';
-
+export * from './SmoothInput';
+export * from './TextType';
+export * from './SpecularButton';
+export * from './AeroShards';
+export * from './ScrollFade';
+export * from './ScrollArea';
+export * from './ModernScrollbar';

@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import {
   ClockIcon,
   CheckCircleIcon,
@@ -224,13 +225,14 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
     <div
       id="developmentGanttChart"
       data-testid="development-gantt-chart"
-      className={`bg-slate-900/90 rounded-xl border border-slate-800 p-5 shadow-lg text-slate-200 transition-all ${className}`}
+      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] text-slate-200 transition-all ${className}`}
+      style={{ backdropFilter: 'blur(14px)' }}
     >
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-white/10">
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+            <span className="w-6 h-6 rounded-lg bg-white/[0.06] text-white/90 border border-white/[0.08] flex items-center justify-center">
               <ChartBarIcon className="w-3.5 h-3.5" />
             </span>
             <h4 className="text-base sm:text-lg font-bold text-slate-100 tracking-tight">
@@ -247,36 +249,52 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
           <div
             role="tablist"
             aria-label="Timeline View Selection"
-            className="inline-flex bg-slate-950 p-1 rounded-lg border border-slate-800"
+            className="relative inline-flex items-center bg-slate-950/[0.25] backdrop-blur-md p-1 rounded-full border border-white/[0.08]"
           >
-            <button
+            <motion.button
               type="button"
               id="ganttToggleWaterfall"
               data-testid="gantt-toggle-waterfall"
               onClick={() => setViewMode('waterfall')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 ${
+              whileTap={{ scale: 0.95 }}
+              className={`relative px-3 py-1.5 text-xs font-semibold rounded-full transition-colors flex items-center gap-1.5 cursor-pointer ${
                 viewMode === 'waterfall'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'text-white'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <ListBulletIcon className="w-3.5 h-3.5" />
-              <span>Chronological Stream</span>
-            </button>
-            <button
+              {viewMode === 'waterfall' && (
+                <motion.div
+                  layoutId="ganttViewModeGlider"
+                  className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                  transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                />
+              )}
+              <ListBulletIcon className="relative z-10 w-3.5 h-3.5" />
+              <span className="relative z-10">Chronological Stream</span>
+            </motion.button>
+            <motion.button
               type="button"
               id="ganttToggleGrouped"
               data-testid="gantt-toggle-grouped"
               onClick={() => setViewMode('grouped')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors flex items-center gap-1.5 ${
+              whileTap={{ scale: 0.95 }}
+              className={`relative px-3 py-1.5 text-xs font-semibold rounded-full transition-colors flex items-center gap-1.5 cursor-pointer ${
                 viewMode === 'grouped'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'text-white'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Squares2X2Icon className="w-3.5 h-3.5" />
-              <span>Component Grouped</span>
-            </button>
+              {viewMode === 'grouped' && (
+                <motion.div
+                  layoutId="ganttViewModeGlider"
+                  className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                  transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                />
+              )}
+              <Squares2X2Icon className="relative z-10 w-3.5 h-3.5" />
+              <span className="relative z-10">Component Grouped</span>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -288,9 +306,9 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
           id="ganttTotalDuration"
           data-testid="gantt-total-duration"
           title={`Exact total duration: ${totalDurationMs.toLocaleString()} ms`}
-          className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 flex items-center gap-3"
+          className="bg-slate-950/[0.25] backdrop-blur-md rounded-xl p-3 border border-white/[0.07] flex items-center gap-3"
         >
-          <div className="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/90 flex items-center justify-center shrink-0">
             <ClockIcon className="w-4 h-4" />
           </div>
           <div>
@@ -307,7 +325,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
         <div
           id="ganttTotalPhases"
           data-testid="gantt-total-phases"
-          className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 flex items-center gap-3"
+          className="bg-slate-950/[0.25] backdrop-blur-md rounded-xl p-3 border border-white/[0.07] flex items-center gap-3"
         >
           <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
             <CheckCircleIcon className="w-4 h-4" />
@@ -327,7 +345,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
           <div
             id="ganttTotalComponents"
             data-testid="gantt-total-components"
-            className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 flex items-center gap-3"
+            className="bg-slate-950/[0.25] backdrop-blur-md rounded-xl p-3 border border-white/[0.07] flex items-center gap-3"
           >
             <div className="w-8 h-8 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
               <CpuChipIcon className="w-4 h-4" />
@@ -347,9 +365,9 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
         <div
           id="ganttIntervalCount"
           data-testid="gantt-interval-count"
-          className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 flex items-center gap-3"
+          className="bg-slate-950/[0.25] backdrop-blur-md rounded-xl p-3 border border-white/[0.07] flex items-center gap-3"
         >
-          <div className="w-8 h-8 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/90 flex items-center justify-center shrink-0">
             <ArrowPathIcon className="w-4 h-4" />
           </div>
           <div>
@@ -368,7 +386,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
         <div
           id="ganttEmptyState"
           data-testid="gantt-empty-state"
-          className="py-12 text-center border border-dashed border-slate-800 rounded-lg bg-slate-950/40"
+          className="py-12 text-center border border-dashed border-white/10 rounded-2xl bg-slate-950/[0.25]"
         >
           <ClockIcon className="w-8 h-8 text-slate-500 mx-auto mb-2" />
           <p className="text-sm font-semibold text-slate-300">No timeline intervals recorded yet</p>
@@ -379,7 +397,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
       ) : (
         <div className="mt-5 space-y-4">
           {/* Time Ruler Bar */}
-          <div className="relative pt-2 pb-1 border-b border-slate-800/60 select-none">
+          <div className="relative pt-2 pb-1 border-b border-white/10 select-none">
             <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 px-2">
               {rulerTicks.map((tick, i) => (
                 <div
@@ -404,7 +422,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
             <div
               id="ganttHoverCard"
               data-testid="gantt-hover-card"
-              className="bg-slate-950/95 border border-indigo-500/40 rounded-lg p-3 shadow-xl text-xs flex flex-wrap items-center justify-between gap-3 animate-fadeIn"
+              className="bg-slate-950/90 backdrop-blur-xl border border-white/20 rounded-xl p-3 shadow-xl text-xs flex flex-wrap items-center justify-between gap-3 animate-fadeIn"
             >
               <div className="flex items-center gap-2">
                 <span
@@ -480,7 +498,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
                     data-testid={`gantt-interval-${interval.id || idx}`}
                     onMouseEnter={() => setHoveredInterval(interval)}
                     onMouseLeave={() => setHoveredInterval(null)}
-                    className="group bg-slate-950/40 hover:bg-slate-950/80 border border-slate-800/60 hover:border-slate-700/80 rounded-lg p-2.5 transition-all flex flex-col md:flex-row md:items-center gap-2"
+                    className="group bg-slate-950/[0.25] hover:bg-white/[0.04] border border-white/[0.07] hover:border-white/20 rounded-xl p-2.5 transition-all flex flex-col md:flex-row md:items-center gap-2"
                   >
                     {/* Left Stage Label & Metadata Column */}
                     <div className="w-full md:w-64 shrink-0 flex items-center justify-between md:justify-start gap-2">
@@ -505,7 +523,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
                     </div>
 
                     {/* Timeline Track Bar */}
-                    <div className="relative flex-1 h-7 bg-slate-900 rounded-md overflow-hidden border border-slate-800/40 flex items-center">
+                    <div className="relative flex-1 h-7 bg-black/40 rounded-md overflow-hidden border border-white/[0.07] flex items-center">
                       {/* Grid background markers */}
                       <div className="absolute inset-0 grid grid-cols-4 pointer-events-none opacity-15">
                         <div className="border-r border-slate-600 h-full" />
@@ -558,15 +576,15 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
                 <div
                   key={groupIdx}
                   data-testid={`gantt-group-${groupIdx}`}
-                  className="bg-slate-950/40 border border-slate-800/80 rounded-lg p-3 space-y-2.5"
+                  className="bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] rounded-xl p-3 space-y-2.5"
                 >
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-800/60">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded bg-slate-800 text-slate-300 flex items-center justify-center text-xs">
+                      <span className="w-5 h-5 rounded bg-white/[0.06] text-white/90 flex items-center justify-center text-xs">
                         {group.isComponent ? (
-                          <CpuChipIcon className="w-3 h-3 text-cyan-400" />
+                           <CpuChipIcon className="w-3 h-3 text-cyan-400" />
                         ) : (
-                          <ChartBarIcon className="w-3 h-3 text-indigo-400" />
+                          <ChartBarIcon className="w-3 h-3 text-white/80" />
                         )}
                       </span>
                       <h5 className="text-xs font-bold text-slate-200 tracking-tight">
@@ -595,7 +613,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
                           key={interval.id || iIdx}
                           onMouseEnter={() => setHoveredInterval(interval)}
                           onMouseLeave={() => setHoveredInterval(null)}
-                          className="group bg-slate-900/60 hover:bg-slate-900 p-2 rounded border border-slate-800/40 hover:border-slate-700/60 flex flex-col md:flex-row md:items-center gap-2"
+                          className="group bg-slate-950/[0.25] hover:bg-white/[0.04] p-2 rounded-lg border border-white/[0.07] hover:border-white/20 flex flex-col md:flex-row md:items-center gap-2"
                         >
                           <div className="w-full md:w-56 shrink-0 flex items-center gap-1.5 truncate">
                             <span
@@ -608,7 +626,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
                             </span>
                           </div>
 
-                          <div className="relative flex-1 h-6 bg-slate-950 rounded overflow-hidden border border-slate-800/40 flex items-center">
+                          <div className="relative flex-1 h-6 bg-black/40 rounded overflow-hidden border border-white/[0.07] flex items-center">
                             <div
                               style={{
                                 left: `${leftPercent}%`,

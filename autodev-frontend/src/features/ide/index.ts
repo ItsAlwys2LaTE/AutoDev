@@ -9,3 +9,4 @@ export * from './DiffViewer';
 export * from './merger';
 export * from './languageDetector';
 export * from './LivePreview';
+export * from './monacoPatcher';

@@ -1,7 +1,11 @@
 import type { ComponentSpec } from '../../types';
+import { getComponentTheme, formatComponentTitle } from '../../utils/componentTheme';
 
 export interface ComponentCardProps {
   component: ComponentSpec;
+  componentNumber?: string;
+  componentIndex?: number;
+  allComponents?: Array<{ component_id: string }>;
   sharedTechStack?: string[];
   sharedDockerImage?: string;
   onInteract?: () => void;
@@ -10,6 +14,9 @@ export interface ComponentCardProps {
 
 export function ComponentCard({
   component,
+  componentNumber,
+  componentIndex,
+  allComponents,
   sharedTechStack = [],
   sharedDockerImage = 'node:20-alpine',
   onInteract,
@@ -23,37 +30,61 @@ export function ComponentCard({
   const dockerImage = component.docker_image || sharedDockerImage;
   const dependencies = component.dependencies_on || [];
 
+  const theme = getComponentTheme(
+    componentNumber || (componentIndex !== undefined ? componentIndex : component.component_id),
+    allComponents
+  );
+
+  const displayTitle = formatComponentTitle(
+    componentNumber || theme.number,
+    component.component_name
+  );
+
   return (
     <div
       onClick={onInteract}
       tabIndex={0}
       role="region"
       aria-label={`Component ${component.component_name}`}
-      className={`glass-card bg-slate-800/90 dark:bg-[#1e293b]/90 rounded-xl border border-slate-700 dark:border-white/10 p-5 relative shadow-sm flex flex-col justify-between hover:border-cyan-500/40 transition-colors focus:outline-none focus:ring-1 focus:ring-cyan-500/50 ${className}`}
+      style={{
+        backdropFilter: 'blur(14px)',
+        backgroundColor: theme.bgTint,
+        borderColor: theme.borderTint,
+      }}
+      className={`rounded-2xl backdrop-blur-md border p-5 relative shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col justify-between hover:border-white/25 transition-all focus:outline-none focus:ring-1 focus:ring-white/20 overflow-hidden ${className}`}
     >
+      {/* Soft Specular Ambient Glow line matching component hue */}
+      <div
+        className="absolute top-0 inset-x-0 h-px pointer-events-none"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${theme.color}40, transparent)`,
+        }}
+        aria-hidden="true"
+      />
+
       <div>
         {/* Top Badges */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
-          <span className="font-mono text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-full font-medium">
+          <span className="font-mono text-xs text-slate-300 bg-white/[0.06] border border-white/[0.08] px-2.5 py-0.5 rounded-full font-medium">
             {`ID: ${component.component_id}`}
           </span>
-          <span className="text-xs font-mono bg-slate-700/80 text-slate-300 border border-slate-600 px-2 py-0.5 rounded font-medium">
+          <span className="text-xs font-mono bg-white/[0.06] text-slate-300 border border-white/[0.08] px-2 py-0.5 rounded-md font-medium">
             {`Order: ${component.priority_order ?? 1}`}
           </span>
         </div>
 
         {/* Component Name */}
         <h4 className="font-bold text-slate-100 text-base mb-1.5 tracking-tight">
-          {component.component_name}
+          {displayTitle}
         </h4>
 
         {/* Description */}
-        <p className="text-xs text-slate-300 dark:text-slate-400 mb-3.5 leading-relaxed">
+        <p className="text-xs text-slate-300 mb-3.5 leading-relaxed font-sans">
           {component.description}
         </p>
       </div>
 
-      <div className="space-y-2.5 pt-2.5 border-t border-slate-700/60">
+      <div className="space-y-2.5 pt-2.5 border-t border-white/[0.07]">
         {/* Tech Stack Chips */}
         {techStack.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -63,7 +94,7 @@ export function ComponentCard({
             {techStack.map((tech) => (
               <span
                 key={tech}
-                className="text-[11px] px-2 py-0.5 rounded-md bg-slate-700/60 text-slate-300 border border-slate-600/60 font-mono"
+                className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.06] text-slate-300 border border-white/[0.08] font-mono"
               >
                 {tech}
               </span>
@@ -76,7 +107,7 @@ export function ComponentCard({
           <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
             Image:
           </span>
-          <span className="font-mono text-[11px] text-cyan-300 bg-cyan-950/40 border border-cyan-800/40 px-2 py-0.5 rounded-md">
+          <span className="font-mono text-[11px] text-slate-300 bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded-md">
             {dockerImage}
           </span>
         </div>
@@ -91,7 +122,7 @@ export function ComponentCard({
               {dependencies.map((dep) => (
                 <span
                   key={dep}
-                  className="font-mono text-[11px] text-indigo-300 bg-indigo-950/40 border border-indigo-800/40 px-1.5 py-0.5 rounded"
+                  className="font-mono text-[11px] text-slate-300 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded"
                 >
                   {dep}
                 </span>

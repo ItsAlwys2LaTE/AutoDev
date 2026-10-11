@@ -14,11 +14,14 @@
  */
 
 import { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import Editor, { DiffEditor, type OnMount, type OnChange } from '@monaco-editor/react';
 import { detectLanguage } from '../ide/languageDetector';
+import { handleBeforeMount, patchEditorInstance, patchMonaco } from '../ide/monacoPatcher';
 import { LivePreview } from '../ide/LivePreview';
 import { IntegrationRevTabs } from './IntegrationRevTabs';
 import type { GeneratedCodeBase, CodeFile } from '../../types';
+import { ScrollFade } from '../../components/ScrollFade';
 
 export interface IntegrationMonacoViewProps {
   /** Unified integrated codebase */
@@ -107,7 +110,11 @@ export function IntegrationMonacoView({
     }
   }
 
-  const handleMount: OnMount = (editor) => {
+  const handleMount: OnMount = (editor, monaco) => {
+    patchEditorInstance(editor);
+    if (monaco) {
+      patchMonaco(monaco);
+    }
     editorRef.current = editor;
     editor.onDidFocusEditorText(() => {
       onFocus?.();
@@ -126,12 +133,13 @@ export function IntegrationMonacoView({
   return (
     <div
       id="codeOutputSection"
-      className={`bg-slate-900 rounded-2xl shadow-glass border border-slate-800 p-6 fade-in text-slate-100 mt-6 ${className}`}
+      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in text-slate-100 ${className}`}
+      style={{ backdropFilter: 'blur(14px)' }}
     >
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90">
             <svg
               className="w-4 h-4"
               fill="none"
@@ -153,7 +161,7 @@ export function IntegrationMonacoView({
             >
               <span>{titleText}</span>
               {isReadOnly && (
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.08]">
                   Read Only
                 </span>
               )}
@@ -179,14 +187,14 @@ export function IntegrationMonacoView({
       {/* IDE Container */}
       <div
         id="ideContainer"
-        className="flex flex-col md:flex-row h-[550px] border border-slate-800 rounded-xl overflow-hidden bg-[#1e1e1e]"
+        className="flex flex-col md:flex-row h-[550px] border border-white/[0.07] rounded-2xl overflow-hidden bg-black/25 backdrop-blur-md"
       >
         {/* Left Pane: File Explorer */}
-        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/80 flex flex-col flex-shrink-0">
-          <div className="p-3 border-b border-slate-800/80 flex items-center justify-between text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 bg-slate-950/[0.12] backdrop-blur-md flex flex-col flex-shrink-0">
+          <div className="p-3 border-b border-white/10 flex items-center justify-between text-xs font-semibold text-slate-300 uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
               <svg
-                className="w-3.5 h-3.5 text-purple-400"
+                className="w-3.5 h-3.5 text-white/80"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -200,12 +208,12 @@ export function IntegrationMonacoView({
               </svg>
               Files
             </span>
-            <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
+            <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300 border border-white/[0.08]">
               {files.length}
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          <ScrollFade className="flex-1 overflow-y-auto p-2 space-y-1">
             {files.length === 0 ? (
               <div className="p-4 text-xs text-slate-500 font-mono text-center">
                 No files available
@@ -220,14 +228,14 @@ export function IntegrationMonacoView({
                     onClick={() => onSelectFile(idx)}
                     className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 transition-colors cursor-pointer truncate ${
                       isSelected
-                        ? 'bg-purple-900/30 text-purple-300 border border-purple-500/40 font-semibold'
-                        : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200 border border-transparent'
+                        ? 'bg-white/15 text-white border border-white/20 font-semibold shadow-xs'
+                        : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-200 border border-transparent'
                     }`}
                     title={file.file_name}
                   >
                     <svg
                       className={`w-3.5 h-3.5 flex-shrink-0 ${
-                        isSelected ? 'text-purple-400' : 'text-slate-500'
+                        isSelected ? 'text-white' : 'text-slate-500'
                       }`}
                       fill="none"
                       stroke="currentColor"
@@ -245,38 +253,54 @@ export function IntegrationMonacoView({
                 );
               })
             )}
-          </div>
+          </ScrollFade>
         </div>
 
         {/* Right Pane: Monaco Editor / Diff Editor / Live Preview */}
         <div className="flex-1 h-full relative overflow-hidden bg-[#1e1e1e] flex flex-col">
           {/* File bar header with Code Editor / Live Preview toggle */}
-          <div className="px-3 py-1.5 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <button
+          <div className="px-3 py-1.5 border-b border-white/10 bg-slate-950/[0.12] flex items-center justify-between text-xs">
+            <div className="relative flex items-center p-0.5 rounded-full bg-slate-900 border border-slate-700/60 backdrop-blur-sm">
+              <motion.button
                 type="button"
                 id="tabCode"
                 onClick={() => setIsPreviewOpen(false)}
-                className={`text-xs font-semibold px-3 py-1 rounded transition-colors cursor-pointer ${
+                whileTap={{ scale: 0.95 }}
+                className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                   !isPreviewOpen
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                    ? 'text-white'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Code Editor
-              </button>
-              <button
+                {!isPreviewOpen && (
+                  <motion.div
+                    layoutId="integrationPreviewToggleGlider"
+                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                    transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                  />
+                )}
+                <span className="relative z-10">Code Editor</span>
+              </motion.button>
+              <motion.button
                 type="button"
                 id="tabPreview"
                 onClick={() => setIsPreviewOpen(true)}
-                className={`text-xs font-semibold px-3 py-1 rounded transition-colors cursor-pointer ${
+                whileTap={{ scale: 0.95 }}
+                className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                   isPreviewOpen
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                    ? 'text-white'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Live Preview
-              </button>
+                {isPreviewOpen && (
+                  <motion.div
+                    layoutId="integrationPreviewToggleGlider"
+                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                    transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                  />
+                )}
+                <span className="relative z-10">Live Preview</span>
+              </motion.button>
             </div>
 
             <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
@@ -301,6 +325,7 @@ export function IntegrationMonacoView({
                 original={previousFile?.source_code || ''}
                 modified={activeFile.source_code || ''}
                 theme="vs-dark"
+                beforeMount={handleBeforeMount}
                 options={{
                   readOnly: true,
                   renderSideBySide: true,
@@ -317,7 +342,7 @@ export function IntegrationMonacoView({
                 loading={
                   <div className="flex items-center justify-center h-full text-slate-400 font-mono text-xs gap-2">
                     <svg
-                      className="animate-spin h-4 w-4 text-purple-400"
+                      className="animate-spin h-4 w-4 text-white/70"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -342,6 +367,7 @@ export function IntegrationMonacoView({
               />
             ) : (
               <Editor
+                key={modelUri || `integration-${activeRevisionIndex}-${activeFileIndex}`}
                 path={modelUri}
                 height="100%"
                 language={language}
@@ -361,12 +387,13 @@ export function IntegrationMonacoView({
                   renderWhitespace: 'selection',
                   padding: { top: 8, bottom: 8 },
                 }}
+                beforeMount={handleBeforeMount}
                 onMount={handleMount}
                 onChange={handleChange}
                 loading={
                   <div className="flex items-center justify-center h-full text-slate-400 font-mono text-xs gap-2">
                     <svg
-                      className="animate-spin h-4 w-4 text-cyan-400"
+                      className="animate-spin h-4 w-4 text-white/70"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"

@@ -13,6 +13,7 @@ import {
   CodeBracketIcon,
   DocumentIcon,
 } from '@heroicons/react/24/outline';
+import { ScrollFade } from '../../components/ScrollFade';
 import type { CodeFile } from '../../types';
 
 export interface FileExplorerProps {
@@ -52,16 +53,16 @@ export function FileExplorer({
 }: FileExplorerProps) {
   return (
     <div
-      className={`w-full sm:w-1/3 border-r border-slate-700 flex flex-col bg-slate-900 ${className}`}
+      className={`w-full sm:w-1/3 border-r border-white/10 flex flex-col bg-slate-950/[0.25] backdrop-blur-md ${className}`}
     >
-      <div className="p-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800 bg-slate-950 flex items-center justify-between">
+      <div className="p-2.5 text-xs font-semibold text-slate-300 uppercase tracking-wider border-b border-white/10 bg-slate-950/[0.25] flex items-center justify-between">
         <span>Explorer</span>
         <span className="text-[11px] font-mono text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
           {`${files.length} ${files.length === 1 ? 'file' : 'files'}`}
         </span>
       </div>
 
-      <div
+      <ScrollFade
         id="fileExplorer"
         className="flex-1 overflow-y-auto py-2 divide-y divide-slate-800/40"
         role="tree"
@@ -94,7 +95,7 @@ export function FileExplorer({
             );
           })
         )}
-      </div>
+      </ScrollFade>
     </div>
   );
 }

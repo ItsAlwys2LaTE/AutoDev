@@ -7,3 +7,4 @@ export * from './ComponentFileExplorer';
 export * from './ComponentMonaco';
 export * from './ComponentCriticTabs';
 export * from './ComponentTrack';
+export * from './PipelineAssemblyLine';

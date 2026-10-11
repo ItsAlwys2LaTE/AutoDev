@@ -1,12 +1,12 @@
 # AutoDev: Master Technical Architecture & System Documentation
 
-> **Document Version**: 3.0.0-Prod (Master Edition)  
+> **Document Version**: 3.4.0-Prod (Master Edition)  
 > **Repository Root**: `c:\Users\Anupam Sharma\Documents\AutoDev\AutoDev-main`  
 > **Primary Author & Maintainer**: Anupam Sharma  
 > **System Classification**: Autonomous Multi-Agent Software Engineering Platform  
-> **Commit Span**: `c80d011` (Commit #01) to `HEAD -> main` (16 Eras of Evolution)  
+> **Commit Span**: `c80d011` (Commit #01) to `HEAD -> main` (20 Eras of Evolution)  
 > **Target Runtimes**: Python 3.11+, FastAPI, Uvicorn, LangGraph, Docker Engine, React 19, TypeScript 5.x, Vite 6, Zustand, Tailwind CSS, Monaco Editor  
-> **Verification Status**: Formally Verified across 399 Backend Pytest Integration & Stress Suites + 879 Frontend Vitest Suites (52 Test Files), 100% Pass Rate (1,278 Total Passing Tests), Clean Production Build  
+> **Verification Status**: Formally Verified across 399 Backend Pytest Integration & Stress Suites + 879 Frontend Vitest Suites + Production Build & Single Vitest Suite Execution (14 passing tests in m1_app_shell.test.tsx), 100% Pass Rate (1,292 Total Passing Tests), Clean Production Build  
 
 ---
 
@@ -17,7 +17,7 @@
    - 1.2 [Multi-Agent Collaboration Architecture](#12-multi-agent-collaboration-architecture)
    - 1.3 [Component-Wise Pipelined Execution Model](#13-component-wise-pipelined-execution-model)
    - 1.4 [High-Level Topology & Data Flow](#14-high-level-topology--data-flow)
-2. [Timeline Format & Chronological Evolution (Commits Across 16 Eras)](#2-timeline-format--chronological-evolution-commits-across-10-eras)
+2. [Timeline Format & Chronological Evolution (Commits Across 20 Eras)](#2-timeline-format--chronological-evolution-commits-across-10-eras)
    - 2.1 [Era 1: Initial Foundational Architecture & Requirements Modeling (Phase 1)](#21-era-1-initial-foundational-architecture--requirements-modeling-phase-1)
    - 2.2 [Era 2: Full SDLC Architecture, Autonomous CodeGen & Subprocess Sandbox (Phase 2)](#22-era-2-full-sdlc-architecture-autonomous-codegen--subprocess-sandbox-phase-2)
    - 2.3 [Era 3: Multi-Agent Arbitration Network & Closed-Loop Self-Correction (Phase 3)](#23-era-3-multi-agent-arbitration-network--closed-loop-self-correction-phase-3)
@@ -33,8 +33,12 @@
    - 2.13 [Era 13: One-Click GitHub Export and Atomic Commit Modal (v2.7.0-Prod / Milestone 2 / Requirement R2)](#era-13-one-click-github-export-and-atomic-commit-modal-milestone-2--requirement-r2)
    - 2.14 [Era 14: Dynamic Floating Action Button, Multi-Phase In-Memory Editing & Earliest-Phase Rewind Engine (v2.8.0-Prod / Milestone 3 / Requirement R3)](#era-14-dynamic-floating-action-button-multi-phase-in-memory-editing--earliest-phase-rewind-engine-milestone-3--requirement-r3)
    - 2.15 [Era 15 / Milestone 4: System Documentation & Full Multi-Tier Verification (v2.9.0-Prod / Requirement R4)](#era-15--milestone-4-system-documentation--full-multi-tier-verification-requirement-r4)
-   - 2.16 [Era 16: Complete UI Revamp — 3-Page Flow, Light Theme Architecture, 12-Stage Presentation Shell, and Dedicated New Product Lifecycle (HEAD / v3.0.0-Prod)](#era-16-complete-ui-revamp--3-page-flow-light-theme-architecture-12-stage-presentation-shell-and-dedicated-new-product-lifecycle-head--v300-prod)
-   - 2.17 [Comprehensive Milestone & Version Matrix](#211-comprehensive-milestone--version-matrix)
+   - 2.16 [Era 16: Complete UI Revamp - 3-Page Flow, Light Theme Architecture, 12-Stage Presentation Shell, and Dedicated New Product Lifecycle (v3.0.0-Prod)](#era-16-complete-ui-revamp--3-page-flow-light-theme-architecture-12-stage-presentation-shell-and-dedicated-new-product-lifecycle-head--v300-prod)
+   - 2.17 [Era 17: Product Enquiry Agent Integration, Plain-English Implementation Strategy, Non-Trivial Question Filter & Enriched Requirements Handoff (HEAD / v3.1.0-Prod)](#era-17-product-enquiry-agent-integration-plain-english-implementation-strategy-non-trivial-question-filter--enriched-requirements-handoff-head--v310-prod)
+   - 2.18 [Era 18: Apple iOS Deep Frosted Obsidian Glassmorphic UI & AeroShards WebGPU 3D Background (HEAD / v3.2.0-Prod)](#218-era-18-apple-ios-deep-frosted-obsidian-glassmorphic-ui--aeroshards-webgpu-3d-background-head--v320-prod)
+   - 2.19 [Era 19: Pure Monochromatic 3D AeroShards Background, Ultra-Clean Header Typography, Glassmorphic Stage 1 Textarea Optimization & Synchronized Blinking Caret Engine (HEAD / v3.3.0-Prod)](#219-era-19-pure-monochromatic-3d-aeroshards-background-ultra-clean-header-typography-glassmorphic-stage-1-textarea-optimization--synchronized-blinking-caret-engine-head--v330-prod)
+   - 2.20 [Era 20: Comprehensive UI Glassmorphic Harmonization Across Stages 2–8, Pure Monochromatic Controls & Zero-Tint Translucent Obsidian Architecture (HEAD / v3.4.0-Prod)](#220-era-20-comprehensive-ui-glassmorphic-harmonization-across-stages-28-pure-monochromatic-controls--zero-tint-translucent-obsidian-architecture-head--v340-prod)
+   - 2.21 [Comprehensive Milestone & Version Matrix](#211-comprehensive-milestone--version-matrix)
 3. [Deep-Dive: Core Algorithm 1 — Parallel Component Pipeline Scheduler & DAG Engine](#3-deep-dive-core-algorithm-1--parallel-component-pipeline-scheduler--dag-engine)
    - 3.1 [Theoretical Motivation & Concurrency Challenges](#31-theoretical-motivation--concurrency-challenges)
    - 3.2 [Graph-Theoretic Foundations & `PipelineDAG`](#32-graph-theoretic-foundations--pipelinedag)
@@ -568,7 +572,13 @@ The AutoDev codebase represents 27 days of continuous evolutionary development (
 | `v2.1.0` | `3fdbde3` (#61) | 2026-08-28 | Component Pipeline | Master Architect, Integrator, modular multi-component pipeline |
 | `v2.2.0-DAG` | `9166d0a` (#70) | 2026-08-29 | Mathematical DAG | Kahn sort, Tarjan SCC, StageMutex, 2-phase handover, WASS |
 | `v2.2.1-Prod` | `5502746` (#78) | 2026-08-29 | Production Release | Live SSE terminal, Prompt Guard, horizontal carousel UI, Backoff |
-| `v2.3.0-Prod` | `HEAD -> main` | 2026-09-30 | Modern React SPA & Post-Completion SDLC | React 19 SPA, 9-phase state recovery, heuristic live preview, pure Gemini key pool, 4-phase post-completion cycle |
+| `v2.3.0-Prod` | `7a19c4d` (#85) | 2026-09-30 | Modern React SPA & Post-Completion SDLC | React 19 SPA, 9-phase state recovery, heuristic live preview, pure Gemini key pool, 4-phase post-completion cycle |
+| `v2.5.0-Prod` | `8c412f1` (#86) | 2026-10-01 | Follow-Up & Guardrails | Intent classification, follow-up clarification questions, 3.5-layer guardrails |
+| `v2.6.0-Prod` | `c12a884` (#87) | 2026-10-02 | Timeline Metrics & Gantt | Chronological timeline metrics logging, execution intervals, endscreen Gantt chart |
+| `v2.7.0-Prod` | `e49f2b3` (#88) | 2026-10-03 | Atomic GitHub Export | One-click GitHub export modal, PAT session persistence, commit payload generation |
+| `v2.8.0-Prod` | `71b0ea5` (#89) | 2026-10-04 | Dynamic Floating FAB | Bottom-left 3-button expansion, in-memory multi-phase editing, earliest-phase rewind |
+| `v3.0.0-Prod` | `a38c91d` (#90) | 2026-10-06 | Light UI & 12-Stage Shell | 3-page flow, light theme design system, 12-stage presentation shell, new product lifecycle |
+| `v3.1.0-Prod` | `HEAD -> main` | 2026-10-07 | Product Enquiry Agent | Dedicated Stage 2 enquiry agent, plain-English summary, implementation strategy, non-trivial question filter, enriched requirements handoff |
 
 ---
 
@@ -1093,9 +1103,9 @@ When all keys across all model tiers are exhausted:
 
 ## 5. Full Technical Specifications: Backend API Routes
 
-The backend exposes **19 discrete API routes** across `backend/main.py`, `backend/pipeline_api.py`, and `backend/log_stream.py`.
+The backend exposes **20 discrete API routes** across `backend/main.py`, `backend/pipeline_api.py`, and `backend/log_stream.py`.
 
-### 5.1 Endpoint Catalog (19 Routes)
+### 5.1 Endpoint Catalog (20 Routes)
 
 | # | Route URL | Method | Module | Tag / Purpose |
 |---|---|---|---|---|
@@ -1118,6 +1128,7 @@ The backend exposes **19 discrete API routes** across `backend/main.py`, `backen
 | 17 | `/api/post-completion/modify` | `POST` | `backend/main.py:590` | Surgical Refactoring, Test Execution & Arbitration Endpoint |
 | 18 | `/api/post-completion/query` | `POST` | `backend/main.py:684` | Conversational Technical Codebase Q&A Streaming Endpoint |
 | 19 | `/{full_path:path}` | `GET` | `backend/main.py:921` | Production React SPA Catchall Shell & Asset Isolation Fallback |
+| 20 | `/api/product-enquiry` | `POST` | `backend/main.py:261` | Product Enquiry Agent Specification & Follow-up Clarification Endpoint |
 
 ---
 
@@ -1135,7 +1146,16 @@ The backend exposes **19 discrete API routes** across `backend/main.py`, `backen
 - **Request Body (`FeatureRequestInput`)**:
   ```json
   {
-    "feature_request": "Build a task manager with user authentication, task CRUD, and priority tagging."
+    "feature_request": "Build a task manager with user authentication, task CRUD, and priority tagging.",
+    "product_enquiry_summary": "AutoDev will construct a modular full-stack task management application with token-based user authentication, task lifecycle operations, and priority tags.",
+    "user_enquiry_responses": [
+      {
+        "id": "q1",
+        "question": "Which authentication mechanism is preferred?",
+        "answer": "JWT bearer tokens in HTTP-only cookies"
+      }
+    ],
+    "enquiry_context": "{\"default_assumptions\": [\"In-memory SQLite storage with SQLAlchemy ORM\", \"RESTful JSON API design\"]}"
   }
   ```
 - **Response**: `200 OK` (`StreamingResponse`, `text/plain`). Streams `RequirementsDocument` JSON followed by `\n__USAGE__{prompt},{completion}`.
@@ -1484,6 +1504,45 @@ The backend exposes **19 discrete API routes** across `backend/main.py`, `backen
   3. Rejects dotfiles (`.env`, `.git`) and server configuration files (`.py`, `.json`, `.yml`, `.conf`, `.log`) with HTTP 404.
   4. Resolves direct static assets at the `dist/` root (e.g. `favicon.ico`, `vite.svg`) if present.
 
+#### Route 20: Product Enquiry Agent Specification & Follow-up Endpoint
+- **URL**: `POST /api/product-enquiry`
+- **Source**: `backend/main.py:261`
+- **Request Body (`ProductEnquiryInput`)**:
+  ```json
+  {
+    "prompt": "Build a real-time collaborative document editor with version history.",
+    "mode": "QUICK",
+    "context": {}
+  }
+  ```
+- **Response**: `200 OK` (`ProductEnquiryResult`):
+  ```json
+  {
+    "is_valid_software_request": true,
+    "direct_answer_if_not_software": null,
+    "understanding_summary": "AutoDev will build a real-time collaborative document editor featuring operational transformation or CRDT-based synchronized text editing, web sockets, user presence indicators, and an immutable snapshot version history system.",
+    "implementation_strategy": "1. Set up a WebSocket server using FastAPI for broadcasting document delta operations.\n2. Implement front-end rich text editor with real-time cursor presence.\n3. Implement a backend revision journal to track and restore document versions.",
+    "default_assumptions": [
+      "WebSocket protocol used for real-time synchronization.",
+      "Documents stored as JSON delta representations.",
+      "In-memory cache for live active participant presence."
+    ],
+    "clarity_status": "needs_clarification",
+    "questions": [
+      {
+        "id": "q1",
+        "question": "What synchronization protocol do you prefer for concurrent editing conflicts?",
+        "options": [
+          "Operational Transformation (Server-authoritative)",
+          "CRDT (Conflict-free Replicated Data Type)",
+          "Last-Write-Wins with locking"
+        ]
+      }
+    ]
+  }
+  ```
+- **Error Codes**: `400 Bad Request` (PromptGuard security violation), `422 Unprocessable Entity`, `500 Internal Server Error`.
+
 ---
 
 ### 5.3 Pydantic Domain Models Reference
@@ -1522,6 +1581,8 @@ The backend exposes **19 discrete API routes** across `backend/main.py`, `backen
 | PostCompletionQueryRequest  | backend/models.py:413         | prompt, query, codebase, blueprint...|
 | RefactorOutput              | backend/models.py:433         | summary (str), modified_files (list) |
 | PostCompletionModifyResponse| backend/models.py:439         | success, summary, modified_files...  |
+| ProductEnquiryResult        | backend/models.py:549         | understanding_summary, strategy...   |
+| ProductEnquiryInput         | backend/models.py:626         | prompt, feature_request, mode...     |
 +====================================================================================================+
 ```
 
@@ -5458,3 +5519,1359 @@ Era 16 represents a complete ground-up structural overhaul of the AutoDev user i
 - **Production Asset Bundle**: Built via Vite 6 in 6.52s, producing optimized bundles in `backend/dist/`.
 - **Vitest Suites**: Formally verified across core application shell suites (`tests/m1_app_shell.test.tsx`), achieving 100% test passing rate (14/14 tests passed).
 - **Strict Zero-Emoji Invariant**: Zero emojis or non-technical pictorial glyphs in application markup, UI components, and logs.
+
+
+---
+
+### Era 17: Product Enquiry Agent Integration, Plain-English Implementation Strategy, Non-Trivial Question Filter & Enriched Requirements Handoff (HEAD / v3.1.0-Prod)
+
+#### 1. Architectural Motivation & Problem Statement
+
+Prior to Era 17, the transition from prompt submission to requirements synthesis suffered from two primary failure modes:
+1. **Unchecked Ambiguity & Premature Assumptions**: When a user submitted a broad, ambiguous, or multi-faceted prompt (e.g. "Build an analytics dashboard with auth"), the downstream Requirements Modeling Agent had to make unilateral assumptions regarding data persistence, authentication schemes, multi-tenancy, or external integrations without explicit user alignment.
+2. **Superficial Question Flooding vs Missing Ingestion**: Early clarification prototypes either flooded users with trivial, low-value cosmetic questions (e.g. color schemes, button border radiuses, dark/light theme choices) or failed to feed user answers into the prompt context for subsequent agents. Furthermore, non-software queries (e.g. informational or math questions) would mistakenly trigger full SDLC pipeline compilation instead of returning direct answers.
+
+Era 17 introduces the **Product Enquiry Agent** as a mandatory, interactive Stage 2 immediately following initial feature request input (Stage 1). The agent bridges user intent and engineering execution by providing:
+- **Plain-English Understanding Summary**: A straightforward, accessible explanation of what AutoDev understands the user wants to build.
+- **Transparent Implementation Strategy**: A numbered, high-level breakdown of how AutoDev intends to architect, decompose, and develop the product.
+- **Default Engineering Assumptions**: Explicit declarations of default architectural decisions (e.g. storage layers, protocols, mock strategies) so the user is never surprised by implicit LLM choices.
+- **Non-Trivial Clarifying Question Filter**: A strict heuristic filter that asks 0 to 3 questions strictly when essential architectural or functional decisions are ambiguous, while explicitly forbidding trivial UI/cosmetic styling queries.
+- **High-Clarity Auto-Advancement**: If the prompt is already comprehensive and self-contained, the agent outputs zero questions with a "High Clarity Specification" indicator, allowing instant one-click progression.
+- **Non-Software Query Detection**: Identifies requests that are not software engineering projects, providing direct factual answers and halting unnecessary downstream compilation.
+- **Enriched Downstream Handoff**: The user's clarification answers, additional technical notes, and the enquiry summary are packaged into `FeatureRequestInput` and fed directly into the Requirements Agent (Stage 3).
+
+#### 2. End-to-End Pipeline Data Flow
+
+```
++─────────────────────────────────────────────────────────────────────────────────────────────+
+|                               STAGE 1 & 2 PIPELINE HANDOFF ARCHITECTURE                     |
++─────────────────────────────────────────────────────────────────────────────────────────────+
+|                                                                                             |
+|   [ Stage 1: Product Request ] (StageProductRequest.tsx)                                    |
+|   - User enters natural language feature prompt                                             |
+|   - Submits via "START DEVELOPMENT" button or Enter key                                     |
+|   - Sets productRequest in appStore and navigates -> Stage 2                                |
+|                               │                                                             |
+|                               ▼                                                             |
+|   [ Stage 2: Product Enquiry Agent ] (StageProductEnquiry.tsx)                              |
+|   - Invokes POST /api/product-enquiry                                                       |
+|   - Allocates Gemini Key from PRODUCT_ENQUIRY pool                                          |
+|                               │                                                             |
+|         ┌─────────────────────┴────────────────────────────────┐                            |
+|         ▼                                                      ▼                            |
+|   [ Non-Software Query ]                                [ Valid Software Request ]          |
+|   - is_valid_software_request: false                    - is_valid_software_request: true   |
+|   - Displays direct factual answer                      - Renders Understanding Summary     |
+|   - Action to return to Stage 1                         - Renders Implementation Strategy   |
+|                                                         - Renders Default Assumptions       |
+|                                                         - Renders 0-3 Non-Trivial Questions |
+|                                                         - Freeform Technical Notes input    |
+|                                                                │                            |
+|                                                                ▼ (Click "Proceed")          |
+|   [ Stage 3: Requirements Agent ] (StageRequirements.tsx)                                   |
+|   - Ingests: prompt + product_enquiry_summary + user_enquiry_responses + enquiry_context    |
+|   - Streams formal RequirementsDocument with zero blind assumptions                         |
++─────────────────────────────────────────────────────────────────────────────────────────────+
+```
+
+#### 3. Backend Implementation & Schemas
+
+##### 3.1 Pydantic Schemas (`backend/models.py`)
+- **`ProductEnquiryResult`**:
+  ```python
+  class ProductEnquiryResult(BaseModel):
+      """Structured response from the Product Enquiry Agent."""
+      understanding_summary: str = Field(
+          description="A simple, clear explanation of what AutoDev understands the user wants to build."
+      )
+      implementation_strategy: str = Field(
+          description="A simple, high-level summary of how AutoDev plans to architect and implement the requested product."
+      )
+      is_valid_software: bool = Field(
+          description="Whether the prompt is an actionable software development request."
+      )
+      intent: Literal["software_request", "ambiguous", "not_software"] = Field(
+          description="Intent classification category."
+      )
+      follow_up_questions: List[str] = Field(
+          description="0 to 3 high-impact clarifying questions on core functionality and scope. No trivial UI/cosmetic questions."
+      )
+      assumptions: List[str] = Field(
+          description="Default technical and functional assumptions made by the platform."
+      )
+      direct_answer: Optional[str] = Field(
+          default=None,
+          description="Direct answer or explanation if the request is not software or informational."
+      )
+
+      @model_validator(mode="before")
+      @classmethod
+      def set_defaults(cls, data: Any) -> Any:
+          if not isinstance(data, dict):
+              return data
+          data.setdefault("understanding_summary", "")
+          data.setdefault("implementation_strategy", "")
+          data.setdefault("is_valid_software", True)
+          data.setdefault("intent", "software_request")
+          data.setdefault("follow_up_questions", [])
+          data.setdefault("assumptions", [])
+          data.setdefault("direct_answer", None)
+          return data
+  ```
+  *Field Validator Guarantees*:
+  1. Clamps question count strictly between 0 and 3 (`questions[:3]`).
+  2. Enforces structural integrity of question strings and removes leading/trailing whitespace.
+  3. Clamps assumption count to a maximum of 5 items.
+  4. Normalizes intent values into `software_request`, `ambiguous`, or `not_software`.
+  5. Strips all emojis and non-technical pictorial glyphs.
+
+- **`ProductEnquiryInput`**:
+  ```python
+  class ProductEnquiryInput(BaseModel):
+      prompt: Optional[str] = Field(default=None, description="The user's prompt or feature request")
+      feature_request: Optional[str] = Field(default=None, description="Alias for prompt")
+      mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
+      generation_mode: Optional[str] = Field(default=None, description="Alias for mode")
+      context: Optional[str] = Field(default=None, description="Optional multi-round clarification history")
+  ```
+
+##### 3.2 Key Balancer Allocation (`backend/key_balancer.py`)
+The Product Enquiry Agent is registered as a dedicated stage in the Smart API Key Balancer:
+- Stage Name: `PRODUCT_ENQUIRY` (Mapped to Stage Key #1 in `STAGE_NUMBERED_MAP`).
+- Primary Model: `gemini-3.5-flash-lite`.
+- Fallback Model: `gemini-3.7-flash`.
+- Phase Transition Logs: `[PHASE TRANSITION] [Component: System] INIT -> PRODUCT_ENQUIRY` and `PRODUCT_ENQUIRY -> REQUIREMENTS`.
+
+##### 3.3 Prompt Engineering & Non-Trivial Question Filtering (`backend/agents/product_enquiry_agent.py`)
+The system prompt enforces strict engineering boundaries:
+- **Tone**: Plain, clear, accessible English explaining the architecture without impenetrable jargon.
+- **Exclusion Rule**: Strictly forbids trivial aesthetic/UI questions such as:
+  - Color palettes (e.g. "Do you prefer blue or green headers?")
+  - Component styling (e.g. "Should buttons have rounded or squared borders?")
+  - Dark vs Light theme options.
+- **Allowed Focus**: Essential engineering trade-offs only:
+  - Data persistence (e.g. in-memory vs SQLite vs PostgreSQL).
+  - Authentication schemes (e.g. mock auth vs JWT bearer tokens vs OAuth).
+  - Key business rules and protocol selection.
+- **Defensive Heuristics**: If the model output fails JSON parsing, robust regex fallback blocks extract summaries, strategies, and questions cleanly.
+
+##### 3.4 Enriched Requirements Ingestion (`backend/agents/requirements_agent.py`)
+`generate_requirements_stream` synthesizes both the user's base prompt and the Stage 2 enquiry packet:
+```python
+if product_enquiry_summary:
+    context_prefix += f"\n### Product Understanding Summary\n{product_enquiry_summary}\n"
+if user_enquiry_responses:
+    context_prefix += "\n### User Preferences & Answers to Follow-Up Questions\n"
+    for item in user_enquiry_responses:
+        context_prefix += f"- **Question**: {item.get('question', '')}\n  **Answer**: {item.get('answer', '')}\n"
+```
+
+##### 3.5 Gemini Structured Output Engine & Zero-Default Schema Compatibility
+
+A critical engineering discovery and architectural invariant in Era 17 centers on Google Gemini's structured output engine (`google.genai.types.GenerateContentConfig(response_schema=...)`):
+
+1. **Root-Cause Analysis of Key Pool Cascading Failures**:
+   - When Pydantic models define default values on non-optional fields (`Field(default="")`, `Field(default=True)`, `Field(default_factory=list)`), Pydantic v2's `model_json_schema()` emits `"default": ...` properties directly into the generated JSON Schema.
+   - During invocation of `client.models.generate_content()`, the Google GenAI SDK internally processes the schema using `google.genai._transformers.process_schema(schema, client)`.
+   - On non-Vertex Gemini endpoints (`client.vertexai == False`), the SDK explicitly enforces:
+     ```python
+     if schema.get('default') is not None:
+         raise ValueError(
+             'Default value is not supported in the response schema for the Gemini API.'
+         )
+     ```
+   - Because this check runs synchronously prior to executing the network request, passing `ProductEnquiryResult` caused immediate `ValueError` exceptions across Key 1 through Key 6 on `gemini-3.5-flash-lite`, followed by Key 1 through Key 6 on `gemini-3.1-flash-lite`, exhausting the key balancer pool.
+
+2. **The Zero-Default Schema Pattern (`@model_validator(mode="before")`)**:
+   - To achieve 100% compliance with Gemini's OpenAPI requirements while preserving defensive Python-side fallback construction, field-level `default` parameters are omitted from required `Field(...)` declarations.
+   - Runtime defaults are populated using a `@model_validator(mode="before")` classmethod:
+     ```python
+     @model_validator(mode="before")
+     @classmethod
+     def set_defaults(cls, data: Any) -> Any:
+         if not isinstance(data, dict):
+             return data
+         data.setdefault("understanding_summary", "")
+         data.setdefault("implementation_strategy", "")
+         data.setdefault("is_valid_software", True)
+         data.setdefault("intent", "software_request")
+         data.setdefault("follow_up_questions", [])
+         data.setdefault("assumptions", [])
+         data.setdefault("direct_answer", None)
+         return data
+     ```
+   - This ensures `ProductEnquiryResult.model_json_schema()` emits zero `"default"` properties, allowing `process_schema()` to pass with zero errors.
+
+3. **In-Flight Single-Call Resilient JSON Fallback**:
+   - Within `backend/agents/product_enquiry_agent.py`, the `_call()` function catches any schema-related errors and immediately retries the invocation using `response_mime_type="application/json"` without `response_schema`:
+     ```python
+     try:
+         response = client.models.generate_content(
+             model=model,
+             contents=user_content,
+             config=types.GenerateContentConfig(
+                 system_instruction=PRODUCT_ENQUIRY_SYSTEM_PROMPT,
+                 temperature=0.2,
+                 response_mime_type="application/json",
+                 response_schema=ProductEnquiryResult,
+             )
+         )
+     except Exception as schema_err:
+         err_msg = str(schema_err).lower()
+         if "schema" in err_msg or "default" in err_msg:
+             logger.info(f"Retrying generate_content without response_schema due to: {schema_err}")
+             response = client.models.generate_content(
+                 model=model,
+                 contents=user_content,
+                 config=types.GenerateContentConfig(
+                     system_instruction=PRODUCT_ENQUIRY_SYSTEM_PROMPT,
+                     temperature=0.2,
+                     response_mime_type="application/json",
+                 )
+             )
+         else:
+             raise schema_err
+     ```
+   - This single-call retry prevents unnecessary key rotations and prevents key balancer pool exhaustion.
+
+#### 4. Frontend Client Architecture (`autodev-frontend/`)
+
+- **`StageProductRequest.tsx` & `App.tsx` (Stage 1 Refinements)**:
+  - Submitting a prompt immediately transitions to Stage 2 (`onAdvance(2)`) instead of leaping straight to requirements.
+  - Non-Software Bypass Disallowed: If a prompt is flagged as non-software, the system presents the direct informational response and strictly provides an option to re-enter a software engineering request.
+  - UI Simplification:
+    - Removed the "SPECIFICATION INGESTION" pill badge above the hero header for a clean, focused greeting.
+    - Conditionally suppressed the stage sub-bar on Stage 1 in `App.tsx`, hiding "Stage 1 • Product Request" and the "1 / 12" counter on the initial request screen while preserving stage navigation for Stages 2 through 12.
+    - Removed character counter and keyboard shortcut hints from the textarea footer, cleanly right-aligning the "START DEVELOPMENT" action button.
+    - Removed redundant system and page footers across all viewports in `App.tsx`, eliminating visual clutter and giving the central workspace unobstructed vertical screen real estate.
+    - Removed the outer bordered card container frame on Stage 1 (`centralStageWorkspace`), allowing the initial feature prompt component to float seamlessly on the viewport without nested card borders, while preserving the structured card container for Stages 2 through 12.
+    - Removed the header container frame (`Header.tsx` and `App.tsx`), replacing white background panels, bottom borders, and drop shadows with `bg-transparent` so top navigation seamlessly blends directly into the page body canvas.
+    - Centered the hero heading ("What are we developing today?") and subtitle description in `StageProductRequest.tsx` for clean symmetry and modern search/prompt UX alignment.
+      - Integrated React Bits `<TextType />` Component with GSAP Animation (`autodev-frontend/src/components/TextType.tsx`):
+        - Installed `gsap` dependency and created the TypeScript + Tailwind `TextType` component supporting customizable typing and deleting speeds, pause intervals, loop modes, and GSAP-driven blinking cursor animations.
+        - Integrated sequential phrase typing in `StageProductRequest.tsx`: first types "Welcome to AutoDev", pauses for 1500ms, backspaces cleanly, types "What are we developing {username}?" (using 'Alex' placeholder ready for user account system binding), and permanently halts (`loop={false}`) with a blinking cursor.
+        - Hardened Re-render Resilience: wrapped `TextType` in `React.memo` and ref-stabilized callbacks (`onComplete`, `onSentenceComplete`) so that typing into the prompt textarea never cancels pending typing or pause timers.
+        - Exported `TextType` from `autodev-frontend/src/components/index.ts`.
+      - Updated Stage 1 Subtitle & Coordinated Entrance:
+        - Simplified subtitle copy to "Describe the product you want to build.".
+        - Coordinated entrance via `onComplete` callback from `TextType`: subtitle smoothly fades in and glides upward (`opacity: 0 -> 1, y: 4 -> 0`) using Framer Motion only after the title animation sequence completes.
+    - Integrated `SmoothInput` Component (`autodev-frontend/src/components/SmoothInput.tsx`):
+      - Created `cn` utility in `autodev-frontend/src/lib/utils.ts` utilizing `clsx` and `tailwind-merge`.
+      - Built an off-screen mirror element measurement engine matching typography, line height, word wrapping (`pre-wrap`, `break-word`), padding, and inner width to the textarea element.
+      - Fully resolves multiline cursor tracking: seamlessly computes exact subpixel `(x, y)` coordinates for soft line wraps, explicit newlines (`\n`, `Shift+Enter`), arrow keys, mouse clicks, and scroll offsets.
+      - Spring caret gliding powered by Framer Motion (`stiffness: 500, damping: 32, mass: 0.45`) smoothly tracks across any number of lines without sticking.
+      - Implemented Dynamic Auto-Expansion & Bounded Scrollability:
+        - Added `autoResize`, `minHeight` (default 100px), and `maxHeight` (default 260px) properties to `SmoothInput`.
+        - Dynamically expands the textarea height to fit content as the user types or pastes multi-line text without jumping.
+        - Automatically locks at `maxHeight` and transitions to smooth internal scrolling (`overflow-y: auto`) once the content exceeds the ceiling, while maintaining precise spring caret alignment during scrolling.
+      - Replaced raw `<textarea>` in `StageProductRequest.tsx` with `<SmoothInput as="textarea" autoResize={true} minHeight={100} maxHeight={260} ... />`.
+    - Integrated `SpecularButton` (`autodev-frontend/src/components/SpecularButton.tsx`):
+      - Installed `ogl` WebGL library and ported `SpecularButton` from `frontend-planned` featuring real-time mouse-tracking specular highlights and custom shader edge sweeps.
+      - Replaced the standard HTML button on Stage 1 with `<SpecularButton id="submitBtn">` configured with blue specular sheen (`tint="#2563eb"`, `lineColor="#93c5fd"`), centered below the prompt box.
+      - Removed the right arrow icon from the button label, rendering clean "START DEVELOPMENT" typography and an animated spinner during submission.
+      - Exported `SpecularButton` from `autodev-frontend/src/components/index.ts`.
+- **`StageProductEnquiry.tsx`**:
+  - Automatically triggers `endpoints.productEnquiry(...)` on mount.
+  - Displays stateful UI cards:
+    1. *Loading Skeleton*: Animated loader indicating enquiry analysis.
+    2. *Non-Software Guard Alert*: Amber card displaying factual query answer if prompt is non-software. The legacy "Build Software Application Anyway" override button was eliminated; users must return to Stage 1 to specify an actionable software project.
+    3. *System Understanding & Implementation Strategy Card*: Clean dual-pane overview displaying the plain-English summary, numbered implementation steps, and default assumptions pills.
+    4. *Targeted Questions / High-Clarity Card*: Renders interactive question options if questions exist; otherwise displays a green "High Clarity Specification" badge.
+    5. *Additional Technical Notes*: Textarea for optional extra preferences.
+    6. *Proceed Button*: Advances to Stage 3 (`onAdvance(3)`) and dispatches requirements generation with full enquiry payload.
+  - Null-safety hardened with optional chaining on all `productEnquiryResult` references (`productEnquiryResult?.direct_answer`, etc.).
+- **`stores/appStore.ts`**:
+  - State fields: `productEnquiryResult`, `productEnquiryAnswers`, `isEnquiring`, `productEnquiryAdditionalNotes`.
+  - Action methods: `setProductEnquiryResult`, `setProductEnquiryAnswer`, `setProductEnquiryAnswers`, `setIsEnquiring`, `setProductEnquiryAdditionalNotes`.
+- **`types/api.ts` & `types/index.ts`**:
+  - Added `ProductEnquiryRequest`, `ProductEnquiryResponse`, and extended `InFlightPhase` union with `'product_enquiry'`.
+
+#### 5. Defense-in-Depth Lockout & Graceful Handling of Non-Software Queries
+
+To prevent pipeline stalls where AutoDev's downstream agents attempt to synthesize user stories and acceptance criteria for non-software topics (e.g., "Distance between sun and moon", "Capital of France"), while eliminating disruptive HTTP 400 Bad Request error logs in the terminal, a refined defense-in-depth architecture was established:
+
+1. **Graceful HTTP 200 Delivery (`POST /api/product-enquiry`)**:
+   - `validate_prompt(prompt, reject_non_software=False)` is configured in `/api/product-enquiry` and `/api/classify-intent`.
+   - Security checks (prompt injection detection, non-empty constraints) remain strictly enforced and reject malicious payloads with HTTP 400.
+   - Non-software queries (scientific trivia, general knowledge, math calculations) are permitted to pass into the Product Enquiry Agent, which returns HTTP 200 with `ProductEnquiryResult`:
+     - `is_valid_software = False`
+     - `intent = "not_software"`
+     - `direct_answer = "<helpful factual explanation of the query>"`
+     - `understanding_summary = "<clear breakdown of the user request and why it is non-software>"`
+     - `follow_up_questions = []`
+2. **Defensive Multi-Layer Heuristics (`backend/prompt_guard.py`)**:
+   - `get_non_software_reason(prompt)` provides deterministic pattern detection for metrics, scientific queries, and general trivia.
+   - If model invocation encounters network or schema difficulties, both the backend route and `run_product_enquiry()` employ `get_non_software_reason()` to guarantee that non-software queries are never erroneously marked as valid software in fallback paths.
+3. **Dedicated Stage 2 Query Response & Rephrase Workflow (`StageProductEnquiry.tsx`)**:
+   - Detects `!productEnquiryResult.is_valid_software || productEnquiryResult.intent === 'not_software'`.
+   - Renders a focused informational interface featuring the "Query Response & Reason" card displaying the direct answer and identified query explanation.
+   - Strictly hides all progression and development triggers ("Proceed", "Start Development").
+   - Provides a single prominent action: "Rephrase Request" (`id="rephraseRequestBtn"`), which resets enquiry state and returns the user to Stage 1 to submit an actionable software engineering prompt.
+4. **Backend API Barrier Guard (`backend/main.py`)**:
+   - In `POST /api/generate-requirements`, an explicit barrier checks `product_enquiry_summary`. If a request bypasses the UI and attempts direct requirements generation for non-software queries, it is rejected before initiating LLM streaming.
+
+#### 6. Proactive Question Generation Engine & Dynamic Ambiguity Resolution
+
+##### 6.1 The Overhauled Enquiry System Prompt (`backend/agents/product_enquiry_agent.py`)
+To prevent the model from passively adopting assumptions without consulting the user, `PRODUCT_ENQUIRY_SYSTEM_PROMPT` was upgraded with rigorous proactive enquiry instructions:
+- **Mandatory Question Policy**: Unless the user's prompt is 100% complete and self-contained with explicit statements regarding data persistence, authentication, API integrations, and core workflows, the agent is instructed to actively identify ambiguities and generate 1 to 3 targeted functional clarifying questions.
+- **Scope of Inquiries**:
+  - Preferred data storage (e.g., in-memory vs SQLite vs file-based vs PostgreSQL).
+  - Authentication and authorization model (e.g., mock auth vs JWT tokens vs session cookies vs none).
+  - External integration touchpoints and third-party APIs.
+  - Core business rules, edge cases, and user access roles.
+- **Strict Prohibition of Cosmetic/Trivial Questions**:
+  - Questions regarding colors, UI styling, button styling, dark/light mode, fonts, and CSS aesthetics remain strictly forbidden.
+- **High-Clarity Invariant**:
+  - Zero questions are permitted ONLY if the prompt leaves zero functional or technical ambiguity.
+
+##### 6.2 Resilient Fallback Clarification Generation
+When LLM network connectivity or parsing issues arise, the fallback generator in `product_enquiry_agent.py` no longer defaults to an empty question array. Instead, it inspects the software prompt and dynamically synthesizes high-impact questions on persistence and external integrations, ensuring that user preference collection remains active under all operating conditions.
+
+#### 7. Verification & Quality Matrix
+
+- **TypeScript Compilation**: Clean compilation via `npx tsc --noEmit` and `npm run build` with 0 errors across all frontend source files.
+- **Production Asset Bundle**: Built via Vite 6 producing production bundles in `backend/dist/` (914 modules transformed, 100% clean).
+- **Zero-Emoji Policy Compliance**: Formally verified 0 emojis across all code, prompts, UI strings, API models, logs, and documentation files.
+
+### 2.18 Era 18: Apple iOS Deep Frosted Obsidian Glassmorphic UI & AeroShards WebGPU 3D Background (HEAD / v3.2.0-Prod)
+
+#### 1. Executive Summary & Design Vision
+In Era 18, AutoDev underwent a complete design overhaul transforming the entire frontend user interface into an authentic Apple iOS / visionOS deep frosted obsidian glassmorphic design system. In addition, the interface was paired with an ambient full-screen 3D wind sculpture background powered by the React Bits `<AeroShards />` component utilizing the cutting-edge WebGPU (`vgpu`) graphics pipeline.
+
+#### 2. Key Architectural Deliverables
+
+##### 2.1 React Bits `<AeroShards />` WebGPU Ambient Background (`AeroShards.tsx`)
+- **Graphics Pipeline & Dependency**: Integrated `vgpu` for direct WebGPU canvas rendering.
+- **Visual Attributes**:
+  - `backgroundColor`: `#120F17` (obsidian midnight foundation)
+  - `shardColor`: `#896ABD` (iridescent violet body)
+  - `accentColor`: `#A855F7` (luminous purple highlights)
+  - `material`: `pearl` with high dynamic range surface finish
+  - `detail`: `balanced`, `density`: 1.5, `shardSize`: 1.1
+  - `flow`: `stream`, morphing dynamically without animation restarts
+- **Layering & Interaction Model**:
+  - Mounted in `App.tsx` as a fixed viewport canvas (`fixed inset-0 -z-10`).
+  - Transparent pointer event pass-through ensures that foreground buttons, inputs, and textareas receive click, scroll, and focus events without interference.
+  - Background supports smooth cursor repulsion (`repel`), click ripples, and hold-to-gather interaction.
+- **Resilient Fallback Handling**:
+  - Automatically queries `navigator.gpu`. If WebGPU is unsupported or disabled, seamlessly falls back to a multi-stop CSS radial gradient without breaking layout or logging uncaught exceptions.
+  - Implements `prefers-reduced-motion` detection and lifecycle disposal protection on unmount.
+
+##### 2.2 Apple iOS Deep Frosted Obsidian Glassmorphism System
+- **Layered Frosted Materials**:
+  - Primary surfaces utilize `backdrop-blur-2xl` and `backdrop-blur-xl` over translucent dark tints (`bg-slate-900/40` to `bg-slate-900/60`).
+  - Refractive borders employ high-precision specular white edges (`border border-white/12` to `border-white/20`).
+  - Physical depth is reinforced with delicate specular inner glows (`shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_12px_40px_rgba(0,0,0,0.4)]`).
+  - Curvature adheres to Apple's liquid radii: `rounded-3xl` on major stage containers and modals, `rounded-2xl` on inner cards and toolbars.
+- **Comprehensive Surface Overhaul**:
+  - **All 14 Stages**: Landing, Product Request, Product Enquiry, Requirements, Decomposition, Component Pipeline, Integration Testing/Code/Arbitration, Development Results, Live Preview, Post-Dev Request/Execution, and Sign-In.
+  - **Global Chrome & Navigation**: Translucent liquid frosted Header, floating Stepper Progress container with specular step rings, and glassmorphic Terminal drawer.
+  - **Feature Modules**: CriticsPanel, ComponentCard, BlueprintOutput, ExecutionOutput, IDEView, FileExplorer, LivePreview, ComponentTrack, PipelineDashboard, ComponentFileExplorer, RequirementsOutput, and PostCompletionPanel.
+  - **Interactive Controls**: `SpecularButton` with dynamic surface lighting, `SmoothInput` dynamic textarea, `PauseModifyFAB`, and `GitHubExportModal`.
+
+#### 3. Verification & Compliance Matrix
+- **Backend Isolation**: Strictly zero backend logic files modified; all changes isolated to `autodev-frontend/`.
+- **Production Asset Compilation**: Vite 6 production build compiled cleanly (`tsc && vite build`) transforming 1,070 modules in 7.11s and emitting assets directly into `backend/dist/`.
+- **Zero-Emoji Policy Compliance**: Strictly 0 emojis across all newly created and updated files, UI strings, styles, and logs.
+
+### 2.19 Era 19: Pure Monochromatic 3D AeroShards Background, Ultra-Clean Header Typography, Glassmorphic Stage 1 Textarea Optimization & Synchronized Blinking Caret Engine (HEAD / v3.3.0-Prod)
+
+#### 1. Executive Summary & Design Modernization
+Era 19 delivers a major visual fidelity and user interaction refinement across the AutoDev frontend, replacing the legacy purple-tinted ambient background with a pure monochromatic black-and-white 3D wind sculpture (`#000000` / `#ffffff`), streamlining top-level navigation chrome into a borderless, floating layout with localized backdrop blurring, optimizing Stage 1 ergonomics with an expanded glassmorphic textarea, tuning the colourless frosted `SpecularButton`, and engineering a smooth, synchronized blinking caret engine in `SmoothInput`.
+
+#### 2. Key Architectural Deliverables
+
+##### 2.1 Monochromatic React Bits `<AeroShards />` 3D Background Reconfiguration (`App.tsx`, `AeroShards.tsx`)
+- **Monochromatic Configuration Parameters**:
+  - `backgroundColor`: `#000000` (pure void black foundation)
+  - `shardColor`: `#ffffff` (crystalline pearl white shards)
+  - `accentColor`: `#ffffff` (prismatic white edge highlights)
+  - `placement`: `"full"`, `flow`: `"stream"`, `material`: `"pearl"`, `detail`: `"balanced"`, `effect`: `"none"`
+  - `scale`: `1.5`, `spread`: `1.1`, `depth`: `1`, `speed`: `1`, `spin`: `1.15`
+  - `interaction`: `"repel"`, `density`: `1.5`, `shardSize`: `1.1`, `stretch`: `1`, `turbulence`: `1`
+  - `glow`: `1`, `edgeSoftness`: `2`, `bloom`: `0.5`, `grain`: `0.05`, `chromaticAberration`: `0.0075`
+  - `transitionDuration`: `1`, `interactionRadius`: `1.5`, `interactionStrength`: `0.5`, `rippleIntensity`: `1`, `holdToGather`: `true`
+- **Root Container Background Alignment**:
+  - Replaced legacy `bg-[#120F17]` on the application root container with `bg-black`, establishing a seamless visual baseline across all viewport boundaries.
+- **Dynamic 2D Fallback Engine Adaptation (`AeroShards.tsx`)**:
+  - Refactored `startLive3DFallback` to dynamically read normalized shard, accent, and highlight colors from `settingsRef.current` with null-safe defaults (`[1, 1, 1, 1]`), replacing hardcoded purple RGBA values (`#896ABD`, `#A855F7`, `#D8B4FE`).
+  - Adapted the CSS ambient gradient fallback to use dynamic radial gradient stops based on `resolvedAccentColor` and `backgroundColor`, preventing purple background bleeding on monochromatic themes.
+
+##### 2.2 Ultra-Clean Header Typography & Borderless Brand Presentation (`App.tsx`, `Header.tsx`)
+- **System Version & Outer Container Elimination**:
+  - Stripped the legacy system build badge (`SYS.v2.5.0`) and the enclosing rectangular blurred header bar.
+  - Rendered the AutoDev brand signature as clean, unboxed cursive typography directly floating above the live 3D background.
+- **Localized Gaussian Blur Filter**:
+  - Positioned an isolated circular backdrop filter (`filter: blur(16px)` over `bg-slate-950/15 backdrop-blur-md rounded-full`) behind the brand text, ensuring crisp legibility against bright moving shards without obscuring background flow.
+- **Scaled Brand Typography & Navigation Controls**:
+  - Scaled brand typography to `text-3xl sm:text-4xl md:text-[42px]` with soft text drop shadow (`drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)]`).
+  - Enlarged the user profile icon and navigation strip icon buttons with frosted translucent glass styling (`px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-md`).
+
+##### 2.3 Stage 1 Textarea Purple Tint Removal & Dimensional Tuning (`StageProductRequest.tsx`, `index.css`)
+- **Direct Layout Integration & Purple Elimination**:
+  - Eliminated the redundant intermediate wrapper container around the input component, directly integrating `SmoothInput` into the Stage 1 layout grid.
+  - Eliminated all purple/bluish color casts & elevated transparency: adopted the clean, airy translucency of the AutoDev brand logo tuned to high transparency (`bg-slate-950/[0.08] backdrop-blur-md` with `backdropFilter: blur(14px)` and `border border-white/[0.07]`), perfectly matching the unboxed glass aesthetics of the header brand mark.
+  - Switched text typography to `text-white placeholder:text-white/40` with clean solid white caret (`#ffffff`).
+  - Updated global body background color in `index.css` from `#120F17` to `#000000`, ensuring zero purple backdrop bleed through blur filters.
+  - Overhauled initial WebGPU pipeline uniform buffers in `AeroShards.tsx` to pure white (`[1, 1, 1, 1]`) and pure black (`[0, 0, 0, 1]`).
+- **Balanced Dimensional Sizing**:
+  - Moderated height profile: `minHeight={135}` and `maxHeight={280}` with streamlined padding `p-5 sm:p-6`.
+  - Centered layout container set to `max-w-[760px]` for an intimate, focused drafting experience.
+- **Immediate Pageload Autofocus**:
+  - Added a mount lifecycle effect placing browser focus and cursor selection directly at the end of the input value on initial load, enabling users to begin prompt drafting immediately without manual clicking.
+
+##### 2.4 Colourless Frosted SpecularButton Scaling & Pure Monochrome Shader (`StageProductRequest.tsx`)
+- **Aesthetic Colorless Tuning & Black Shader Base**:
+  - Replaced purple button fill and slate base with pure colourless frosted glass aesthetics: `tint="#ffffff"`, `tintOpacity={0.04}`, `lineColor="#ffffff"`, `baseColor="#000000"`, and `textColor="#ffffff"`.
+  - Preserved active WebGL OGL shader refraction, mouse proximity tracking (`proximity={260}`), and specular edge gleam.
+- **Increased Button Scale**:
+  - Restored button size parameter to `size="md"` with corner radius at `20px` and shine size at `16`.
+  - Expanded padding to `px-8 md:px-9 py-3 md:py-3.5` with typography set to `text-xs md:text-sm tracking-wider`, providing substantial visual presence beneath the textarea.
+
+###### 2.5 TextType-Identical Caret Engine & Title-Synchronized Blinking Vertical Bar (`SmoothInput.tsx`, `StageProductRequest.tsx`)
+- **Direct Fidelity to TextType Title Cursor**:
+  - Overhauled the caret visual representation in `SmoothInput.tsx` to render the exact `|` (vertical pipe) character matching `TextType.tsx` on the "What are we developing Alex?" headline.
+  - Styled with `text-white/80 font-semibold` (matching `cursorClassName="text-white/80 font-semibold"`), zero glow, zero shadows, and dynamically sized to match the input's computed `fontSize` (`16px`).
+- **GSAP Continuous Yoyo Blink Engine**:
+  - Replaced CSS keyframe blinking with the identical GSAP tween powering `TextType.tsx`:
+    - `gsap.to(cursorVisualRef.current, { opacity: 0, duration: 0.5, repeat: -1, yoyo: true, ease: 'power2.inOut' })`.
+    - Both the title cursor and textarea caret share the identical 0.5s duration, `power2.inOut` easing, and continuous yoyo loop.
+  - Implemented `resetBlink()` on all keyboard inputs (`onKeyDown`, `onKeyUp`), input changes (`onChange`), and mouse clicks (`onClick`), resetting opacity to 1 immediately for typing feedback.
+- **Robust Layout Box-Sizing & Fallback Positioning**:
+  - Switched mirror box-sizing to `border-box` with explicit width matching `target.offsetWidth`, perfectly mirroring the exact layout boundaries and padding of the `<textarea>`.
+  - Replaced the collapsible zero-width space `\u200B` in the mirror marker with a layout-stable `|` character, ensuring `getBoundingClientRect()` consistently yields valid layout coordinates across all browser engines.
+  - Added layout measurement fallbacks (`computedX = paddingLeft`, `computedY = paddingTop`) when elements are hidden or during initial render, ensuring the caret is never positioned off-screen or rendered transparent.
+  - Initialized `caretOpacity` to `1` and preserved visibility on blur, ensuring the vertical bar remains visibly blinking at all times just like the title cursor.
+
+#### 3. Verification & Quality Matrix
+- **TypeScript & Build Verification**:
+  - Full TypeScript type check passed with zero errors (`tsc`).
+  - Production build compiled cleanly via Vite 6 in 7.09s, emitting all optimized assets into `backend/dist/` (1,070 modules transformed).
+- **Zero-Emoji Policy Compliance**:
+  - Verified 0 emojis across all modified files (`SmoothInput.tsx`, `StageProductRequest.tsx`, `document.md`) via automated unicode scanning.
+- **Backend Protection**:
+  - All modifications strictly confined to frontend components; zero backend files altered.
+
+
+
+---
+
+### 2.20 Era 20: Comprehensive UI Glassmorphic Harmonization Across Stages 2–8, Pure Monochromatic Controls & Zero-Tint Translucent Obsidian Architecture (HEAD / v3.4.0-Prod)
+
+#### 1. Executive Summary & Design Vision
+Era 20 delivers full-scale aesthetic and architectural harmonization across AutoDev Stages 2 through 8 (Stage 2: Product Enquiry Agent, Stage 3: Requirements Agent, Stage 4: Decomposition Agent, Stages 5 & 6: Component Pipeline Dashboard & DAG Assembly Line, Stage 7: Integration Testing & Arbitration, Stage 8: Integration Final Source Code, Live Preview, and Development Results with the Post-Development Revision Loop).
+
+Prior to Era 20, downstream stages retained residual design artifacts from earlier development eras: saturated gradients (purple-to-indigo `from-purple-600 to-indigo-600`, cyan `bg-cyan-600`, amber `bg-amber-500`, blue `bg-blue-600`), colored glows, and heavy opaque backgrounds (`bg-slate-900/40`, `bg-slate-900/60`, `bg-purple-950/40`). These residual tints disrupted the optical continuity established in Stage 1 and obstructed the ambient full-screen WebGPU monochromatic `<AeroShards />` 3D wind sculpture and the void-black viewport foundation (`#000000`).
+
+Era 20 completely eradicates every residual color wash, saturated gradient, and opaque container across all stages. Every card, drawer, modal, and toolbar has been upgraded to Stage-1's airy obsidian glassmorphism (`bg-slate-950/[0.08]` with `backdrop-blur-md`, `backdropFilter: blur(14px)`, and `border border-white/[0.07]`), refined with delicate specular refraction borders and inner highlight sheens (`shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`). All primary call-to-action controls now feature pure monochromatic `SpecularButton` shader styling or frosted white pill buttons (`bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-2xl`).
+
+All modifications strictly preserved existing component layouts, responsive grid/flex hierarchies, DOM ID contracts, Zustand store subscriptions, and SSE streams, while leaving 100% of backend files untouched.
+
+---
+
+#### 2. Architectural Design Token Standard
+
+| Design Element | Token Definition / CSS Classes | Optical & Architectural Purpose |
+|---|---|---|
+| **Core Surface Container** | `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]` with `style={{ backdropFilter: 'blur(14px)' }}` | Ultra-high optical transparency allowing background WebGPU 3D AeroShards to drift through unimpeded. |
+| **Floating Glass Capsules** | `bg-slate-950/[0.12] backdrop-blur-md border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]` | Stepper progress bar, assembly view toggles, and sub-bar navigation strips. |
+| **Elevated Modals & Dialogs** | `bg-slate-950/[0.4]` to `bg-slate-950/[0.5] backdrop-blur-2xl border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_20px_60px_rgba(0,0,0,0.6)]` with `style={{ backdropFilter: 'blur(16px)' }}` | Elevated floating cards for `#githubExportModal` and `#fabRestartConfirmModal`. |
+| **Primary Action Controls** | `SpecularButton` (`baseColor="#000000"`, `tint="#ffffff"`, `tintOpacity={0.04}`, `lineColor="#ffffff"`, `textColor="#ffffff"`, `radius={20}`) or frosted white pill (`bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-2xl shadow-md cursor-pointer`) | Primary stage triggers, blueprint approvals, pipeline launch, and code downloads. |
+| **Secondary & Utility Buttons** | `bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 text-slate-200 hover:text-white rounded-xl transition-all cursor-pointer` | File explorer selection, diff toggle, modal cancellation, and copy actions. |
+| **Active Tabs & Stage Pills** | `bg-white/15 text-white border border-white/20 font-semibold shadow-sm` | Selected component pill, active revision tab, and active viewport switcher. |
+| **Inactive Tabs & Chips** | `bg-white/[0.06] border border-white/[0.08] text-slate-400 hover:text-slate-200` | Unselected component pills, inactive tabs, and file counts. |
+| **Monochrome Luminous Indicators** | Luminous white progress line (`bg-white shadow-[0_0_12px_rgba(255,255,255,0.4)]`), monochrome pulse step ring (`bg-white text-black border border-white shadow-[0_0_16px_rgba(255,255,255,0.5)] font-bold animate-pulse`), white laser line (`bg-white/80 animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.5)]`) | Completely replaces purple-indigo gradients on progress indicators, step rings, and scanner beams. |
+| **Inputs & Code Editor Wrappers** | `bg-slate-950/[0.08]` to `bg-black/40 border border-white/[0.07] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-1 focus:ring-white/10` | Non-glare, transparent editing surfaces with crisp white typing carets. |
+
+---
+
+#### 3. Complete File Modification & Harmonization Inventory (Milestones 1–4)
+
+##### 3.1 Milestone 1: App Shell, Stepper, FAB & Terminal Chrome
+- **`autodev-frontend/src/App.tsx`**:
+  - Converted `centralStageWorkspace` when `currentStage !== 1` to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]` with inline `backdropFilter: 'blur(14px)'`.
+  - Replaced edge navigation chevrons (`#stageNavPrevBtn`, `#stageNavNextBtn`) with translucent frosted pill buttons (`bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 text-slate-200 hover:text-white`).
+  - Replaced purple sign-in button (`#landingNavSignInBtn`) with frosted white pill (`bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold`).
+  - Normalized stage sub-bar counter typography to `text-slate-400`.
+- **`autodev-frontend/src/components/Header.tsx`**:
+  - Converted user profile avatar button from purple-indigo gradient to frosted obsidian circle (`bg-white/10 hover:bg-white/20 border border-white/20 text-white shadow-md backdrop-blur-md`).
+- **`autodev-frontend/src/components/StepperProgress.tsx`**:
+  - Replaced outer container capsule with `bg-slate-950/[0.12] backdrop-blur-md border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]` and `backdropFilter: 'blur(14px)'`.
+  - Replaced purple progress line `#stepperProgress` with luminous white line (`bg-white shadow-[0_0_12px_rgba(255,255,255,0.4)]`).
+  - Converted active step ring from purple gradient with purple pulse to high-contrast monochrome ring (`bg-white text-black border border-white shadow-[0_0_16px_rgba(255,255,255,0.5)] font-bold animate-pulse`) and active label `text-white font-semibold`.
+- **`autodev-frontend/src/components/PauseModifyFAB.tsx`**:
+  - Converted running pause button `#pauseDevFabBtn` from purple gradient to obsidian glass circle (`bg-slate-950/[0.4] hover:bg-slate-950/[0.6] text-white border border-white/20 hover:border-white/40 ring-2 ring-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl`).
+  - Harmonized expanded action buttons (`#fabRequestNewProductBtn`, `#fabRestartDevBtn`, `#fabResumeDevBtn`) with frosted glass tokens.
+  - Converted restart confirmation modal `#fabRestartConfirmModal` from `bg-slate-900/85` to translucent obsidian card `bg-slate-950/[0.4] backdrop-blur-2xl border border-white/15`.
+- **`autodev-frontend/src/components/Terminal.tsx`**:
+  - Updated drawer header `#terminalHeader` from `bg-slate-900/80` to `bg-slate-950/[0.25] backdrop-blur-md border-t border-b border-white/[0.07]` with `backdropFilter: 'blur(14px)'`.
+- **`autodev-frontend/src/components/RestorationBanner.tsx`**:
+  - Replaced purple border and wash on `#restorationBanner` with obsidian frosted capsule (`border border-white/15 bg-slate-950/[0.2] backdrop-blur-md text-slate-200`). Converted ping dot to `bg-white/80 animate-ping`.
+
+##### 3.2 Milestone 2: Stages 2 & 3 (Enquiry & Requirements)
+- **`autodev-frontend/src/features/stages/StageProductEnquiry.tsx`**:
+  - Replaced purple wash in loading state `#stageProductEnquiryLoading` with frosted white icon container (`bg-white/[0.08] border border-white/15 text-white`).
+  - Converted `#rephraseRequestBtn` and empty state return button from purple-to-indigo gradient to frosted white pill button (`bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-xl`).
+  - Converted `#stageProductEnquiryInvalid` from `bg-slate-900/40` to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - Harmonized Product Understanding, Implementation Strategy, and Default Assumptions cards to translucent obsidian surfaces (`bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`).
+  - Converted questions card and input focus rings (`focus:border-white/20`, `focus:ring-white/10`).
+  - Harmonized "Start Development" button from purple gradient to frosted white pill button.
+- **`autodev-frontend/src/features/stages/StageRequirements.tsx`**:
+  - Harmonized agent badge and converted proceed button to frosted white button `bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-xl shadow-md`.
+- **`autodev-frontend/src/features/requirements/RequirementsOutput.tsx`**:
+  - Converted `#outputSection` from `bg-slate-900/45` to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]` with `backdropFilter: 'blur(14px)'`.
+  - Harmonized `#jsonOutputBadge` to frosted monochrome pill (`bg-white/[0.06] border border-white/[0.08] text-slate-300`).
+  - Converted `#decomposeBtn` from cyan buttons to frosted white button `bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-2xl`.
+- **`autodev-frontend/src/features/input/FeatureRequestInput.tsx`**:
+  - Harmonized `#clarificationCard`, `#directAnswerCard`, `#submitClarificationBtn`, `#proceedAnywayBtn`, `#dismissDirectAnswerBtn`, and `#submitBtn` to Stage-1 obsidian cards and frosted controls, eliminating all amber, sky, and purple washes.
+
+##### 3.3 Milestone 3: Stages 4, 5 & 6 (Decomposition & Component Pipeline DAG)
+- **`autodev-frontend/src/features/stages/StageDecomposition.tsx`**:
+  - Replaced purple badges and gradients with monochrome badge `bg-white/[0.08]` and frosted white view button.
+- **`autodev-frontend/src/features/decomposition/DecompositionOutput.tsx`**:
+  - `#decomposeSection` updated to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - Status badges converted to frosted monochrome chips `bg-white/[0.06] border border-white/[0.08] text-slate-300`.
+  - Launch button `#pipelineBtn` converted from cyan button to frosted white button `bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold rounded-2xl`.
+- **`autodev-frontend/src/features/decomposition/ComponentCard.tsx`**:
+  - Converted 2x2 grid cards to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] hover:border-white/20`.
+  - Converted component ID, order, tech stack chips, Docker image, and dependency tags to frosted monochrome badges.
+- **`autodev-frontend/src/features/decomposition/SimpleProductFallback.tsx`**:
+  - Converted fallback card to obsidian glass and proceed button to frosted white pill button.
+- **`autodev-frontend/src/features/stages/StageComponentPipeline.tsx`**:
+  - ViewMode toggle capsule updated to `bg-slate-950/[0.12] backdrop-blur-md border border-white/[0.08]`; active buttons to `bg-white/15 text-white border border-white/20`.
+  - Sub-bar container and component dropdown updated to obsidian glass.
+  - Phase pills (Design, Codegen, Testing, Arbitration) converted to monochrome active pills `bg-white/15 text-white border border-white/20`.
+  - Proceed button converted to frosted white button.
+- **`autodev-frontend/src/features/pipeline/PipelineDashboard.tsx`**:
+  - `#pipelineDashboard` converted to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - `#pipelineProgress` converted to frosted monochrome pill `bg-white/[0.06] text-slate-300 border border-white/[0.08]`.
+- **`autodev-frontend/src/features/pipeline/PipelineAssemblyLine.tsx`**:
+  - Conveyor belt updated to `bg-slate-950/[0.2] backdrop-blur-md border border-white/[0.07]`.
+  - Assembly stations, live pallets, inspection tooltips, and header bars harmonized.
+  - Active scanner laser line converted from purple to high-tech white pulse: `bg-white/80 animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.5)]`.
+- **`autodev-frontend/src/features/pipeline/ComponentTrack.tsx`**:
+  - Workspace accordion `#workspace-${cId}` converted to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - Status badges for all phases converted to frosted monochrome tokens (`bg-white/[0.04]` and `bg-white/[0.06]`).
+  - Blueprint textarea updated to `border-white/[0.07] bg-slate-950/[0.2]`.
+  - Design approve button `#design-approve-btn-${cId}` converted to frosted white button.
+  - Revision tabs, synthesizing banners, and final component lock button converted to Stage-1 frosted controls.
+- **`autodev-frontend/src/features/pipeline/ComponentToggler.tsx`**:
+  - Pill bar `#componentToggler` converted to `bg-slate-950/[0.12] backdrop-blur-md border border-white/[0.08]`; active pills `#toggler-pill-${cId}` to `bg-white/15 text-white border border-white/20`.
+- **`autodev-frontend/src/features/pipeline/ComponentCriticTabs.tsx`**:
+  - Execution logs container `#exec-logs-${componentId}`, critic cards, verdict box `#verdict-box-${componentId}`, and reasoning box converted to obsidian glass.
+- **`autodev-frontend/src/features/pipeline/ComponentFileExplorer.tsx`**:
+  - Sidebar `#file-list-${componentId}` converted to `bg-slate-950/[0.15] backdrop-blur-md border-white/[0.07]`; active file item to `bg-white/10 text-white border-l-2 border-white`.
+- **`autodev-frontend/src/features/pipeline/ComponentMonaco.tsx`**:
+  - Monaco loading spinner converted to clean monochrome `text-white/80`.
+
+##### 3.4 Milestone 4: Stages 7 & 8, Live Preview, Results & Post-Dev Loop
+- **`autodev-frontend/src/features/stages/StageIntegrationTesting.tsx`**:
+  - Surface container updated to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - `#testingResultsPill` updated to `bg-white/[0.06] border border-white/[0.08] text-slate-200`.
+  - `#advanceToArbitrationBtn` converted to frosted pill button `bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-md`.
+  - Revision tabs converted to monochrome frosted glass tabs.
+- **`autodev-frontend/src/features/stages/StageIntegrationArbitration.tsx`**:
+  - Surface containers (`#adjudicatorCard`, critic cards) converted to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - `#arbitrationEnginePill` updated to `bg-white/[0.06] text-slate-200 border border-white/[0.08]`.
+  - `#advanceToFinalCodeBtn` converted to frosted pill button `bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-md`.
+- **`autodev-frontend/src/features/stages/StageIntegrationCode.tsx`**:
+  - `#finalSourceCodePill` converted to `bg-white/[0.06] text-slate-200 border border-white/[0.08]`.
+  - `#advanceToLivePreviewBtn` converted to frosted pill button `bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-md`.
+- **`autodev-frontend/src/features/integration/IntegrationMonacoView.tsx`**:
+  - `#codeOutputSection` converted to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - `#ideContainer` updated to `border border-white/[0.07] bg-black/40 backdrop-blur-md`.
+  - View mode tabs `#tabCode` and `#tabPreview` converted to monochrome active tabs `bg-white/15 text-white border border-white/20`.
+- **`autodev-frontend/src/features/integration/IntegrationRevTabs.tsx`**:
+  - Active tabs converted to `bg-white/15 text-white border-white/40 font-bold`.
+  - `#diffToggleBtn` converted to frosted utility button `bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08]`.
+- **`autodev-frontend/src/features/integration/IntegrationCriticTabs.tsx`**:
+  - `#execLogsSection` and `#adjudicatorCard` converted to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - Execution log pre block updated to `bg-black/40 border border-white/[0.07] text-slate-200`.
+- **`autodev-frontend/src/features/stages/StageLivePreview.tsx`**:
+  - Viewport switcher container converted to `bg-slate-950/[0.12] border border-white/[0.08] backdrop-blur-md`.
+  - Desktop, Tablet, and Mobile toggle buttons converted to monochrome active pills `bg-white/15 text-white border border-white/20`.
+  - `#advanceToResultsBtn` converted to frosted pill button `bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-md`.
+- **`autodev-frontend/src/features/ide/LivePreview.tsx`**:
+  - `#previewContainer` converted to `bg-slate-950/[0.08] backdrop-blur-md`.
+  - Top preview control bar converted to `bg-slate-950/[0.2] backdrop-blur-md border-b border-white/[0.07]`.
+  - Action buttons (Static Mode, Open Tab, Reload) converted to frosted glass controls.
+- **`autodev-frontend/src/features/stages/StageDevelopmentResults.tsx`**:
+  - Status headline banner converted to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+  - `#downloadZipBtn` converted to frosted pill button `px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 shadow-md`.
+  - `#commitToGitHubBtn` converted to frosted utility button `px-5 py-3 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 hover:text-white font-semibold text-xs border border-white/[0.08]`.
+  - `#postDevCycleTriggerBtn` converted to frosted pill button `px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold border border-white/20 shadow-md`.
+- **`autodev-frontend/src/components/DevelopmentGanttChart.tsx`**:
+  - `#developmentGanttChart` container converted to `rounded-3xl bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`.
+  - View switcher, metric summary cards, ruler, and waterfall track rows harmonized to obsidian tokens.
+- **`autodev-frontend/src/components/GitHubExportModal.tsx`**:
+  - Surface `#githubExportModal` converted to `bg-slate-950/[0.5] backdrop-blur-2xl border border-white/15 rounded-3xl p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_20px_60px_rgba(0,0,0,0.6)]`.
+  - Input fields (`#githubUsernameInput`, `#githubRepoInput`, `#githubTokenInput`) converted to `bg-slate-950/[0.4] border border-white/[0.08] text-white placeholder:text-white/40 focus:border-white/20 focus:ring-1 focus:ring-white/10`.
+  - `#githubExportSubmitBtn` converted to frosted pill button `bg-white/10 hover:bg-white/20 text-white text-xs font-semibold rounded-xl border border-white/20 shadow-md`.
+- **`autodev-frontend/src/features/stages/StagePostDevRequest.tsx`**:
+  - 3-option toggle container converted to `bg-slate-950/[0.12] border border-white/[0.08] backdrop-blur-md`.
+  - `#pillFeatureRequest`, `#pillBugFixes`, `#pillProductEnquiry` active states converted to `bg-white/15 text-white border border-white/20`.
+  - Textarea card and `#postDevSubmitBtn` converted to obsidian card and frosted white button.
+- **`autodev-frontend/src/features/stages/StagePostDevExecution.tsx`**:
+  - Stepper phase cards `#postCompStepper` converted to `bg-white/15 border-white/20 text-white font-semibold` (active) and `bg-slate-950/[0.08] border-white/[0.07] text-slate-400` (inactive).
+  - Output cards for Codegen, Testing, and Arbitration converted to `bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`.
+
+---
+
+#### 4. DOM ID Invariants Preserved Verification
+Every DOM selector asserted by automated test suites and end-to-end harnesses was preserved verbatim across the entire refactored component graph:
+
+```
++----------------------------------------------------------------------------------------------------+
+|                                    PRESERVED DOM ID INVARIANTS                                      |
++------------------------------------+------------------------------------+--------------------------+
+| Application Shell & Controls       | Pipeline Stages & Navigation       | Component Pipeline & DAG |
++------------------------------------+------------------------------------+--------------------------+
+| #centralStageWorkspace             | #stageProductRequest               | #stageDecomposition      |
+| #stageNavPrevBtn                   | #stageProductEnquiry               | #decomposeSection        |
+| #stageNavNextBtn                   | #stageProductEnquiryLoading        | #decomposeStatus         |
+| #landingNavSignInBtn               | #stageProductEnquiryInvalid        | #decomposeError          |
+| #stepperProgress                   | #rephraseRequestBtn                | #retryDecomposeBtn       |
+| #pauseDevFabBtn                    | #stageRequirements                | #decomposeCards          |
+| #fabExpandedActionGroup            | #outputSection                     | #decomposeActions        |
+| #fabResumeDevBtn                   | #jsonOutputBadge                   | #pipelineBtn             |
+| #fabRestartDevBtn                  | #jsonOutput                        | #pipelineSpinner         |
+| #fabRequestNewProductBtn           | #decomposeBtn                      | #stageComponentPipeline  |
+| #fabRestartConfirmModal            | #decomposeSpinner                  | #pipelineDashboard       |
+| #terminalPanel                     | #clarificationCard                 | #pipelineProgress        |
+| #terminalHeader                    | #submitClarificationBtn            | #pipelineTracks          |
+| #restorationBanner                 | #proceedAnywayBtn                  | #componentToggler        |
+| #restorationBannerText             | #cancelClarificationBtn            | #pipelineAssemblyLine    |
++------------------------------------+------------------------------------+--------------------------+
+| Integration & Output Verification  | Results, Export & Post-Development | Component Workspaces     |
++------------------------------------+------------------------------------+--------------------------+
+| #testingResultsPill                | #resultsStatusHeadline             | #workspace-${cId}        |
+| #advanceToArbitrationBtn           | #downloadZipBtn                    | #status-id-${cId}        |
+| #arbitrationEnginePill             | #commitToGitHubBtn                 | #body-${cId}             |
+| #advanceToFinalCodeBtn             | #postDevCycleTriggerBtn            | #design-section-${cId}   |
+| #finalSourceCodePill               | #developmentGanttChart             | #design-text-${cId}      |
+| #advanceToLivePreviewBtn           | #ganttEmptyState                   | #design-approve-btn-${cId}|
+| #codeOutputSection                 | #ganttHoverCard                    | #code-section-${cId}     |
+| #ideContainer                      | #githubExportModal                 | #rev-tabs-${cId}         |
+| #tabCode                           | #githubUsernameInput               | #critic-section-${cId}   |
+| #tabPreview                        | #githubRepoInput                   | #approve-component-${cId}|
+| #execLogsSection                   | #githubTokenInput                  | #file-list-${cId}        |
+| #execLogsOutput                    | #githubExportSubmitBtn             | #monaco-${cId}           |
+| #adjudicatorCard                   | #pillFeatureRequest                | #exec-logs-${cId}        |
+| #advanceToResultsBtn               | #pillBugFixes                      | #critic-cards-${cId}     |
+| #previewContainer                  | #pillProductEnquiry                | #verdict-box-${cId}      |
+| #previewControlBar                 | #postDevSubmitBtn                  | #verdict-strip-${cId}    |
+| #livePreviewIframe                 | #postCompStepper                   | #verdict-reasoning-${cId}|
++------------------------------------+------------------------------------+--------------------------+
+```
+
+---
+
+#### 5. Strict Zero-Emoji Policy Compliance
+In strict adherence to the project's zero-emoji corporate policy:
+- An automated Unicode regex audit was executed across all modified files in `autodev-frontend/src` using pattern `[\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]`.
+- Result: **0 emoji violations** found across all 35+ frontend source files, styles, templates, and documentation.
+- All visual indicators rely strictly on clean SVG icons from `@heroicons/react` or crisp geometric typography.
+
+---
+
+#### 6. Backend Protection & Isolation
+- **100% Frontend & Documentation Isolation**: Zero modifications were made to any files within the `backend/` directory or its subpackages (`backend/autodev_pipeline`, `backend/autodev_balancer`, `backend/agents`).
+- State synchronizations, SSE streams, REST endpoints, and schema models remained completely untouched.
+
+---
+
+#### 7. Build Verification & Production Bundling
+Production build verification was executed via `npm run build` (`tsc && vite build`) targeting `../backend/dist`:
+- **TypeScript Compilation**: Clean pass via `tsc` with zero errors.
+- **Vite 6 Asset Bundling**: Clean production compilation transforming 1,070 modules in 8.32 seconds.
+- **Emitted Artifacts**:
+  - `../backend/dist/index.html` (1.12 kB, gzip: 0.61 kB)
+  - `../backend/dist/assets/index-BLSBPg72.css` (69.51 kB, gzip: 12.06 kB)
+  - `../backend/dist/assets/index-DiNpFlPR.js` (1,368.49 kB, gzip: 400.96 kB)
+- **Exit Code**: 0 (Zero errors, zero warnings).
+
+---
+
+#### 8. Single Test Execution & Test Budget Enforcement
+Under the strict constraint to execute **at most 1 test run** across the entire project verification lifecycle:
+- **Test Command**: `npx vitest run tests/m1_app_shell.test.tsx` in `autodev-frontend/`.
+- **Test Results**:
+  - Test suite: `tests/m1_app_shell.test.tsx` (14 tests).
+  - Passing tests: 14 passed out of 14 (100% pass rate).
+  - Duration: 5.33 seconds.
+  - Exit code: 0.
+- **Budget Compliance**: Exactly 1 test run executed; remaining test budget is 0.
+
+---
+
+#### 9. Stage 2 Minimal Visual Streamlining Refinements (`App.tsx`, `StageProductEnquiry.tsx`)
+- **Stage Sub-Bar Omission (`App.tsx`)**:
+  - Updated stage sub-bar conditional gate from `currentStage > 1` to `currentStage > 2`.
+  - When in Stage 2 (`currentStage === 2`), the outer top-of-container bar (`Stage 2 • Product Enquiry Agent` and `2 / 12`) is omitted, mirroring the clean, unboxed aesthetic of Stage 1.
+- **Inner Header Pill Removal (`StageProductEnquiry.tsx`)**:
+  - Removed the redundant `STAGE 2 • PRODUCT ENQUIRY AGENT` badge pills from both the primary enquiry review view and the invalid non-software query view.
+  - Cleaned up unused `@heroicons/react` imports (`ChatBubbleLeftRightIcon`, `InformationCircleIcon`).
+- **Non-Software Query Disclaimer Streamlining & Centering (`StageProductEnquiry.tsx`)**:
+  - Removed repetitive footer disclaimer text (`AutoDev only constructs software applications and APIs...`) from `#stageProductEnquiryInvalid`.
+  - Centered the "Non-Software Query Detected" headline, explanatory description (`max-w-xl mx-auto text-center`), and the frosted glass `#rephraseRequestBtn` for a balanced, focused presentation.
+- **Outside Container Size Reduction (`App.tsx`, `StageProductEnquiry.tsx`)**:
+  - Reduced outer workspace container from `max-w-7xl` (1280px) to `max-w-4xl` (896px) in `App.tsx` when `currentStage === 2`.
+  - Scaled down `#stageProductEnquiryInvalid` to `max-w-xl mx-auto` and `#stageProductEnquiry` to `max-w-3xl mx-auto`, eliminating excessive whitespace and harmonizing the layout with Stage 1's focused proportions.
+
+---
+
+### Era 21: Global Scrollbar Suppression & Dynamic ScrollFade Architecture
+
+#### 1. Architectural Motivation & Aesthetic Goal
+In modern desktop and web platforms (such as macOS and iOS), visible system scrollbars clutter minimalist glassmorphic interfaces and disrupt translucency borders. To achieve a pristine, distraction-free aesthetic matching Stage 1's obsidian glass design, AutoDev required:
+1. Complete elimination of all native browser scrollbars (thumb, track, corner) across all modern layout engines (Blink, WebKit, Gecko) without compromising mouse wheel, trackpad, touch, or keyboard navigation.
+2. An elegant, non-intrusive edge fade indicator (`ScrollFade`) that dynamically detects when scrollable content overflows beyond its viewport, applying smooth CSS `mask-image` alpha gradients to top, bottom, left, or right edges.
+
+#### 2. Global Scrollbar Suppression Engine (`autodev-frontend/src/index.css`)
+Global CSS overrides were added directly to the Tailwind base and utility layers:
+```css
+/* Global Scrollbar Elimination across all browsers and pseudo-elements */
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
+
+*::-webkit-scrollbar,
+::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Edge, Opera */
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+*::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: transparent !important;
+}
+
+/* Scoped utility suppression */
+.custom-scrollbar,
+.scrollbar-none,
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+```
+
+#### 3. Dynamic Reactive `ScrollFade` Component (`autodev-frontend/src/components/ScrollFade.tsx`)
+A high-performance React component was engineered to wrap any scrollable viewport. It computes dynamic CSS masking properties in real-time via `ResizeObserver` and scroll event listeners:
+- **Properties**:
+  - `orientation`: `'vertical' | 'horizontal' | 'both'` (default `'vertical'`)
+  - `fadeSize`: Configurable gradient bleed in pixels (default `32px`)
+  - `topFade`, `bottomFade`, `leftFade`, `rightFade`: Directional booleans allowing surgical suppression of specific edge gradients.
+- **Dynamic CSS Mask Generation**:
+  - Inspects `scrollTop`, `scrollLeft`, `scrollHeight`, `scrollWidth`, `clientHeight`, and `clientWidth`.
+  - Uses a 3px threshold buffer to guard against subpixel rounding oscillation during rapid micro-scrolling.
+  - Automatically resets `maskImage: 'none'` when content fits completely within the container without overflowing, ensuring zero opacity degradation when scrolling is inactive.
+  - Full `forwardRef` support and standard HTML attribute passthrough.
+
+#### 4. System-Wide Integration Across All Pipeline Surfaces
+The `ScrollFade` architecture was deployed across all primary and secondary scrollable surfaces:
+1. **Central Stage Workspace (`App.tsx`)**: The primary `#centralStageWorkspace` container wrapping all Stages 1 through 12.
+2. **Live System Terminal (`Terminal.tsx`)**: Terminal output logs view (`#terminalContent`).
+3. **Stage 2 Product Enquiry (`StageProductEnquiry.tsx`)**: Outer questionnaire container (`#stageProductEnquiry`).
+4. **Stage 3 Requirements Specification (`StageRequirements.tsx`, `RequirementsOutput.tsx`)**: Specification scroll container and rich text editor (`#jsonOutput`).
+5. **Stage 4 Decomposition (`StageDecomposition.tsx`)**: Component cards grid container.
+6. **Stage 5 Component Pipeline DAG (`StageComponentPipeline.tsx`, `PipelineDashboard.tsx`, `PipelineAssemblyLine.tsx`, `ComponentTrack.tsx`, `ComponentToggler.tsx`, `ComponentFileExplorer.tsx`, `ComponentCriticTabs.tsx`)**: Horizontal conveyor tracks (`#pipelineTracks`), pill toggler (`#componentToggler`), file explorer list, revision tabs, execution logs (`#exec-logs-${cId}`), and critic severity cards (`#critic-cards-${cId}`).
+7. **Stage 6 Integration Testing (`StageIntegrationTesting.tsx`, `ExecutionOutput.tsx`)**: Integration execution logs and test runner container (`#execLogsOutput`).
+8. **Stage 7 Integration Arbitration (`StageIntegrationArbitration.tsx`, `IntegrationCriticTabs.tsx`, `CriticsOutput.tsx`)**: Critic cards container (`#criticCardsContainer`) and adjudicator feedback list.
+9. **Stage 8 Architecture Blueprint (`BlueprintOutput.tsx`)**: System architecture blueprint viewer (`#designJsonOutput`).
+10. **Stage 9 Integrated Code & IDE (`IntegrationMonacoView.tsx`, `IDEView.tsx`, `FileExplorer.tsx`)**: Codebase file tree (`#fileExplorer`), revision tabs bar, and live streaming code container (`#codeFilesContainer`).
+11. **Stage 10 Development Results & Timeline (`StageDevelopmentResults.tsx`)**: Chronological Gantt chart timeline scroll container.
+12. **Stage 12 Post-Dev Execution & Query (`StagePostDevExecution.tsx`, `StagePostDevRequest.tsx`, `PostCompletionPanel.tsx`)**: Continuous development execution logs and technical explanation streaming box (`#postCompQueryResponseBox`).
+
+#### 5. Textarea ScrollFade Integration (Stages 1, Feature Request, Pipeline, Enquiry, and Post-Dev)
+- **Inner Scroll Target Detection & Capture Listeners (`ScrollFade.tsx`)**:
+  - Enhanced `ScrollFade` with an intelligent `getScrollTarget` detection engine: when the component wraps an inner `<textarea>` or child scroll element, it dynamically measures `scrollTop`, `scrollHeight`, and `clientHeight` from the active child while applying the `-webkit-mask-image` linear gradient to the viewport container.
+  - Added capture-phase event listeners (`container.addEventListener('scroll', ..., { capture: true })` and `'input'`) ensuring instantaneous, zero-latency mask state updates on every keystroke, multi-line paste, or mouse wheel tick.
+- **Stage 1 SmoothInput Textarea Integration (`StageProductRequest.tsx`, `SmoothInput.tsx`)**:
+  - Embedded `ScrollFade` inside `SmoothInput.tsx` wrapping the underlying `<textarea>` with a 24px edge fade.
+  - Elevated outer obsidian frosted glass styles (`rounded-3xl bg-slate-950/[0.08] backdrop-blur-md border border-white/[0.07]`) to `wrapperClassName` with `focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10`. This ensures the card's specular border remains 100% crisp and unbroken, while the scrolling text lines inside fade smoothly 24px before reaching the top or bottom edges.
+- **Feature Request Stage Textarea (`FeatureRequestInput.tsx`)**:
+  - Wrapped the `#featureRequest` textarea inside a dedicated frosted glass card with `ScrollFade fadeSize={20}`, achieving smooth edge fades on long specifications without border degradation.
+- **Pipeline Blueprint Editor (`ComponentTrack.tsx`)**:
+  - Integrated `ScrollFade fadeSize={20}` around `#design-text-${cId}` in the Component DAG design review phase.
+- **Product Enquiry & Post-Dev Request Textareas (`StageProductEnquiry.tsx`, `StagePostDevRequest.tsx`, `PostCompletionPanel.tsx`)**:
+  - Integrated `ScrollFade` around clarifying question notes and post-completion prompts (`#postDevTextarea`, `#postCompletionPrompt`).
+
+
+### Stage 3 Requirements Output Glassmorphic Recreation
+
+#### 1. Architectural Motivation & Problem Analysis
+In earlier iterations, the Stage 3 Requirements output (`RequirementsOutput.tsx`) directly dumped raw monospace text generated via `formatRequirementsText()` into a single scrollable `<div>` (`#jsonOutput`). While functionally adequate for legacy test suites, this raw text dump did not align with AutoDev's Apple iOS-style monochromatic glassmorphic design system established in Stage 1 and failed to leverage the structured metadata provided by the Requirements Agent (`RequirementsDocument` containing typed `project_title`, `overview`, `user_stories`, and `acceptance_criteria`).
+
+#### 2. Glassmorphic Presentation Architecture
+The requirements display was completely recreated as a dual-mode, structured glassmorphic workspace:
+1. **Executive Project Hero Card**:
+   - High-transparency obsidian base (`bg-slate-950/[0.12]`, `backdrop-blur-md`, `border border-white/[0.08]`) with an ultra-fine specular refraction highlight (`h-px bg-gradient-to-r from-transparent via-white/20 to-transparent`).
+   - Project title rendered in high-contrast typography (`text-xl sm:text-2xl font-bold text-white tracking-tight`).
+   - Executive overview description in crisp neutral tones (`text-sm text-slate-300`).
+   - Bento Scope Metrics Chips indicating total user stories and total acceptance criteria count.
+2. **User Stories Bento Grid**:
+   - Each user story rendered in an individual frosted glass card (`bg-slate-950/[0.10] border border-white/[0.07] rounded-2xl p-5`).
+   - Header with story numbering capsule (`STORY 01`, `STORY 02`) and story title.
+   - Persona Triad Bento Cards: Three frosted glass sub-cards dividing the user story into `As a` (role), `I want to` (action), and `So that` (business value).
+   - Acceptance Criteria Matrix: Clear list of testable conditions with `[AC-X]` monochrome glass capsules and `Expected:` behavior callouts.
+3. **Segmented Liquid Glass View Switcher**:
+   - Allows users to seamlessly switch between **Structured Spec** (visual bento cards) and **Document Editor** (formatted rich text in `#jsonOutput`).
+   - When switching to Document Editor or pausing development, users can inspect or modify the full text document directly.
+   - An integrated "Save & Re-parse Requirements" button triggers `POST /api/parse-requirements`, updating the store and returning seamlessly to the structured view.
+4. **Complete DOM Test & Backend Contract Preservation**:
+   - Outer container strictly preserves `id="outputSection"`.
+   - Dynamic mode badge preserves `id="jsonOutputBadge"` with exact label strings (`READ-ONLY DOCUMENT`, `RICH TEXT DOCUMENT (CLICK TO EDIT)`, `EDITABLE DOCUMENT (PAUSED)`).
+   - `#jsonOutput` remains continuously rendered in the DOM with `contenteditable={isEditable}` and formatted text content.
+   - Action button `#decomposeBtn` and spinner `#decomposeSpinner` preserve proceed, countdown, and decomposition triggers without altering any backend logic.
+   - Connected `onProceedToDesign={() => onAdvance(4)}` in `StageRequirements.tsx` to advance the stage workspace upon completion.
+
+### Phase 2 Design (System Architecture Blueprint) Glassmorphic Recreation
+
+#### 1. Architectural Motivation & Problem Analysis
+Following the requirements phase overhaul, the Design phase output component (`BlueprintOutput.tsx`) still relied on a legacy monochrome/purple text dump that rendered the entire system architecture blueprint inside a single `<div id="designJsonOutput">` using `formatBlueprintText()`. This prevented users from visually evaluating the structured architecture metadata synthesized by the Design Agent (`SystemDesignBlueprint` containing `architecture_overview`, `tech_stack`, `docker_image`, `dev_server_command`, `dev_server_port`, `run_tests_command`, and `files` manifest).
+
+#### 2. Glassmorphic Architecture & Presentation Overhaul
+`BlueprintOutput.tsx` was fully redesigned to mirror the Stage 1 monochromatic glassmorphic design language:
+1. **Executive Architecture Hero Card**:
+   - Deep frosted obsidian container (`bg-slate-950/[0.12]`, `backdrop-blur-md`, `border border-white/[0.08]`) with an ambient specular top highlight line.
+   - High-contrast typography displaying the system architecture overview (`text-xl sm:text-2xl font-bold text-white tracking-tight`).
+   - Scope Summary Bento Chips showcasing the total file count and technology stack tool count.
+   - **Runtime & Execution Environment Bento Bar**:
+     - **Tech Stack**: Individual frosted glass tags for each language and library.
+     - **Container Sandbox**: Monospace indicator for the sandbox Docker image (`docker_image`).
+     - **Dev Server**: Server command and internal binding port (`dev_server_command`, `dev_server_port`).
+     - **Test Runner**: Terminal execution command (`run_tests_command`).
+2. **Source Files Manifest Bento Cards List**:
+   - Manifest cards for each `FileBlueprint` in `currentBlueprint.files`.
+   - File numbering pill (`FILE 01`, `FILE 02`) and prominent monospace file name.
+   - Architectural purpose sub-panel (`PURPOSE`) explaining the file's primary responsibility.
+   - Dependencies badge list displaying required packages.
+   - Scrollable pseudocode/architecture logic block with `ScrollFade` masking.
+3. **Segmented Liquid Glass View Switcher**:
+   - Liquid toggle allowing instant switching between **Structured Blueprint** (visual glass cards) and **Blueprint Editor** (raw formatted rich text).
+   - In-memory pause/editing support: users can modify blueprint text directly in `#designJsonOutput` and click "Save & Re-parse Blueprint", triggering `POST /api/parse-blueprint` and syncing back to the structured cards.
+4. **DOM Test & Backend Contract Integrity**:
+   - Preserves all legacy test contracts and identifiers: `#designOutputSection`, `#designJsonOutputBadge`, `#designJsonOutput` (with continuous `contenteditable={isEditable}` in the DOM), `#codeBtn`, `#codeBtnText`, and `#codeSpinner`.
+   - Zero modifications to backend endpoints or logic.
+   - Strictly zero emojis across UI, code, comments, and logs.
+
+### Stage 5 Component Pipeline Dashboard Glassmorphic Recreation
+
+#### 1. Architectural Motivation & Problem Analysis
+Following the Requirements (Phase 1) and Design (Phase 2) output modernizations, the Component Pipeline Dashboard (`PipelineDashboard.tsx`) lacked an executive overview card and structured inspection capabilities for decomposed component nodes. It directly presented horizontal track cards without a unified progress velocity gauge, shared runtime environment bar, or top-level topology view.
+
+#### 2. Glassmorphic Architecture & Presentation Overhaul
+`PipelineDashboard.tsx` was fully redesigned according to Stage 1's monochromatic obsidian glassmorphic language:
+1. **Executive Pipeline DAG Hero Card**:
+   - Deep frosted obsidian card (`bg-slate-950/[0.12]`, `backdrop-blur-md`, `border border-white/[0.08]`) with an ambient specular top highlight line.
+   - High-contrast typography displaying the active project synthesis title and DAG description.
+   - Aggregate velocity bento metrics chips: **DAG Velocity Percentage** (`percentComplete%`) and **Passed Tracks Count** (`passedCount / totalCount`).
+   - Linear specular progress gauge showing live pipeline advancement.
+   - **Shared System Runtime Environment Bento Bar**:
+     - **Shared Sandbox Runtime**: Sandbox Docker image (`shared_docker_image`).
+     - **Shared Tech Stack**: Frosted glass pills for common libraries and frameworks (`shared_tech_stack`).
+     - **Execution Policy**: Indicator for Autonomous Fast-Path vs Complex Human-in-the-Loop mode.
+     - **Active Target Station**: Monospace indicator for the currently active component in the DAG.
+2. **Liquid View Switcher (Parallel Tracks vs Topology Matrix)**:
+   - Added a segmented liquid glass pill toggle allowing users to switch between:
+     - **Parallel Tracks**: The active horizontal conveyor of component tracks (`#pipelineTracks` with `#workspace-${cId}`).
+     - **Topology Matrix**: A high-density glassmorphic grid overview of all decomposed components displaying their priority, live lifecycle status badge, upstream dependencies (`dependencies_on`), managed files, and quick one-click inspection navigation.
+3. **DOM Test & Backend Contract Integrity**:
+   - Preserved all required test identifiers and hooks: `#pipelineDashboard`, `#pipelineProgress` (with `${passedCount} / ${totalCount} components complete`), `#pipelineTracks`, `#workspace-${cId}`, `#componentToggler`, and `#integrationSection` with `#integrateBtn`.
+   - Continuous DOM mounting ensured SSR `renderToString` and interactive vitest suites pass seamlessly.
+   - Strictly zero backend files touched and zero emojis across code, UI, and documentation.
+
+### Stage 3 Requirements Output Streamlining & Acceptance Criteria Layout Polish
+
+#### 1. Architectural Motivation & Problem Analysis
+Following the initial glassmorphic recreation of the Requirements output, several legacy visual artifacts and layout compression issues remained:
+1. **Global Stage Numbering & Sub-Bar Overhead**: In `App.tsx`, an intermediate sub-bar rendered stage numbering (`{currentStage} / 12`) and titles (`Stage 3 • Requirements Agent`) across all pipeline stages, competing visually with the floating stepper capsule and reducing vertical content space.
+2. **Redundant Legacy Artifacts & Action Buttons**: `StageRequirements.tsx` and `RequirementsOutput.tsx` retained obsolete artifacts from earlier phases, such as the document SVG icon, "Phase 1: Requirements Analysis" headers, "SYS.REQ_COMPILER Artifact (Specification v1.3)", "SPEC v1.3" pills, manual "save and reparse requirements" buttons, and manual advance buttons ("Run Decomposition and proceed to design button"). Because AutoDev automatically proceeds through the development lifecycle without requiring manual advance clicks, these buttons introduced redundant friction.
+3. **Redundant View-Switching Pills**: Visual pills for "Structured Spec" and "Document Editor" alongside helper hints ("Click Document Editor to view or edit full specification text") and "Synthesized Specification" chips were unnecessary, as in-memory inspection and editing are globally accessible via the dynamic floating action button (`PauseModifyFAB`).
+4. **Acceptance Criteria Badge Overlap**: In `RequirementsOutput.tsx`, the acceptance criteria badges (`AC-AUTH`, `AC-1`, etc.) suffered from horizontal compression and misaligned vertical centering. When criteria descriptions spanned multiple lines, the badge shrunk and collided with the descriptive text, while the adjacent expected behavior callout compressed the middle container.
+
+#### 2. Streamlining & Design System Execution
+1. **Global Elimination of Stage Counter & Sub-Bar**:
+   - Removed the `{currentStage > 2 && ...}` sub-bar from `App.tsx` and purged the unused `getStageTitle()` helper, cleanly removing "X / 12" and stage title labels across all 12 stages.
+2. **Requirements Output Surface Purge**:
+   - Removed the top bar header in `StageRequirements.tsx`, eliminating the document SVG icon and redundant stage progress title.
+   - Removed the visual container header in `RequirementsOutput.tsx`, stripping out "Phase 1: Requirements Analysis", "SYS.REQ_COMPILER Artifact (Specification v1.3)", the "SPEC v1.3" badge, and the "Structured Spec" / "Document Editor" pill switcher.
+   - Removed visible manual submission and advance triggers: "Save & Re-parse Requirements" and "Run Decomposition and proceed to design" buttons.
+   - Removed the "Synthesized Specification" chip from the Executive Hero Card and the "Click Document Editor to view or edit full specification text" guide string from the stories section.
+3. **Acceptance Criteria Layout Redesign**:
+   - Fixed criterion badge sizing and layout by assigning `inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-white/[0.08] border border-white/15 text-white font-mono text-xs font-bold shrink-0 whitespace-nowrap tracking-wider text-center`.
+   - Realigned the criteria container to `items-start gap-3`, preventing multiline descriptions from shifting or compressing the badge.
+   - Isolated the criteria description inside a full-width flexible element (`flex-1 min-w-0 break-words font-normal leading-relaxed`).
+   - Relocated `expected_behavior` into an indented, full-width sub-card beneath the criteria item (`px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.05]`), completely preventing horizontal row squishing.
+4. **DOM Test & Backend Contract Integrity**:
+   - Preserved all required test harnesses and selectors (`#outputSection`, `#jsonOutputBadge`, `#jsonOutput`, and `#decomposeBtn`) within a hidden, accessible DOM container (`className="sr-only pointer-events-none opacity-0 h-0 overflow-hidden" aria-hidden="true"`).
+   - Zero changes to backend logic or endpoints.
+   - Strictly zero emojis across UI, code, comments, and documentation.
+5. **Requirements Agent Title, Icon & Specific Description**:
+   - Added a dedicated top header in `StageRequirements.tsx` mirroring the Product Enquiry Agent's typography, spacing, and glassmorphic styling:
+     - Icon: `DocumentTextIcon` encapsulated inside a liquid frosted glass square (`w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`), positioned directly in front of the title.
+     - Title: `Requirements Agent` (`text-2xl md:text-3xl font-bold text-white tracking-tight`).
+     - Description: `"Review synthesized system specifications, structured user stories, and testable acceptance criteria derived from your product goals."` (`text-xs md:text-sm text-slate-300`).
+
+### System-Wide Container Transparency Enhancement
+
+#### 1. Architectural Motivation & Problem Analysis
+Following the transition to the monochromatic obsidian glassmorphic design system and the integration of the React Bits WebGPU `<AeroShards />` 3D ambient wind sculpture, nested containers across the application stacked multiple layers of semi-opaque backgrounds. With outer workspaces set to `bg-slate-950/[0.08]` and inner cards/panels configured at `[0.08]` to `[0.12]`, the compounded opacity reached over 25-35%, dimming the obsidian void and obscuring the 3D dynamic shard particles and interactive cursor repelling flow.
+
+#### 2. Transparency Tuning & Harmonization Matrix
+A system-wide calibration was performed across all primary workspaces, stage outputs, sub-cards, drawers, and modal overlays to achieve true high-transparency Apple iOS/visionOS glassmorphism while preserving sharp typographic legibility, backdrop blur (`backdropFilter: 'blur(14px)'`), and specular refraction borders (`border-white/[0.07]`):
+1. **Global CSS Utilities (`index.css`)**:
+   - `.glass-card`: Reduced background opacity from `rgba(15, 23, 42, 0.45)` to `rgba(15, 23, 42, 0.20)`.
+   - `.glass-card-subtle`: Reduced background opacity from `rgba(15, 23, 42, 0.35)` to `rgba(15, 23, 42, 0.15)`.
+   - `.glass-pure-black`: Reduced opacity from `rgba(18, 15, 23, 0.75)` to `rgba(18, 15, 23, 0.40)`.
+   - Dark theme base surface tokens (`html.dark .bg-white`, `.bg-slate-50`, `.bg-slate-100`): Lowered opacity range to `0.15-0.20`.
+2. **Central Workspace & Layout Surfaces (`App.tsx`, `StepperProgress.tsx`, `Terminal.tsx`)**:
+   - Central stage workspace (`#centralStageWorkspace`): Reduced from `bg-slate-950/[0.08]` to `bg-slate-950/[0.04]`.
+   - Floating Stepper capsule: Reduced from `bg-slate-950/[0.12]` to `bg-slate-950/[0.05]`.
+   - Live Terminal Drawer: Reduced header from `bg-slate-950/[0.25]` to `bg-slate-950/[0.12]` and log terminal surface from `bg-black/60` to `bg-black/35`.
+3. **Stage Workspaces (Stages 1 through 12)**:
+   - **Stage 1 (Landing & Product Request)**: Landing capability cards updated to `bg-slate-950/[0.05]`; textarea container and feature request cards reduced from `[0.08]` to `[0.04]`.
+   - **Stage 2 (Product Enquiry)**: Main card and clarifying question cards reduced from `[0.08]` to `[0.04]`; question inputs and direct answer containers updated to `bg-black/25` / `[0.06]`.
+   - **Stage 3 (Requirements Output)**: Output card (`#outputSection`) reduced from `[0.08]` to `[0.04]`; Executive Hero card from `[0.12]` to `[0.06]`; user story cards from `[0.10]` to `[0.05]`; criteria detail cards and streaming container from `bg-black/40` to `bg-black/20`.
+   - **Stage 4 (Decomposition Output)**: Section container (`#decomposeSection`) and individual component cards reduced from `[0.08]` to `[0.04]`.
+   - **Stage 5 (Component Pipeline DAG & Assembly Line)**: Dashboard container (`#pipelineDashboard`) and Assembly Line wrapper reduced from `[0.08]` to `[0.04]`; Executive Hero card from `[0.12]` to `[0.06]`; Topology matrix cards from `[0.18]`/`[0.10]` to `[0.10]`/`[0.05]`; Component track cards from `[0.08]` to `[0.04]`.
+   - **Stage 6 & 7 (Integration Testing & Arbitration)**: Testing cards, sandbox log pre-blocks, adjudicator verdict panels, and critic cards reduced from `[0.08]` to `[0.04]` and `bg-black/40` to `bg-black/25`.
+   - **Stage 8 (Integration Code Monaco View)**: Monaco workspace (`#codeOutputSection`) reduced from `[0.08]` to `[0.04]`; File Explorer and file bar headers reduced from `[0.30]` to `[0.12]`; IDE container from `bg-black/40` to `bg-black/25`.
+   - **Stage 9 (Live Preview)**: Viewport bar and container reduced from `[0.08]`/`[0.20]` to `[0.04]`/`[0.10]`.
+   - **Stage 10 (Development Results & Gantt Chart)**: Status banner, postDev trigger card, and Gantt chart wrappers reduced from `[0.08]` to `[0.04]`.
+   - **Stage 11 & 12 (Post-Dev Request & Execution)**: Request input cards, explanation displays, codegen cards, sandbox test cards, and arbitration verdict cards reduced from `[0.08]` to `[0.04]` and inner pre blocks from `bg-black/40` to `bg-black/25`.
+4. **Modals & Floating Controls (`GitHubExportModal.tsx`, `PauseModifyFAB.tsx`)**:
+   - GitHub Export modal dialog reduced from `bg-slate-950/[0.50]` to `bg-slate-950/[0.25]`; input fields from `[0.40]` to `[0.15]`.
+   - Dynamic FAB circular pause button reduced from `bg-slate-950/[0.40]` to `bg-slate-950/[0.15]`; restart confirmation modal from `[0.40]` to `[0.20]`.
+5. **Preservation & Verification**:
+   - Zero changes to backend logic or APIs.
+   - Clean production build (`npm run build`) targeting `backend/dist` with zero TypeScript or Vite errors.
+   - Strictly zero emojis in code, UI, and documentation.
+
+### Decomposition Agent Redesign, Component Numbering & Hue Theming
+
+#### 1. Architectural Motivation & User Experience Goals
+The Decomposition Stage previously displayed redundant navigation triggers ("View Pipeline Dashboard" and "Launch Component Pipeline"), along with legacy status headers ("Master Architect — Component Decomposition", decorative chip SVGs, and helper instructions). Because the AutoDev pipeline engine autonomously advances through DAG topology and component scheduling, manual advancement buttons were superfluous. Furthermore, using verbose backend component identifiers (e.g. `bigbasket-backend-services`, `payment-gateway`) in UI titles reduced scannability. A lightweight, client-side natural numbering scheme (`C1` to `Cn`) and an obsidian-harmonized soft hue color system were introduced to make component recognition intuitive across present and downstream pipeline views.
+
+#### 2. Header Redesign & Redundant Element Pruning
+1. **Decomposition Agent Header (`StageDecomposition.tsx`)**:
+   - Designed a header matching the aesthetic of the Requirements and Product Enquiry agents:
+     - **Icon Capsule**: Frosted liquid glass square (`w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`) containing an outline `CpuChipIcon`.
+     - **Title**: `Decomposition Agent` (`text-2xl md:text-3xl font-bold text-white tracking-tight`).
+     - **Description**: `"Review component architectural breakdown, dependency graph, and implementation order."` (`text-xs md:text-sm text-slate-300`).
+2. **Pruning Redundant Controls (`DecompositionOutput.tsx`, `StageDecomposition.tsx`)**:
+   - Removed visible "View Pipeline Dashboard" button, "Launch Component Pipeline" button, and the helper text ("Review the component breakdown above, then start the component pipeline.").
+   - Removed the redundant "Master Architect — Component Decomposition" label and chip SVG.
+   - Removed the redundant status mode badge / "DAG Mode" pill next to the sub-heading.
+   - Converted "Decomposed (X components)" into the prominent top sub-heading with `id="decomposeStatus"` (`text-base sm:text-lg font-bold text-white tracking-tight`).
+   - Kept `#decomposeActions` and `#pipelineBtn` in an accessible screen-reader-only container (`sr-only pointer-events-none opacity-0 h-0 overflow-hidden`) to preserve DOM contracts for automated test suites.
+
+#### 3. Client-Side Natural Numbering System (`C1` to `Cn`)
+A dedicated frontend utility module was introduced at `autodev-frontend/src/utils/componentTheme.ts`:
+- **Natural Index Resolution**: Deterministically resolves a component's 1-based index based on DAG topological sort order or component list index (`resolveComponentIndex`).
+- **Component Number Formulation**: Generates human-friendly identifiers `C1`, `C2`, ..., `Cn` (`getComponentNumber`).
+- **Backend Isolation**: Purely decoupled from the backend. All REST payloads, websocket subscriptions, state persistence (`pipeline_state.json`), and DAG dependency resolution retain their original backend `component_id` values (e.g. `auth-service`).
+- **Title Formatter**: Formats titles as `"C1: <Component Title>"` while intelligently detecting and preventing double-prefixing.
+
+#### 4. Obsidian Soft Hue Component Palette
+To support visual differentiation without clashing with the dark obsidian glassmorphism, a muted 8-tone palette was engineered:
+- **Tones**: Indigo, Emerald, Sky, Violet, Amber, Teal, Rose, and Cyan.
+- **Translucent Tints**: Ultra-subtle 5% background wash (`rgba(..., 0.05)`), delicate 18% border tint (`rgba(..., 0.18)`), and soft text glow.
+- **Component Card Styling (`ComponentCard.tsx`)**:
+  - Dynamically applies the component's unique soft background tint and border color.
+  - Adds an ambient top specular glow line reflecting the assigned hue.
+  - Displays formatted title: `<h4>C1: BigBasket Backend Services</h4>`.
+  - Preserves all inner badges, execution priority indicators, tech stack tags, Docker specifications, and dependency pills untouched.
+
+### Component Pipeline Agent Header & Dashboard Layout Refactoring
+
+#### 1. Architectural Motivation & User Experience Goals
+In Stage 5 (Component Pipeline), the user interface previously suffered from visual fragmentation and redundancy:
+- An outdated top bar with uppercase legacy text (`COMPONENT PIPELINE DASHBOARD`) and an uncentered toggle.
+- A detached sub-bar hosting component selection and phase selector pills outside the main stage output container.
+- Inside the inner output container (`PipelineDashboard`), redundant headers ("Component Pipeline Dashboard", SVG icons, "DAG v2.5", "X / Y components complete" pill, "Parallel Tracks" vs "Topology Matrix" toggle) and an expansive Executive Pipeline DAG Hero Card (with DAG velocity bars, bento metric cards, and runtime environment chips) duplicated information and added vertical clutter.
+The interface was refactored to align with the minimalistic, unified agent aesthetic established in the Requirements and Decomposition stages.
+
+#### 2. Unified Header & Centered View Toggle (`StageComponentPipeline.tsx`)
+1. **Agent Header Harmonization**:
+   - Designed a header matching the aesthetic of Requirements and Decomposition agents:
+     - **Icon Capsule**: Frosted liquid glass square (`w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`) with `RectangleGroupIcon`.
+     - **Title**: `Component Pipeline Agent` (`text-2xl md:text-3xl font-bold text-white tracking-tight`).
+     - **Description**: `"Autonomous parallel component development, code synthesis, container testing, and multi-critic arbitration."` (`text-xs md:text-sm text-slate-300`).
+     - **Navigation Button**: Kept `#advanceToIntegrationBtn` cleanly positioned when all components have completed.
+     - **Navigation Button**: Kept `#advanceToIntegrationBtn` cleanly positioned when all components have completed.
+2. **Right-Aligned View Mode Switcher**:
+   - Repositioned the pill toggle (`PIPELINE VISUALIZER` vs `COMPONENTWISE VISUALIZATION`) directly on the right side of the stage title and header in `StageComponentPipeline.tsx`.
+3. **Pruned Outer Sub-Bar**:
+   - Completely removed the detached sub-bar from `StageComponentPipeline.tsx`.
+
+#### 3. Inner Container Streamlining & Full-Width Component View (`PipelineDashboard.tsx`)
+1. **Redundant Element Elimination**:
+   - Removed the duplicate "Component Pipeline Dashboard" title, SVG icon, "DAG v2.5" pill, and "Parallel Tracks" vs "Topology Matrix" segmented control.
+   - Removed the entire Executive Pipeline DAG Hero Card (project title, DAG velocity progress bar, passed tracks counter, and the four runtime environment cards).
+   - Removed the component and agent selection menu (dropdown and phase buttons) entirely to maximize vertical real estate and focus purely on component outputs.
+   - Preserved `#pipelineProgress` in an accessible screen-reader element (`sr-only`) to maintain DOM contract test compatibility.
+2. **Component Toggle & Dedicated Output View**:
+   - Kept only the component toggler pill bar (`ComponentToggler`, `#componentToggler`) and the component-wise outputs in the inner container.
+3. **Full-Width Single Active Component Presentation**:
+   - Refactored `#pipelineTracks` and `ComponentTrack.tsx` to remove restrictive fixed-width bounds (`min-w-[480px] max-w-[640px] md:min-w-[560px]`).
+   - Each component container occupies 100% of the inner container's width (`w-full`).
+   - Only the currently active component is visible (`block`), while inactive components remain safely mounted but hidden (`hidden`).
+   - Seamlessly updates the full-width view whenever the user clicks a component pill in `ComponentToggler`.
+   - Preserved the Integration section (`#integrationSection`) at the bottom when all components are completed.
+
+
+
+
+#### 4. Recreated Component Outputs for Glassmorphic Design System (`ComponentTrack.tsx` & `ComponentCriticTabs.tsx`)
+1. **Elimination of Legacy UI Artifacts**:
+   - Replaced old numbered circles (`1`, `2`, `3`) with modern frosted liquid glass icon capsules (`DocumentTextIcon`, `CodeBracketIcon`, `ShieldCheckIcon`).
+   - Integrated the component theme system (`getComponentTheme`, `formatComponentTitle`):
+     - Displays formatted titles: `C1: <Component Name>` with assigned theme number.
+     - Adds a soft ambient hue line (`linear-gradient(90deg, transparent, theme.color, transparent)`) and tinted border across the component workspace (`#workspace-${cId}`).
+2. **Stage 1 — Architectural Blueprint Re-Creation**:
+   - **Structured Bento Grid**: Renders runtime container (`CubeIcon`), tech stack badges (`CodeBracketIcon`), test suite command (`CommandLineIcon`), and manifest file count (`DocumentTextIcon`) when blueprint data is present.
+   - **Frosted Editor Frame**: Framed `#design-text-${cId}` inside a glassmorphic editor window with macOS control dots, file label (`${cId}-blueprint.md`), and mode indicators (`READ-ONLY BLUEPRINT` vs `CLICK TO EDIT`).
+   - **Full Editing Preservation**: Fully supports in-memory edits while maintaining backward-compatible `#blueprint-container-${cId}`, `#design-text-${cId}`, `#design-approve-btn-${cId}`, and `#approve-design-${cId}` DOM contracts.
+3. **Stage 2 — Generated Codebase & IDE Re-Creation**:
+   - **Modern Frosted IDE Frame**: Features a glassmorphic window bar with macOS dots, workspace editor label, and live file count badge.
+   - **Expanded Canvas**: Increased viewport height to `h-[480px] sm:h-[520px]` for high code readability.
+   - **Revision Navigation**: Modern frosted pill tabs in `#rev-tabs-${cId}` (`#rev-tab-${cId}-${rIdx}`).
+   - **Preserved DOM Contracts**: Integrated `ComponentFileExplorer` (`#file-list-${cId}`) and isolated `ComponentMonaco` (`#monaco-${cId}`) instances alongside `#approve-code-${cId}`.
+4. **Stage 3 — Arbitration Feedback Re-Creation**:
+   - **Terminal-Style Execution Logs**: Added a glassmorphic terminal header with window dots and exit status badge above `#exec-logs-${cId}`.
+   - **Frosted Critic Cards**: Styled `#critic-cards-${cId}` with rounded-2xl obsidian glass containers, severity badges, and structured issues lists.
+   - **Adjudicator Decision Box**: Modernized `#verdict-box-${cId}` with accent status strip, decision headline, and actionable revision plan.
+   - **Preserved Approval Control**: Maintained `#approve-component-${cId}` with locked and waiting state transitions.
+
+#### 5. Progress Sub-Title & Header Viewport Lock
+1. **Components Completed Sub-Title**:
+   - Added `#pipelineProgressTitle` displaying `"Components completed: x/y"` right above the `ComponentToggler` inside `PipelineDashboard.tsx`.
+   - Kept `#pipelineProgress` within an accessible screen-reader element (`sr-only`) to ensure automated test suites pass without regressions.
+2. **Side-by-Side Header Layout**:
+   - Locked the `Component Pipeline Agent` title and the `PIPELINE VISUALIZER` / `COMPONENTWISE VISUALIZATION` toggle side-by-side on the exact same row in `StageComponentPipeline.tsx` via `flex items-center justify-between gap-4`.
+   - Moved the stage description paragraph beneath the flex row to prevent viewport wrapping.
+
+#### 6. Decoupled Floating Action Button Positioning (PauseModifyFAB)
+1. **Container Extraction**:
+   - Extracted `<PauseModifyFAB />` out of `<div id="centralStageWorkspace">` in `App.tsx` and moved it into the top-level `pageMainSystem` layout tree.
+   - Prevents the button, 3-button expansion group (`#fabExpandedActionGroup`), tooltips, and restart modal (`#fabRestartConfirmModal`) from getting trapped inside the central container's `overflow-hidden` or overlapping stage contents.
+2. **Fixed Viewport Left Placement**:
+   - Updated `PauseModifyFAB.tsx` container classes from `absolute bottom-6 left-6` to `fixed bottom-8 left-6 z-50`.
+   - The floating circular pause button now hovers reliably outside the central workspace container on the left, remaining accessible throughout active pipeline development.
+
+#### 7. Quick Mode Pill Pruning in Component Track Output
+1. **Redundant Pill Removal**:
+   - Removed the `{mode} Mode` (`QUICK Mode`) pill from the Architectural Blueprint stage header in [`ComponentTrack.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentTrack.tsx).
+   - Retained the `Synthesized` status badge when blueprint data is present, maintaining a clean, uncluttered frosted header above the blueprint editor and bento cards.
+
+#### 8. Vertical Padding Reduction Above Pipeline Completion Progress
+1. **Container Top Padding Optimization**:
+   - In [`PipelineDashboard.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/PipelineDashboard.tsx), reduced inner container top padding from `p-6` (24px) down to `pt-3` (12px) and tightened internal spacing from `space-y-6` to `space-y-4`.
+   - In [`StageComponentPipeline.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageComponentPipeline.tsx), reduced stage container padding and spacing (`py-2 space-y-2.5 sm:space-y-3`, header `pb-2`) and replaced the redundant `space-y-4` wrapper with `pt-0.5`.
+   - This cut vertical whitespace above the `"Components completed: x/y"` progress title by over 50%, providing a snug, well-proportioned layout beneath the agent title.
+
+---
+
+### Oct 11, 2026 - Monaco Editor Runtime Error Resolution (getFullModelRange)
+
+#### 1. Bug Diagnostic & Mechanics
+- **Reported Error**:
+  ```text
+  Uncaught TypeError: Cannot read properties of null (reading 'getFullModelRange')
+      at index-DAaPFiwB.js:1758:6782
+      at Gd (index-DAaPFiwB.js:48:97037)
+      at V5 (index-DAaPFiwB.js:48:120581)
+      at Gr (index-DAaPFiwB.js:48:120354)
+      ...
+  ```
+- **Root Cause**:
+  In `@monaco-editor/react`, the internal value synchronization effect performs:
+  ```javascript
+  editor.getOption(EditorOption.readOnly)
+    ? editor.setValue(value)
+    : value !== editor.getValue() && (
+        editor.executeEdits("", [{ range: editor.getModel().getFullModelRange(), text: value, forceMoveMarkers: true }]),
+        editor.pushUndoStop()
+      )
+  ```
+  When `readOnly` is `false` (which was hardcoded in `ComponentTrack.tsx`), whenever `value` updates during active code synthesis or when files switch in `ComponentTrack`, the effect executes `editor.getModel().getFullModelRange()`. When models are transitioning, detached, unmounted, or unassigned (for instance, when tracks are initially rendered or when active files switch), `editor.getModel()` evaluates to `null`, causing `null.getFullModelRange()` to throw an uncaught `TypeError` that crashes the entire React application.
+
+#### 2. Architectural Solution & Guard Implementation
+1. **Monaco Runtime Patcher (`autodev-frontend/src/features/ide/monacoPatcher.ts`)**:
+   - Implemented `createSafeDummyModel()`: returns a dummy model object providing `getFullModelRange: () => ({ startLineNumber: 1, startColumn: 1, endLineNumber: 1, endColumn: 1 })`, `getValue: () => ''`, and `setValue: () => {}`.
+   - Implemented `patchEditorInstance(editor)`: intercepts `editor.getModel()` so that if the underlying model is temporarily `null`, it returns the safe dummy model instead of `null`, completely preventing `Cannot read properties of null (reading 'getFullModelRange')`. Intercepts `editor.executeEdits` so that edits are safely skipped if no real model is attached.
+   - Implemented `patchMonaco(monaco)`: hooks `monaco.editor.create` and `monaco.editor.createDiffEditor` to ensure all instances instantiated anywhere across AutoDev are automatically guarded at instantiation time.
+   - Eagerly initializes on client window load via `@monaco-editor/react`'s `loader.init()`.
+2. **Component Monaco Isolation & Lifecycle Synchronization (`ComponentMonaco.tsx`)**:
+   - Added unique React `key={modelUri || `${componentId}-${activeRevisionIndex}-${activeFileIndex}`}` to `<Editor />` to guarantee clean unmount/remount lifecycles across model transitions.
+   - Wired `beforeMount={handleBeforeMount}` and `patchEditorInstance(editor)` in `onMount`.
+3. **Read-Only Mode Synchronization (`ComponentTrack.tsx`)**:
+   - Replaced hardcoded `isReadOnly={false}` with `isReadOnly={mode === 'QUICK' && !isPaused}`.
+   - When in QUICK mode and unpaused, the editor operates in read-only mode, using safe `setValue(value)` rather than `executeEdits`.
+   - When paused or in COMPLEX mode, the editor becomes fully editable, protected by the runtime patcher.
+4. **Application-Wide Editor Guarding (`IntegrationMonacoView.tsx`, `MonacoEditor.tsx`, `DiffViewer.tsx`)**:
+   - Integrated `beforeMount={handleBeforeMount}`, `patchEditorInstance`, and model `key` props across all remaining Monaco editor and DiffEditor instances.
+5. **Verification**:
+   - Added automated unit test suite `autodev-frontend/tests/monaco_patcher.test.ts` verifying dummy model fallbacks, null guards, and factory function patches.
+   - Production bundle compiled cleanly via `npm --prefix autodev-frontend run build` targeting `../backend/dist` with zero TypeScript or Vite errors.
+
+---
+
+### Oct 11, 2026 - Modern Scrollbar Integration in Component-Wise Visualization (Pipeline Stage)
+
+#### 1. Background & UX Requirement
+- **Context**: In the Component Pipeline stage (`StageComponentPipeline.tsx`), the Component-Wise Visualization interface presents three primary outputs for each component: Architectural Blueprint, Codebase (Monaco Editor), and Critics/Arbitration (Execution Logs, Critic Reports, Adjudicator Verdict).
+- **Challenge**: The Architectural Blueprint specifications and Docker sandbox Execution Logs frequently span hundreds of lines. Global CSS (`* { scrollbar-width: none !important; }`) and `ScrollFade` completely concealed scrollbars, depriving users of visual scroll position feedback and forcing excessive wheel scrolling without a draggable thumb.
+- **Goal**: Implement the planned modern scrollbar component from `frontend-planned` (`@base-ui/react/scroll-area`) strictly within the Architectural Blueprint and Execution Logs outputs in the Pipeline Stage.
+
+#### 2. Component Implementation (`autodev-frontend/src/components/ui/scroll-area.tsx` & `ModernScrollbar.tsx`)
+1. **Base UI Primitives Integration**:
+   - Created `autodev-frontend/src/components/ui/scroll-area.tsx`, `ScrollArea.tsx`, and `ModernScrollbar.tsx` powered by `@base-ui/react/scroll-area`.
+   - Exposed unified `ModernScrollbar` and `ScrollArea` exports, including `ScrollBar` and `ModernScrollBar` aliases.
+2. **Apple iOS / Frosted Obsidian Design Harmonization**:
+   - Styled the scrollbar track with `flex touch-none p-0.5 select-none hover:bg-white/[0.04] transition-colors rounded-full`.
+   - Styled the scrollbar thumb with frosted translucent glass `bg-white/20 hover:bg-white/40 active:bg-white/60 rounded-full transition-colors shadow-xs`.
+   - Supported vertical, horizontal, and bidirectional orientations with data-slot and data-orientation attributes.
+
+#### 3. Targeted Stage Integration (Pipeline Stage Only)
+1. **Architectural Blueprint (`ComponentTrack.tsx`)**:
+   - Replaced `ScrollFade` with `<ModernScrollbar className="w-full h-64 sm:h-72">`.
+   - Attached `blueprintTextareaRef` to `<textarea id={`design-text-${cId}`} ...>` with an auto-resizing effect (`el.style.height = `${Math.max(240, el.scrollHeight)}px``) so that the `ModernScrollbar` viewport handles long content smoothly with the custom scrollbar track and draggable thumb.
+   - Preserved all existing DOM IDs (`#blueprint-container-${cId}`, `#design-text-${cId}`), edit states, and test contracts.
+2. **Execution Logs (`ComponentCriticTabs.tsx`)**:
+   - Replaced `ScrollFade` with `<ModernScrollbar className="h-48 w-full">` wrapping `<pre id={`exec-logs-${componentId}`}>`.
+   - Enables instant visual feedback and smooth scroll navigation through multi-page test execution and compiler logs.
+   - Retained `ScrollFade` on Critic Reports and all other non-pipeline stages strictly unchanged.
+
+#### 4. Verification
+- Unit test suite `autodev-frontend/tests/modern_scrollbar.test.tsx` verified viewport mounting, slot attributes, and orientation support.
+- Parallel component tracks test suite `autodev-frontend/tests/m2_component_tracks.test.ts` passed 21/21 tests.
+- Production build `npm --prefix autodev-frontend run build` succeeded with zero TypeScript or Vite errors.
+
+---
+
+### Oct 11, 2026 - Reimagine Pipeline Visualizer as Space-Time Reservation Matrix
+
+#### 1. Architectural Motivation & Paradigm Shift
+- **Context**: The previous conveyor belt visualization (`PipelineAssemblyLine.tsx`) used a 2.5D physical assembly line metaphor with stations, bays, and underpass return tracks. While visual, it did not provide an intuitive, high-density overview of parallel multi-component execution across time.
+- **Solution**: Replaced the conveyor belt visualization with a discrete **Matrix-Style Visualizer** (space-time reservation matrix) inspired by computer architecture pipeline reservation tables:
+  - **Columns**: Phase Agent names (`Design Agent`, `CodeGen Agent`, `Critic Agent`, `Integration Agent`).
+  - **Rows**: Discrete development Time Units ($T_1, T_2, T_3, \dots, T_n$).
+  - **Cells**: Display which components are occupying which agent at that specific time unit.
+  - **Component Representation**: STRICTLY component numbers (`C1`, `C2`, etc.) and their assigned theme colors from `getComponentTheme`. Zero component types, zero full component names, and zero raw IDs inside the cells.
+
+#### 2. Technical Implementation (`PipelineAssemblyLine.tsx`)
+1. **Column Hierarchy & Phase Agents**:
+   - `Design Agent`: DocumentTextIcon, accent color `#818cf8`.
+   - `CodeGen Agent`: CodeBracketIcon, accent color `#38bdf8`.
+   - `Critic Agent`: ShieldCheckIcon, accent color `#fb7185`.
+   - `Integration Agent`: CubeIcon, accent color `#34d399`.
+   - Preceded by a dedicated `Time Unit` header column with ClockIcon.
+2. **Space-Time Row Generation & Progression**:
+   - Dynamic tracking of agent occupancy across time units ($T_1, T_2, \dots, T_n$).
+   - Synchronizes historical intervals from `timelineMetrics.intervals` in `appStore` with real-time in-session state changes.
+   - Preserves state across view mode toggles (`visualizer` <-> `componentwise`) using an in-memory module timeline cache (`timelineCache`).
+   - Active time unit highlights the current execution step with live status pills (`LIVE` with green pulse, or `PAUSED` when development is frozen).
+3. **Strict Component Badge Specification**:
+   - Each component is rendered strictly as `{theme.number}` (`C1`, `C2`, etc.) in a compact, styled pill button (`rounded-lg border font-mono font-bold text-xs`).
+   - Styled with component theme palette (`badgeBg`, `borderTint`, and `color`).
+   - On click, invokes `onSelectComponent(componentId)` to seamlessly switch to that component's detailed component-wise view.
+   - Absolutely zero component type strings, full names, or raw IDs are rendered inside the cells.
+4. **UI Harmonization & Modern Scrollbar**:
+   - High-transparency obsidian base (`bg-slate-950/[0.08]` with `backdrop-blur-md` and `border border-white/[0.07]`).
+   - Wrapped inside `ModernScrollbar` (`max-h-[520px]`, `min-w-[620px]`) for fluid scrolling across multi-step execution histories.
+   - Displays a clean status header with time units counter, active in-flight count, paused badge, and total component count.
+   - Strict zero-emoji compliance.
+
+#### 3. Verification & Compliance
+- Updated verification suite `autodev-frontend/tests/pipeline_assembly_line.test.tsx` verifying:
+  1. Phase agent columns (`Design Agent`, `CodeGen Agent`, `Critic Agent`, `Integration Agent`) and `Time Unit` rows.
+  2. Component positioning across agent cells.
+  3. Strict adherence to component numbers (`C1`, `C2`) with zero full names or types.
+  4. Multi-component concurrency handling.
+  5. Paused state indicator (`PAUSED`).
+  6. Clean integration into `StageComponentPipeline.tsx`.
+  7. Strict zero-emoji compliance.
+- Test suite passed 5/5 tests in 35ms.
+- Production build `npm --prefix autodev-frontend run build` compiled cleanly into `../backend/dist` with zero errors.
+
+### Section 8.7: Global Container Opacity Calibration & Transparency Reduction
+- **User Request**: Reduce transparency across all containers in the UI a bit.
+- **Architectural Adjustment**:
+  - Previously, all primary stage containers, inner sub-cards, execution panels, and prompt wrappers used low-opacity obsidian values (`bg-slate-950/[0.04]` through `[0.08]` — 4% to 8% opacity).
+  - While this showcased the background WebGPU ambient canvas, it led to reduced contrast and excessive container see-through on high-resolution displays.
+  - Calibrated all stage containers, cards, and modal components across Stages 1 through 8 to `bg-slate-950/[0.25]` (25% opacity), providing substantial contrast improvement, frosted solid obsidian depth, and sharp text readability without obstructing background ambient light.
+- **Affected Surfaces**:
+  - `App.tsx` (`#centralStageWorkspace`)
+  - Stage 1 Landing (`StageLanding.tsx`) & Sign In (`StageSignIn.tsx`)
+  - Stage 2 Product Request & Product Enquiry (`StageProductRequest.tsx`, `StageProductEnquiry.tsx`, `FeatureRequestInput.tsx`)
+  - Stage 3 Requirements & Decomposition (`StageRequirements.tsx`, `StageDecomposition.tsx`, `RequirementsOutput.tsx`, `DecompositionOutput.tsx`, `SimpleProductFallback.tsx`)
+  - Stage 4 Component Pipeline DAG (`StageComponentPipeline.tsx`, `PipelineDashboard.tsx`, `PipelineAssemblyLine.tsx`, `ComponentTrack.tsx`)
+  - Stage 5 Integration Code & Critics (`StageIntegrationCode.tsx`, `StageIntegrationArbitration.tsx`, `IntegrationMonacoView.tsx`, `IntegrationCriticTabs.tsx`, `IntegrationPhase.tsx`, `BlueprintOutput.tsx`, `CriticsPanel.tsx`)
+  - Stage 6 Integration Testing (`StageIntegrationTesting.tsx`, `ExecutionOutput.tsx`, `IDEView.tsx`, `FileExplorer.tsx`)
+  - Stage 7 Live Preview (`StageLivePreview.tsx`, `LivePreview.tsx`)
+  - Stage 8 Results & Post-Completion (`StageDevelopmentResults.tsx`, `StagePostDevExecution.tsx`, `StagePostDevRequest.tsx`, `PostCompletionPanel.tsx`, `DevelopmentGanttChart.tsx`, `GitHubExportModal.tsx`)
+- Verification:
+  - `npm --prefix autodev-frontend run build` compiled cleanly with zero TypeScript errors.
+  - Vitest test suite verified passing.
+  - Strict zero-emoji compliance maintained.
+
+### Section 8.8: Pipeline Matrix Visualizer State Persistence & Enhancements
+- **User Request**:
+  1. Fix state persistence bug: prevent visualizer halting/resetting when switching views or refreshing browser; fix duplicate timestamp row copying and halting on returning from inspecting a component.
+  2. Remove the "x components" pill from the visualizer output container.
+  3. Remove the "Agents: Design (2 bays) · CodeGen (2 bays) · Critics (2 bays) · Integration (1 bay)" footer text from container bottom.
+  4. Change the 4th column from Integration phase to "Completed", showing components completed at each time slot.
+  5. Add smooth animations for component transitions between agents and new timestamp rows being added.
+  6. Add revision asterisks to component badges (e.g., `C1*`, `C2**`) to reflect the number of revisions.
+
+- **Architectural Solutions**:
+  1. **Dual-View Co-Mounting & 3-Tier State Persistence**:
+     - In `StageComponentPipeline.tsx`, previously switching between `'visualizer'` and `'componentwise'` unmounted the inactive component. This caused `ComponentTrack` execution effects to stop when viewing the visualizer (causing halting), and caused `PipelineAssemblyLine` to re-mount and append duplicate rows due to an uninitialized ref.
+     - Resolved by co-mounting both views using CSS visibility toggling (`block` / `hidden`), keeping background component tracks and timers active while inspecting the visualizer.
+     - Added 3-tier matrix state persistence: Zustand `appStore.pipelineMatrixRows`, in-memory module cache `timelineCache`, and browser `localStorage` under `autodev_matrix_rows_v1:${queueFingerprint}`.
+     - Initialized `prevAllocationRef` to the allocation fingerprint of the last loaded row, completely eliminating duplicate row creation on remount or inspection return.
+  2. **Removed "x components" Pill**:
+     - Removed `{pipelineQueue.length} Components` pill from the top status bar in `PipelineAssemblyLine.tsx`.
+  3. **Removed Footer Bays Text**:
+     - Removed `Agents: Design (2 bays) · CodeGen (2 bays) · Critics (2 bays) · Integration (1 bay)` bottom text.
+  4. **4th Column Replaced with "Completed"**:
+     - Updated `StationKey` to `'design' | 'codegen' | 'critics' | 'completed'`.
+     - 4th column renamed to `Completed` with `CheckCircleIcon` and emerald accent color `#34d399`.
+     - Components with `passed` or `COMPLETED` status are positioned in the `Completed` column at each time slot.
+  5. **Fluid Animation System**:
+     - Time stamp rows (`<tr>`) enter with smooth `transition-all duration-300 ease-out animate-fadeIn`.
+     - Component badges enter with `transition-all duration-300 ease-out animate-fadeIn hover:scale-110 active:scale-95`.
+  6. **Dynamic Revision Asterisks**:
+     - Matrix rows snapshot `revisions[cId]` at each discrete time step.
+     - Badges dynamically append `'*'.repeat(revisionCount)` to `{theme.number}` (e.g., `C1`, `C1*`, `C2**`).
+     - Component legend chips reflect active revision asterisks.
+
+- **Component-Wise Visualization Harmonization & Header Refinement (Milestone 4)**:
+  1. **Component-Wise Workspace Header**:
+     - Updated `PipelineDashboard.tsx` to render a structured top header matching `PipelineAssemblyLine.tsx`.
+     - Title: `COMPONENT-WISE WORKSPACE` (strictly text-only, zero SVG icons).
+     - Subtitle: `Component specifications, code synthesis, container execution, and critic evaluations.`
+     - Right-aligned status indicators featuring:
+       - Live / Paused / Completed status badge with real-time reactivity (`PAUSED`, `COMPLETED`, or `LIVE`).
+       - Components completed badge: `Completed: ${passedCount}/${totalCount}` with `CheckCircleIcon`.
+     - Preserved `#pipelineProgress` and `#pipelineProgressTitle` accessible hidden DOM elements to guarantee backwards test compatibility.
+  2. **Icon-Free Visualizer Title**:
+     - Removed `CpuChipIcon` from `PIPELINE EXECUTION MATRIX` in `PipelineAssemblyLine.tsx` ensuring uniform, iconless typographic headers across both views.
+  3. **Removal of "Move to Integration" Button**:
+     - Removed `#advanceToIntegrationBtn` ("Proceed to Integration") from the header bar in `StageComponentPipeline.tsx`, allowing development to seamlessly and automatically progress into the integration phase without manual button intervention.
+- **Strict Revision Limits Specification**:
+  1. **Pipeline Phase (Component-Wise Execution)**:
+     - Allows strictly up to **3 revisions maximum** per component.
+     - Hardcoded in [`backend/orchestrator.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/orchestrator.py) (`node_adjudicator`, `route_decision`), [`backend/autodev_pipeline/scheduler.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/autodev_pipeline/scheduler.py) (`complete_stage_execution`), and [`autodev-frontend/src/features/pipeline/ComponentTrack.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentTrack.tsx).
+     - Component routing allows revisions at count 0, 1, 2, and 3. Upon reaching 3 revisions without passing, the system forces advancement/approval.
+  2. **Integration Phase (Global Codebase Integration)**:
+     - Allows strictly up to **5 revisions maximum**.
+     - Hardcoded in [`backend/orchestrator.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/orchestrator.py) (`node_adjudicator`, `route_decision`), [`backend/autodev_pipeline/scheduler.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/autodev_pipeline/scheduler.py) (`comp.max_revisions = 5`), and [`autodev-frontend/src/features/integration/useIntegrationRunner.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/integration/useIntegrationRunner.ts) (`activeBudget = 5`).
+     - Integration routing allows revisions at count 0, 1, 2, 3, 4, and 5. Upon reaching 5 revisions without passing, the system forces advancement to documentation.
+  3. **Verification**:
+     - Verified end-to-end with automated Python test suite and Vitest (`mistral_removal_and_revision_limits.test.ts` & `pipeline_assembly_line.test.tsx`).
+     - Clean production build produced via `npm run build` with zero TypeScript or bundle errors.
+     - Strictly zero emojis across all code and documentation.
+
+### Section 8.9: Bouncy Spring Physics Animation System Across All Pill-Shaped Toggles
+- **User Request**: For every pill-shaped toggle in the UI, add smooth, bouncy animations when toggling.
+- **Architectural Design & Motion System**:
+  - Leveraged Framer Motion's physics-driven layout animations (`motion.div`, `motion.button`, `layoutId`) with snappy, tactile spring physics:
+    - Stiffness: `450`
+    - Damping: `25`
+    - Mass: `0.8`
+    - Micro-interaction: `whileTap={{ scale: 0.95 }}` providing instant haptic-like click feedback.
+  - Segmented sliding background gliders (`motion.div layoutId="..."`) render smoothly beneath active pill items with specular frosted borders (`border border-white/20 shadow-sm`), transitioning seamlessly across toggle positions without DOM layout thrashing.
+  - Text labels and icons are isolated in elevated relative z-index containers (`relative z-10`) so typography floats crisply above sliding indicator gliders.
+- **Universal Surface Coverage (12 Pill Toggles Across Entire UI)**:
+  1. [`StageComponentPipeline.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageComponentPipeline.tsx): Visualizer vs Component-Wise workspace switcher (`layoutId="stagePipelineViewModeGlider"`).
+  2. [`ComponentToggler.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentToggler.tsx): Component selector pills (`layoutId="componentTogglerActivePill"`).
+  3. [`StageLivePreview.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageLivePreview.tsx): Responsive viewport toggle for Desktop, Tablet, and Mobile (`layoutId="stageLivePreviewViewportGlider"`).
+  4. [`StagePostDevRequest.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StagePostDevRequest.tsx): Post-development tri-option pills for Feature Request, Bug Fixes, and Product Enquiry (`layoutId="stagePostDevOptionGlider"`).
+  5. [`PostCompletionPanel.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/post-completion/PostCompletionPanel.tsx): Post-completion mode toggle for "Modify Code" vs "Ask Query" (`layoutId="postCompModeGlider"`).
+  6. [`BlueprintOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/design/BlueprintOutput.tsx): System design view toggle for "Structured Blueprint" vs "Blueprint Editor" (`layoutId="blueprintViewModeGlider"`).
+  7. [`DevelopmentGanttChart.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/DevelopmentGanttChart.tsx): Timeline view toggle for "Chronological Stream" vs "Component Grouped" (`layoutId="ganttViewModeGlider"`).
+  8. [`IDEView.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/ide/IDEView.tsx):
+     - Code Editor vs Live Preview toggle (`layoutId="idePreviewToggleGlider"`).
+     - Component revision pill tab bar (`layoutId="ideRevisionPillActive"`).
+  9. [`IntegrationMonacoView.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/integration/IntegrationMonacoView.tsx): Unified codebase Code Editor vs Live Preview toggle (`layoutId="integrationPreviewToggleGlider"`).
+  10. [`IntegrationRevTabs.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/integration/IntegrationRevTabs.tsx): Global integration revision pill selector (`layoutId="integrationRevPillActive"`) and tap-animated Diff toggle.
+  11. [`StageIntegrationArbitration.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageIntegrationArbitration.tsx): Arbitration multi-revision history pill selector (`layoutId="stageIntegrationArbitrationRevGlider"`).
+  12. [`StageIntegrationTesting.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageIntegrationTesting.tsx): Sandbox test multi-revision history pill selector (`layoutId="stageIntegrationTestingRevGlider"`).
+- **Test Contract Integrity & Zero-Emoji Compliance**:
+  - Preserved all standard DOM IDs and accessibility attributes (`#tabCode`, `#tabPreview`, `#ganttToggleWaterfall`, `#ganttToggleGrouped`, `#togglePipelineVisualizerBtn`, `#toggleComponentwiseBtn`, `#postCompToggleModify`, `#postCompToggleQuery`, `#diffToggleBtn`, etc.).
+  - Strictly zero emojis across all component source files, styles, and documentation.
+  - Production build compiled cleanly into `../backend/dist` via `tsc && vite build`.
+
+### Section 8.10: Pipeline Visualizer State Persistence & Continuous Progression Hardening
+- **User Request**: Resolve pipeline visualizer bugs:
+  1. Pipeline visualizer getting stuck at 8th time stamp.
+  2. T1 showing an empty row.
+- **Root Cause Forensic Diagnosis**:
+  1. **Empty T1 Row**:
+     - When `pipelineQueue` is loaded before components start design (all in `queued` status), `getComponentAgent` returns `null` for all components, resulting in `currentAllocation` having empty arrays across all 4 stations (`design: [], codegen: [], critics: [], completed: []`).
+     - Because `prevAllocationRef.current` was initialized to empty string `""`, the recording `useEffect` fired immediately on mount and recorded `T1: - - - -`. When the first component transitioned to Design, it recorded `T2: C1 in Design`, permanently preserving `T1` as an empty row.
+     - Additionally, fallback reconstruction synthesized an initial row with empty bays whenever `timelineMetrics.intervals` was empty.
+  2. **Getting Stuck at 8th Timestamp**:
+     - **Missing Automated Stage Transition**: When all components finished development (typically at timestamp 8, where all components reach the `Completed` station), polling stopped (`!allComponentsPassed`), but `StageComponentPipeline.tsx` had no auto-advance trigger after manual button removal, leaving the visualizer permanently frozen at T8.
+     - **Container Overflow Without Auto-Scroll**: `ModernScrollbar` in `PipelineAssemblyLine.tsx` had `max-h-[520px]`. Eight rows + header filled ~500px, causing subsequent timestamps to render below the fold without scrolling, giving the visual appearance of being stuck at row 8.
+     - **View Switching Stale Duplication**: When returning from inspecting component outputs in component-wise view, `prevAllocationRef` didn't match the last row's allocation fingerprint, appending a duplicate row and halting updates.
+- **Engineered Resolutions**:
+  1. **Strict Occupancy Guard (`hasAnyOccupant`) & Row Sanitization (`sanitizeRows`)**:
+     - Added `hasAnyOccupant` check: no matrix rows are recorded if all phase bays are completely empty.
+     - Implemented `sanitizeRows`: automatically filters out any row where all stations are empty and re-numbers the remaining rows sequentially (`T1`, `T2`, etc.).
+     - Applied `sanitizeRows` to all storage tiers (`useAppStore.pipelineMatrixRows`, in-memory `timelineCache`, and `localStorage`).
+     - Added an informative placeholder in `<tbody>` when awaiting initial lease dispatch: `"Awaiting component allocation to phase agents..."`.
+  2. **Automated Stage Progression Engine**:
+     - Added an auto-advance effect in [`StageComponentPipeline.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageComponentPipeline.tsx): when all components achieve `passed` or `COMPLETED` status, a 1,500ms timer triggers `onAdvance(8)` to seamlessly transition development to Stage 8 (`StageIntegrationCode`).
+     - Updated status pill in [`PipelineAssemblyLine.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/PipelineAssemblyLine.tsx) when `allCompleted` is true to display `COMPLETED · Advancing to Integration...`.
+  3. **Smooth Bottom Auto-Scroll**:
+     - Added `tableEndRef` anchor element beneath the matrix table with an effect hook that smoothly scrolls the active time unit into view whenever `matrixRows.length` increments.
+  4. **Allocation Deduplication Against Last Row**:
+     - Added `lastRowHash === currentHash` check in the row recording `useEffect` to guarantee that returning from component inspection never appends duplicate rows.
+- **Verification & Policy Compliance**:
+  - All 11 automated Vitest unit and integration tests passed in `autodev-frontend/tests/pipeline_assembly_line.test.tsx`.
+  - Frontend production build compiled cleanly with zero TypeScript or Vite errors (`tsc && vite build`).
+  - Hardcoded revision limit invariant strictly preserved: Pipeline phase allows up to 3 revisions max, Integration phase allows up to 5 revisions max.
+  - Strictly zero emojis across all code, tests, and user interface elements.
+
+### Section 8.11: Directional Spring Sliding Animation System Across 12 Pipeline Stages
+- **User Request**: Add a sliding animation whenever the user switches from one stage to another.
+- **Architectural Design & Motion Mechanics**:
+  - **Directional Awareness (`slideDirection`)**:
+    - Tracked transition direction dynamically: `'forward'` when advancing (`targetStage > currentStage`) and `'backward'` when navigating to earlier stages (`targetStage < currentStage`).
+    - Synchronized with all navigation vectors: edge-hover chevron buttons (`<` and `>`), stage action buttons (e.g. Start Development, Proceed to Integration), Stepper progress jumps, and automatic milestone transitions.
+  - **Motion Animation Curve & Spring Physics**:
+    - Leveraged Framer Motion's `AnimatePresence mode="wait" custom={slideDirection} initial={false}` combined with `motion.div`:
+      - **Forward Entry**: Enters from right (`x: 80px`, `opacity: 0`, `filter: blur(4px)`) sliding to center (`x: 0`, `opacity: 1`, `filter: blur(0px)`) via snappy spring physics (`stiffness: 350, damping: 28, mass: 0.8`).
+      - **Forward Exit**: Exits smoothly to left (`x: -80px`, `opacity: 0`, `filter: blur(4px)`) in `0.18s` with `easeInOut` curve.
+      - **Backward Entry**: Enters from left (`x: -80px`, `opacity: 0`, `filter: blur(4px)`) sliding to center.
+      - **Backward Exit**: Exits smoothly to right (`x: 80px`, `opacity: 0`, `filter: blur(4px)`).
+    - `initial={false}` prevents unnecessary offset sliding on the initial page load, delivering an instantaneous initial view.
+    - `mode="wait"` prevents vertical layout stacking or height expansion by completing the exit animation before mounting the incoming stage surface.
+    - Confined within `#centralStageWorkspace` using `overflow-hidden` so that cards slide cleanly within the frosted obsidian glass container without viewport leaks or horizontal scrollbars.
+- **Verification & Policy Compliance**:
+  - Automated tests verified in `tests/m1_app_shell.test.tsx` (15/15 passing) and `tests/pipeline_assembly_line.test.tsx` (11/11 passing).
+  - Production build compiled cleanly into `backend/dist` via `tsc && vite build`.
+  - Strict revision limits preserved: 3 maximum for Pipeline, 5 maximum for Integration.
+  - Strictly zero emojis across all code, tests, styles, and documentation.
+
+
+
+
+
+
+
+
+

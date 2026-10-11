@@ -23,12 +23,42 @@
  *    - Stage 12: Feature Request / Bug Fix Execution (Codegen, Testing, Arbitration with auto-return to Stage 10)
  * 4. Maximized Central Workspace occupying majority viewport height below top bar.
  * 5. Dynamic Edge-Hover Navigation: Ghosted left (<) and right (>) chevron buttons revealed only on extreme edge hover.
- * 6. Floating Pause/Resume Widget (PauseModifyFAB): Anchored to bottom-left of the central stage container.
+ * 6. Floating Pause/Resume Widget (PauseModifyFAB): Floating outside of the central stage container on the left.
  * 7. Strictly zero emojis across UI, markup, and source code.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+
+// Slide animation variants for smooth stage switching
+const stageSlideVariants: Variants = {
+  enter: (direction: 'forward' | 'backward') => ({
+    x: direction === 'forward' ? 80 : -80,
+    opacity: 0,
+    filter: 'blur(4px)',
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    filter: 'blur(0px)',
+    transition: {
+      type: 'spring' as const,
+      stiffness: 350,
+      damping: 28,
+      mass: 0.8,
+    },
+  },
+  exit: (direction: 'forward' | 'backward') => ({
+    x: direction === 'forward' ? -80 : 80,
+    opacity: 0,
+    filter: 'blur(4px)',
+    transition: {
+      duration: 0.18,
+      ease: 'easeInOut' as const,
+    },
+  }),
+};
 
 // State & Stores
 import { useAppStore } from './stores/appStore';
@@ -43,6 +73,8 @@ import {
   PauseModifyFAB,
   GitHubExportModal,
   GlassToastContainer,
+  AeroShards,
+  ScrollFade,
 } from './components';
 
 // Core Feature Stages
@@ -149,6 +181,7 @@ export default function App() {
 
   const [currentStage, setCurrentStage] = useState<number>(initialStage);
   const [maxVisitedStage, setMaxVisitedStage] = useState<number>(Math.max(initialStage, 1));
+  const [slideDirection, setSlideDirection] = useState<'forward' | 'backward'>('forward');
 
   // Keep max visited stage synchronized
   useEffect(() => {
@@ -158,7 +191,13 @@ export default function App() {
   // Sync stage if external pipeline completion occurs
   useEffect(() => {
     if (pipelineStatus === 'completed' || postCompletionVisible) {
-      setCurrentStage((prev) => (prev < 10 ? 10 : prev));
+      setCurrentStage((prev) => {
+        if (prev < 10) {
+          setSlideDirection('forward');
+          return 10;
+        }
+        return prev;
+      });
       setMaxVisitedStage((prev) => Math.max(prev, 10));
     }
   }, [pipelineStatus, postCompletionVisible]);
@@ -166,7 +205,14 @@ export default function App() {
   // Main system navigation handler
   const navigateToStage = useCallback((targetStage: number) => {
     const clamped = Math.max(1, Math.min(12, targetStage));
-    setCurrentStage(clamped);
+    setCurrentStage((prev) => {
+      if (clamped > prev) {
+        setSlideDirection('forward');
+      } else if (clamped < prev) {
+        setSlideDirection('backward');
+      }
+      return clamped;
+    });
     setMaxVisitedStage((prev) => Math.max(prev, clamped));
   }, []);
 
@@ -204,37 +250,6 @@ export default function App() {
     }
   };
 
-  // Stage Title Resolution
-  const getStageTitle = (stage: number) => {
-    switch (stage) {
-      case 1:
-        return 'Stage 1 • Product Request';
-      case 2:
-        return 'Stage 2 • Product Enquiry Agent';
-      case 3:
-        return 'Stage 3 • Requirements Agent';
-      case 4:
-        return 'Stage 4 • Decomposition Agent';
-      case 5:
-        return 'Stage 5 • Component Pipeline Dashboard';
-      case 6:
-        return 'Stage 6 • Integration — Testing';
-      case 7:
-        return 'Stage 7 • Integration — Arbitration';
-      case 8:
-        return 'Stage 8 • Integration — Final Code';
-      case 9:
-        return 'Stage 9 • Live Preview';
-      case 10:
-        return 'Stage 10 • Development Results';
-      case 11:
-        return 'Stage 11 • Post-Development Request';
-      case 12:
-        return 'Stage 12 • Feature Request / Bug Fix Execution';
-      default:
-        return `Stage ${stage}`;
-    }
-  };
 
   // Render active stage in central workspace
   const renderActiveStage = () => {
@@ -268,12 +283,12 @@ export default function App() {
     }
   };
 
-  // Enforce light theme
+  // Enforce obsidian dark theme
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
       }
     } catch {
       // ignore
@@ -281,9 +296,51 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 text-slate-900 select-none">
-      {/* ── Background Terminal UI with SSE streams running ── */}
-      <Terminal />
+    <div className="min-h-screen w-full bg-black text-slate-100 select-none relative overflow-x-hidden">
+      {/* ── React Bits AeroShards 3D Ambient Background Layer ── */}
+      <div
+        id="aeroShardsBackgroundLayer"
+        className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden"
+        style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}
+        aria-hidden="true"
+      >
+        <AeroShards
+          className="w-full h-full"
+          backgroundColor="#000000"
+          shardColor="#ffffff"
+          accentColor="#ffffff"
+          placement="full"
+          flow="stream"
+          material="pearl"
+          detail="balanced"
+          effect="none"
+          scale={1.5}
+          spread={1.1}
+          depth={1}
+          speed={1}
+          spin={1.15}
+          interaction="repel"
+          density={1.5}
+          shardSize={1.1}
+          stretch={1}
+          turbulence={1}
+          glow={1}
+          edgeSoftness={2}
+          bloom={0.5}
+          grain={0.05}
+          chromaticAberration={0.0075}
+          transitionDuration={1}
+          interactionRadius={1.5}
+          interactionStrength={0.5}
+          rippleIntensity={1}
+          holdToGather={true}
+        />
+      </div>
+
+      {/* ── Foreground Glassmorphic Application Layer ── */}
+      <div className="relative z-10 min-h-screen w-full flex flex-col pointer-events-auto">
+        {/* ── Background Terminal UI with SSE streams running ── */}
+        <Terminal />
 
       {/* ── Restoration Banner in DOM ── */}
       <RestorationBanner />
@@ -327,15 +384,22 @@ export default function App() {
       {currentPage === 'landing' && (
         <div id="pageLanding" className="min-h-screen w-full flex flex-col justify-between overflow-y-auto">
           {/* Landing Top Header */}
-          <header className="h-16 px-6 sm:px-12 flex items-center justify-between border-b border-slate-200/60 bg-white/70 backdrop-blur-md sticky top-0 z-20">
-            <span className="font-cursive text-3xl text-slate-900 italic font-normal tracking-wide">
-              AutoDev
-            </span>
+          <header className="h-16 px-6 sm:px-12 flex items-center justify-between bg-transparent border-none sticky top-0 z-20">
+            <div className="relative inline-flex items-center">
+              <div
+                className="absolute -inset-x-4 -inset-y-2 bg-slate-950/15 backdrop-blur-md rounded-full pointer-events-none -z-10"
+                style={{ filter: 'blur(16px)' }}
+                aria-hidden="true"
+              />
+              <span className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/85 hover:text-white italic font-normal tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all">
+                AutoDev
+              </span>
+            </div>
             <button
               id="landingNavSignInBtn"
               type="button"
               onClick={() => handlePageChange('signup')}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-xs cursor-pointer transition-colors"
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xl shadow-md cursor-pointer transition-all"
             >
               Sign In
             </button>
@@ -345,30 +409,32 @@ export default function App() {
           <main className="flex-1 flex items-center justify-center py-8">
             <StageLanding onGetStarted={() => handlePageChange('signup')} />
           </main>
-
-          {/* Landing Footer */}
-          <footer className="h-10 text-center text-xs text-slate-400 flex items-center justify-center border-t border-slate-200/60 bg-white/40">
-            AutoDev Autonomous SDLC Engine • Build SYS.v2.5.0
-          </footer>
         </div>
       )}
 
       {currentPage === 'signup' && (
         <div id="pageSignIn" className="min-h-screen w-full flex flex-col justify-between overflow-y-auto">
           {/* Sign In Top Header */}
-          <header className="h-16 px-6 sm:px-12 flex items-center justify-between border-b border-slate-200/60 bg-white/70 backdrop-blur-md sticky top-0 z-20">
+          <header className="h-16 px-6 sm:px-12 flex items-center justify-between bg-transparent border-none sticky top-0 z-20">
             <button
               type="button"
               onClick={() => handlePageChange('landing')}
-              className="font-cursive text-3xl text-slate-900 italic font-normal tracking-wide cursor-pointer hover:opacity-80 transition-opacity"
+              className="relative inline-flex items-center group cursor-pointer"
             >
-              AutoDev
+              <div
+                className="absolute -inset-x-4 -inset-y-2 bg-slate-950/15 backdrop-blur-md rounded-full pointer-events-none -z-10"
+                style={{ filter: 'blur(16px)' }}
+                aria-hidden="true"
+              />
+              <span className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/85 group-hover:text-white italic font-normal tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all">
+                AutoDev
+              </span>
             </button>
             <button
               id="signInBackToHomeBtn"
               type="button"
               onClick={() => handlePageChange('landing')}
-              className="text-xs text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+              className="text-xs text-slate-300 hover:text-white transition-colors cursor-pointer px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md"
             >
               Back to Home
             </button>
@@ -378,11 +444,6 @@ export default function App() {
           <main className="flex-1 flex items-center justify-center py-8">
             <StageSignIn onSignInSuccess={() => handlePageChange('main')} />
           </main>
-
-          {/* Sign In Footer */}
-          <footer className="h-10 text-center text-xs text-slate-400 flex items-center justify-center border-t border-slate-200/60 bg-white/40">
-            AutoDev Autonomous SDLC Engine • Build SYS.v2.5.0
-          </footer>
         </div>
       )}
 
@@ -392,6 +453,7 @@ export default function App() {
           <Header
             variant="glass"
             version="SYS.v2.5.0"
+            stage={currentStage}
             onProfileClick={() => handlePageChange('signup')}
             onMenuClick={() => handlePageChange('landing')}
           />
@@ -399,7 +461,7 @@ export default function App() {
           {/* ── 2. Dynamic Edge-Hover Navigation: Left Hover Zone (<) ── */}
           <div
             id="leftEdgeHoverZone"
-            className="fixed left-0 top-14 bottom-0 w-20 z-40 group flex items-center justify-start pl-4 pointer-events-auto"
+            className="fixed left-0 top-1/2 -translate-y-1/2 h-64 w-16 z-40 group flex items-center justify-start pl-3 pointer-events-none"
           >
             {canNavigatePrev && (
               <button
@@ -408,7 +470,7 @@ export default function App() {
                 onClick={handlePrevStage}
                 title="Previous Stage"
                 aria-label="Previous Stage"
-                className="w-12 h-12 rounded-full bg-white/90 hover:bg-white border border-slate-200 hover:border-slate-300 backdrop-blur-2xl text-slate-600 hover:text-slate-900 flex items-center justify-center shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
+                className="pointer-events-auto w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 backdrop-blur-2xl text-slate-200 hover:text-white flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300 opacity-40 hover:opacity-100 hover:scale-105 cursor-pointer"
               >
                 <ChevronLeftIcon className="w-6 h-6" />
               </button>
@@ -418,7 +480,7 @@ export default function App() {
           {/* ── 3. Dynamic Edge-Hover Navigation: Right Hover Zone (>) ── */}
           <div
             id="rightEdgeHoverZone"
-            className="fixed right-0 top-14 bottom-0 w-20 z-40 group flex items-center justify-end pr-4 pointer-events-auto"
+            className="fixed right-0 top-1/2 -translate-y-1/2 h-64 w-16 z-40 group flex items-center justify-end pr-3 pointer-events-none"
           >
             {canNavigateNext && (
               <button
@@ -427,7 +489,7 @@ export default function App() {
                 onClick={handleNextStage}
                 title="Next Stage"
                 aria-label="Next Stage"
-                className="w-12 h-12 rounded-full bg-white/90 hover:bg-white border border-slate-200 hover:border-slate-300 backdrop-blur-2xl text-slate-600 hover:text-slate-900 flex items-center justify-center shadow-lg transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
+                className="pointer-events-auto w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 backdrop-blur-2xl text-slate-200 hover:text-white flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300 opacity-40 hover:opacity-100 hover:scale-105 cursor-pointer"
               >
                 <ChevronRightIcon className="w-6 h-6" />
               </button>
@@ -435,41 +497,54 @@ export default function App() {
           </div>
 
           {/* ── 4. Main Screen Layout: Stage Title Bar + Maximized Central Workspace (~80vh) ── */}
-          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-2 sm:py-3 flex flex-col min-h-0 overflow-hidden">
-            {/* Stage Sub-Bar */}
-            <div className="h-8 flex items-center justify-between px-2 mb-1.5 shrink-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">
-                  {getStageTitle(currentStage)}
-                </span>
-              </div>
-              <div className="text-[11px] font-mono text-slate-400">
-                {currentStage} / 12
-              </div>
-            </div>
+          <main
+            className={`flex-1 w-full ${
+              currentStage === 2 ? 'max-w-4xl' : 'max-w-7xl'
+            } mx-auto px-4 sm:px-8 py-2 sm:py-3 flex flex-col min-h-0 overflow-hidden`}
+          >
 
             {/* Maximized Central Workspace Container (~80% Viewport Height) */}
             <div
               id="centralStageWorkspace"
-              className="relative flex-1 w-full rounded-2xl md:rounded-3xl bg-white backdrop-blur-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden min-h-0"
+              className={
+                currentStage === 1
+                  ? 'relative flex-1 w-full flex flex-col overflow-hidden min-h-0'
+                  : currentStage === 2
+                  ? 'relative flex-1 w-full max-w-4xl mx-auto rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
+                  : 'relative flex-1 w-full rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
+              }
+              style={currentStage !== 1 ? { backdropFilter: 'blur(14px)' } : undefined}
             >
-              {/* Scrollable Stage Content Surface */}
-              <div className="flex-1 w-full overflow-y-auto custom-scrollbar p-4 md:p-6 min-h-0">
-                {renderActiveStage()}
-              </div>
-
-              {/* Floating Pause/Resume Widget Anchored to Bottom-Left of Central Workspace */}
-              <PauseModifyFAB />
+              <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
+                <motion.div
+                  key={currentStage}
+                  custom={slideDirection}
+                  variants={stageSlideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  className="flex-1 w-full h-full flex flex-col min-h-0 overflow-hidden"
+                >
+                  {/* Scrollable Stage Content Surface with Dynamic Edge Fade */}
+                  <ScrollFade
+                    className={
+                      currentStage === 1
+                        ? 'flex-1 w-full overflow-y-auto p-2 sm:p-4 min-h-0'
+                        : 'flex-1 w-full overflow-y-auto p-4 md:p-6 min-h-0'
+                    }
+                  >
+                    {renderActiveStage()}
+                  </ScrollFade>
+                </motion.div>
+              </AnimatePresence>
             </div>
           </main>
 
-          {/* ── 5. System Footer ── */}
-          <footer className="h-6 shrink-0 text-center text-[11px] text-slate-400 flex items-center justify-between px-8 select-none border-t border-slate-200/60 bg-white/50">
-            <div>AutoDev Autonomous SDLC Engine • Build SYS.v2.5.0</div>
-            <div className="font-mono text-[10px]">Emoji-Free Professional System Architecture</div>
-          </footer>
+          {/* ── 5. Floating Pause/Resume Widget Outside the Central Container on the Left ── */}
+          <PauseModifyFAB />
         </div>
       )}
+      </div>
     </div>
   );
 }

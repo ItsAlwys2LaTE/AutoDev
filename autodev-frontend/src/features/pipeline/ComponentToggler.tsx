@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion';
 import { useAppStore } from '../../stores/appStore';
 import type { ComponentSpec } from '../../types';
+import { ScrollFade } from '../../components/ScrollFade';
 
 export interface StatusConfig {
   dotClass: string;
@@ -59,7 +61,7 @@ export function getComponentStatusConfig(status: string = 'queued'): StatusConfi
         : s === 'critic_queued'
         ? 'Queued for Tests'
         : 'Queued for Design',
-    badgeClass: 'text-slate-400 bg-slate-800 border-slate-700',
+    badgeClass: 'text-slate-400 bg-white/[0.04] border border-white/[0.07]',
   };
 }
 
@@ -124,11 +126,12 @@ export function ComponentToggler({
 
   return (
     <div className={`flex justify-center mb-6 ${className}`}>
-      <div
+      <ScrollFade
         id="componentToggler"
         role="tablist"
         aria-label="Component Workspace Selector"
-        className="inline-flex bg-slate-800/90 dark:bg-slate-800/90 p-1.5 rounded-full shadow-inner overflow-x-auto max-w-full custom-scrollbar items-center gap-1 border border-slate-700/60"
+        orientation="horizontal"
+        className="inline-flex bg-slate-950/[0.12] backdrop-blur-md p-1.5 rounded-full shadow-inner overflow-x-auto max-w-full items-center gap-1 border border-white/[0.08]"
       >
         {queue.map((component) => {
           const cId = component.component_id;
@@ -137,31 +140,41 @@ export function ComponentToggler({
           const { dotClass } = getComponentStatusConfig(status);
 
           return (
-            <button
+            <motion.button
               key={cId}
               id={`toggler-pill-${cId}`}
               role="tab"
               aria-selected={isActive}
               aria-controls={`workspace-${cId}`}
               type="button"
+              whileTap={{ scale: 0.95 }}
               onClick={() => handlePillClick(cId)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-cyan-500 cursor-pointer ${
+              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-150 whitespace-nowrap flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer ${
                 isActive
-                  ? 'bg-slate-700 text-white shadow-sm ring-1 ring-cyan-500/50 font-semibold'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-700/60'
+                  ? 'text-white'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
               }`}
             >
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 transition-colors ${dotClass}`}
-                aria-hidden="true"
-              />
-              <span className="truncate max-w-[160px] sm:max-w-[200px]">
-                {component.component_name}
+              {isActive && (
+                <motion.div
+                  layoutId="componentTogglerActivePill"
+                  className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                  transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 transition-colors ${dotClass}`}
+                  aria-hidden="true"
+                />
+                <span className="truncate max-w-[160px] sm:max-w-[200px]">
+                  {component.component_name}
+                </span>
               </span>
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+      </ScrollFade>
     </div>
   );
 }

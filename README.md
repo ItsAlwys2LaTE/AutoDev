@@ -1,8 +1,8 @@
 # AutoDev: Autonomous Multi-Agent Software Engineering Platform
 
-**Production Build: v3.0.0-Prod (Master Edition)**
+**Production Build: v3.2.0-Prod (Master Edition)**
 
-🔗 **System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, React 19, TypeScript 5.x, Vite 6, Tailwind CSS, and Monaco Editor.
+**System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, React 19, TypeScript 5.x, Vite 6, Tailwind CSS, Monaco Editor, Framer Motion, and WebGPU.
 
 AutoDev is an autonomous, full-stack Software Development Life Cycle (SDLC) engineering platform that converts natural-language feature requests into fully realized, production-ready, multi-file software repositories. Rather than relying on fragile single-prompt code generation, AutoDev models the disciplined engineering methodologies of high-performing software teams. The system compiles requirements into formal specifications, decomposes complex architectures into mathematical Directed Acyclic Graphs (DAGs) of modular components, schedules concurrent development tracks using lease-backed single-occupancy locks, executes polyglot codebases inside isolated Docker sandboxes, verifies correctness through a LangGraph-powered multi-critic peer review network, and synthesizes components into unified, tested, and documented software packages.
 
@@ -41,6 +41,9 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 [ Natural Language Feature Request ]
                 │
                 ▼
+[ Product Enquiry Agent ] ──────────────> Plain-English Summary, Strategy & Clarifications
+                │
+                ▼
 [ Requirements Modeling Agent ] ──────────> RequirementsDocument (User Stories & Acceptance Criteria)
                 │
                 ▼
@@ -72,11 +75,19 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 | Feature | Description |
 |---|---|
 | **3-Page Distinct Routing** | Clean routing separating Landing hero (`StageLanding`), Authentication/Sign-in (`StageSignIn`), and Main System presentation shell |
-| **Modern Light Theme** | High-contrast enterprise light design system (`bg-slate-50`, `bg-white`, `border-slate-200`, `text-slate-900`) with zero visual noise |
+| **Apple iOS Obsidian Glassmorphic UI** | Deep frosted obsidian translucency (`bg-slate-950/[0.08]`, `backdrop-blur-md`), delicate specular refraction borders (`border-white/[0.07]`), liquid pill toggles, and colourless `SpecularButton` controls |
+| **AeroShards 3D WebGPU Background** | Full-viewport dynamic wind sculpture rendered via WebGPU with real-time pointer repulsion and graceful CSS ambient gradient fallback |
+| **Directional Sliding Stage Transitions** | Smooth directional spring-based sliding transitions (`forward` and `backward`) with subtle glass blur across all 12 stages powered by Framer Motion |
+| **Product Enquiry Agent** | Interactive Stage 2 agent offering plain-English understanding summaries, transparent implementation strategies, default engineering assumptions, non-trivial clarifying questions (0-3 max), and non-software request handling prior to requirements compilation |
+| **Space-Time Pipeline Visualizer** | 2D continuous matrix tracking execution timestamps (T1, T2...), auto-advancing past the 8th timestamp, auto-scrolling horizontally, and ensuring T1 is never blank |
+| **Strict Hardcoded Revision Quotas** | Enforces hard limits: pipeline component phase allows up to 3 revisions max, integration phase allows up to 5 revisions max |
+| **Development Timeline Metrics & Gantt Chart** | Records timestamped execution intervals (`startTime`, `endTime`, `durationMs`) across all phases and renders an interactive Gantt chart on the completion screen |
+| **One-Click GitHub Export Modal** | Final-screen modal prompting for Username, Repository Name, and Personal Access Token (PAT) with browser session persistence, creating and committing the full repository via GitHub REST API |
+| **Dynamic Floating Action Button (FAB)** | Single circular pause button during active development that expands into 3 actions (Resume, Restart, Request New Product) when paused |
+| **In-Memory Multi-Phase Editing & Earliest Rewind** | Allows editing Requirements, Blueprints, and Integration Code while paused, automatically detecting modified phases and rewinding execution from the earliest modified stage |
 | **12-Stage SDLC Presentation Shell** | Full 12-stage presentation shell covering prompt ingestion, conditional clarifications, specs, DAG, integration, preview, and results |
 | **Maximized Central Stage Geometry** | Dedicated stage workspace box occupying $\approx 80\%$ viewport height for distraction-free code and architecture review |
 | **Dynamic Edge-Hover Navigation** | Ghosted side chevrons (`<` and `>`) revealed dynamically when hovering near screen borders, minimizing UI chrome |
-| **Dynamic Floating Action Button** | Bottom-left floating widget offering live pause and expanding to 3 vertical quick actions when paused |
 | **Dedicated "Request New Product" Flow** | One-click atomic store reset on results view to immediately start building another software product |
 | **Autonomous Requirements Modeling** | Translates unstructured user prompts into structured `RequirementsDocument` schemas with user stories and testable acceptance criteria |
 | **Master Architect Decomposition** | Partitions complex applications into modular, decoupled component specifications with explicit dependency edges and priority scoring |
@@ -87,7 +98,6 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 | **Universal Docker Sandbox v2.0** | Executes generated test suites inside ephemeral, isolated Docker containers with automated dependency injection (`pip`, `npm`) |
 | **Dynamic Live Preview Engine** | Dynamically forwards development server ports (Vite, Next.js, HTTP servers) from Docker containers to browser preview iframes |
 | **LangGraph Multi-Critic Arbitration** | Parallel peer-review network with Correctness (Gemini), Architecture (Mistral), and Completeness (Gemini) peer reviewers |
-| **Closed-Loop Self-Correction** | Automatically routes Adjudicator revision plans and test logs back to CodeGen for up to 3 autonomous self-healing iterations |
 | **Smart API Key Balancer** | Manages a 6-key Gemini pool and isolated Mistral key with Least-Connections routing, rate-limit tracking, and automatic cooldown decay |
 | **Multi-Tier Model Fallback Matrix** | Implements graceful degradation: Tier 1 (`gemini-3.6-flash`) $\to$ Tier 2 (`gemini-3.5-flash-lite`) $\to$ Tier 3 (Mistral to Gemini pool failover) |
 | **Universal Exponential Backoff** | Polymorphic decorator (`@with_exponential_backoff`) supporting sync/async functions, streams, full jitter, and error classification |
@@ -177,9 +187,13 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 - **Groq SDK (`groq`)** — High-throughput open-weight model acceleration and fallbacks
 
 ### Frontend & User Interface
-- **Vanilla ES6+ JavaScript** — Lightweight, reactive single-page dashboard without heavy build chains
-- **Tailwind CSS (CDN)** — Modern utility-first styling with responsive, light-themed layouts
-- **Monaco Editor** — Embedded VS Code browser editing engine with multi-tab file exploration and syntax highlighting
+- **React 19 & TypeScript 5.x** — Strict typed component architecture with reactive state management powered by Zustand
+- **Vite 6** — Ultra-fast development server and optimized production bundler compiling directly to `backend/dist`
+- **Tailwind CSS** — Custom obsidian glassmorphic styling system with backdrop blur, specular borders, and liquid curves
+- **Apple iOS Obsidian Glassmorphic Design** — Deep frosted base (`bg-slate-950/[0.08]`), specular refraction borders (`border-white/[0.07]`), and liquid pill controls
+- **React Bits AeroShards (WebGPU)** — Full-viewport dynamic wind sculpture with pointer-repel physics and graceful ambient CSS fallback
+- **Framer Motion** — Directional sliding stage transitions, spring-physics layout animations, and bouncy pill toggles
+- **Monaco Editor** — Embedded VS Code browser editing engine with multi-file tabs, syntax highlighting, and side-by-side diff comparison
 - **Server-Sent Events (SSE)** — Real-time token streaming and log output broadcasting
 - **JSZip & FileSaver.js** — In-browser compression and one-click ZIP codebase exports
 
@@ -189,31 +203,34 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 
 AutoDev organizes software engineering responsibilities into specialized agent personas:
 
-### 5.1 Requirements Modeling Agent (`backend/agents/requirements_agent.py`)
+### 5.1 Product Enquiry Agent (`backend/agents/product_enquiry_agent.py`)
+Engages immediately after initial request submission. Formulates a plain-English explanation of system understanding, provides a transparent implementation strategy, declares default architectural assumptions, filters for non-trivial clarifying questions (capped at 3; skips trivial cosmetic/styling questions), and catches non-software queries with direct answers before handing off enriched context to requirements.
+
+### 5.2 Requirements Modeling Agent (`backend/agents/requirements_agent.py`)
 Transforms natural-language feature requests into formal `RequirementsDocument` structures. It extracts functional objectives, non-functional constraints, structured user stories (`as_a`, `i_want_to`, `so_that`), and numbered, testable acceptance criteria.
 
-### 5.2 Master Architect Agent (`backend/agents/master_architect.py`)
+### 5.3 Master Architect Agent (`backend/agents/master_architect.py`)
 Analyzes full requirements specifications to determine architectural complexity. For non-trivial systems, it decomposes the problem into modular, loosely coupled components with explicit dependency edges (`dependencies_on`), priority orderings, and integration strategies.
 
-### 5.3 System Design Blueprint Agent (`backend/agents/design_agent.py`)
+### 5.4 System Design Blueprint Agent (`backend/agents/design_agent.py`)
 Generates comprehensive architectural blueprints (`SystemDesignBlueprint`) for individual components. It specifies directory layouts, module purposes, technical dependencies, Docker container base images (`python:3.11-slim`, `node:20-alpine`), test runner commands, and detailed algorithmic pseudocode.
 
-### 5.4 Autonomous CodeGen Agent (`backend/agents/codegen_agent.py`)
+### 5.5 Autonomous CodeGen Agent (`backend/agents/codegen_agent.py`)
 Translates design blueprints and requirements into production-ready polyglot code and comprehensive unit test suites. It enforces strict typing disciplines, handles nested directory creations, and accepts revision plans during autonomous self-healing loops.
 
-### 5.5 LangGraph Multi-Critic Arbitration Network (`backend/agents/critics.py`)
+### 5.6 LangGraph Multi-Critic Arbitration Network (`backend/agents/critics.py`)
 Executes a fan-out peer review across three independent LLM critics:
 - **Correctness Critic (`gemini-3.6-flash`)**: Analyzes sandbox test logs, assertion failures, exit codes, and test coverage metrics.
 - **Architecture Critic (`mistral-small-latest` with Gemini fallback)**: Verifies adherence to blueprint file hierarchies, structural patterns, and defensiveness rules.
 - **Completeness Critic (`gemini-3.6-flash`)**: Evaluates edge-case handling, input validation, null safety, and boundary condition guards.
 
-### 5.6 Chief Software Adjudicator (`backend/orchestrator.py`)
+### 5.7 Chief Software Adjudicator (`backend/orchestrator.py`)
 A LangGraph state graph node that synthesizes peer-review feedbacks into a consolidated verdict (`pass`, `revise`, or `error`). On a `revise` verdict, it formulates an actionable revision plan and re-routes the task to CodeGen for up to 3 closed-loop iterations.
 
-### 5.7 Multi-Component Integrator Agent (`backend/agents/integrator_agent.py`)
+### 5.8 Multi-Component Integrator Agent (`backend/agents/integrator_agent.py`)
 Takes independently verified component artifacts, reconciles cross-module import paths, builds root application routers, resolves shared state, and generates end-to-end integration test suites.
 
-### 5.8 Documentation Generation Agent (`backend/agents/documentation_agent.py`)
+### 5.9 Documentation Generation Agent (`backend/agents/documentation_agent.py`)
 Triggered upon pipeline completion to author production-ready `README.md` and `USER_GUIDE.md` files reflecting the generated codebase, installation steps, and API contracts.
 
 ---
@@ -406,17 +423,24 @@ The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript 
 - **Authentication Page (`StageSignIn`)**: Dedicated sign-in screen featuring email/password validation, OAuth Google sign-in triggers, and return navigation to home.
 - **Main System Presentation Shell (`App.tsx`)**: High-productivity presentation shell managing the full 12-stage autonomous engineering lifecycle.
 
-### 9.2 Modern Light Theme & Maximized Geometry
-- Full light theme design system (`bg-slate-50`, `bg-white`, `border-slate-200`, `text-slate-900`) with subtle elevation shadows.
-- Maximized central stage workspace occupying $\approx 80\%$ viewport height directly below the brand header and stage navigation sub-bar.
-- Dynamic edge-hover navigation: side chevron buttons (`<` and `>`) reveal dynamically upon hovering extreme left/right viewport boundaries.
+### 9.2 Apple iOS Obsidian Glassmorphic Design System & AeroShards 3D WebGPU Background
+- **Material Profile**: Deep frosted obsidian base (`bg-slate-950/[0.08]`, `backdrop-blur-md`, `backdropFilter: blur(14px)`), delicate specular refraction borders (`border-white/[0.07]`), and top specular sheen (`shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`).
+- **AeroShards Dynamic Wind Sculpture**: Fixed full-viewport 3D ambient canvas (`<AeroShards />`) rendered via WebGPU (`navigator.gpu`) with fluid cursor-repel physics, pearl material shaders, and automatic ambient CSS fallback for non-WebGPU browsers.
+- **Colourless SpecularButton Controls**: Specular reflection buttons (`baseColor="#000000"`, `tint="#ffffff"`, `tintOpacity={0.04}`) and liquid pill toggles with spring physics.
+- **Maximized Central Stage Geometry**: Central workspace occupying $\approx 80\%$ viewport height framed in frosted obsidian glass.
+- **Dynamic Edge-Hover Navigation**: Ghosted side chevrons (`<` and `>`) reveal dynamically upon hovering extreme left/right viewport boundaries.
 
-### 9.3 12-Stage Main System Lifecycle
+### 9.3 Directional Sliding Stage Transitions
+- Powered by Framer Motion `AnimatePresence mode="wait"` with custom directional delta (`'forward'` vs `'backward'`).
+- Spring physics (`stiffness: 350, damping: 28, mass: 0.8`) with coordinated spatial translation ($\pm 60\text{px}$), subtle glass blur filtering (`filter: blur(4px)` to `0px`), and opacity fades.
+- Directional awareness: advancing to a later stage slides left; returning to an earlier stage slides right.
+
+### 9.4 12-Stage Main System Lifecycle
 - **Stage 1 (Product Request)**: Natural language prompt input with dedicated "START DEVELOPMENT" button and Enter key submit trigger.
 - **Stage 2 (Product Enquiry Agent)**: Conditional clarification stage displayed only when user requests are ambiguous and follow-up questions are needed.
 - **Stage 3 (Requirements Agent)**: Structured specification display with user stories and acceptance criteria.
 - **Stage 4 (Decomposition Agent)**: 2x2 grid representing parallel component dependency graphs.
-- **Stage 5 (Component Pipeline Dashboard)**: Pill-toggle switching between the Pipeline Visualizer and Component-Wise visualization with nested component/phase dropdowns.
+- **Stage 5 (Component Pipeline Dashboard)**: Space-time matrix visualizer and component-wise tracks.
 - **Stage 6 (Integration — Testing)**: Sandbox test execution logs with revision tabs.
 - **Stage 7 (Integration — Arbitration)**: 3-critic multi-perspective consensus evaluations and adjudicator verdict.
 - **Stage 8 (Integration — Final Code)**: Embedded Microsoft Monaco IDE with multi-file tabs, syntax highlighting, and inline editing.
@@ -425,15 +449,35 @@ The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript 
 - **Stage 11 (Post-Development Request)**: 3-pill selector (`Feature Request` | `Bug Fixes` | `Product Enquiry`) with dynamic placeholders.
 - **Stage 12 (Feature Request / Bug Fix Execution)**: Multi-phase synthesis with automatic 2.5-second return to Stage 10.
 
-### 9.4 Dynamic Floating Action Button (FAB)
-- Anchored to the bottom-left edge of the central stage container.
-- Presents a single pause button during active pipeline execution.
-- Expands vertically when paused into 3 quick-action circular buttons with hover tooltips:
-  1. Top: "Request New Product" (instant store reset)
-  2. Middle: "Restart Development" (pipeline retry with confirmation modal)
-  3. Bottom: "Resume Development" (seamless execution continuation)
+### 9.5 Space-Time Pipeline Visualizer
+- **Continuous Matrix Progression**: 2D coordinate grid with stages as vertical rows and discrete time increments as horizontal columns (T1, T2, T3...).
+- **Unstuck Progression Past T8**: Continuous auto-advancement beyond timestamp 8 through pipeline completion.
+- **Auto-Scroll Tracking**: Automatically centers on the active timestamp horizon as components advance.
+- **Guaranteed T1 Rendering**: Eliminates empty initial rows so T1 immediately reflects the initial scheduled stage.
+- **Auto-Advance to Integration**: Automatically advances from Stage 5 to Stage 6 once all components pass.
 
-### 9.5 Real-Time Background Terminal Logging
+### 9.6 Strict Hardcoded Revision Quota Policy
+- **Pipeline Component Phase**: Strictly limited to a maximum of **3 revisions** per component (`MAX_PIPELINE_REVISIONS = 3`).
+- **Integration Phase**: Strictly limited to a maximum of **5 revisions** (`MAX_INTEGRATION_REVISIONS = 5`).
+- Enforced across backend orchestrators (`scheduler.py`, `orchestrator.py`) and frontend runners (`useIntegrationRunner.ts`, `appStore.ts`).
+
+### 9.7 Endscreen Development Gantt Chart & Timeline Metrics
+- **Timestamped Execution Intervals**: Captures `startTime`, `endTime`, and `durationMs` for every SDLC phase and DAG component track.
+- **Interactive Gantt Chart**: Rendered directly on the Stage 10 development completion screen displaying total elapsed time, per-phase breakdown bars, and component tracks in chronological sequence.
+
+### 9.8 One-Click GitHub Export & Commit Modal
+- **Upload to GitHub**: Dedicated button on the completion screen opening an authentication dialog.
+- **Form Controls**: Prompts for GitHub Username, Repository Name (pre-slugified from project title), and Personal Access Token (PAT with `repo` scope).
+- **Session Caching**: Optional browser session storage persistence (`sessionStorage`) for seamless repeat exports.
+- **Direct Link & Commit SHA**: Commits all project files via the GitHub REST API and renders a direct clickable link to the newly published repository.
+
+### 9.9 Dynamic Floating Action Button (FAB) & Earliest-Phase Rewind Engine
+- **Active Pause Button**: Single bottom-left floating circle button during active pipeline execution.
+- **3-Button Dynamic Expansion**: Expands vertically when paused into Resume Development, Restart Development (with confirmation), and Request New Product.
+- **In-Memory Multi-Phase Editing**: While paused, inspect and edit Requirements Document, Component Design Blueprints, Component Source Code, and Integration Codebase.
+- **Earliest-Phase Rewind Engine**: Compares modified artifacts against a pre-pause snapshot and rewinds execution strictly from the earliest modified phase.
+
+### 9.10 Real-Time Background Terminal Logging
 - Background SSE connection to `GET /api/logs/stream` maintaining continuous telemetry and test execution logging without polluting the visual stage workspace.
 
 ---
@@ -555,11 +599,12 @@ The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript 
 
 All backend endpoints are prefixed under `/api` (except root SPA route `/`).
 
-### Endpoint Catalog (16 Routes)
+### Endpoint Catalog (17 Routes)
 
 | Route URL | Method | Module Location | Purpose / Description |
 |---|---|---|---|
 | `/` | `GET` | `backend/main.py:65` | Serves the single-page client dashboard (`backend/index.html`) |
+| `/api/product-enquiry` | `POST` | `backend/main.py:261` | Product Enquiry Agent specification and clarifying follow-up endpoint |
 | `/api/generate-requirements` | `POST` | `backend/main.py:75` | Streams `RequirementsDocument` JSON from natural-language prompt |
 | `/api/decompose` | `POST` | `backend/main.py:91` | Streams `ComponentDecomposition` DAG specification |
 | `/api/generate-design` | `POST` | `backend/main.py:129` | Streams `SystemDesignBlueprint` for a scoped component |
@@ -692,6 +737,7 @@ python -m unittest test_backoff.py -v
 |---|---|---|---|
 | `GEMINI_API_KEY` | Yes* | LLM Client & Balancer | Universal fallback Google Gemini API key |
 | `GEMINI_API_KEY_1` .. `_6` | No | Smart Balancer Pool | Numbered Gemini API keys for Least-Connections load distribution |
+| `GEMINI_API_KEY_PRODUCT_ENQUIRY` | No | Product Enquiry Agent | Dedicated key for product enquiry and clarifying questions |
 | `GEMINI_API_KEY_REQUIREMENTS` | No | Requirements Agent | Dedicated key for requirements modeling |
 | `GEMINI_API_KEY_DESIGN` | No | Design Blueprint Agent | Dedicated key for architectural blueprinting |
 | `GEMINI_API_KEY_CODEGEN` | No | Autonomous CodeGen | Dedicated key for multi-file code generation |
@@ -723,7 +769,10 @@ AutoDev has evolved through **78 commits across 9 architectural eras**, progress
 | `v2.1.0` | `3fdbde3` | Component Pipeline | Master Architect, Integrator, modular multi-component pipeline |
 | `v2.2.0-DAG` | `9166d0a` | Mathematical DAG | Kahn sort, Tarjan SCC, StageMutex, 2-phase handover, WASS |
 | `v2.2.1-Prod` | `5502746` | Production Release | Live SSE terminal, Prompt Guard, horizontal carousel UI, Backoff |
-| `v2.3.0-Prod` | `HEAD` | Differential & Hybrid SDLC | Targeted differential revision, hybrid UI build verification, Python runtime defense, Abort->Retry control plane |
+| `v2.3.0-Prod` | `7a19c4d` | Differential & Hybrid SDLC | Targeted differential revision, hybrid UI build verification, Python runtime defense, Abort->Retry control plane |
+| `v3.0.0-Prod` | `a38c91d` | Light UI & 12-Stage Shell | 3-page flow, light theme design system, 12-stage presentation shell, new product lifecycle |
+| `v3.1.0-Prod` | `b49f12e` | Product Enquiry Agent | Dedicated Stage 2 enquiry agent, plain-English summary, implementation strategy, non-trivial question filter, enriched requirements handoff |
+| `v3.2.0-Prod` | `HEAD` | Glassmorphic UI & Hardened SDLC | Apple iOS obsidian glassmorphic design system, AeroShards 3D WebGPU ambient background, directional sliding stage transitions, space-time matrix visualizer hardening, strict revision limits (3 pipeline, 5 integration), endscreen Gantt metrics, and one-click GitHub export modal |
 
 ---
 

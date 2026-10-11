@@ -16,6 +16,7 @@ import type {
   CriticFeedback,
   AdjudicatorDecision,
 } from '../../types';
+import { ScrollFade } from '../../components/ScrollFade';
 
 export interface IntegrationCriticHistoryItem {
   exec?: ExecutionResult | null;
@@ -95,29 +96,34 @@ export function IntegrationCriticTabs({
 
   let verdictLabel = 'APPROVED';
   let verdictBadgeCls =
-    'px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30';
-  let cardBgCls = 'p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800';
+    'px-3 py-1 rounded-full text-xs font-bold uppercase border bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
+  let cardBgCls =
+    'p-5 rounded-2xl border border-white/[0.07] bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
 
   if (isEarlyStop) {
     verdictLabel = 'APPROVED (EARLY STOP)';
     verdictBadgeCls =
-      'px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30';
-    cardBgCls = 'p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800';
+      'px-3 py-1 rounded-full text-xs font-bold uppercase border bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
+    cardBgCls =
+      'p-5 rounded-2xl border border-white/[0.07] bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   } else if (isPass) {
     verdictLabel = 'APPROVED';
     verdictBadgeCls =
-      'px-3 py-1 rounded-full text-sm font-bold uppercase border bg-green-500/20 text-green-400 border-green-500/30';
-    cardBgCls = 'p-5 rounded-lg border shadow-sm bg-green-950/20 border-green-800';
+      'px-3 py-1 rounded-full text-xs font-bold uppercase border bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
+    cardBgCls =
+      'p-5 rounded-2xl border border-white/[0.07] bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   } else if (rawVerdict === 'revise') {
     verdictLabel = 'REVISION REQUIRED';
     verdictBadgeCls =
-      'px-3 py-1 rounded-full text-sm font-bold uppercase border bg-orange-500/20 text-orange-400 border-orange-500/30';
-    cardBgCls = 'p-5 rounded-lg border shadow-sm bg-orange-950/20 border-orange-800';
+      'px-3 py-1 rounded-full text-xs font-bold uppercase border bg-amber-500/15 text-amber-300 border-amber-400/30';
+    cardBgCls =
+      'p-5 rounded-2xl border border-white/[0.07] bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   } else {
     verdictLabel = rawVerdict ? rawVerdict.toUpperCase() : 'REJECTED';
     verdictBadgeCls =
-      'px-3 py-1 rounded-full text-sm font-bold uppercase border bg-red-500/20 text-red-400 border-red-500/30';
-    cardBgCls = 'p-5 rounded-lg border shadow-sm bg-red-950/20 border-red-800';
+      'px-3 py-1 rounded-full text-xs font-bold uppercase border bg-rose-500/15 text-rose-300 border-rose-400/30';
+    cardBgCls =
+      'p-5 rounded-2xl border border-white/[0.07] bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   }
 
   const defaultPlan = isPass
@@ -147,8 +153,8 @@ export function IntegrationCriticTabs({
               onClick={() => onSelectCriticTab?.(i)}
               className={`px-3 py-1 rounded-t-lg transition-colors border-b-2 text-xs sm:text-sm font-medium cursor-pointer ${
                 isSelected
-                  ? 'bg-blue-600/20 text-blue-300 border-blue-500 font-bold'
-                  : 'bg-slate-800/50 text-slate-400 border-transparent hover:bg-slate-700'
+                  ? 'bg-white/15 text-white border-white/40 font-bold shadow-xs'
+                  : 'bg-white/[0.04] text-slate-400 border-transparent hover:bg-white/[0.08] hover:text-slate-200'
               }`}
             >
               {i === 0 ? 'Initial Eval' : `Rev ${i} Eval`}
@@ -160,12 +166,13 @@ export function IntegrationCriticTabs({
       {/* ── Execution Logs Section ─────────────────────────────────── */}
       <div
         id="execLogsSection"
-        className="bg-slate-900/90 rounded-xl border border-slate-800 p-5 shadow-sm"
+        className="bg-slate-950/[0.25] backdrop-blur-md rounded-2xl border border-white/[0.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]"
+        style={{ backdropFilter: 'blur(14px)' }}
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <svg
-              className="w-4 h-4 text-cyan-400"
+              className="w-4 h-4 text-white/80"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -186,8 +193,8 @@ export function IntegrationCriticTabs({
               id="execStatusBadge"
               className={
                 activeExec.success
-                  ? 'px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm rounded-full font-medium border border-emerald-500/20'
-                  : 'px-3 py-1 bg-red-500/20 text-red-400 text-sm rounded-full font-medium border border-red-500/20'
+                  ? 'px-3 py-1 bg-emerald-500/15 text-emerald-300 text-xs rounded-full font-semibold border border-emerald-400/30'
+                  : 'px-3 py-1 bg-rose-500/15 text-rose-300 text-xs rounded-full font-semibold border border-rose-400/30'
               }
             >
               {activeExec.success ? 'Passed' : 'Failed'}
@@ -195,29 +202,31 @@ export function IntegrationCriticTabs({
           )}
         </div>
 
-        <pre
-          id="execLogsOutput"
-          className="p-3.5 bg-black/60 rounded-lg text-xs font-mono text-slate-300 overflow-x-auto max-h-48 whitespace-pre-wrap leading-relaxed border border-slate-800"
-        >
-          {activeExec?.logs || 'No execution logs available.'}
-        </pre>
+        <ScrollFade className="max-h-48 overflow-y-auto">
+          <pre
+            id="execLogsOutput"
+            className="p-3.5 bg-black/25 rounded-xl text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed border border-white/[0.07]"
+          >
+            {activeExec?.logs || 'No execution logs available.'}
+          </pre>
+        </ScrollFade>
       </div>
 
-      {/* ── Critic Feedback Cards Container ───────────────────────── */}
-      <div
+      {/* ── Critic Feedback Cards Container with Dynamic ScrollFade ── */}
+      <ScrollFade
         id="criticCardsContainer"
         className="grid grid-cols-1 gap-3 mb-6 max-h-60 overflow-y-auto pr-1"
       >
         {activeLoading ? (
-          <div className="text-sm text-slate-500 font-mono animate-pulse p-4 text-center">
+          <div className="text-sm text-slate-400 font-mono animate-pulse p-4 text-center">
             Arbitration Engine analyzing execution results...
           </div>
         ) : activeError ? (
-          <div className="text-red-400 font-mono text-xs p-4 bg-red-950/20 border border-red-800/60 rounded-lg">
+          <div className="text-rose-300 font-mono text-xs p-4 bg-rose-950/20 border border-rose-500/30 rounded-xl">
             Critics API Failed: {activeError}
           </div>
         ) : activeFeedbacks.length === 0 ? (
-          <div className="text-xs text-slate-500 font-mono p-4 text-center">
+          <div className="text-xs text-slate-400 font-mono p-4 text-center">
             No critic feedback recorded for this revision.
           </div>
         ) : (
@@ -226,19 +235,18 @@ export function IntegrationCriticTabs({
             return (
               <div
                 key={`critic-fb-${f.critic_name}-${idx}`}
-                className={`bg-slate-900/80 p-4 rounded-lg border ${
-                  isFeedbackPass ? 'border-emerald-500/30' : 'border-red-500/30'
-                } shadow-sm relative overflow-hidden`}
+                className="bg-slate-950/[0.25] backdrop-blur-md p-4 rounded-xl border border-white/[0.07] shadow-sm relative overflow-hidden"
+                style={{ backdropFilter: 'blur(14px)' }}
               >
                 <div
                   className={`absolute left-0 top-0 bottom-0 w-1 ${
-                    isFeedbackPass ? 'bg-emerald-500' : 'bg-red-500'
+                    isFeedbackPass ? 'bg-emerald-400' : 'bg-rose-400'
                   }`}
                 />
                 <div className="flex justify-between items-center mb-2">
                   <span
                     className={`font-bold uppercase tracking-wider text-xs ${
-                      isFeedbackPass ? 'text-emerald-400' : 'text-red-400'
+                      isFeedbackPass ? 'text-emerald-300' : 'text-rose-300'
                     } flex items-center gap-2`}
                   >
                     {isFeedbackPass ? (
@@ -275,8 +283,8 @@ export function IntegrationCriticTabs({
                   <span
                     className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                       isFeedbackPass
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-400/20'
+                        : 'bg-rose-500/10 text-rose-300 border border-rose-400/20'
                     }`}
                   >
                     Sev: {f.severity_score}/10
@@ -296,17 +304,18 @@ export function IntegrationCriticTabs({
             );
           })
         )}
-      </div>
+      </ScrollFade>
 
       {/* ── Master Adjudicator Decision Card ──────────────────────── */}
       <div
         id="adjudicatorCard"
         className={cardBgCls}
+        style={{ backdropFilter: 'blur(14px)' }}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <svg
-              className="w-5 h-5 text-purple-400"
+              className="w-5 h-5 text-white/80"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -361,7 +370,7 @@ export function IntegrationCriticTabs({
 
         <p
           id="adjudicatorPlan"
-          className="text-slate-300 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed bg-black/30 p-3.5 rounded-lg border border-slate-800/80 font-mono"
+          className="text-slate-200 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed bg-black/40 p-3.5 rounded-xl border border-white/[0.07] font-mono"
         >
           {activeDecision?.revision_plan || defaultPlan}
         </p>

@@ -27,6 +27,7 @@ import { useSessionStore } from '../../stores/sessionStore';
 import { persistState, resetAllStores } from '../../stores';
 import { useApiStream } from '../../hooks/useApiStream';
 import { safeJsonParse } from '../../utils/jsonParser';
+import { ScrollFade } from '../../components/ScrollFade';
 import type { AppMode, RequirementsDocument } from '../../types';
 import { withJsonRetry, JsonParseExhaustedError } from '../../utils/jsonRetry';
 import { classifyIntent } from '../../api/endpoints';
@@ -546,28 +547,31 @@ export function FeatureRequestInput({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Outer Input Card */}
-      <div className="bg-white dark:bg-slate-900/90 rounded-2xl shadow-sm border border-slate-200 dark:border-white/10 p-6 space-y-4 backdrop-blur-xl transition-colors">
+      <div
+        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 space-y-4 transition-all"
+        style={{ backdropFilter: 'blur(14px)' }}
+      >
         {/* Top Header with Generation Mode Toggle */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-4 border-b border-slate-100 dark:border-white/10">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-4 border-b border-white/[0.07]">
           <div>
             <div className="flex items-center gap-2">
-              <CommandLineIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <CommandLineIcon className="w-5 h-5 text-white/80" />
               <label
                 htmlFor="featureRequest"
-                className="font-bold text-slate-800 dark:text-slate-100 text-base"
+                className="font-bold text-white text-base"
               >
                 Enter Feature Request:
               </label>
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-mono">
+              <span className="text-xs text-white/40 font-mono">
                 ({inputText.length} characters)
               </span>
             </div>
             <p
               id="modeHelperText"
-              className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1"
+              className="text-xs text-slate-400 font-medium mt-1"
             >
               <span>
-                <strong className="font-semibold text-slate-700 dark:text-slate-200">
+                <strong className="font-semibold text-slate-200">
                   Autonomous Engine:
                 </strong>{' '}
                 Powered by Gemini 3.5 Flash Lite with 3.1 Flash Lite secondary fallback.
@@ -576,47 +580,55 @@ export function FeatureRequestInput({
           </div>
         </div>
 
-        {/* Feature Request Textarea */}
-        <textarea
-          id="featureRequest"
-          rows={4}
-          value={inputText}
-          onChange={(e) => {
-            setInputText(e.target.value);
-            if (errorMessage) setErrorMessage(null);
-            if (showClarification) {
-              setClarificationState(null);
-              setClarificationAnswers([]);
-            }
-            if (showDirectAnswer) {
-              setDirectAnswer(null);
-            }
-          }}
-          disabled={pipelineActive || isSubmitting}
-          className={`w-full rounded-xl border border-slate-300 dark:border-white/10 p-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-indigo-500 dark:focus:border-indigo-500 outline-none transition-all bg-slate-50/50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 text-sm leading-relaxed ${
-            isClassifyingIntent ? 'ring-2 ring-blue-400/50 animate-pulse' : ''
+        {/* Feature Request Textarea with Dynamic ScrollFade */}
+        <div
+          className={`rounded-2xl border border-white/[0.07] bg-slate-950/[0.25] backdrop-blur-md p-2 transition-all focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10 overflow-hidden ${
+            isClassifyingIntent ? 'ring-1 ring-white/20 animate-pulse' : ''
           }`}
-          placeholder="E.g., Build an email notification system for successful purchases with user preferences, SMTP integration, and scheduled digest reports..."
-        />
+          style={{ backdropFilter: 'blur(14px)' }}
+        >
+          <ScrollFade fadeSize={20} className="w-full">
+            <textarea
+              id="featureRequest"
+              rows={4}
+              value={inputText}
+              onChange={(e) => {
+                setInputText(e.target.value);
+                if (errorMessage) setErrorMessage(null);
+                if (showClarification) {
+                  setClarificationState(null);
+                  setClarificationAnswers([]);
+                }
+                if (showDirectAnswer) {
+                  setDirectAnswer(null);
+                }
+              }}
+              disabled={pipelineActive || isSubmitting}
+              className="w-full bg-transparent border-none p-2 outline-none focus:outline-none transition-all text-white placeholder-white/40 text-sm leading-relaxed resize-none font-sans"
+              placeholder="E.g., Build an email notification system for successful purchases with user preferences, SMTP integration, and scheduled digest reports..."
+            />
+          </ScrollFade>
+        </div>
 
         {/* Intent Classification: Clarification Card */}
         {showClarification && (
           <div
             id="clarificationCard"
-            className="bg-amber-50/60 dark:bg-amber-950/30 border border-amber-300/80 dark:border-amber-700/50 rounded-xl p-5 space-y-4 animate-fadeIn"
+            className="bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] rounded-2xl p-5 space-y-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] animate-fadeIn"
+            style={{ backdropFilter: 'blur(14px)' }}
           >
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-700/40">
-                <ChatBubbleLeftRightIcon className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <div className="w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center shrink-0 border border-white/15 text-white">
+                <ChatBubbleLeftRightIcon className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                <h4 className="font-semibold text-white text-sm">
                   Clarification Required
                 </h4>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                <p className="text-xs text-slate-300 mt-0.5">
                   I want to make sure I build exactly what you need. Could you clarify a few details?
                   {clarificationState!.round > MAX_CLARIFICATION_ROUNDS && (
-                    <span className="ml-1 text-amber-600 dark:text-amber-400 font-medium">
+                    <span className="ml-1 text-slate-300 font-medium">
                       (Maximum clarification rounds reached. You can proceed directly.)
                     </span>
                   )}
@@ -627,7 +639,7 @@ export function FeatureRequestInput({
             <div className="space-y-3">
               {clarificationState!.questions.map((question, idx) => (
                 <div key={idx} className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-200 block">
+                  <label className="text-xs font-semibold text-slate-200 block">
                     {question}
                   </label>
                   <input
@@ -643,7 +655,7 @@ export function FeatureRequestInput({
                         handleSubmitClarification();
                       }
                     }}
-                    className="w-full rounded-lg border border-slate-300 dark:border-white/10 px-3.5 py-2 text-sm bg-white dark:bg-slate-800/80 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                    className="w-full rounded-xl border border-white/[0.07] px-3.5 py-2 text-sm bg-slate-950/[0.25] text-white placeholder-white/40 focus:border-white/20 focus:ring-1 focus:ring-white/10 outline-none transition-all"
                     placeholder="Provide additional details..."
                   />
                 </div>
@@ -656,7 +668,7 @@ export function FeatureRequestInput({
                 id="submitClarificationBtn"
                 onClick={handleSubmitClarification}
                 disabled={isClassifyingIntent}
-                className="w-full sm:flex-1 font-semibold py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-colors flex justify-center items-center gap-2 shadow-sm cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:flex-1 font-semibold py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors flex justify-center items-center gap-2 shadow-sm cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isClassifyingIntent ? (
                   <>
@@ -679,8 +691,8 @@ export function FeatureRequestInput({
                 onClick={handleProceedAnyway}
                 className={`w-full sm:w-auto font-medium py-2.5 px-4 rounded-xl border transition-colors cursor-pointer active:scale-[0.99] ${
                   clarificationState!.round >= MAX_CLARIFICATION_ROUNDS
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 shadow-md ring-2 ring-blue-500/50 font-semibold'
-                    : 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-white/10'
+                    ? 'bg-white/20 hover:bg-white/30 text-white border-white/30 shadow-md ring-1 ring-white/20 font-semibold'
+                    : 'bg-white/[0.06] hover:bg-white/10 text-slate-300 border-white/[0.08]'
                 }`}
               >
                 Proceed Anyway
@@ -689,7 +701,7 @@ export function FeatureRequestInput({
                 type="button"
                 id="cancelClarificationBtn"
                 onClick={handleCancelClarification}
-                className="w-full sm:w-auto font-medium py-2.5 px-4 rounded-xl bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors cursor-pointer active:scale-[0.99]"
+                className="w-full sm:w-auto font-medium py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 border border-white/[0.06] transition-colors cursor-pointer active:scale-[0.99]"
               >
                 Cancel
               </button>
@@ -701,20 +713,21 @@ export function FeatureRequestInput({
         {showDirectAnswer && (
           <div
             id="directAnswerCard"
-            className="bg-sky-50/60 dark:bg-sky-950/30 border border-sky-300/80 dark:border-sky-700/50 rounded-xl p-5 space-y-3 animate-fadeIn"
+            className="bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] rounded-2xl p-5 space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] animate-fadeIn"
+            style={{ backdropFilter: 'blur(14px)' }}
           >
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-sky-100 dark:bg-sky-900/40 flex items-center justify-center shrink-0 border border-sky-200 dark:border-sky-700/40">
-                <InformationCircleIcon className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+              <div className="w-9 h-9 rounded-xl bg-white/[0.08] flex items-center justify-center shrink-0 border border-white/15 text-white">
+                <InformationCircleIcon className="w-5 h-5 text-white" />
               </div>
               <div className="flex-1">
-                <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                <h4 className="font-semibold text-white text-sm">
                   Non-Software Query Answer
                 </h4>
-                <div className="text-sm text-slate-800 dark:text-slate-100 mt-2 p-3 bg-white/80 dark:bg-slate-900/60 rounded-lg border border-sky-200/50 dark:border-sky-800/40 leading-relaxed font-mono text-xs">
+                <div className="text-sm text-slate-200 mt-2 p-3 bg-slate-950/[0.25] rounded-xl border border-white/[0.07] leading-relaxed font-mono text-xs">
                   {directAnswer}
                 </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2.5">
+                <p className="text-xs text-slate-400 mt-2.5">
                   AutoDev builds complete software systems. To build an application for this, describe the software tool or feature you want created.
                 </p>
               </div>
@@ -724,7 +737,7 @@ export function FeatureRequestInput({
                 type="button"
                 id="dismissDirectAnswerBtn"
                 onClick={handleDismissDirectAnswer}
-                className="font-medium text-xs py-2 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white transition-colors cursor-pointer active:scale-[0.99] shadow-sm"
+                className="font-medium text-xs py-2 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer active:scale-[0.99] shadow-sm"
               >
                 Got it, let me rephrase
               </button>
@@ -740,7 +753,7 @@ export function FeatureRequestInput({
                   persistState(true);
                   executeRequirementsGeneration(prompt);
                 }}
-                className="font-medium text-xs py-2 px-4 rounded-xl bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-white/10 transition-colors cursor-pointer active:scale-[0.99]"
+                className="font-medium text-xs py-2 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.08] transition-colors cursor-pointer active:scale-[0.99]"
               >
                 Build it anyway
               </button>
@@ -757,8 +770,8 @@ export function FeatureRequestInput({
             disabled={isSubmitting || !inputText.trim() || showClarification || showDirectAnswer}
             className={`w-full font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm text-white ${
               isSubmitting || !inputText.trim() || showClarification || showDirectAnswer
-                ? 'bg-blue-600/60 dark:bg-blue-600/40 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.99] cursor-pointer'
+                ? 'bg-white/5 border border-white/10 text-white/40 cursor-not-allowed'
+                : 'bg-white/10 hover:bg-white/20 border border-white/20 cursor-pointer active:scale-[0.99]'
             }`}
           >
             <span>
@@ -859,7 +872,7 @@ export function FeatureRequestInput({
                 id="requestNewProductBtn"
                 type="button"
                 onClick={handleNewProduct}
-                className="w-full sm:w-1/2 bg-slate-700 hover:bg-slate-800 text-slate-200 hover:text-white font-semibold py-3 px-4 rounded-xl border border-slate-600 transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 active:scale-[0.99] cursor-pointer"
+                className="w-full sm:w-1/2 bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 hover:text-white font-semibold py-3 px-4 rounded-xl border border-white/[0.08] transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none focus:ring-1 focus:ring-white/20 active:scale-[0.99] cursor-pointer"
               >
                 <ArrowPathIcon className="w-5 h-5 text-slate-300" />
                 <span>Request New Product</span>
@@ -878,7 +891,7 @@ export function FeatureRequestInput({
           aria-labelledby="abortConfirmTitle"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
         >
-          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-slate-950/90 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3 text-rose-500">
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center shrink-0 border border-rose-500/20">
                 <StopCircleIcon className="w-6 h-6 text-rose-500" />
@@ -900,12 +913,12 @@ export function FeatureRequestInput({
               Are you sure you want to abort the current development process? All in-progress generation will be halted immediately. You can restart development or request a new product at any time.
             </p>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/[0.08]">
               <button
                 id="cancelAbortBtn"
                 type="button"
                 onClick={() => setShowAbortModal(false)}
-                className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-600"
+                className="px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] rounded-xl transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-white/20"
               >
                 Cancel
               </button>

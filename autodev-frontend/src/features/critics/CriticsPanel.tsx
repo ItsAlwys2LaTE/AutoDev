@@ -47,7 +47,8 @@ export function CriticsPanel({
   return (
     <div
       id="criticOutputSection"
-      className={`bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 fade-in transition-all duration-200 ${className}`}
+      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in transition-all duration-200 ${className}`}
+      style={{ backdropFilter: 'blur(14px)' }}
     >
       <CriticsOutput />
       <AdjudicatorDecision

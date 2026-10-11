@@ -44,19 +44,19 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
       id="stageSignIn"
       className={`h-full min-h-[80vh] flex items-center justify-center p-4 select-none ${className}`}
     >
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-3xl p-8 shadow-xl space-y-6">
+      <div className="w-full max-w-md bg-slate-950/[0.25] backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_40px_rgba(0,0,0,0.3)] space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h2 className="font-cursive text-4xl text-slate-900 font-normal italic tracking-wide">
+          <h2 className="font-cursive text-4xl text-white font-normal italic tracking-wide">
             Welcome to AutoDev
           </h2>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-400">
             Sign in to access your autonomous development workspace
           </p>
         </div>
 
         {errorMessage && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-600">
+          <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-400/30 text-xs text-rose-300">
             {errorMessage}
           </div>
         )}
@@ -64,40 +64,40 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-              <EnvelopeIcon className="w-3.5 h-3.5 text-slate-500" />
+            <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <EnvelopeIcon className="w-3.5 h-3.5 text-slate-400" />
               <span>Email Address</span>
             </label>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 transition-colors focus-within:border-blue-500 focus-within:bg-white">
+            <div className="rounded-2xl border border-white/10 bg-black/40 transition-colors focus-within:border-purple-400/50 focus-within:bg-black/60">
               <input
                 id="signInEmail"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="developer@autodev.org"
-                className="w-full bg-transparent text-sm p-3.5 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none"
+                className="w-full bg-transparent text-sm p-3.5 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
-              <LockClosedIcon className="w-3.5 h-3.5 text-slate-500" />
+            <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+              <LockClosedIcon className="w-3.5 h-3.5 text-slate-400" />
               <span>Password</span>
             </label>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 transition-colors focus-within:border-blue-500 focus-within:bg-white relative">
+            <div className="rounded-2xl border border-white/10 bg-black/40 transition-colors focus-within:border-purple-400/50 focus-within:bg-black/60 relative">
               <input
                 id="signInPassword"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="w-full bg-transparent text-sm p-3.5 pr-12 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none"
+                className="w-full bg-transparent text-sm p-3.5 pr-12 rounded-2xl text-slate-100 placeholder-slate-500 focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                className="absolute inset-y-0 right-3.5 flex items-center text-slate-400 hover:text-white transition-colors cursor-pointer"
                 title={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? (
@@ -110,19 +110,19 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-xs pt-1">
-            <label className="flex items-center gap-2 cursor-pointer text-slate-600 hover:text-slate-900">
+            <label className="flex items-center gap-2 cursor-pointer text-slate-300 hover:text-white">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-slate-300 text-blue-600 focus:ring-0 cursor-pointer"
+                className="rounded border-white/20 bg-black/40 text-purple-600 focus:ring-0 cursor-pointer"
               />
               <span>Keep me signed in</span>
             </label>
             <button
               type="button"
               onClick={() => onSignInSuccess()}
-              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
             >
               Reset password
             </button>
@@ -131,15 +131,15 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
           <button
             id="signInSubmitBtn"
             type="submit"
-            className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer"
+            className="w-full py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm shadow-sm border border-white/20 hover:border-white/30 transition-all cursor-pointer backdrop-blur-md"
           >
             Sign In
           </button>
         </form>
 
         <div className="relative flex items-center justify-center my-4">
-          <span className="w-full border-t border-slate-200"></span>
-          <span className="px-3 text-xs text-slate-400 bg-white absolute">
+          <span className="w-full border-t border-white/10"></span>
+          <span className="px-3 py-0.5 text-xs text-slate-400 bg-slate-950/[0.20] backdrop-blur-md rounded-full border border-white/10 absolute">
             Or continue with
           </span>
         </div>
@@ -147,18 +147,18 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
         <button
           type="button"
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-3 border border-slate-200 rounded-2xl py-3 hover:bg-slate-50 text-slate-700 text-xs font-medium transition-colors cursor-pointer shadow-xs"
+          className="w-full flex items-center justify-center gap-3 border border-white/10 rounded-2xl py-3 bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-medium transition-colors cursor-pointer shadow-xs"
         >
           <GoogleIcon />
           <span>Continue with Google</span>
         </button>
 
-        <p className="text-center text-xs text-slate-500">
+        <p className="text-center text-xs text-slate-400">
           New to AutoDev?{' '}
           <button
             type="button"
             onClick={() => onSignInSuccess()}
-            className="text-blue-600 hover:text-blue-700 font-semibold underline transition-colors"
+            className="text-purple-400 hover:text-purple-300 font-semibold underline transition-colors"
           >
             Create Account
           </button>

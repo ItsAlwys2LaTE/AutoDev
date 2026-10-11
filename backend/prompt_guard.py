@@ -71,6 +71,10 @@ NON_SOFTWARE_PATTERNS = [
         re.compile(r"^(tell\s+me\s+about|explain|describe)\b", re.IGNORECASE),
         "Informational query detected. AutoDev generates software codebases rather than informational articles. Please describe a software tool or application to build."
     ),
+    (
+        re.compile(r"^(distance|difference|capital|population|weather|temperature|height|weight|speed|mass|radius|diameter)\s+(between|of|in|from)\b", re.IGNORECASE),
+        "General knowledge or scientific query detected. AutoDev builds software applications. Please describe a software project or feature to create."
+    ),
     # Pure math / calculation / unit conversion
     (
         re.compile(r"^(calculate|compute|evaluate)\b", re.IGNORECASE),
@@ -128,12 +132,26 @@ def check_non_software_heuristic(prompt: str) -> None:
             raise NonSoftwarePromptError(msg)
 
 
-def validate_prompt(prompt: str) -> bool:
+def get_non_software_reason(prompt: str) -> Optional[str]:
+    """
+    Returns an explanation string if prompt is deterministically identified as non-software,
+    or None if it could be an actionable software request.
+    """
+    try:
+        check_non_software_heuristic(prompt)
+        return None
+    except NonSoftwarePromptError as nse:
+        return str(nse)
+    except Exception:
+        return None
+
+
+def validate_prompt(prompt: str, reject_non_software: bool = True) -> bool:
     """
     Deterministic Layer 1 prompt pre-filter.
     Validates non-empty input, guards against prompt injections,
     enforces length and word count (allowing 2-word software prompts),
-    and rejects deterministic non-software queries.
+    and rejects deterministic non-software queries if reject_non_software=True.
     """
     if not prompt or not isinstance(prompt, str):
         raise PromptGuardError("Prompt cannot be empty.")
@@ -160,19 +178,22 @@ def validate_prompt(prompt: str) -> bool:
             raise PromptGuardError(f"Security Alert: Blocked potential prompt injection attempt (detected '{pattern}').")
 
     # Layer 1 deterministic non-software heuristic check
-    check_non_software_heuristic(prompt_clean)
+    if reject_non_software:
+        check_non_software_heuristic(prompt_clean)
 
     # Length check: allow 2-word software prompts down to 8 chars ("todo app", "chat bot")
-    min_len = 8 if (has_software_keyword(prompt_clean) and len(prompt_clean.split()) >= 2) else 10
+    min_len = 8 if (has_software_keyword(prompt_clean) and len(prompt_clean.split()) >= 2) else (3 if not reject_non_software else 10)
     if len(prompt_clean) < min_len:
         raise PromptGuardError("Prompt is too short. Please provide at least a 10-character description of what you want to build.")
     
     # Word count check:
-    # Allow 2-word software prompts ("distance calculator", "todo app") to pass to Layer 2.
     word_count = len(prompt_clean.split())
-    if word_count < 2:
-        raise PromptGuardError("Prompt is too vague. Please use at least 2 words to describe your feature.")
-    elif word_count == 2 and not has_software_keyword(prompt_clean):
-        raise PromptGuardError("Prompt is too vague. Please use at least 3 words to describe your feature.")
+    if word_count < 1:
+        raise PromptGuardError("Prompt is too vague. Please describe your feature.")
+    if reject_non_software:
+        if word_count < 2:
+            raise PromptGuardError("Prompt is too vague. Please use at least 2 words to describe your feature.")
+        elif word_count == 2 and not has_software_keyword(prompt_clean):
+            raise PromptGuardError("Prompt is too vague. Please use at least 3 words to describe your feature.")
         
     return True

@@ -14,6 +14,7 @@ import {
   DocumentIcon,
 } from '@heroicons/react/24/outline';
 import type { CodeFile } from '../../types';
+import { ScrollFade } from '../../components/ScrollFade';
 
 export interface ComponentFileExplorerProps {
   componentId: string;
@@ -35,13 +36,13 @@ function getFileIcon(fileName: string) {
     lower.endsWith('.html') ||
     lower.endsWith('.css')
   ) {
-    return <CodeBracketIcon className="w-4 h-4 text-cyan-400 shrink-0" />;
+    return <CodeBracketIcon className="w-4 h-4 text-slate-300 shrink-0" />;
   }
   if (lower.endsWith('.json') || lower.endsWith('.yaml') || lower.endsWith('.yml')) {
-    return <DocumentTextIcon className="w-4 h-4 text-amber-400 shrink-0" />;
+    return <DocumentTextIcon className="w-4 h-4 text-slate-300 shrink-0" />;
   }
   if (lower.endsWith('.md') || lower.endsWith('.txt')) {
-    return <DocumentTextIcon className="w-4 h-4 text-emerald-400 shrink-0" />;
+    return <DocumentTextIcon className="w-4 h-4 text-slate-300 shrink-0" />;
   }
   return <DocumentIcon className="w-4 h-4 text-slate-400 shrink-0" />;
 }
@@ -57,25 +58,25 @@ export function ComponentFileExplorer({
   return (
     <div
       id={`file-list-${componentId}`}
-      className={`w-full md:w-1/3 bg-slate-900/90 dark:bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col overflow-hidden select-none ${className}`}
+      className={`w-full md:w-1/3 bg-slate-950/[0.15] backdrop-blur-md border-b md:border-b-0 md:border-r border-white/[0.07] flex flex-col overflow-hidden select-none ${className}`}
     >
       {/* Explorer Header */}
-      <div className="p-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
+      <div className="p-2.5 text-xs font-semibold text-slate-300 uppercase tracking-wider border-b border-white/[0.07] bg-slate-950/[0.2] flex items-center justify-between">
         <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+          <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
           <span>Files</span>
         </span>
         <span
           id={`file-count-${componentId}`}
-          className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded"
+          className="text-[11px] font-mono text-slate-300 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded"
         >
           {`${files.length} ${files.length === 1 ? 'file' : 'files'}`}
         </span>
       </div>
 
-      {/* File List */}
-      <div
-        className="flex-1 overflow-y-auto py-1 divide-y divide-slate-800/40 custom-scrollbar"
+      {/* File List with Dynamic ScrollFade */}
+      <ScrollFade
+        className="flex-1 overflow-y-auto py-1 divide-y divide-white/[0.04]"
         role="tree"
         aria-label={`Files for component ${componentId}`}
       >
@@ -98,8 +99,8 @@ export function ComponentFileExplorer({
                 onClick={() => onSelectFile(index)}
                 className={`file-item w-full text-left px-3 py-2 text-sm cursor-pointer flex items-center gap-2 truncate transition-colors duration-150 ${
                   isActive
-                    ? 'bg-slate-800 text-white font-medium border-l-2 border-cyan-500 shadow-inner'
-                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'
+                    ? 'bg-white/10 text-white font-medium border-l-2 border-white shadow-inner'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
                 title={file.file_name}
                 aria-selected={isActive}
@@ -111,7 +112,7 @@ export function ComponentFileExplorer({
             );
           })
         )}
-      </div>
+      </ScrollFade>
     </div>
   );
 }

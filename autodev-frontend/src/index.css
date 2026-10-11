@@ -33,30 +33,28 @@
     font-family: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, 'Courier New', monospace;
   }
 
-  /* Global WebKit scrollbar styling (from backend/index.html lines 20-23) */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #0f172a;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
-  }
-
-  /* Cross-browser standard scrollbar (Firefox) */
+  /* Global Scrollbar Elimination: Seamlessly hide scrollbars across all browsers while preserving full scrollability */
   * {
-    scrollbar-width: thin;
-    scrollbar-color: #334155 #0f172a;
+    scrollbar-width: none !important; /* Firefox */
+    -ms-overflow-style: none !important; /* IE and Edge */
+  }
+
+  *::-webkit-scrollbar,
+  ::-webkit-scrollbar {
+    display: none !important; /* Chrome, Safari, Edge, Opera */
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
+
+  *::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+
+  *::-webkit-scrollbar-thumb,
+  ::-webkit-scrollbar-thumb {
+    background: transparent !important;
   }
 }
 
@@ -80,94 +78,110 @@
     }
   }
 
-  /* Scoped custom scrollbar class (from backend/index.html lines 62-65) */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+  /* Scoped scrollbar suppression across custom-scrollbar targets */
+  .custom-scrollbar::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar,
+  .no-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: #0f172a;
+  .custom-scrollbar,
+  .scrollbar-none,
+  .no-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 4px;
+  /* Zero-runtime CSS Scroll Fade Gradient Masks */
+  .scroll-fade-y {
+    mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
   }
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+  .scroll-fade-top {
+    mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28px, black 100%);
   }
 
-  .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #334155 #0f172a;
+  .scroll-fade-bottom {
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 28px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 28px), transparent 100%);
   }
 
-  /* Glassmorphism System Utilities (R2 Design Language) */
+  .scroll-fade-x {
+    mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 28px, black calc(100% - 28px), transparent 100%);
+  }
+
+  /* Glassmorphism System Utilities (Apple iOS Frosted Obsidian) */
   .glass-card {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+    background: rgba(15, 23, 42, 0.20);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 40px rgba(0, 0, 0, 0.4);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   html.dark .glass-card {
-    background: rgba(18, 26, 48, 0.65);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    background: rgba(15, 23, 42, 0.22);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 40px rgba(0, 0, 0, 0.4);
   }
 
   .glass-card-subtle {
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(15, 23, 42, 0.15);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.3);
   }
 
   html.dark .glass-card-subtle {
-    background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.3);
   }
 
   .glass-input {
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(0, 0, 0, 0.12);
-    color: #0f172a;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(10, 14, 26, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #f8fafc;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     transition: all 0.2s ease;
   }
 
   html.dark .glass-input {
-    background: rgba(10, 14, 26, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
+    background: rgba(10, 14, 26, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #f8fafc;
   }
 
   .glass-input:focus {
     outline: none;
-    border-color: rgba(99, 102, 241, 0.6);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    border-color: rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
   }
 
   .glass-button-primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: #ffffff;
-    box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 14px 0 rgba(124, 58, 237, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .glass-button-primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
-    box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
+    box-shadow: 0 6px 20px 0 rgba(124, 58, 237, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
     transform: translateY(-1px);
   }
 
@@ -183,7 +197,7 @@
  * Essential for legacy element compatibility and uniform visual parity
  * ============================================================================= */
 html.dark body {
-  background-color: #000000;
+  background-color: #120F17;
   color: #ffffff;
 }
 
@@ -192,87 +206,107 @@ html.dark body {
 }
 
 .glass-pure-black {
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(18, 15, 23, 0.40);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 /* Surfaces */
 html.dark .bg-white {
-  background-color: #1e293b !important;
+  background-color: rgba(15, 23, 42, 0.20) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
 }
 
 html.dark .bg-slate-50 {
-  background-color: #1e293b !important;
+  background-color: rgba(15, 23, 42, 0.15) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 
 html.dark .bg-slate-100 {
-  background-color: #0f172a !important;
+  background-color: rgba(30, 41, 59, 0.18) !important;
 }
 
 /* Borders */
+html.dark .border-slate-800,
+html.dark .border-slate-700 {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 html.dark .border-slate-200 {
-  border-color: #334155 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
 }
 
 html.dark .border-slate-100 {
-  border-color: #1e293b !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 /* Text */
 html.dark .text-slate-800 {
-  color: #e2e8f0 !important;
-}
-
-html.dark .text-slate-700 {
-  color: #cbd5e1 !important;
-}
-
-html.dark .text-slate-600 {
-  color: #94a3b8 !important;
-}
-
-html.dark .text-slate-500 {
-  color: #64748b !important;
-}
-
-html.dark .text-slate-400 {
-  color: #475569 !important;
-}
-
-html.dark .text-slate-900 {
   color: #f1f5f9 !important;
 }
 
-html.dark .text-slate-300 {
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-500 {
   color: #94a3b8 !important;
+}
+
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-300 {
+  color: #cbd5e1 !important;
 }
 
 /* Inputs & Textareas */
 html.dark textarea,
 html.dark input[type="text"],
-html.dark input[type="password"] {
-  background-color: #0f172a !important;
-  color: #e2e8f0 !important;
-  border-color: #334155 !important;
+html.dark input[type="password"],
+html.dark input[type="email"] {
+  background-color: rgba(10, 14, 26, 0.65) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
 }
 
 html.dark textarea::placeholder,
 html.dark input::placeholder {
-  color: #475569 !important;
+  color: #64748b !important;
 }
 
 /* Shadows */
-html.dark .shadow-sm {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+html.dark .shadow-xs {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .shadow-sm,
+html.dark .shadow-md,
+html.dark .shadow-lg,
+html.dark .shadow-xl {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 40px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Header cost box */

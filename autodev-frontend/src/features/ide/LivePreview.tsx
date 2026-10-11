@@ -252,13 +252,13 @@ export function LivePreview({
   return (
     <div
       id="previewContainer"
-      className={`flex-1 w-full bg-white relative flex flex-col h-full ${className}`}
+      className={`flex-1 w-full bg-slate-950/[0.25] backdrop-blur-md relative flex flex-col h-full ${className}`}
     >
       {/* Top Preview Control Bar */}
-      <div className="bg-slate-900 border-b border-slate-700/80 px-3 py-1.5 flex items-center justify-between text-xs text-slate-300">
+      <div className="bg-slate-950/[0.25] backdrop-blur-md border-b border-white/[0.07] px-3 py-1.5 flex items-center justify-between text-xs text-slate-300">
         <div className="flex items-center gap-2">
           {isLoading ? (
-            <div className="flex items-center gap-1.5 text-blue-400">
+            <div className="flex items-center gap-1.5 text-white/80">
               <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -268,8 +268,8 @@ export function LivePreview({
               </span>
             </div>
           ) : isInlineMode ? (
-            <div className="flex items-center gap-1.5 text-cyan-400">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <div className="flex items-center gap-1.5 text-slate-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="font-mono text-[11px]">
                 In-Browser Static Preview
               </span>
@@ -298,7 +298,7 @@ export function LivePreview({
             <button
               type="button"
               onClick={handleInlineFallback}
-              className="flex items-center gap-1 px-2 py-0.5 rounded bg-cyan-900/40 text-cyan-300 border border-cyan-700/50 hover:bg-cyan-900/60 text-[11px] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] text-[11px] font-medium transition-colors cursor-pointer"
               title="Render HTML/CSS/JS in-browser without Docker"
             >
               <span>Static Mode</span>
@@ -310,7 +310,7 @@ export function LivePreview({
               href={serverUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-[11px] font-medium"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] transition-colors text-[11px] font-medium"
               title="Open preview in new browser tab"
             >
               <span>Open Tab</span>
@@ -322,10 +322,10 @@ export function LivePreview({
             type="button"
             onClick={handleRestart}
             disabled={isLoading}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
               isLoading
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                : 'bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 cursor-pointer'
+                ? 'bg-white/[0.04] text-slate-500 border border-white/[0.05] cursor-not-allowed'
+                : 'bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer shadow-xs'
             }`}
             title="Reload and restart container preview"
           >

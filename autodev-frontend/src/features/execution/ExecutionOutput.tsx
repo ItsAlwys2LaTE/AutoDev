@@ -22,6 +22,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import { useSessionStore } from '../../stores/sessionStore';
+import { ScrollFade } from '../../components/ScrollFade';
 import type { ExecutionResult } from '../../types';
 
 export interface ExecutionOutputProps {
@@ -96,7 +97,8 @@ export function ExecutionOutput({
   return (
     <div
       id="execOutputSection"
-      className={`bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 fade-in transition-all duration-200 ${className}`}
+      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in transition-all duration-200 ${className}`}
+      style={{ backdropFilter: 'blur(14px)' }}
     >
       {/* Header with Title and Badges */}
       <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
@@ -153,7 +155,7 @@ export function ExecutionOutput({
       </div>
 
       {/* Execution Logs Terminal Block (#execLogsOutput) */}
-      <div className="bg-black p-4 rounded-lg border border-slate-800 max-h-96 overflow-y-auto shadow-inner mb-6">
+      <ScrollFade className="bg-black/25 backdrop-blur-md p-4 rounded-2xl border border-white/[0.07] max-h-96 overflow-y-auto shadow-inner mb-6">
         <div className="flex items-center justify-between text-xs text-slate-500 border-b border-slate-900 pb-2 mb-2 font-mono">
           <span className="flex items-center gap-1.5">
             <CommandLineIcon className="w-3.5 h-3.5 text-slate-400" />
@@ -169,7 +171,7 @@ export function ExecutionOutput({
             {logs || (isExecuting ? 'Starting container and executing sandbox test commands...' : 'No logs produced.')}
           </code>
         </pre>
-      </div>
+      </ScrollFade>
 
       {/* Phase 3 Action Transition Button (#criticBtn) */}
       <div className="border-t border-slate-800 pt-5">

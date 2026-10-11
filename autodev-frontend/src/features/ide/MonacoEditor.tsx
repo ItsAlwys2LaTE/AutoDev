@@ -11,6 +11,7 @@
 import { useRef } from 'react';
 import Editor, { type OnMount, type OnChange } from '@monaco-editor/react';
 import { detectLanguage } from './languageDetector';
+import { handleBeforeMount, patchEditorInstance, patchMonaco } from './monacoPatcher';
 import type { CodeFile } from '../../types';
 
 export interface MonacoEditorProps {
@@ -35,7 +36,11 @@ export function MonacoEditor({
   const language = file ? detectLanguage(file.file_name) : 'plaintext';
   const value = file?.source_code ?? '';
 
-  const handleMount: OnMount = (editor) => {
+  const handleMount: OnMount = (editor, monaco) => {
+    patchEditorInstance(editor);
+    if (monaco) {
+      patchMonaco(monaco);
+    }
     editorRef.current = editor;
 
     // Listen to focus event to notify parent (e.g. to pause countdowns in COMPLEX mode)
@@ -56,6 +61,7 @@ export function MonacoEditor({
       className={`flex-1 w-full h-full relative overflow-hidden bg-[#1e1e1e] ${className}`}
     >
       <Editor
+        key={file?.file_name || 'monaco-ide-editor'}
         height={height}
         language={language}
         value={value}
@@ -73,6 +79,7 @@ export function MonacoEditor({
           renderWhitespace: 'selection',
           padding: { top: 8, bottom: 8 },
         }}
+        beforeMount={handleBeforeMount}
         onMount={handleMount}
         onChange={handleChange}
         loading={

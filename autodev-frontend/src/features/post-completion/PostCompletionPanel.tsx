@@ -23,6 +23,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   SparklesIcon,
   WrenchScrewdriverIcon,
@@ -46,6 +47,7 @@ import {
   ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore, type PostCompletionMode } from '../../stores/appStore';
+import { ScrollFade } from '../../components/ScrollFade';
 import { postCompletionModify, postCompletionQuery } from '../../api/endpoints';
 import { persistState, resetAllStores } from '../../stores';
 import { DevelopmentGanttChart } from '../../components/DevelopmentGanttChart';
@@ -547,13 +549,14 @@ export function PostCompletionPanel({
   return (
     <div
       id="postCompletionSection"
-      className={`bg-slate-900 rounded-xl shadow-md border border-slate-800 p-6 fade-in space-y-5 transition-all duration-200 ${className}`}
+      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in space-y-5 transition-all duration-200 ${className}`}
+      style={{ backdropFilter: 'blur(14px)' }}
     >
       {/* Endscreen Development Gantt Chart & Timeline Metrics */}
       <DevelopmentGanttChart className="mb-2" />
 
       {/* Header & Mode Toggle Row */}
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 pb-4 border-b border-slate-800">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 pb-4 border-b border-white/10">
         <div>
           <h3 className="text-lg sm:text-xl font-bold text-slate-200 flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0">
@@ -618,35 +621,51 @@ export function PostCompletionPanel({
             id="postCompModeToggle"
             role="radiogroup"
             aria-label="Post-Completion Mode"
-            className="inline-flex bg-slate-950 p-1 rounded-full border border-slate-700 shadow-inner shrink-0"
+            className="inline-flex bg-slate-950 p-1 rounded-full border border-slate-700 shadow-inner shrink-0 relative"
           >
-            <button
+            <motion.button
               type="button"
               id="postCompToggleModify"
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleSetMode('modify')}
-              className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 flex items-center gap-1.5 focus:outline-none ${
+              className={`relative px-4 py-1.5 text-xs font-bold rounded-full transition-colors duration-150 flex items-center gap-1.5 focus:outline-none cursor-pointer ${
                 mode === 'modify'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'text-white'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <WrenchScrewdriverIcon className="w-3.5 h-3.5" />
-              <span>Modify Code</span>
-            </button>
+              {mode === 'modify' && (
+                <motion.div
+                  layoutId="postCompModeGlider"
+                  className="absolute inset-0 rounded-full bg-blue-600 shadow-sm"
+                  transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                />
+              )}
+              <WrenchScrewdriverIcon className="w-3.5 h-3.5 relative z-10" />
+              <span className="relative z-10">Modify Code</span>
+            </motion.button>
 
-            <button
+            <motion.button
               type="button"
               id="postCompToggleQuery"
+              whileTap={{ scale: 0.95 }}
               onClick={() => handleSetMode('query')}
-              className={`px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-200 flex items-center gap-1.5 focus:outline-none ${
+              className={`relative px-4 py-1.5 text-xs font-bold rounded-full transition-colors duration-150 flex items-center gap-1.5 focus:outline-none cursor-pointer ${
                 mode === 'query'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'text-white'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <ChatBubbleLeftRightIcon className="w-3.5 h-3.5" />
-              <span>Ask Query</span>
-            </button>
+              {mode === 'query' && (
+                <motion.div
+                  layoutId="postCompModeGlider"
+                  className="absolute inset-0 rounded-full bg-indigo-600 shadow-sm"
+                  transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                />
+              )}
+              <ChatBubbleLeftRightIcon className="w-3.5 h-3.5 relative z-10" />
+              <span className="relative z-10">Ask Query</span>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -696,23 +715,27 @@ export function PostCompletionPanel({
 
       {/* Prompt Input Textarea (#postCompletionPrompt) */}
       <div className="space-y-2">
-        <textarea
-          ref={textareaRef}
-          id="postCompletionPrompt"
-          rows={3}
-          value={prompt}
-          onChange={(e) => {
-            setPrompt(e.target.value);
-            setStorePrompt(e.target.value);
-          }}
-          disabled={isLoading}
-          className="w-full rounded-xl border border-slate-700 bg-slate-950 p-4 text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm font-sans resize-y"
-          placeholder={
-            mode === 'modify'
-              ? 'Describe styling changes, feature additions, or bug fixes to apply to the codebase...'
-              : 'Ask any technical question about the architecture, components, or APIs...'
-          }
-        />
+        <div className="rounded-xl border border-white/[0.08] bg-slate-950/[0.25] backdrop-blur-md focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10 overflow-hidden">
+          <ScrollFade fadeSize={20} className="w-full">
+            <textarea
+              ref={textareaRef}
+              id="postCompletionPrompt"
+              rows={3}
+              value={prompt}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+                setStorePrompt(e.target.value);
+              }}
+              disabled={isLoading}
+              className="w-full bg-transparent border-none p-4 text-slate-200 placeholder-slate-500 outline-none focus:outline-none text-sm font-sans resize-y"
+              placeholder={
+                mode === 'modify'
+                  ? 'Describe styling changes, feature additions, or bug fixes to apply to the codebase...'
+                  : 'Ask any technical question about the architecture, components, or APIs...'
+              }
+            />
+          </ScrollFade>
+        </div>
       </div>
 
       {/* Submission Row */}
@@ -726,11 +749,7 @@ export function PostCompletionPanel({
           id="postCompletionSubmitBtn"
           onClick={handleSubmit}
           disabled={isLoading || !prompt.trim()}
-          className={`font-semibold px-6 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed ${
-            mode === 'modify'
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-          }`}
+          className="font-semibold px-6 py-2.5 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm text-sm disabled:opacity-50 disabled:cursor-not-allowed bg-white/10 hover:bg-white/20 border border-white/20 text-white cursor-pointer"
         >
           <span id="postCompSubmitBtnText">
             {isLoading
@@ -757,10 +776,10 @@ export function PostCompletionPanel({
       {(isLoading || hasCycleData) && mode === 'modify' && (
         <div
           id="postCompDevCycle"
-          className="rounded-xl border border-slate-800 bg-slate-950/70 p-5 space-y-5 shadow-inner mt-4"
+          className="rounded-2xl border border-white/10 bg-black/25 backdrop-blur-xl p-5 space-y-5 shadow-inner mt-4"
         >
           {/* Header Row: Title & Revision Tabs */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pb-3 border-b border-slate-800 gap-3">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pb-3 border-b border-white/10 gap-3">
             <div className="flex items-center gap-2.5">
               <span className="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xs font-bold shrink-0">
                 <CpuChipIcon className="w-4 h-4" />
@@ -809,8 +828,8 @@ export function PostCompletionPanel({
                 activePhase === 'codegen'
                   ? 'bg-blue-500/10 border-blue-500/40 text-blue-300'
                   : (activePhase || hasCycleData)
-                  ? 'bg-slate-900 border-emerald-500/30 text-emerald-400'
-                  : 'bg-slate-900/50 border-slate-800 text-slate-500'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-slate-950/[0.25] border-white/[0.07] text-slate-500'
               }`}
             >
               <span className="w-5 h-5 rounded-full bg-blue-600/30 text-blue-400 flex items-center justify-center text-[10px] font-bold shrink-0">
@@ -829,8 +848,8 @@ export function PostCompletionPanel({
                 activePhase === 'execution'
                   ? 'bg-purple-500/10 border-purple-500/40 text-purple-300'
                   : (activePhase === 'arbitration' || activePhase === 'completed' || (!isLoading && currentExecResult))
-                  ? 'bg-slate-900 border-emerald-500/30 text-emerald-400'
-                  : 'bg-slate-900/50 border-slate-800 text-slate-500'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-slate-950/[0.25] border-white/[0.07] text-slate-500'
               }`}
             >
               <span className="w-5 h-5 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px] font-bold shrink-0">
@@ -849,8 +868,8 @@ export function PostCompletionPanel({
                 activePhase === 'arbitration'
                   ? 'bg-rose-500/10 border-rose-500/40 text-rose-300'
                   : (activePhase === 'completed' || (!isLoading && (currentDecision || currentCriticFeedbacks.length > 0)))
-                  ? 'bg-slate-900 border-emerald-500/30 text-emerald-400'
-                  : 'bg-slate-900/50 border-slate-800 text-slate-500'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-slate-950/[0.25] border-white/[0.07] text-slate-500'
               }`}
             >
               <span className="w-5 h-5 rounded-full bg-rose-600/30 text-rose-400 flex items-center justify-center text-[10px] font-bold shrink-0">
@@ -867,8 +886,8 @@ export function PostCompletionPanel({
             <div
               className={`p-2.5 rounded-lg border flex items-center gap-2 ${
                 activePhase === 'completed' || (!isLoading && hasCycleData)
-                  ? 'bg-slate-900 border-emerald-500/30 text-emerald-400'
-                  : 'bg-slate-900/50 border-slate-800 text-slate-500'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                  : 'bg-slate-950/[0.25] border-white/[0.07] text-slate-500'
               }`}
             >
               <span className="w-5 h-5 rounded-full bg-emerald-600/30 text-emerald-400 flex items-center justify-center text-[10px] font-bold shrink-0">
@@ -990,7 +1009,7 @@ export function PostCompletionPanel({
                 </div>
               </div>
 
-              <div
+              <ScrollFade
                 id="postCompLogsContainer"
                 className={`${logsExpanded ? 'block' : 'hidden'} bg-black p-3 rounded-lg border border-slate-800 max-h-56 overflow-y-auto`}
               >
@@ -1002,7 +1021,7 @@ export function PostCompletionPanel({
                     {currentExecResult?.logs || 'No execution logs available.'}
                   </code>
                 </pre>
-              </div>
+              </ScrollFade>
             </div>
           )}
 
@@ -1176,14 +1195,15 @@ export function PostCompletionPanel({
 
       {/* Technical Q&A Streaming Output Box (Query Mode) (#postCompQueryResponseBox) */}
       {queryResponse && mode === 'query' && (
-        <div
+        <ScrollFade
           id="postCompQueryResponseBox"
-          className="bg-white dark:bg-slate-950 p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative group overflow-y-auto max-h-[600px] fade-in space-y-3"
+          className="bg-slate-950/[0.25] backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] relative group overflow-y-auto max-h-[600px] fade-in space-y-3"
+          style={{ backdropFilter: 'blur(14px)' }}
         >
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
                 READ-ONLY TECHNICAL EXPLANATION
               </span>
             </div>
@@ -1191,11 +1211,11 @@ export function PostCompletionPanel({
             <button
               type="button"
               onClick={handleCopyResponse}
-              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm border border-indigo-200 dark:border-indigo-800/40"
+              className="text-xs font-semibold text-purple-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm border border-white/10"
             >
               {copyFeedback ? (
                 <>
-                  <CheckIcon className="w-3.5 h-3.5 text-emerald-500" />
+                  <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Copied!</span>
                 </>
               ) : (
@@ -1209,11 +1229,11 @@ export function PostCompletionPanel({
 
           <div
             id="postCompQueryOutput"
-            className="w-full min-h-[160px] text-slate-800 dark:text-slate-200 text-xs sm:text-sm focus:outline-none leading-relaxed whitespace-pre-wrap bg-slate-50 dark:bg-black/50 p-4 rounded-lg border border-slate-100 dark:border-slate-800/80 cursor-default select-text font-mono"
+            className="w-full min-h-[160px] text-slate-200 text-xs sm:text-sm focus:outline-none leading-relaxed whitespace-pre-wrap bg-black/40 p-4 rounded-xl border border-white/10 cursor-default select-text font-mono"
           >
             {queryResponse}
           </div>
-        </div>
+        </ScrollFade>
       )}
     </div>
   );

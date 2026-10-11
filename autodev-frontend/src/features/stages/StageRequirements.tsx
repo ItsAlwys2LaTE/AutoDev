@@ -1,10 +1,7 @@
 import React from 'react';
-import {
-  DocumentTextIcon,
-  ArrowRightIcon,
-} from '@heroicons/react/24/outline';
-import { useAppStore } from '../../stores/appStore';
+import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import { RequirementsOutput } from '../requirements/RequirementsOutput';
+import { ScrollFade } from '../../components/ScrollFade';
 
 export interface StageRequirementsProps {
   onAdvance: (targetStage: number) => void;
@@ -15,46 +12,29 @@ export const StageRequirements: React.FC<StageRequirementsProps> = ({
   onAdvance,
   className = '',
 }) => {
-  const requirements = useAppStore((s) => s.requirements);
-
   return (
-    <div
+    <ScrollFade
       id="stageRequirements"
-      className={`h-full flex flex-col max-w-5xl mx-auto px-4 py-4 space-y-4 select-none ${className}`}
+      className={`h-full flex flex-col justify-start max-w-5xl mx-auto px-4 py-4 select-none space-y-6 overflow-y-auto ${className}`}
     >
-      {/* Top Bar for Requirements Stage */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
-            <DocumentTextIcon className="w-4 h-4" />
+      {/* Top Header */}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]">
+            <DocumentTextIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
           </div>
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
-              REQUIREMENTS AGENT
-            </h2>
-            <p className="text-[11px] text-slate-500">
-              Synthesized system specifications, user stories, and acceptance criteria
-            </p>
-          </div>
+          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
+            Requirements Agent
+          </h2>
         </div>
-
-        {requirements && (
-          <button
-            type="button"
-            onClick={() => onAdvance(4)}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
-          >
-            <span>Proceed to Decomposition</span>
-            <ArrowRightIcon className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <p className="text-xs md:text-sm text-slate-300">
+          Review synthesized system specifications, structured user stories, and testable acceptance criteria derived from your product goals.
+        </p>
       </div>
 
       {/* Main Requirements View */}
-      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-        <RequirementsOutput />
-      </div>
-    </div>
+      <RequirementsOutput onProceedToDesign={() => onAdvance(4)} />
+    </ScrollFade>
   );
 };
 

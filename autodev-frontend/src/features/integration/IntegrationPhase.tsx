@@ -184,7 +184,7 @@ export function IntegrationPhase({
           type="button"
           onClick={handleIntegrateClick}
           disabled={runner.isLoopActive}
-          className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full bg-white/10 hover:bg-white/20 active:scale-[0.99] border border-white/20 text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <svg
             className="w-5 h-5 text-white"
@@ -278,9 +278,9 @@ export function IntegrationPhase({
 
             {/* ── Phase 3.5 Documentation Status (#docGenerationSection) ── */}
             {store.inFlightPhase === 'documentation' && (
-              <div id="docGenerationSection" className="pt-4 border-t border-slate-800">
-                <div className="p-3.5 bg-indigo-950/40 border border-indigo-500/30 rounded-xl flex items-center gap-3 text-indigo-300 text-sm">
-                  <svg className="animate-spin h-4 w-4 shrink-0 text-indigo-400" viewBox="0 0 24 24" fill="none">
+              <div id="docGenerationSection" className="pt-4 border-t border-white/[0.08]">
+                <div className="p-3.5 bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] rounded-xl flex items-center gap-3 text-slate-200 text-sm">
+                  <svg className="animate-spin h-4 w-4 shrink-0 text-white/80" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -294,16 +294,16 @@ export function IntegrationPhase({
               runner.isMaxRevisions ||
               runner.isForcedQuickMode ||
               Boolean(activeCodebase)) && (
-              <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center gap-3">
+              <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-center gap-3">
                 <button
                   id="finalDownloadBtn"
                   type="button"
                   onClick={handleDownloadClick}
                   disabled={store.inFlightPhase === 'documentation'}
-                  className={`w-full flex-1 font-bold py-3.5 px-4 rounded-xl flex justify-center items-center gap-2 shadow-md transition-all duration-200 ${
+                  className={`w-full flex-1 font-bold py-3.5 px-4 rounded-xl flex justify-center items-center gap-2 shadow-md transition-all duration-200 border ${
                     store.inFlightPhase === 'documentation'
-                      ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                       ? 'bg-white/5 border-white/10 text-slate-400 cursor-not-allowed'
+                       : 'bg-white/10 hover:bg-white/20 border-white/20 text-white cursor-pointer'
                   }`}
                 >
                   <svg
@@ -330,10 +330,10 @@ export function IntegrationPhase({
                   type="button"
                   onClick={() => store.setGitHubModalOpen(true)}
                   disabled={store.inFlightPhase === 'documentation'}
-                  className={`w-full sm:w-auto font-bold py-3.5 px-5 rounded-xl flex justify-center items-center gap-2 shadow-md transition-all duration-200 shrink-0 ${
+                  className={`w-full sm:w-auto font-bold py-3.5 px-5 rounded-xl flex justify-center items-center gap-2 shadow-md transition-all duration-200 shrink-0 border ${
                     store.inFlightPhase === 'documentation'
-                      ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                      : 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+                      ? 'bg-white/5 border-white/10 text-slate-400 cursor-not-allowed'
+                      : 'bg-white/[0.06] hover:bg-white/[0.12] border-white/[0.08] text-slate-200 hover:text-white cursor-pointer'
                   }`}
                 >
                   <ArrowUpTrayIcon className="w-5 h-5 text-white shrink-0" />

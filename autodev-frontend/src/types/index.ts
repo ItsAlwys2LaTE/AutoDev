@@ -345,6 +345,7 @@ export type PipelineStatus = 'idle' | 'running' | 'aborted' | 'completed';
  * Corresponds to backend/index.html:inFlightPhase recovery matrix.
  */
 export type InFlightPhase =
+  | 'product_enquiry'
   | 'requirements'
   | 'decomposition'
   | 'single_design'
@@ -879,6 +880,7 @@ export interface PipelineTimelineMetrics {
 }
 
 export * from './github';
+export type { ProductEnquiryRequest, ProductEnquiryResponse } from './api';
 
 
 

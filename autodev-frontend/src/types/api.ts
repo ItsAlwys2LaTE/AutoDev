@@ -77,6 +77,9 @@ export interface RequirementsRequest {
   feature_request: string;
   mode?: GenerationMode | string;
   generation_mode?: GenerationMode | string | null;
+  product_enquiry_summary?: string;
+  user_enquiry_responses?: Array<{ question: string; answer: string }> | any[];
+  enquiry_context?: string;
 }
 
 // ============================================================================
@@ -308,4 +311,27 @@ export interface ClarificationState {
   /** The full classifier response for reference */
   classifierResponse: ClassifyIntentResponse;
 }
+
+// ============================================================================
+// Stage 2: Product Enquiry Agent
+// ============================================================================
+
+export interface ProductEnquiryRequest {
+  prompt?: string;
+  feature_request?: string;
+  mode?: GenerationMode | string;
+  generation_mode?: GenerationMode | string | null;
+  context?: string | null;
+}
+
+export interface ProductEnquiryResponse {
+  understanding_summary: string;
+  implementation_strategy: string;
+  is_valid_software: boolean;
+  intent: UserIntent;
+  follow_up_questions: string[];
+  assumptions: string[];
+  direct_answer?: string | null;
+}
+
 

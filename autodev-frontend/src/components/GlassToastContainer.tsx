@@ -36,7 +36,7 @@ export const GlassToastContainer: React.FC = () => {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className="pointer-events-auto rounded-2xl bg-black/85 backdrop-blur-2xl border border-white/15 shadow-[0_12px_40px_rgba(0,0,0,0.9)] p-4 text-xs text-white flex items-start gap-3 transition-all duration-300 animate-in fade-in slide-in-from-top-2"
+          className="pointer-events-auto rounded-2xl bg-black/85 backdrop-blur-2xl border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_12px_40px_rgba(0,0,0,0.9)] p-4 text-xs text-white flex items-start gap-3 transition-all duration-300 animate-in fade-in slide-in-from-top-2"
         >
           {renderIcon(toast.type)}
           <div className="flex-1 min-w-0">

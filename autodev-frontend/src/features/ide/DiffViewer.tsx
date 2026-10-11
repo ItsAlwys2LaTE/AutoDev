@@ -11,6 +11,7 @@
 
 import { DiffEditor } from '@monaco-editor/react';
 import { detectLanguage } from './languageDetector';
+import { handleBeforeMount } from './monacoPatcher';
 import type { CodeFile } from '../../types';
 
 export interface DiffViewerProps {
@@ -70,6 +71,7 @@ export function DiffViewer({
           original={originalContent}
           modified={modifiedContent}
           theme="vs-dark"
+          beforeMount={handleBeforeMount}
           options={{
             readOnly: true,
             renderSideBySide: true,

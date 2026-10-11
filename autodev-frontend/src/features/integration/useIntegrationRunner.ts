@@ -664,10 +664,8 @@ export function useIntegrationRunner() {
         // Auto-pass if composite <= 2.0
         const isAutoPass = currentComposite <= 2.0;
 
-        // Standard budget for integration phase is strictly up to 5 revisions
-        const calculatedBudget = Math.min(5, Math.max(1, decision?.dynamic_budget ?? 5));
-
-        const activeBudget = calculatedBudget;
+        // Strict rule: Integration phase allows up to 5 revisions max
+        const activeBudget = 5;
         setDynamicBudget(activeBudget);
         dynamicBudgetRef.current = activeBudget;
 

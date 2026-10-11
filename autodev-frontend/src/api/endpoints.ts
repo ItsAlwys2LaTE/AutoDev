@@ -43,6 +43,8 @@ import type {
   LogCategory,
   ClassifyIntentRequest,
   ClassifyIntentResponse,
+  ProductEnquiryRequest,
+  ProductEnquiryResponse,
 } from '../types/api';
 
 const API_BASE = ''; // Relies on Vite development proxy or same-origin in production
@@ -124,6 +126,49 @@ export async function classifyIntent(
       confidence: 0.5,
       reasoning: 'Fallback: intent classifier service failure or network error',
       follow_up_questions: null,
+      direct_answer: null,
+    };
+  }
+}
+
+/**
+ * Endpoint: POST /api/product-enquiry
+ * Evaluates the user's initial prompt, synthesizes understanding, implementation strategy,
+ * and 0-3 non-trivial clarifying questions.
+ */
+export async function productEnquiry(
+  data: ProductEnquiryRequest,
+  options?: RequestOptions
+): Promise<ProductEnquiryResponse> {
+  const payload: any = {
+    prompt: data.prompt || data.feature_request || '',
+    mode: data.mode || data.generation_mode || 'QUICK',
+  };
+  if (data.context) payload.context = data.context;
+
+  try {
+    const response = await fetchWithAutoRetry(`${API_BASE}/api/product-enquiry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      body: JSON.stringify(payload),
+      ...options,
+    });
+    return response.json();
+  } catch (error: any) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+    if (error instanceof ApiError && error.status === 400) {
+      throw error;
+    }
+    console.warn('[productEnquiry] Product enquiry service failure, falling back:', error);
+    return {
+      understanding_summary: `Development request: ${payload.prompt}`,
+      implementation_strategy: 'AutoDev will analyze requirements, decompose architecture, and generate code.',
+      is_valid_software: true,
+      intent: 'software_request',
+      follow_up_questions: [],
+      assumptions: ['Standard architecture conventions applied.'],
       direct_answer: null,
     };
   }

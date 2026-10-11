@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useAppStore } from '../stores/appStore';
 import { classifyLogMessage, ClassifiedLog } from '../utils/formatters';
+import { ScrollFade } from './ScrollFade';
 
 export interface LogItem {
   id: string;
@@ -181,7 +182,8 @@ export const Terminal: React.FC<TerminalProps> = ({
       {/* Header */}
       <div
         id="terminalHeader"
-        className="h-[40px] flex items-center justify-between px-6 bg-slate-800 border-b border-slate-700 cursor-pointer text-slate-300 hover:bg-slate-700 hover:text-white transition-colors select-none"
+        className="h-[40px] flex items-center justify-between px-6 bg-slate-950/[0.12] backdrop-blur-md border-t border-b border-white/[0.07] cursor-pointer text-slate-300 hover:text-white transition-colors select-none"
+        style={{ backdropFilter: 'blur(14px)' }}
         onClick={toggleTerminal}
       >
         <div className="flex items-center gap-2">
@@ -224,18 +226,19 @@ export const Terminal: React.FC<TerminalProps> = ({
         </div>
       </div>
 
-      {/* Log Content */}
-      <div
+      {/* Log Content with Dynamic ScrollFade */}
+      <ScrollFade
         id="terminalContent"
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto p-4 bg-[#0a0a0a] leading-relaxed text-[11px] whitespace-pre-wrap break-all custom-scrollbar"
+        fadeSize={24}
+        className="flex-1 overflow-y-auto p-4 bg-black/35 backdrop-blur-xl leading-relaxed text-[11px] whitespace-pre-wrap break-all"
       >
         {logs.map((item) => (
           <span key={item.id} className={`${item.colorClass} block mb-1`}>
             {item.text}
           </span>
         ))}
-      </div>
+      </ScrollFade>
     </div>
   );
 };

@@ -19,6 +19,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
+import { ScrollFade } from '../../components/ScrollFade';
 import type { CriticFeedback } from '../../types';
 
 export interface CriticsOutputProps {
@@ -72,12 +73,12 @@ export function CriticsOutput({
       <div id="integrationCriticTabs" className="flex gap-1 mb-4 flex-wrap hidden" />
 
       {/* Critic Cards Container (#criticCardsContainer) */}
-      <div
+      <ScrollFade
         id="criticCardsContainer"
         className="space-y-4 max-h-[600px] overflow-y-auto pr-1"
       >
         {isEvaluating && feedbacks.length === 0 && (
-          <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-2">
+          <div className="bg-black/30 backdrop-blur-xl p-6 rounded-2xl border border-white/10 text-center space-y-2">
             <div className="inline-block animate-spin h-6 w-6 border-2 border-rose-500 border-t-transparent rounded-full" />
             <p className="text-slate-300 text-sm font-medium">
               Running parallel Correctness, Completeness, and Architecture critics...
@@ -100,10 +101,10 @@ export function CriticsOutput({
           return (
             <div
               key={`${fb.critic_name}-${idx}`}
-              className="bg-slate-950 p-5 rounded-lg border border-slate-800 shadow-sm transition-all hover:border-slate-700"
+              className="bg-black/30 backdrop-blur-xl p-5 rounded-2xl border border-white/10 shadow-sm transition-all hover:border-white/20"
             >
               {/* Card Header */}
-              <div className="flex justify-between items-center border-b border-slate-800 pb-3 mb-3">
+              <div className="flex justify-between items-center border-b border-white/10 pb-3 mb-3">
                 <div className="flex items-center gap-2">
                   {isPassing && <CheckCircleIcon className="w-5 h-5 text-emerald-400" />}
                   {isWarning && <ExclamationTriangleIcon className="w-5 h-5 text-amber-400" />}
@@ -144,7 +145,7 @@ export function CriticsOutput({
             </div>
           );
         })}
-      </div>
+      </ScrollFade>
     </div>
   );
 }

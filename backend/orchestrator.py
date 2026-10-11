@@ -286,7 +286,8 @@ def node_adjudicator(state: GraphState):
             corr_score_val = float(corr_score)
         except (ValueError, TypeError):
             corr_score_val = 5.0
-        budget = min(5, max(1, math.ceil(corr_score_val / 2.0))) if is_integration else min(3, max(1, math.ceil(corr_score_val / 3.0)))
+        # Strict rule: Pipeline phase allows up to 3 revisions max, Integration phase allows up to 5 revisions max.
+        budget = 5 if is_integration else 3
         plan = synthesize_revision_plan([corr_fb])
         return {
             "decision": AdjudicatorDecision(
@@ -301,7 +302,8 @@ def node_adjudicator(state: GraphState):
 
     # Score calculation across all critics (when Correctness passed or all critics were run)
     composite = calculate_composite_score(feedbacks)
-    budget = min(5, max(1, math.ceil(composite / 2.0))) if is_integration else min(3, max(1, math.ceil(composite / 3.0)))
+    # Strict rule: Pipeline phase allows up to 3 revisions max, Integration phase allows up to 5 revisions max.
+    budget = 5 if is_integration else 3
 
     delta = None
     if previous_composite is not None and previous_composite != "" and not isinstance(previous_composite, bool):
@@ -417,15 +419,8 @@ def route_decision(state: GraphState):
     is_integration = (comp_name == "integration" or comp_id == "integration" or phase == "integration")
     max_allowed = 5 if is_integration else 3
 
-    # Dynamic budget resolution: strictly 3 revisions in component phase, strictly 5 in integration phase
-    max_revisions = max_allowed
-    if decision and getattr(decision, "dynamic_budget", None) is not None:
-        try:
-            budget_val = int(decision.dynamic_budget)
-            if budget_val > 0:
-                max_revisions = min(max_allowed, budget_val)
-        except (ValueError, TypeError):
-            pass
+    # Strict rule: Pipeline phase allows up to 3 revisions max, Integration phase allows up to 5 revisions max.
+    max_revisions = 5 if is_integration else 3
     
     verdict = decision.verdict.upper() if decision and getattr(decision, "verdict", None) else "UNKNOWN"
     phase_label = "Integration" if is_integration else "Component"

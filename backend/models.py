@@ -181,7 +181,7 @@ class AdjudicatorDecision(BaseModel):
     revision_plan: str = Field(description="Detailed instructions for the CodeGen agent if verdict is 'revise'. If 'error', describes the system failure. If 'pass', a brief approval message.")
     weighted_composite: Optional[float] = Field(default=None, description="Weighted composite severity score (Correctness 50%, Architecture 20%, Completeness 30%)")
     delta: Optional[float] = Field(default=None, description="Score delta (improvement) compared to previous revision")
-    dynamic_budget: Optional[int] = Field(default=None, description="Dynamic revision budget calculated as min(5, ceil(composite / 3))")
+    dynamic_budget: Optional[int] = Field(default=None, description="Max revision budget: strictly 3 for pipeline components, strictly 5 for integration")
     early_stop: Optional[bool] = Field(default=False, description="True if early stop triggered due to delta <= 1")
 
 # --- PHASE 0 MODELS (Component Decomposition) ---
@@ -542,4 +542,114 @@ class PostCompletionModifyResponse(BaseModel):
     execution_result: Optional[ExecutionResult] = Field(default=None, description="Sandbox build/test verification result if run_verification was True")
     critic_feedbacks: Optional[List[CriticFeedback]] = Field(default_factory=list, description="Critic evaluations (Correctness, Completeness, Architecture)")
     decision: Optional[AdjudicatorDecision] = Field(default=None, description="Master adjudicator verdict and scoring")
+
+
+# --- PRODUCT ENQUIRY AGENT MODELS ---
+
+class ProductEnquiryResult(BaseModel):
+    """Structured response from the Product Enquiry Agent."""
+    understanding_summary: str = Field(
+        description="A simple, clear explanation of what AutoDev understands the user wants to build."
+    )
+    implementation_strategy: str = Field(
+        description="A simple, high-level summary of how AutoDev plans to architect and implement the requested product."
+    )
+    is_valid_software: bool = Field(
+        description="Whether the prompt is an actionable software development request."
+    )
+    intent: Literal["software_request", "ambiguous", "not_software"] = Field(
+        description="Intent classification category."
+    )
+    follow_up_questions: List[str] = Field(
+        description="0 to 3 high-impact clarifying questions on core functionality and scope. No trivial UI/cosmetic questions."
+    )
+    assumptions: List[str] = Field(
+        description="Default technical and functional assumptions made by the platform."
+    )
+    direct_answer: Optional[str] = Field(
+        default=None,
+        description="Direct answer or explanation if the request is not software or informational."
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def set_defaults(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        data.setdefault("understanding_summary", "")
+        data.setdefault("implementation_strategy", "")
+        data.setdefault("is_valid_software", True)
+        data.setdefault("intent", "software_request")
+        data.setdefault("follow_up_questions", [])
+        data.setdefault("assumptions", [])
+        data.setdefault("direct_answer", None)
+        return data
+
+    @field_validator("intent", mode="before")
+    @classmethod
+    def normalize_intent(cls, val: Any) -> str:
+        if not val or not isinstance(val, str):
+            return "software_request"
+        cleaned = val.strip().lower().replace("-", "_").replace(" ", "_")
+        if cleaned in ("software_request", "ambiguous", "not_software"):
+            return cleaned
+        if "ambig" in cleaned or "clarif" in cleaned:
+            return "ambiguous"
+        if "not" in cleaned or "non" in cleaned:
+            return "not_software"
+        return "software_request"
+
+    @field_validator("follow_up_questions", mode="before")
+    @classmethod
+    def clean_follow_up_questions(cls, val: Any) -> List[str]:
+        if not val:
+            return []
+        if isinstance(val, str):
+            val = [val]
+        if isinstance(val, (list, tuple)):
+            cleaned = [str(q).strip() for q in val if q and str(q).strip()]
+            # Cap at 3 questions to strictly prevent asking too many questions
+            return cleaned[:3]
+        return []
+
+    @field_validator("assumptions", mode="before")
+    @classmethod
+    def clean_assumptions(cls, val: Any) -> List[str]:
+        if not val:
+            return []
+        if isinstance(val, str):
+            val = [val]
+        if isinstance(val, (list, tuple)):
+            return [str(a).strip() for a in val if a and str(a).strip()][:5]
+        return []
+
+    @field_validator("understanding_summary", "implementation_strategy", mode="before")
+    @classmethod
+    def clean_strings(cls, val: Any) -> str:
+        if val is None:
+            return ""
+        return str(val).strip()
+
+
+class ProductEnquiryInput(BaseModel):
+    """Payload for Product Enquiry request."""
+    prompt: Optional[str] = Field(default=None, description="The user's prompt or feature request")
+    feature_request: Optional[str] = Field(default=None, description="Alias for prompt")
+    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
+    generation_mode: Optional[str] = Field(default=None, description="Alias for mode")
+    context: Optional[str] = Field(default=None, description="Optional multi-round clarification history")
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_prompt_and_mode(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            p = data.get("prompt") or data.get("feature_request")
+            if p is not None:
+                data["prompt"] = str(p)
+                data["feature_request"] = str(p)
+            m = data.get("mode") or data.get("generation_mode") or "QUICK"
+            data["mode"] = str(m)
+            data["generation_mode"] = str(m)
+        return data
+
 

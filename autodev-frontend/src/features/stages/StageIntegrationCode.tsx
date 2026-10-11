@@ -47,18 +47,18 @@ export const StageIntegrationCode: React.FC<StageIntegrationCodeProps> = ({
       className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-4 space-y-4 select-none ${className}`}
     >
       {/* ── Top Bar: Title & Final Source Code Pill ── */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+      <div className="flex items-center justify-between pb-3 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90">
             <CodeBracketIcon className="w-4 h-4" />
           </div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-white">
               INTEGRATION AGENT
             </h2>
             <span
               id="finalSourceCodePill"
-              className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200"
+              className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/[0.06] border border-white/[0.08] text-slate-200"
             >
               Final Source Code
             </span>
@@ -69,7 +69,7 @@ export const StageIntegrationCode: React.FC<StageIntegrationCodeProps> = ({
           id="advanceToLivePreviewBtn"
           type="button"
           onClick={() => onAdvance(9)}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-2 border border-white/20 transition-all cursor-pointer shadow-md"
         >
           <span>Live Preview</span>
           <ArrowRightIcon className="w-3.5 h-3.5" />
@@ -77,7 +77,7 @@ export const StageIntegrationCode: React.FC<StageIntegrationCodeProps> = ({
       </div>
 
       {/* ── Monaco Editor Surface ── */}
-      <div className="flex-1 min-h-[450px] rounded-3xl bg-white border border-slate-200 overflow-hidden shadow-md">
+      <div className="flex-1 min-h-[450px]">
         <IntegrationMonacoView
           codebase={codebase}
           activeFileIndex={localFileIndex}

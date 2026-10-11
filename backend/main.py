@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional, List, Any, Union
+from typing import Optional, List, Any, Union, Dict
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -169,6 +169,9 @@ class FeatureRequestInput(BaseModel):
     feature_request: str
     mode: Optional[str] = "QUICK"
     generation_mode: Optional[str] = None
+    product_enquiry_summary: Optional[str] = None
+    user_enquiry_responses: Optional[List[Dict[str, Any]]] = None
+    enquiry_context: Optional[str] = None
 
 class TextUpdateInput(BaseModel):
     text: str
@@ -252,14 +255,56 @@ from prompt_guard import validate_prompt, PromptGuardError
 from key_balancer import resilient_llm_stream
 from agents.requirements_agent import generate_requirements_stream
 from agents.intent_classifier import classify_intent
-from models import IntentClassification, ClassifyIntentInput
+from agents.product_enquiry_agent import run_product_enquiry
+from models import IntentClassification, ClassifyIntentInput, ProductEnquiryResult, ProductEnquiryInput
+
+@app.post("/api/product-enquiry", response_model=ProductEnquiryResult)
+def api_product_enquiry(user_input: ProductEnquiryInput):
+    target_prompt = user_input.prompt or user_input.feature_request or ""
+    try:
+        # Layer 1: Deterministic validation for security and empty input.
+        # reject_non_software=False so non-software queries pass gracefully to the Product Enquiry Agent
+        # rather than aborting with an HTTP 400 Bad Request error in the terminal.
+        validate_prompt(target_prompt, reject_non_software=False)
+    except PromptGuardError as pe:
+        raise HTTPException(status_code=400, detail=str(pe))
+
+    mode = user_input.mode or getattr(user_input, "generation_mode", None) or "QUICK"
+    try:
+        active_model = resolve_model_for_mode(mode)
+        print(format_phase_transition("System", "INIT", "PRODUCT_ENQUIRY", active_model, "PRODUCT_ENQUIRY", mode=mode))
+        result = run_product_enquiry(prompt=target_prompt, mode=mode, context=user_input.context)
+        return result
+    except Exception as e:
+        print(f"Product enquiry unexpected failure: {format_concise_error(e)}")
+        from prompt_guard import get_non_software_reason
+        non_sw_reason = get_non_software_reason(target_prompt)
+        if non_sw_reason:
+            return ProductEnquiryResult(
+                understanding_summary=f"Non-software query detected: {target_prompt}",
+                implementation_strategy="AutoDev is an automated software engineering platform and cannot develop non-software queries. Please specify a software project to build.",
+                is_valid_software=False,
+                intent="not_software",
+                follow_up_questions=[],
+                assumptions=[],
+                direct_answer=non_sw_reason,
+            )
+        return ProductEnquiryResult(
+            understanding_summary=f"Automated software development for: {target_prompt}",
+            implementation_strategy="AutoDev will decompose requirements and implement verified components.",
+            is_valid_software=True,
+            intent="software_request",
+            follow_up_questions=[],
+            assumptions=["Standard modern application architecture will be utilized."],
+            direct_answer=None,
+        )
 
 @app.post("/api/classify-intent", response_model=IntentClassification)
 def api_classify_intent(user_input: ClassifyIntentInput):
     target_prompt = user_input.prompt or user_input.feature_request or ""
     try:
-        # Layer 1: Deterministic validation (raises PromptGuardError / NonSoftwarePromptError -> HTTP 400)
-        validate_prompt(target_prompt)
+        # Layer 1: Deterministic validation for security and empty input
+        validate_prompt(target_prompt, reject_non_software=False)
     except PromptGuardError as pe:
         raise HTTPException(status_code=400, detail=str(pe))
 
@@ -284,11 +329,21 @@ def api_generate_requirements(user_input: FeatureRequestInput):
         mode = user_input.mode or getattr(user_input, "generation_mode", None) or "QUICK"
         set_current_generation_mode(mode)
         validate_prompt(user_input.feature_request)
+        if user_input.product_enquiry_summary and any(kw in user_input.product_enquiry_summary.lower() for kw in ["not software", "not an actionable software", "non-software", "factual information regarding"]):
+            raise HTTPException(status_code=400, detail="Non-software query detected. AutoDev exclusively develops software applications.")
         active_model = resolve_model_for_mode(mode)
-        print(format_phase_transition("System", "INIT", "REQUIREMENTS", active_model, "REQUIREMENTS", mode=mode))
+        from_phase = "PRODUCT_ENQUIRY" if (user_input.product_enquiry_summary or user_input.user_enquiry_responses or user_input.enquiry_context) else "INIT"
+        print(format_phase_transition("System", from_phase, "REQUIREMENTS", active_model, "REQUIREMENTS", mode=mode))
         resilient_stream = resilient_llm_stream(
             stage="REQUIREMENTS",
-            stream_factory=lambda model: generate_requirements_stream(user_input.feature_request, mode=mode, primary_model=model),
+            stream_factory=lambda model: generate_requirements_stream(
+                user_input.feature_request,
+                mode=mode,
+                primary_model=model,
+                product_enquiry_summary=user_input.product_enquiry_summary,
+                user_enquiry_responses=user_input.user_enquiry_responses,
+                enquiry_context=user_input.enquiry_context,
+            ),
             primary_model=active_model,
             mode=mode,
         )

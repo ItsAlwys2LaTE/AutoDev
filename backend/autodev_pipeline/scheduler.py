@@ -617,14 +617,9 @@ class PipelineScheduler:
                 )
             comp.active_lease = lease
 
+            # Strict rule: Pipeline phase allows up to 3 revisions max, Integration phase allows up to 5 revisions max.
             max_cap = 5 if norm_stage == StageEnum.INTEGRATION else 3
-            if dynamic_budget is not None:
-                budget_to_set = min(max_cap, int(dynamic_budget))
-                comp.max_revisions = budget_to_set
-            elif norm_stage == StageEnum.INTEGRATION and comp.max_revisions < 5:
-                comp.max_revisions = 5
-            elif norm_stage != StageEnum.INTEGRATION and comp.max_revisions > 3:
-                comp.max_revisions = 3
+            comp.max_revisions = max_cap
 
             if force_proceed:
                 self.lock_manager.release_stage(norm_stage, component_id, lease_token=lease)

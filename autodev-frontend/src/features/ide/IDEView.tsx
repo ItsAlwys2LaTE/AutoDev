@@ -14,6 +14,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import {
   ArrowDownTrayIcon,
   ArrowsRightLeftIcon,
@@ -28,6 +29,7 @@ import { generateCode } from '../../api/endpoints';
 import { executeSandboxCode } from '../pipeline/revisionLoop';
 import { robustJsonParse } from '../../utils/jsonParser';
 import { exportZip } from '../../utils/zipExporter';
+import { ScrollFade } from '../../components/ScrollFade';
 import { FileExplorer } from './FileExplorer';
 import { MonacoEditor } from './MonacoEditor';
 import { DiffViewer } from './DiffViewer';
@@ -504,39 +506,51 @@ export function IDEView({
        * =================================================================== */}
       {revisionHistory.length > 0 && (
         <div id="revisionTabsBar" className="fade-in">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+          <ScrollFade orientation="horizontal" className="flex items-center gap-2 overflow-x-auto pb-2">
             <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mr-2 whitespace-nowrap">
               Revisions:
             </span>
-            <div id="revisionTabs" className="flex items-center gap-2" role="tablist">
+            <div id="revisionTabs" className="relative flex items-center gap-1.5 p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm" role="tablist">
               {revisionHistory.map((rev, index) => {
                 const isActive = index === activeRevisionIndex;
                 const isPostRun = !!rev.isPostCompletion;
                 const label = rev.label || (index === 0 ? 'Rev 0 (Initial)' : `Rev ${index}`);
 
                 return (
-                  <button
+                  <motion.button
                     key={`${rev.revisionNumber}-${index}`}
                     type="button"
                     onClick={() => handleSelectRevision(index)}
                     role="tab"
                     aria-selected={isActive}
-                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors border ${
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative px-3 py-1 text-xs rounded-full font-medium transition-colors cursor-pointer ${
                       isActive
                         ? isPostRun
-                          ? 'bg-emerald-600/30 text-emerald-300 border-emerald-500/50 font-bold shadow-sm'
-                          : 'bg-purple-500/30 text-purple-300 border-purple-500/50 font-bold shadow-sm'
+                          ? 'text-emerald-300 font-bold'
+                          : 'text-purple-200 font-bold'
                         : isPostRun
-                        ? 'bg-slate-800 text-emerald-400/80 border-slate-700 hover:bg-slate-700 hover:text-emerald-300'
-                        : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-slate-200'
+                        ? 'text-emerald-400/80 hover:text-emerald-300'
+                        : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    {label}
-                  </button>
+                    {isActive && (
+                      <motion.div
+                        layoutId="ideRevisionPillActive"
+                        className={`absolute inset-0 rounded-full border shadow-sm ${
+                          isPostRun
+                            ? 'bg-emerald-600/30 border-emerald-500/50'
+                            : 'bg-purple-500/30 border-purple-500/50'
+                        }`}
+                        transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                      />
+                    )}
+                    <span className="relative z-10">{label}</span>
+                  </motion.button>
                 );
               })}
             </div>
-          </div>
+          </ScrollFade>
         </div>
       )}
 
@@ -545,7 +559,8 @@ export function IDEView({
        * =================================================================== */}
       <section
         id="codeOutputSection"
-        className="bg-slate-900 rounded-2xl shadow-glass border border-slate-800 p-6 fade-in text-slate-100"
+        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in text-slate-100"
+        style={{ backdropFilter: 'blur(14px)' }}
       >
         {/* Header Bar */}
         <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
@@ -611,7 +626,7 @@ export function IDEView({
          * STREAMING VIEW CONTAINER (#codeFilesContainer)
          * =================================================================== */}
         {isStreaming && (
-          <div
+          <ScrollFade
             id="codeFilesContainer"
             className="space-y-4 mb-6 max-h-[500px] overflow-y-auto p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-gray-300"
           >
@@ -641,7 +656,7 @@ export function IDEView({
             <pre className="whitespace-pre-wrap text-slate-400 text-xs font-mono break-all">
               <code>{streamText}</code>
             </pre>
-          </div>
+          </ScrollFade>
         )}
 
         {/* ===================================================================
@@ -680,31 +695,47 @@ export function IDEView({
             <div className="w-full sm:w-2/3 h-full relative flex flex-col">
               {/* Tab Header Bar */}
               <div className="flex items-center justify-between bg-slate-950 border-b border-slate-700 px-3 py-1.5 h-10">
-                <div className="flex gap-2">
-                  <button
+                <div className="relative flex items-center p-0.5 rounded-full bg-slate-900 border border-slate-700/60 backdrop-blur-sm">
+                  <motion.button
                     id="tabCode"
                     type="button"
                     onClick={() => handleTogglePreview(false)}
-                    className={`text-xs font-semibold px-3 py-1 rounded transition-colors ${
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                       !isPreviewOpen
-                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                        ? 'text-white'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Code Editor
-                  </button>
-                  <button
+                    {!isPreviewOpen && (
+                      <motion.div
+                        layoutId="idePreviewToggleGlider"
+                        className="absolute inset-0 rounded-full bg-blue-600/30 border border-blue-500/40 shadow-sm"
+                        transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                      />
+                    )}
+                    <span className="relative z-10">Code Editor</span>
+                  </motion.button>
+                  <motion.button
                     id="tabPreview"
                     type="button"
                     onClick={() => handleTogglePreview(true)}
-                    className={`text-xs font-semibold px-3 py-1 rounded transition-colors ${
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                       isPreviewOpen
-                        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
+                        ? 'text-white'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Live Preview
-                  </button>
+                    {isPreviewOpen && (
+                      <motion.div
+                        layoutId="idePreviewToggleGlider"
+                        className="absolute inset-0 rounded-full bg-blue-600/30 border border-blue-500/40 shadow-sm"
+                        transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                      />
+                    )}
+                    <span className="relative z-10">Live Preview</span>
+                  </motion.button>
                 </div>
 
                 {/* Mode Indicator & Active File */}

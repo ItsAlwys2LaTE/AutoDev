@@ -13,9 +13,17 @@ from retry import with_exponential_backoff, format_concise_error
 PRIMARY_MODEL = "gemini-3.5-flash-lite"
 FALLBACK_MODEL = "gemini-3.1-flash-lite"
 
-def generate_requirements_stream(feature_request: str, mode: str = None, primary_model: str = None):
+def generate_requirements_stream(
+    feature_request: str,
+    mode: str = None,
+    primary_model: str = None,
+    product_enquiry_summary: str = None,
+    user_enquiry_responses: list = None,
+    enquiry_context: str = None,
+):
     """
-    Takes a plain text feature request and yields a stream of JSON text 
+    Takes a plain text feature request, optional product enquiry summary,
+    and user clarification responses, yielding a stream of JSON text 
     representing a structured RequirementsDocument.
     """
     primary_model, secondary_model = resolve_models_for_mode(
@@ -30,9 +38,9 @@ def generate_requirements_stream(feature_request: str, mode: str = None, primary
 
 
     system_prompt = """
-    You are an expert Technical Product Manager. Your job is to take a vague or 
-    high-level feature request from a user and translate it into a strict, highly 
-    structured Requirements Document.
+    You are an expert Technical Product Manager. Your job is to take a feature request
+    along with any Product Enquiry summary and user clarification responses, and translate
+    it into a strict, highly structured Requirements Document.
     Break the request down into logical User Stories and define exhaustive, highly 
     specific, and testable Acceptance Criteria (ACs) for each. 
     The system supports ANY mainstream programming language (frontend or backend). 
@@ -40,6 +48,7 @@ def generate_requirements_stream(feature_request: str, mode: str = None, primary
     The downstream engineering agents will rely ENTIRELY on your ACs to write code, 
     so be precise about edge cases, inputs, and expected outputs.
     CRITICAL INSTRUCTION: You MUST explicitly include Acceptance Criteria for robustness. This includes boundary limits (e.g., maximum input lengths), handling of negative numbers/invalid inputs, error states, and all complex edge cases. Do not assume the downstream team will handle edge cases unless you document them.
+    If Product Enquiry summary, implementation strategy, or user clarifications are provided, incorporate them into the user stories and acceptance criteria.
     """
 
     system_prompt += f"""
@@ -57,7 +66,25 @@ Otherwise, for valid software engineering requests, your output MUST strictly ma
 {json.dumps(RequirementsDocument.model_json_schema())}
 """
 
-    prompt_content = feature_request
+    prompt_parts = [f"User Feature Request:\n{feature_request}"]
+    if product_enquiry_summary and str(product_enquiry_summary).strip():
+        prompt_parts.append(f"Product Enquiry Summary & Proposed Implementation Plan:\n{str(product_enquiry_summary).strip()}")
+    if user_enquiry_responses and isinstance(user_enquiry_responses, list):
+        clarifications = []
+        for item in user_enquiry_responses:
+            if isinstance(item, dict):
+                q = item.get("question", "")
+                a = item.get("answer", "")
+                if q or a:
+                    clarifications.append(f"Q: {q}\nA: {a}")
+            elif isinstance(item, str) and item.strip():
+                clarifications.append(item.strip())
+        if clarifications:
+            prompt_parts.append("User Follow-up Clarifications & Preferences:\n" + "\n\n".join(clarifications))
+    if enquiry_context and str(enquiry_context).strip():
+        prompt_parts.append(f"Enquiry Clarification Context:\n{str(enquiry_context).strip()}")
+
+    prompt_content = "\n\n".join(prompt_parts)
 
     @with_exponential_backoff
     def _try_stream(key, model_name):

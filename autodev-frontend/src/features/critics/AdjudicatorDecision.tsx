@@ -91,9 +91,11 @@ export function AdjudicatorDecision({
     ? propCompositeScore
     : (decision?.weighted_composite ?? storeCompositeScore);
 
+  const isIntegration = storeInFlightPhase === 'integration';
+  const defaultBudget = isIntegration ? 5 : 3;
   const dynamicBudget: number = (propDynamicBudget !== undefined && propDynamicBudget !== null)
     ? propDynamicBudget
-    : ((decision?.dynamic_budget ?? null) || (storeDynamicBudget ?? null) || 3);
+    : ((decision?.dynamic_budget ?? null) || (isIntegration ? (useAppStore.getState().integrationDynamicBudget || 5) : (storeDynamicBudget ?? 3)) || defaultBudget);
 
   const [internalGeneratingDocs, setInternalGeneratingDocs] = useState(false);
   const isGeneratingDocs =
@@ -182,7 +184,7 @@ export function AdjudicatorDecision({
   return (
     <div
       id="adjudicatorSection"
-      className={`mt-8 border-t border-slate-800 pt-6 space-y-6 ${className}`}
+      className={`mt-8 border-t border-white/10 pt-6 space-y-6 ${className}`}
     >
       {/* Title */}
       <h3 className="text-lg sm:text-xl font-bold text-slate-200 flex items-center gap-2">
@@ -192,7 +194,7 @@ export function AdjudicatorDecision({
 
       {/* Main Decision Card (#adjudicatorCard) */}
       <div id="adjudicatorCard" className={cardClass}>
-        <div className="flex flex-wrap justify-between items-center gap-3 mb-4 border-b border-slate-800/80 pb-3">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-4 border-b border-white/10 pb-3">
           <span className="text-xs uppercase font-bold tracking-wider text-slate-400">
             Adjudication Verdict
           </span>
@@ -207,7 +209,7 @@ export function AdjudicatorDecision({
         {/* Scoring & Budget Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs font-mono">
           {/* Composite Score */}
-          <div className="p-3 rounded-lg bg-black/40 border border-slate-800/80">
+          <div className="p-3 rounded-xl bg-black/40 border border-white/10">
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-semibold">
               Weighted Composite
             </div>
@@ -274,8 +276,8 @@ export function AdjudicatorDecision({
             disabled={isGeneratingDocs || docsGenerated}
             className={`w-full font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm text-sm ${
               docsGenerated
-                ? 'bg-slate-800 text-emerald-400 border border-emerald-500/30 cursor-default'
-                : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-md cursor-pointer'
+                ? 'bg-slate-800 text-slate-300 border border-white/10 cursor-default'
+                : 'bg-white/10 hover:bg-white/20 border border-white/20 text-white hover:shadow-md cursor-pointer'
             }`}
           >
             <DocumentTextIcon className="w-4 h-4 shrink-0" />
@@ -310,7 +312,7 @@ export function AdjudicatorDecision({
             id="finalDownloadBtn"
             type="button"
             onClick={handleDownload}
-            className="w-full flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-md hover:shadow-lg text-sm sm:text-base cursor-pointer"
+            className="w-full flex-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-md hover:shadow-lg text-sm sm:text-base cursor-pointer"
           >
             <ArrowDownTrayIcon className="w-5 h-5 shrink-0" />
             <span>Download Final Project (.zip)</span>
@@ -319,7 +321,7 @@ export function AdjudicatorDecision({
             id="uploadGithubBtn"
             type="button"
             onClick={() => setGitHubModalOpen(true)}
-            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-5 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-md hover:shadow-lg text-sm sm:text-base cursor-pointer shrink-0"
+            className="w-full sm:w-auto bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-slate-200 hover:text-white font-bold py-3.5 px-5 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-md hover:shadow-lg text-sm sm:text-base cursor-pointer shrink-0"
           >
             <ArrowUpTrayIcon className="w-5 h-5 shrink-0" />
             <span>Upload to GitHub</span>

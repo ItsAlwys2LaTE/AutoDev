@@ -33,6 +33,7 @@ export default {
         },
       },
       boxShadow: {
+        xs: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         glass: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         'glass-sm': '0 4px 16px 0 rgba(0, 0, 0, 0.25)',
         'glass-lg': '0 12px 48px 0 rgba(0, 0, 0, 0.45)',

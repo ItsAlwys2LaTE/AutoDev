@@ -12,6 +12,7 @@
 import { useRef } from 'react';
 import Editor, { type OnMount, type OnChange } from '@monaco-editor/react';
 import { detectLanguage } from '../ide/languageDetector';
+import { handleBeforeMount, patchEditorInstance, patchMonaco } from '../ide/monacoPatcher';
 import type { GeneratedCodeBase } from '../../types';
 
 export interface ComponentMonacoProps {
@@ -66,7 +67,11 @@ export function ComponentMonaco({
     ? `component://${componentId}/rev-${activeRevisionIndex}/${activeFile.file_name}`
     : undefined;
 
-  const handleMount: OnMount = (editor) => {
+  const handleMount: OnMount = (editor, monaco) => {
+    patchEditorInstance(editor);
+    if (monaco) {
+      patchMonaco(monaco);
+    }
     editorRef.current = editor;
 
     // Trigger focus callback to pause any active countdowns (e.g. COMPLEX mode review)
@@ -95,6 +100,7 @@ export function ComponentMonaco({
         </div>
       ) : (
         <Editor
+          key={modelUri || `${componentId}-${activeRevisionIndex}-${activeFileIndex}`}
           path={modelUri}
           height={height}
           language={language}
@@ -113,12 +119,13 @@ export function ComponentMonaco({
             renderWhitespace: 'selection',
             padding: { top: 8, bottom: 8 },
           }}
+          beforeMount={handleBeforeMount}
           onMount={handleMount}
           onChange={handleChange}
           loading={
             <div className="flex items-center justify-center h-full text-slate-400 font-mono text-xs gap-2">
               <svg
-                className="animate-spin h-4 w-4 text-cyan-400"
+                className="animate-spin h-4 w-4 text-white/80"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

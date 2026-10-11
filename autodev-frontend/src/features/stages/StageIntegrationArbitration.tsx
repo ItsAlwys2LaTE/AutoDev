@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   ArrowRightIcon,
   ScaleIcon,
@@ -6,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import type { CriticFeedback, AdjudicatorDecision } from '../../types';
+import { ScrollFade } from '../../components/ScrollFade';
 
 export interface StageIntegrationArbitrationProps {
   onAdvance: (targetStage: number) => void;
@@ -62,18 +64,18 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
       className={`h-full flex flex-col max-w-5xl mx-auto px-4 py-4 space-y-4 select-none ${className}`}
     >
       {/* ── Top Bar: Title & Arbitration Engine Pill ── */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+      <div className="flex items-center justify-between pb-3 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90">
             <ScaleIcon className="w-4 h-4" />
           </div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-white">
               INTEGRATION AGENT
             </h2>
             <span
               id="arbitrationEnginePill"
-              className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200"
+              className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/[0.06] border border-white/[0.08] text-slate-200"
             >
               Arbitration Engine
             </span>
@@ -84,7 +86,7 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
           id="advanceToFinalCodeBtn"
           type="button"
           onClick={() => onAdvance(8)}
-          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-2 border border-white/20 transition-all cursor-pointer shadow-md"
         >
           <span>Final Source Code</span>
           <ArrowRightIcon className="w-3.5 h-3.5" />
@@ -94,49 +96,63 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
       {/* ── Revision Tabs ── */}
       {allRevs.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {allRevs.map((rev, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setActiveTab(idx)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
-                activeTab === idx
-                  ? 'bg-blue-600 text-white font-semibold shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200'
-              }`}
-            >
-              {rev.label || `Rev ${idx}`}
-            </button>
-          ))}
+          <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm gap-1">
+            {allRevs.map((rev, idx) => {
+              const isActive = activeTab === idx;
+              return (
+                <motion.button
+                  key={idx}
+                  type="button"
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setActiveTab(idx)}
+                  className={`relative px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+                    isActive
+                      ? 'text-white font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="stageIntegrationArbitrationRevGlider"
+                      className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                      transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
+                    />
+                  )}
+                  <span className="relative z-10">{rev.label || `Rev ${idx}`}</span>
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* ── Master Adjudicator Decision Box ── */}
       <div
         id="adjudicatorCard"
-        className="rounded-3xl bg-white border border-slate-200 p-5 shadow-md space-y-3"
+        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-3"
+        style={{ backdropFilter: 'blur(14px)' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckBadgeIcon className="w-5 h-5 text-emerald-600" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+            <CheckBadgeIcon className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white">
               Master Adjudicator Verdict
             </h3>
           </div>
           <span
             id="adjudicatorVerdict"
-            className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200"
+            className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30"
           >
             {verdict}
           </span>
         </div>
 
-        <p id="adjudicatorPlan" className="text-xs text-slate-600 leading-relaxed">
+        <p id="adjudicatorPlan" className="text-xs text-slate-300 leading-relaxed">
           {decision?.revision_plan || 'All multi-agent modules synthesized and approved for deployment. No further revision required.'}
         </p>
 
         {decision?.weighted_composite !== undefined && decision?.weighted_composite !== null && (
-          <div className="text-[11px] font-mono text-slate-500 pt-1 border-t border-slate-100 flex items-center gap-4">
+          <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/10 flex items-center gap-4">
             <span>Weighted Composite: {decision.weighted_composite.toFixed(2)} / 10.0</span>
             {decision.delta !== undefined && decision.delta !== null && (
               <span>Delta Improvement: {decision.delta.toFixed(2)}</span>
@@ -145,31 +161,32 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
         )}
       </div>
 
-      {/* ── 3 Critic Cards Grid ── */}
-      <div id="criticCardsContainer" className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+      {/* ── 3 Critic Cards Grid with Dynamic ScrollFade ── */}
+      <ScrollFade id="criticCardsContainer" className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-h-0 overflow-y-auto">
         {defaultFeedbacks.map((critic, idx) => (
           <div
             key={idx}
-            className="rounded-2xl bg-white border border-slate-200 p-4 flex flex-col justify-between space-y-3 shadow-xs"
+            className="rounded-2xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-4 flex flex-col justify-between space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]"
+            style={{ backdropFilter: 'blur(14px)' }}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-bold text-slate-800 truncate">
+                <h4 className="text-xs font-bold text-slate-100 truncate">
                   {critic.critic_name}
                 </h4>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-slate-200 border border-white/[0.08]">
                   {critic.severity_score}/10
                 </span>
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-slate-300 leading-relaxed">
                 {critic.overall_comments}
               </p>
             </div>
 
             {critic.issues_list && critic.issues_list.length > 0 && (
-              <div className="pt-2 border-t border-slate-100 space-y-1">
-                <span className="text-[10px] uppercase font-semibold text-slate-500">Noted Issues:</span>
-                <ul className="text-[11px] text-amber-700 list-disc list-inside space-y-0.5">
+              <div className="pt-2 border-t border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-semibold text-slate-400">Noted Issues:</span>
+                <ul className="text-[11px] text-amber-300 list-disc list-inside space-y-0.5">
                   {critic.issues_list.map((issue, i) => (
                     <li key={i} className="truncate">{issue}</li>
                   ))}
@@ -178,7 +195,7 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
             )}
           </div>
         ))}
-      </div>
+      </ScrollFade>
     </div>
   );
 };

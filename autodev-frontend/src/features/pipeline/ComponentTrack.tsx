@@ -26,7 +26,13 @@ import {
   SparklesIcon,
   CheckCircleIcon,
   LockClosedIcon,
+  DocumentTextIcon,
+  CodeBracketIcon,
+  ShieldCheckIcon,
+  CubeIcon,
+  CommandLineIcon,
 } from '@heroicons/react/24/outline';
+import { getComponentTheme, formatComponentTitle } from '../../utils/componentTheme';
 import { useAppStore } from '../../stores/appStore';
 import {
   generateDesign,
@@ -40,12 +46,12 @@ import { safeJsonParse } from '../../utils/jsonParser';
 import { mergeDifferentialCodebase, isDifferentialPayload } from '../ide/merger';
 import {
   calculateCompositeScore,
-  calculateDynamicBudget,
   isEarlyStopDelta,
 } from './revisionLoop';
 import { ComponentFileExplorer } from './ComponentFileExplorer';
 import { ComponentMonaco } from './ComponentMonaco';
 import { ComponentCriticTabs } from './ComponentCriticTabs';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 import { withJsonRetry, JsonParseExhaustedError } from '../../utils/jsonRetry';
 import type {
   ComponentSpec,
@@ -76,16 +82,16 @@ export function getTrackStatusConfig(status: string = 'queued'): {
       return {
         badgeText: 'Queued for Design',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.04] text-slate-400 border border-white/[0.07]',
         dotClass: 'w-2 h-2 rounded-full bg-slate-400 shrink-0',
       };
     case 'designing':
       return {
         badgeText: 'Designing...',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-indigo-500/20 text-indigo-400 border border-indigo-500/30',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.06] text-slate-300 border border-white/[0.08]',
         dotClass:
-          'w-2 h-2 rounded-full bg-indigo-400 animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.6)] shrink-0',
       };
     case 'waiting_design':
     case 'waiting_code':
@@ -100,22 +106,22 @@ export function getTrackStatusConfig(status: string = 'queued'): {
       return {
         badgeText: 'Queued for Code',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.04] text-slate-400 border border-white/[0.07]',
         dotClass: 'w-2 h-2 rounded-full bg-slate-400 shrink-0',
       };
     case 'coding':
       return {
         badgeText: 'Coding...',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-purple-500/20 text-purple-400 border border-purple-500/30',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.06] text-slate-300 border border-white/[0.08]',
         dotClass:
-          'w-2 h-2 rounded-full bg-purple-400 animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.6)] shrink-0',
       };
     case 'critic_queued':
       return {
         badgeText: 'Queued for Tests',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.04] text-slate-400 border border-white/[0.07]',
         dotClass: 'w-2 h-2 rounded-full bg-slate-400 shrink-0',
       };
     case 'executing':
@@ -310,6 +316,17 @@ export function ComponentTrack({
       setEditedBlueprintText(formatted);
     }
   }, [trackState.blueprint]);
+
+  const blueprintTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea height so ModernScrollbar viewport handles scrolling smoothly
+  useEffect(() => {
+    const el = blueprintTextareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${Math.max(240, el.scrollHeight)}px`;
+    }
+  }, [editedBlueprintText]);
 
   // Synchronize active indices with trackState if updated upstream
   useEffect(() => {
@@ -829,9 +846,8 @@ export function ComponentTrack({
 
       const composite =
         decision?.weighted_composite ?? calculateCompositeScore(corr, arch, comp);
-      const rawBudget =
-        decision?.dynamic_budget ?? calculateDynamicBudget(composite);
-      const budget = Math.min(3, rawBudget);
+      // Strict rule: Pipeline phase allows up to 3 revisions max
+      const budget = 3;
       const isEarlyStop = Boolean(
         decision?.early_stop ||
           (decision?.delta !== null &&
@@ -1071,36 +1087,55 @@ export function ComponentTrack({
     });
   };
 
+  const pipelineQueue = useAppStore((s) => s.pipelineQueue) || [];
+  const theme = getComponentTheme(cId, pipelineQueue);
+  const displayTitle = formatComponentTitle(theme.number, component.component_name);
+
   return (
     <div
       id={`workspace-${cId}`}
       tabIndex={0}
       role="region"
       aria-label={`Workspace for ${component.component_name}`}
-      className={`min-w-[480px] max-w-[640px] md:min-w-[560px] w-full shrink-0 snap-center rounded-2xl border transition-all duration-200 overflow-hidden mb-4 shadow-sm flex flex-col bg-slate-900/90 dark:bg-slate-900/90 ${
+      style={{
+        backdropFilter: 'blur(14px)',
+        backgroundColor: theme.bgTint,
+        borderColor: theme.borderTint,
+      }}
+      className={`w-full rounded-3xl border transition-all duration-200 overflow-hidden mb-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col backdrop-blur-md relative ${
         isActive
-          ? 'border-cyan-500/60 ring-2 ring-cyan-500/20 shadow-md'
-          : 'border-slate-700/80 dark:border-white/10 hover:border-slate-600'
+          ? 'ring-2 ring-white/20'
+          : 'hover:border-white/20'
       } ${className}`}
     >
+      {/* Soft Specular Ambient Glow line matching component hue */}
+      <div
+        className="absolute top-0 inset-x-0 h-px pointer-events-none"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${theme.color}40, transparent)`,
+        }}
+        aria-hidden="true"
+      />
+
       {/* ── Accordion Header ───────────────────────────────────────────────── */}
       <div
-        className="p-4 bg-slate-800/80 border-b border-slate-700/80 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors select-none"
+        className="p-4 bg-slate-950/[0.25] border-b border-white/[0.07] flex justify-between items-center cursor-pointer hover:bg-white/[0.04] transition-colors select-none"
         onClick={handleHeaderClick}
       >
         <div className="flex items-center gap-3">
           <span className="sr-only">Component Track Workspace</span>
           <span
             id={`status-id-${cId}`}
-            className="font-mono text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2.5 py-0.5 rounded-full font-medium"
+            className="font-mono text-xs px-2.5 py-0.5 rounded-full font-medium"
+            style={{ backgroundColor: theme.badgeBg, color: theme.badgeText }}
           >
             {`ID: ${cId}`}
           </span>
-          <span className="font-mono text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+          <span className="font-mono text-xs text-slate-300 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.07]">
             {`Priority: ${component.priority_order ?? 1}`}
           </span>
-          <h3 className="font-bold text-slate-100 text-base tracking-tight truncate max-w-[220px]">
-            {component.component_name}
+          <h3 className="font-bold text-slate-100 text-base tracking-tight truncate max-w-md sm:max-w-xl">
+            {displayTitle}
           </h3>
         </div>
 
@@ -1131,57 +1166,150 @@ export function ComponentTrack({
         id={`body-${cId}`}
         className={`${
           isExpanded ? 'block' : 'hidden'
-        } p-6 space-y-8 bg-slate-950/40 divide-y divide-slate-800/60`}
+        } p-6 space-y-8 bg-slate-950/[0.25] divide-y divide-white/[0.07]`}
       >
         {/* ── STAGE 1: Architectural Blueprint ────────────────────────────── */}
         <div id={`design-section-${cId}`} className="pt-2 first:pt-0">
-          <div className="flex justify-between items-center mb-3">
-            <h4 className="text-cyan-400 font-bold flex items-center gap-2 text-base">
-              <span className="bg-cyan-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow-sm">
-                1
-              </span>
-              Architectural Blueprint
-            </h4>
-            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
-              {mode} Mode
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-sm shrink-0">
+                <DocumentTextIcon className="w-4 h-4 text-white/90" />
+              </div>
+              <div>
+                <h4 className="text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
+                  Architectural Blueprint
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Component specifications, runtime image, container commands, and source file manifest
+                </p>
+              </div>
+            </div>
+            {trackState.blueprint && (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  Synthesized
+                </span>
+              </div>
+            )}
           </div>
 
-          <div id={`blueprint-container-${cId}`} className="mb-4">
-            <textarea
-              id={`design-text-${cId}`}
-              value={editedBlueprintText}
-              onChange={(e) => {
-                const newText = e.target.value;
-                isEditingBlueprintRef.current = true;
-                setDesignTimerPaused(true);
-                setEditedBlueprintText(newText);
-                const currentBp = trackState.blueprint || {
-                  architecture_overview: '',
-                  tech_stack: [],
-                  docker_image: '',
-                  dev_server_command: 'NONE',
-                  dev_server_port: 0,
-                  run_tests_command: 'pytest',
-                  files: [],
-                };
-                updateComponentState(cId, {
-                  blueprint: {
-                    ...currentBp,
-                    architecture_overview: newText,
-                  },
-                });
-              }}
-              readOnly={mode === 'QUICK' && !isPaused}
-              spellCheck={false}
-              rows={9}
-              className={`w-full font-mono p-4 rounded-xl text-xs overflow-y-auto shadow-inner border border-slate-700/80 resize-none leading-relaxed transition-colors custom-scrollbar ${
-                mode === 'QUICK' && !isPaused
-                  ? 'bg-slate-900/60 cursor-not-allowed text-slate-400'
-                  : 'bg-slate-950 text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-500'
-              }`}
-              placeholder="Blueprint specifications will appear once design phase begins..."
-            />
+          {/* Structured Bento Cards when blueprint data exists */}
+          {trackState.blueprint && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
+                  <CubeIcon className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Runtime Container</span>
+                </div>
+                <div className="font-mono text-xs text-slate-200 truncate">
+                  {trackState.blueprint.docker_image || 'node:20-alpine'}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
+                  <CodeBracketIcon className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Tech Stack</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {(trackState.blueprint.tech_stack || []).length > 0 ? (
+                    (trackState.blueprint.tech_stack || []).slice(0, 3).map((t: string) => (
+                      <span key={t} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300 border border-white/[0.08]">
+                        {t}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="font-mono text-xs text-slate-400">Standard</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
+                  <CommandLineIcon className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Test Suite</span>
+                </div>
+                <div className="font-mono text-xs text-slate-200 truncate">
+                  {trackState.blueprint.run_tests_command || 'pytest'}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
+                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
+                  <DocumentTextIcon className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Manifest Files</span>
+                </div>
+                <div className="font-mono text-xs text-slate-200 truncate">
+                  {`${(trackState.blueprint.files || []).length} files planned`}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div
+            id={`blueprint-container-${cId}`}
+            className="mb-4 rounded-2xl border border-white/[0.08] bg-slate-950/[0.25] backdrop-blur-md shadow-inner focus-within:border-white/25 focus-within:ring-1 focus-within:ring-white/20 overflow-hidden"
+          >
+            {/* Editor Window Header */}
+            <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5 items-center mr-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                </div>
+                <span className="font-mono text-xs text-slate-300 font-medium">
+                  {`${cId}-blueprint.md`}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.05] text-slate-400 border border-white/[0.06]">
+                  {mode === 'QUICK' && !isPaused ? 'READ-ONLY BLUEPRINT' : 'CLICK TO EDIT'}
+                </span>
+              </div>
+            </div>
+
+            <ModernScrollbar className="w-full h-64 sm:h-72">
+              <textarea
+                id={`design-text-${cId}`}
+                ref={blueprintTextareaRef}
+                value={editedBlueprintText}
+                onChange={(e) => {
+                  const newText = e.target.value;
+                  isEditingBlueprintRef.current = true;
+                  setDesignTimerPaused(true);
+                  setEditedBlueprintText(newText);
+                  if (blueprintTextareaRef.current) {
+                    blueprintTextareaRef.current.style.height = 'auto';
+                    blueprintTextareaRef.current.style.height = `${Math.max(240, blueprintTextareaRef.current.scrollHeight)}px`;
+                  }
+                  const currentBp = trackState.blueprint || {
+                    architecture_overview: '',
+                    tech_stack: [],
+                    docker_image: '',
+                    dev_server_command: 'NONE',
+                    dev_server_port: 0,
+                    run_tests_command: 'pytest',
+                    files: [],
+                  };
+                  updateComponentState(cId, {
+                    blueprint: {
+                      ...currentBp,
+                      architecture_overview: newText,
+                    },
+                  });
+                }}
+                readOnly={mode === 'QUICK' && !isPaused}
+                spellCheck={false}
+                rows={10}
+                className={`w-full font-mono p-4 bg-transparent border-none text-xs resize-none overflow-hidden block leading-relaxed transition-colors outline-none ${
+                  mode === 'QUICK' && !isPaused
+                    ? 'cursor-not-allowed text-slate-400'
+                    : 'text-slate-200'
+                }`}
+                placeholder="Blueprint specifications will appear once design phase begins..."
+              />
+            </ModernScrollbar>
           </div>
 
           {/* Design Action Button */}
@@ -1190,7 +1318,7 @@ export function ComponentTrack({
               id={`design-approve-btn-${cId}`}
               type="button"
               onClick={handleApproveDesign}
-              className="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              className="w-full bg-white/10 hover:bg-white/20 active:scale-[0.99] border border-white/20 text-white font-semibold py-3.5 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
             >
               <SparklesIcon className="w-5 h-5" />
               <span>
@@ -1200,7 +1328,7 @@ export function ComponentTrack({
               </span>
             </button>
           ) : status === 'designing' ? (
-            <div className="w-full py-2.5 text-center text-xs font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 rounded-xl animate-pulse">
+            <div className="w-full py-3 text-center text-xs font-mono text-slate-300 bg-white/[0.05] border border-white/[0.08] rounded-2xl animate-pulse">
               Synthesizing system blueprint...
             </div>
           ) : null}
@@ -1216,18 +1344,25 @@ export function ComponentTrack({
 
         {/* ── STAGE 2: Generated Codebase & IDE ────────────────────────────── */}
         <div id={`code-section-${cId}`} className="pt-6">
-          <div className="flex justify-between items-center mb-3">
-            <h4 className="text-purple-400 font-bold flex items-center gap-2 text-base">
-              <span className="bg-purple-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow-sm">
-                2
-              </span>
-              Generated Codebase
-            </h4>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-sm shrink-0">
+                <CodeBracketIcon className="w-4 h-4 text-white/90" />
+              </div>
+              <div>
+                <h4 className="text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
+                  Generated Codebase
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Isolated component source files, live syntax inspection, and revisions
+                </p>
+              </div>
+            </div>
 
             {/* Revision Tabs */}
             <div
               id={`rev-tabs-${cId}`}
-              className="flex gap-1.5 overflow-x-auto max-w-xs custom-scrollbar"
+              className="flex items-center gap-1.5 overflow-x-auto max-w-sm custom-scrollbar p-1 rounded-xl bg-slate-950/[0.2] border border-white/[0.07]"
             >
               {(trackState.revisionHistory || []).map((_: any, rIdx: number) => {
                 const isCur = rIdx === activeRevisionIndex;
@@ -1238,10 +1373,10 @@ export function ComponentTrack({
                     id={`rev-tab-${cId}-${rIdx}`}
                     type="button"
                     onClick={() => handleSelectRevision(rIdx)}
-                    className={`text-xs font-mono px-2.5 py-1 rounded-md border transition-colors cursor-pointer ${
+                    className={`text-xs font-mono px-3 py-1 rounded-lg border transition-all cursor-pointer whitespace-nowrap ${
                       isCur
-                        ? 'bg-purple-600/20 text-purple-300 border-purple-500 font-bold'
-                        : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-slate-200'
+                        ? 'bg-white/15 text-white border-white/20 font-semibold shadow-sm'
+                        : 'bg-transparent text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/[0.05]'
                     }`}
                   >
                     {rLabel}
@@ -1251,32 +1386,50 @@ export function ComponentTrack({
             </div>
           </div>
 
-          {/* Monaco & File Explorer Split View */}
-          <div className="flex flex-col md:flex-row h-[420px] border border-slate-700/80 rounded-xl overflow-hidden mb-4 bg-[#1e1e1e] shadow-inner">
-            <ComponentFileExplorer
-              componentId={cId}
-              files={currentFiles}
-              activeFileIndex={activeFileIndex}
-              onSelectFile={handleSelectFile}
-              isLoading={status === 'coding'}
-            />
-            <div className="w-full md:w-2/3 relative h-full">
-              <ComponentMonaco
+          {/* Monaco & File Explorer Split View in Frosted Frame */}
+          <div className="border border-white/[0.08] rounded-2xl overflow-hidden mb-4 bg-slate-950/[0.25] backdrop-blur-md shadow-2xl flex flex-col">
+            <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5 items-center mr-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                </div>
+                <span className="font-mono text-xs text-slate-300 font-medium">
+                  Workspace Editor
+                </span>
+              </div>
+              <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+                <span>{`${currentFiles.length} files`}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row h-[480px] sm:h-[520px]">
+              <ComponentFileExplorer
                 componentId={cId}
-                codebase={activeCodebase}
+                files={currentFiles}
                 activeFileIndex={activeFileIndex}
-                activeRevisionIndex={activeRevisionIndex}
-                isReadOnly={false}
                 onSelectFile={handleSelectFile}
-                onSelectRevision={handleSelectRevision}
-                onFileContentChange={handleFileContentChange}
-                onFocus={() => setCodeTimerPaused(true)}
+                isLoading={status === 'coding'}
               />
+              <div className="w-full md:w-2/3 relative h-full">
+                <ComponentMonaco
+                  componentId={cId}
+                  codebase={activeCodebase}
+                  activeFileIndex={activeFileIndex}
+                  activeRevisionIndex={activeRevisionIndex}
+                  isReadOnly={mode === 'QUICK' && !isPaused}
+                  onSelectFile={handleSelectFile}
+                  onSelectRevision={handleSelectRevision}
+                  onFileContentChange={handleFileContentChange}
+                  onFocus={() => setCodeTimerPaused(true)}
+                />
+              </div>
             </div>
           </div>
 
           {status === 'coding' ? (
-            <div className="w-full py-2.5 text-center text-xs font-mono text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded-xl animate-pulse mb-2">
+            <div className="w-full py-3 text-center text-xs font-mono text-slate-300 bg-white/[0.05] border border-white/[0.08] rounded-2xl animate-pulse mb-2">
               Synthesizing component code...
             </div>
           ) : null}
@@ -1292,19 +1445,28 @@ export function ComponentTrack({
 
         {/* ── STAGE 3: Arbitration & Critics ───────────────────────────────── */}
         <div id={`critic-section-${cId}`} className="pt-6">
-          <h4 className="text-rose-400 font-bold flex items-center gap-2 text-base mb-4">
-            <span className="bg-rose-500 text-white w-6 h-6 rounded-full flex justify-center items-center text-xs shadow-sm">
-              3
-            </span>
-            Arbitration Feedback
-          </h4>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-sm shrink-0">
+                <ShieldCheckIcon className="w-4 h-4 text-white/90" />
+              </div>
+              <div>
+                <h4 className="text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
+                  Arbitration Feedback
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Automated container execution, multi-critic quality arbitration, and adjudication verdict
+                </p>
+              </div>
+            </div>
+          </div>
 
           {status === 'executing' ? (
-            <div className="w-full py-2.5 text-center text-xs font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl animate-pulse mb-4">
+            <div className="w-full py-3 text-center text-xs font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-2xl animate-pulse mb-4">
               Executing sandbox tests in container...
             </div>
           ) : status === 'critiquing' ? (
-            <div className="w-full py-2.5 text-center text-xs font-mono text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl animate-pulse mb-4">
+            <div className="w-full py-3 text-center text-xs font-mono text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-pulse mb-4">
               Evaluating quality critics & adjudication...
             </div>
           ) : null}
@@ -1328,7 +1490,7 @@ export function ComponentTrack({
               id={`approve-component-${cId}`}
               type="button"
               disabled
-              className="w-full bg-slate-800 text-slate-400 font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 border border-slate-700 shadow-inner mt-4"
+              className="w-full bg-white/[0.04] text-slate-400 font-medium py-3.5 rounded-2xl flex justify-center items-center gap-2 border border-white/[0.07] shadow-inner mt-4"
             >
               <LockClosedIcon className="w-5 h-5 text-emerald-400" />
               <span>Component Locked & Passed</span>
@@ -1338,7 +1500,7 @@ export function ComponentTrack({
               id={`approve-component-${cId}`}
               type="button"
               onClick={() => approveComponentFinal(false)}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm cursor-pointer mt-4"
+              className="w-full bg-white/10 hover:bg-white/20 active:scale-[0.99] border border-white/20 text-white font-semibold py-3.5 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm cursor-pointer mt-4"
             >
               <CheckCircleIcon className="w-5 h-5" />
               <span>
