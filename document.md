@@ -6867,6 +6867,24 @@ The interface was refactored to align with the minimalistic, unified agent aesth
   - Strict revision limits preserved: 3 maximum for Pipeline, 5 maximum for Integration.
   - Strictly zero emojis across all code, tests, styles, and documentation.
 
+### Section 8.12: Container-Level Stage Sliding Animation Architecture
+- **User Request**: Not satisfied with the stage slide animation. Instead of sliding the stage container outputs, add a sliding animation for the stage containers themselves.
+- **Architectural Shift & Implementation**:
+  - **Container-Level Framer Motion Wrapping**:
+    - Previously, the stage workspace box (`#centralStageWorkspace`) was statically fixed in position, and only the inner stage content was sliding inside it.
+    - Shifted `<AnimatePresence mode="wait" custom={slideDirection} initial={false}>` outside `#centralStageWorkspace` so that `#centralStageWorkspace` itself is converted into a `motion.div`.
+    - Now the entire glassmorphic stage container (frosted obsidian surface, specular borders, backdrop blur, shadows, and all contained children) dynamically slides across the viewport when switching stages.
+  - **Refined Spring Physics & Motion Profile**:
+    - `enter`: `x: 100` (forward) or `-100` (backward), `opacity: 0`, `scale: 0.985`, `filter: 'blur(6px)'`.
+    - `center`: `x: 0`, `opacity: 1`, `scale: 1`, `filter: 'blur(0px)'` with spring physics (`stiffness: 320, damping: 26, mass: 0.75`).
+    - `exit`: `x: -100` (forward) or `100` (backward), `opacity: 0`, `scale: 0.985`, `filter: 'blur(6px)'` with crisp `0.2s` duration.
+  - **DOM & Test Contract Preservation**:
+    - `id="centralStageWorkspace"` is preserved on the sliding container element, ensuring full backwards compatibility with all testing suites and layout queries.
+- **Verification & Policy Compliance**:
+  - Full Vitest suite passing with 100% pass rate (34/34 files, 578/578 tests).
+  - Production build compiled cleanly into `backend/dist` via `tsc && vite build`.
+  - Strictly zero emojis across all code, tests, and documentation.
+
 
 
 

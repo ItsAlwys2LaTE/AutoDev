@@ -31,31 +31,34 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
-// Slide animation variants for smooth stage switching
+// Slide animation variants for smooth stage container switching
 const stageSlideVariants: Variants = {
   enter: (direction: 'forward' | 'backward') => ({
-    x: direction === 'forward' ? 80 : -80,
+    x: direction === 'forward' ? 100 : -100,
     opacity: 0,
-    filter: 'blur(4px)',
+    scale: 0.985,
+    filter: 'blur(6px)',
   }),
   center: {
     x: 0,
     opacity: 1,
+    scale: 1,
     filter: 'blur(0px)',
     transition: {
       type: 'spring' as const,
-      stiffness: 350,
-      damping: 28,
-      mass: 0.8,
+      stiffness: 320,
+      damping: 26,
+      mass: 0.75,
     },
   },
   exit: (direction: 'forward' | 'backward') => ({
-    x: direction === 'forward' ? -80 : 80,
+    x: direction === 'forward' ? -100 : 100,
     opacity: 0,
-    filter: 'blur(4px)',
+    scale: 0.985,
+    filter: 'blur(6px)',
     transition: {
-      duration: 0.18,
-      ease: 'easeInOut' as const,
+      duration: 0.2,
+      ease: [0.32, 0, 0.67, 0],
     },
   }),
 };
@@ -503,41 +506,37 @@ export default function App() {
             } mx-auto px-4 sm:px-8 py-2 sm:py-3 flex flex-col min-h-0 overflow-hidden`}
           >
 
-            {/* Maximized Central Workspace Container (~80% Viewport Height) */}
-            <div
-              id="centralStageWorkspace"
-              className={
-                currentStage === 1
-                  ? 'relative flex-1 w-full flex flex-col overflow-hidden min-h-0'
-                  : currentStage === 2
-                  ? 'relative flex-1 w-full max-w-4xl mx-auto rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
-                  : 'relative flex-1 w-full rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
-              }
-              style={currentStage !== 1 ? { backdropFilter: 'blur(14px)' } : undefined}
-            >
-              <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
-                <motion.div
-                  key={currentStage}
-                  custom={slideDirection}
-                  variants={stageSlideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  className="flex-1 w-full h-full flex flex-col min-h-0 overflow-hidden"
+            {/* Maximized Central Workspace Container (~80% Viewport Height) - sliding stage container */}
+            <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
+              <motion.div
+                key={currentStage}
+                id="centralStageWorkspace"
+                custom={slideDirection}
+                variants={stageSlideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className={
+                  currentStage === 1
+                    ? 'relative flex-1 w-full flex flex-col overflow-hidden min-h-0'
+                    : currentStage === 2
+                    ? 'relative flex-1 w-full max-w-4xl mx-auto rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
+                    : 'relative flex-1 w-full rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
+                }
+                style={currentStage !== 1 ? { backdropFilter: 'blur(14px)' } : undefined}
+              >
+                {/* Scrollable Stage Content Surface with Dynamic Edge Fade */}
+                <ScrollFade
+                  className={
+                    currentStage === 1
+                      ? 'flex-1 w-full overflow-y-auto p-2 sm:p-4 min-h-0'
+                      : 'flex-1 w-full overflow-y-auto p-4 md:p-6 min-h-0'
+                  }
                 >
-                  {/* Scrollable Stage Content Surface with Dynamic Edge Fade */}
-                  <ScrollFade
-                    className={
-                      currentStage === 1
-                        ? 'flex-1 w-full overflow-y-auto p-2 sm:p-4 min-h-0'
-                        : 'flex-1 w-full overflow-y-auto p-4 md:p-6 min-h-0'
-                    }
-                  >
-                    {renderActiveStage()}
-                  </ScrollFade>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+                  {renderActiveStage()}
+                </ScrollFade>
+              </motion.div>
+            </AnimatePresence>
           </main>
 
           {/* ── 5. Floating Pause/Resume Widget Outside the Central Container on the Left ── */}
