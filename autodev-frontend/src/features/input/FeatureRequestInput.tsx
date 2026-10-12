@@ -851,16 +851,16 @@ export function FeatureRequestInput({
                 id="abortDevBtn"
                 type="button"
                 onClick={handleAbortBtnClick}
-                className={`w-full sm:w-1/2 font-semibold py-3 px-4 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-sm focus:outline-none cursor-pointer active:scale-[0.99] text-white ${
+                className={`w-full sm:w-1/2 font-semibold py-3 px-4 rounded-xl transition-all flex justify-center items-center gap-2 shadow-sm focus:outline-none cursor-pointer active:scale-[0.99] ${
                   isAborted || isCompleted
-                    ? 'bg-amber-500 hover:bg-amber-600 focus:ring-2 focus:ring-amber-400'
-                    : 'bg-rose-600 hover:bg-rose-700 focus:ring-2 focus:ring-rose-500'
+                    ? 'bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
                 }`}
               >
                 {isAborted || isCompleted ? (
-                  <ArrowPathIcon className="w-5 h-5 text-white" />
+                  <ArrowPathIcon className="w-5 h-5 text-amber-300" />
                 ) : (
-                  <StopCircleIcon className="w-5 h-5 text-white" />
+                  <StopCircleIcon className="w-5 h-5 text-rose-300" />
                 )}
                 <span id="abortDevBtnText">
                   {isAborted || isCompleted ? 'Restart Development' : 'Abort Development'}
@@ -892,9 +892,9 @@ export function FeatureRequestInput({
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
         >
           <div className="bg-slate-950/90 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-rose-500">
+            <div className="flex items-center gap-3 text-rose-400">
               <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center shrink-0 border border-rose-500/20">
-                <StopCircleIcon className="w-6 h-6 text-rose-500" />
+                <StopCircleIcon className="w-6 h-6 text-rose-400" />
               </div>
               <div>
                 <h3
@@ -926,7 +926,7 @@ export function FeatureRequestInput({
                 id="confirmAbortBtn"
                 type="button"
                 onClick={handleConfirmAbort}
-                className="px-4 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 active:scale-[0.98] rounded-xl shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-rose-500"
+                className="px-4 py-2.5 text-sm font-semibold text-rose-200 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 active:scale-[0.98] rounded-xl shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer focus:outline-none focus:ring-1 focus:ring-rose-500/40"
               >
                 <StopCircleIcon className="w-4 h-4" />
                 <span>Yes, Abort Development</span>
@@ -940,12 +940,21 @@ export function FeatureRequestInput({
       {errorMessage && (
         <div
           id="errorSection"
-          className="bg-red-50 dark:bg-red-950/40 border-l-4 border-red-500 p-4 rounded-r-xl shadow-sm flex items-start gap-3 transition-colors"
+          className="p-3.5 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-xs sm:text-sm text-rose-200 flex items-center justify-between backdrop-blur-xl shadow-sm"
         >
-          <ExclamationCircleIcon className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-          <p id="errorText" className="text-red-700 dark:text-red-300 font-medium text-sm">
-            {errorMessage}
-          </p>
+          <div className="flex items-center gap-2.5">
+            <ExclamationCircleIcon className="w-4 h-4 text-rose-400 shrink-0" />
+            <p id="errorText" className="text-rose-200 font-medium text-xs sm:text-sm">
+              {errorMessage}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setErrorMessage(null)}
+            className="text-xs text-rose-300 hover:text-white font-semibold cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
       )}
     </div>

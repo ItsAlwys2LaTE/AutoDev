@@ -1,6 +1,6 @@
 # AutoDev: Autonomous Multi-Agent Software Engineering Platform
 
-**Production Build: v3.2.0-Prod (Master Edition)**
+**Production Build: v3.3.0-Prod (Master Edition)**
 
 **System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, React 19, TypeScript 5.x, Vite 6, Tailwind CSS, Monaco Editor, Framer Motion, and WebGPU.
 
@@ -75,20 +75,25 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 | Feature | Description |
 |---|---|
 | **3-Page Distinct Routing** | Clean routing separating Landing hero (`StageLanding`), Authentication/Sign-in (`StageSignIn`), and Main System presentation shell |
-| **Apple iOS Obsidian Glassmorphic UI** | Deep frosted obsidian translucency (`bg-slate-950/[0.08]`, `backdrop-blur-md`), delicate specular refraction borders (`border-white/[0.07]`), liquid pill toggles, and colourless `SpecularButton` controls |
+| **Apple iOS Obsidian Glassmorphic UI** | Deep frosted obsidian translucency (`bg-slate-950/[0.25]`, `backdrop-blur-md`), delicate specular refraction borders (`border-white/[0.07]`), liquid pill toggles, and colourless `SpecularButton` controls |
 | **AeroShards 3D WebGPU Background** | Full-viewport dynamic wind sculpture rendered via WebGPU with real-time pointer repulsion and graceful CSS ambient gradient fallback |
-| **Directional Sliding Stage Transitions** | Smooth directional spring-based sliding transitions (`forward` and `backward`) with subtle glass blur across all 12 stages powered by Framer Motion |
+| **Container-Level Sliding Stage Transitions** | Smooth container-level spring-based sliding transitions (`forward` and `backward`) with subtle glass blur across all 11 stages powered by Framer Motion |
 | **Product Enquiry Agent** | Interactive Stage 2 agent offering plain-English understanding summaries, transparent implementation strategies, default engineering assumptions, non-trivial clarifying questions (0-3 max), and non-software request handling prior to requirements compilation |
 | **Space-Time Pipeline Visualizer** | 2D continuous matrix tracking execution timestamps (T1, T2...), auto-advancing past the 8th timestamp, auto-scrolling horizontally, and ensuring T1 is never blank |
+| **Liquid Pipeline Accordion Animations** | Spring-eased height interpolation and 180-degree rotating chevrons for smooth expanding and collapsing of component track containers |
+| **Unified Integration Agent Hub** | Single consolidated Stage 6 integration workspace with top-right pill toggles to seamlessly slide between `Codegen`, `Testing`, and `Evaluation` sub-agents |
+| **Dedicated Final Source Code Stage** | Dedicated Stage 7 code explorer displaying the finalized production codebase resulting from rigorous multi-critic adjudication without revision noise |
+| **Multi-Device Live Preview Simulation** | Stage 8 responsive container supporting interactive Desktop, Tablet (camera dot, tablet bezel), and Mobile (Dynamic Island pill notch, home indicator bar, compact resilient control bar) viewports |
+| **Radiant Product Development Status Hue** | Vivid dual-state status container with deep green multi-stop gradient for successful builds and deep red for aborted pipelines |
+| **Development Lifecycle Progression Graph** | Stage 9 animated SVG milestone velocity curve alongside compact agent-wise duration metrics strip below the graph |
 | **Strict Hardcoded Revision Quotas** | Enforces hard limits: pipeline component phase allows up to 3 revisions max, integration phase allows up to 5 revisions max |
-| **Development Timeline Metrics & Gantt Chart** | Records timestamped execution intervals (`startTime`, `endTime`, `durationMs`) across all phases and renders an interactive Gantt chart on the completion screen |
 | **One-Click GitHub Export Modal** | Final-screen modal prompting for Username, Repository Name, and Personal Access Token (PAT) with browser session persistence, creating and committing the full repository via GitHub REST API |
 | **Dynamic Floating Action Button (FAB)** | Single circular pause button during active development that expands into 3 actions (Resume, Restart, Request New Product) when paused |
 | **In-Memory Multi-Phase Editing & Earliest Rewind** | Allows editing Requirements, Blueprints, and Integration Code while paused, automatically detecting modified phases and rewinding execution from the earliest modified stage |
-| **12-Stage SDLC Presentation Shell** | Full 12-stage presentation shell covering prompt ingestion, conditional clarifications, specs, DAG, integration, preview, and results |
+| **11-Stage SDLC Presentation Shell** | Full 11-stage presentation shell covering prompt ingestion, conditional clarifications, specs, DAG, integration hub, final source code, live preview, and results |
 | **Maximized Central Stage Geometry** | Dedicated stage workspace box occupying $\approx 80\%$ viewport height for distraction-free code and architecture review |
 | **Dynamic Edge-Hover Navigation** | Ghosted side chevrons (`<` and `>`) revealed dynamically when hovering near screen borders, minimizing UI chrome |
-| **Dedicated "Request New Product" Flow** | One-click atomic store reset on results view to immediately start building another software product |
+| **Dedicated "Request New Product" Flow** | One-click atomic store reset on results view to immediately start building another software product with SpecularButton styling |
 | **Autonomous Requirements Modeling** | Translates unstructured user prompts into structured `RequirementsDocument` schemas with user stories and testable acceptance criteria |
 | **Master Architect Decomposition** | Partitions complex applications into modular, decoupled component specifications with explicit dependency edges and priority scoring |
 | **Parallel DAG Pipeline Scheduler** | Graph-theoretic scheduler executing Kahn's topological sort, Tarjan's SCC cycle detection, and layered concurrency across components |
@@ -435,19 +440,18 @@ The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript 
 - Spring physics (`stiffness: 350, damping: 28, mass: 0.8`) with coordinated spatial translation ($\pm 60\text{px}$), subtle glass blur filtering (`filter: blur(4px)` to `0px`), and opacity fades.
 - Directional awareness: advancing to a later stage slides left; returning to an earlier stage slides right.
 
-### 9.4 12-Stage Main System Lifecycle
-- **Stage 1 (Product Request)**: Natural language prompt input with dedicated "START DEVELOPMENT" button and Enter key submit trigger.
+### 9.4 11-Stage Main System Lifecycle
+- **Stage 1 (Product Request)**: Natural language prompt input with dedicated "START DEVELOPMENT" SpecularButton and Enter key submit trigger.
 - **Stage 2 (Product Enquiry Agent)**: Conditional clarification stage displayed only when user requests are ambiguous and follow-up questions are needed.
 - **Stage 3 (Requirements Agent)**: Structured specification display with user stories and acceptance criteria.
 - **Stage 4 (Decomposition Agent)**: 2x2 grid representing parallel component dependency graphs.
-- **Stage 5 (Component Pipeline Dashboard)**: Space-time matrix visualizer and component-wise tracks.
-- **Stage 6 (Integration — Testing)**: Sandbox test execution logs with revision tabs.
-- **Stage 7 (Integration — Arbitration)**: 3-critic multi-perspective consensus evaluations and adjudicator verdict.
-- **Stage 8 (Integration — Final Code)**: Embedded Microsoft Monaco IDE with multi-file tabs, syntax highlighting, and inline editing.
-- **Stage 9 (Live Preview)**: Interactive responsive container preview with Desktop, Tablet, and Mobile viewport emulation.
-- **Stage 10 (Development Results)**: SDLC status, ZIP packaging, GitHub atomic commit modal, Gantt metrics execution timeline, continuous enhancement trigger, and dedicated "REQUEST NEW PRODUCT" button.
-- **Stage 11 (Post-Development Request)**: 3-pill selector (`Feature Request` | `Bug Fixes` | `Product Enquiry`) with dynamic placeholders.
-- **Stage 12 (Feature Request / Bug Fix Execution)**: Multi-phase synthesis with automatic 2.5-second return to Stage 10.
+- **Stage 5 (Component Pipeline Dashboard)**: Space-time matrix visualizer and component-wise tracks with spring-animated liquid expand/collapse accordions.
+- **Stage 6 (Integration Agent Hub)**: Consolidated integration workspace featuring top-right pill toggles to smoothly slide between `Codegen`, `Testing`, and `Evaluation` sub-agents with deduplicated revision indicators.
+- **Stage 7 (Final Source Code)**: Dedicated code inspection environment displaying only the finalized verified production codebase without multi-revision noise.
+- **Stage 8 (Live Preview)**: Interactive responsive container preview with simulated Desktop, Tablet (camera dot, tablet bezel), and Mobile (Dynamic Island pill notch, home indicator bar, compact resilient control bar) viewports.
+- **Stage 9 (Development Results)**: Deep emerald/rose status container, one-click ZIP packaging, commit to GitHub modal, Post-Development Support trigger, and animated SVG Development Lifecycle Progression Graph with agent milestone metrics.
+- **Stage 10 (Post-Development Request)**: 3-pill selector (`Feature Request` | `Bug Fixes` | `Product Enquiry`) with dynamic placeholders.
+- **Stage 11 (Feature Request / Bug Fix Execution)**: Multi-phase synthesis with automatic return to Stage 9.
 
 ### 9.5 Space-Time Pipeline Visualizer
 - **Continuous Matrix Progression**: 2D coordinate grid with stages as vertical rows and discrete time increments as horizontal columns (T1, T2, T3...).
@@ -461,9 +465,10 @@ The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript 
 - **Integration Phase**: Strictly limited to a maximum of **5 revisions** (`MAX_INTEGRATION_REVISIONS = 5`).
 - Enforced across backend orchestrators (`scheduler.py`, `orchestrator.py`) and frontend runners (`useIntegrationRunner.ts`, `appStore.ts`).
 
-### 9.7 Endscreen Development Gantt Chart & Timeline Metrics
+### 9.7 Development Lifecycle Progression Graph & Timeline Metrics
 - **Timestamped Execution Intervals**: Captures `startTime`, `endTime`, and `durationMs` for every SDLC phase and DAG component track.
-- **Interactive Gantt Chart**: Rendered directly on the Stage 10 development completion screen displaying total elapsed time, per-phase breakdown bars, and component tracks in chronological sequence.
+- **Interactive SVG Velocity Curve**: Rendered directly on the Stage 9 completion screen displaying an animated cubic bezier curve with hover tooltips, pulse milestones, and cumulative execution duration.
+- **Agent Milestone Duration Strip**: Compact milestone tiles situated directly beneath the velocity curve displaying per-agent execution times across Requirements, Decomposition, Design, Codegen, Sandbox Testing, Arbitration, Integration, and Documentation.
 
 ### 9.8 One-Click GitHub Export & Commit Modal
 - **Upload to GitHub**: Dedicated button on the completion screen opening an authentication dialog.
@@ -771,8 +776,8 @@ AutoDev has evolved through **78 commits across 9 architectural eras**, progress
 | `v2.2.1-Prod` | `5502746` | Production Release | Live SSE terminal, Prompt Guard, horizontal carousel UI, Backoff |
 | `v2.3.0-Prod` | `7a19c4d` | Differential & Hybrid SDLC | Targeted differential revision, hybrid UI build verification, Python runtime defense, Abort->Retry control plane |
 | `v3.0.0-Prod` | `a38c91d` | Light UI & 12-Stage Shell | 3-page flow, light theme design system, 12-stage presentation shell, new product lifecycle |
-| `v3.1.0-Prod` | `b49f12e` | Product Enquiry Agent | Dedicated Stage 2 enquiry agent, plain-English summary, implementation strategy, non-trivial question filter, enriched requirements handoff |
-| `v3.2.0-Prod` | `HEAD` | Glassmorphic UI & Hardened SDLC | Apple iOS obsidian glassmorphic design system, AeroShards 3D WebGPU ambient background, directional sliding stage transitions, space-time matrix visualizer hardening, strict revision limits (3 pipeline, 5 integration), endscreen Gantt metrics, and one-click GitHub export modal |
+| `v3.2.0-Prod` | `e8b5a8b` | Glassmorphic UI & Hardened SDLC | Apple iOS obsidian glassmorphic design system, AeroShards 3D WebGPU ambient background, directional sliding stage transitions, space-time matrix visualizer hardening, strict revision limits (3 pipeline, 5 integration), endscreen Gantt metrics, and one-click GitHub export modal |
+| `v3.3.0-Prod` | `HEAD` | Multi-Agent Hub & Viewport Emulation | Unified 3-agent integration hub (Codegen, Testing, Evaluation tabs), dedicated final source code stage, responsive multi-device live preview with iPhone/iPad bezels & Dynamic Island, liquid pipeline accordion motion, radiant green/red development status hue, and SVG development progression graph with agent milestone durations |
 
 ---
 

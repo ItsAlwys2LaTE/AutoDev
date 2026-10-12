@@ -20,9 +20,9 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDownIcon,
-  ChevronUpIcon,
   SparklesIcon,
   CheckCircleIcon,
   LockClosedIcon,
@@ -462,12 +462,16 @@ export function ComponentTrack({
         currentStage: 'DESIGN',
       });
       useAppStore.getState().completeTimelineInterval(designIntervalId, { status: 'completed' });
-      await pipelineComplete({
-        component_id: cId,
-        stage: 'DESIGN',
-        verdict: 'approve',
-        mode: 'QUICK',
-      });
+      try {
+        await pipelineComplete({
+          component_id: cId,
+          stage: 'DESIGN',
+          verdict: 'approve',
+          mode: 'QUICK',
+        });
+      } catch (e) {
+        console.warn(`pipelineComplete DESIGN error for ${cId}:`, e);
+      }
     } catch (err: any) {
       console.error(`Design error in component ${cId}:`, err);
       useAppStore.getState().completeTimelineInterval(designIntervalId, { status: 'failed' });
@@ -624,12 +628,16 @@ export function ComponentTrack({
 
       updateComponentState(cId, { status: 'critic_queued' });
       useAppStore.getState().completeTimelineInterval(codegenIntervalId, { status: 'completed' });
-      await pipelineComplete({
-        component_id: cId,
-        stage: 'CODEGEN',
-        verdict: 'approve',
-        mode: 'QUICK',
-      });
+      try {
+        await pipelineComplete({
+          component_id: cId,
+          stage: 'CODEGEN',
+          verdict: 'approve',
+          mode: 'QUICK',
+        });
+      } catch (e) {
+        console.warn(`pipelineComplete CODEGEN error for ${cId}:`, e);
+      }
     } catch (err: any) {
       console.error(`CodeGen error in component ${cId}:`, err);
       useAppStore.getState().completeTimelineInterval(codegenIntervalId, { status: 'failed' });
@@ -905,15 +913,19 @@ export function ComponentTrack({
             revisionPlan: decision.revision_plan,
           });
 
-          await pipelineComplete({
-            component_id: cId,
-            stage: 'CRITICS',
-            verdict: 'revise',
-            revision_count: nextRev,
-            dynamic_budget: budget,
-            revision_plan: decision.revision_plan,
-            mode,
-          });
+          try {
+            await pipelineComplete({
+              component_id: cId,
+              stage: 'CRITICS',
+              verdict: 'revise',
+              revision_count: nextRev,
+              dynamic_budget: budget,
+              revision_plan: decision.revision_plan,
+              mode,
+            });
+          } catch (e) {
+            console.warn(`pipelineComplete CRITICS revise error for ${cId}:`, e);
+          }
         } else {
           // Revisions exhausted
           if (mode === 'QUICK') {
@@ -1005,7 +1017,7 @@ export function ComponentTrack({
       const lastCompletedRev = completedRevisionsRef.current.get('CODEGEN') ?? -1;
       const isNewRevision = curRev > lastCompletedRev;
       if (
-        (curEpoch > lastEpoch || isNewRevision || (curEpoch === 0 && lastEpoch === -1)) &&
+        (curEpoch > lastEpoch || curEpoch === 0 || isNewRevision) &&
         (completedEpoch !== curEpoch || isNewRevision)
       ) {
         lastProcessedEpochByStageRef.current.set('CODEGEN', curEpoch);
@@ -1017,7 +1029,7 @@ export function ComponentTrack({
       const lastCompletedRev = completedRevisionsRef.current.get('CRITICS') ?? -1;
       const isNewRevision = curRev > lastCompletedRev && lastCompletedRev >= 0;
       if (
-        (curEpoch > lastEpoch || isNewRevision || (curEpoch === 0 && lastEpoch === -1)) &&
+        (curEpoch > lastEpoch || curEpoch === 0 || isNewRevision) &&
         (completedEpoch !== curEpoch || isNewRevision)
       ) {
         lastProcessedEpochByStageRef.current.set('CRITICS', curEpoch);
@@ -1149,25 +1161,45 @@ export function ComponentTrack({
           </span>
           <button
             type="button"
-            className="text-slate-400 hover:text-white p-1 rounded-md transition-colors"
+            className="text-slate-400 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
             aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
           >
-            {isExpanded ? (
-              <ChevronUpIcon className="w-5 h-5" />
-            ) : (
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            >
               <ChevronDownIcon className="w-5 h-5" />
-            )}
+            </motion.div>
           </button>
         </div>
       </div>
 
       {/* ── Accordion Collapsible Body ───────────────────────────────────────── */}
-      <div
-        id={`body-${cId}`}
-        className={`${
-          isExpanded ? 'block' : 'hidden'
-        } p-6 space-y-8 bg-slate-950/[0.25] divide-y divide-white/[0.07]`}
-      >
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            id={`body-${cId}`}
+            key={`body-${cId}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{
+              height: 'auto',
+              opacity: 1,
+              transition: {
+                height: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                opacity: { duration: 0.25, ease: 'easeOut' },
+              },
+            }}
+            exit={{
+              height: 0,
+              opacity: 0,
+              transition: {
+                height: { duration: 0.28, ease: [0.16, 1, 0.3, 1] },
+                opacity: { duration: 0.18, ease: 'easeIn' },
+              },
+            }}
+            className="overflow-hidden bg-slate-950/[0.25]"
+          >
+            <div className="p-6 space-y-8 divide-y divide-white/[0.07]">
         {/* ── STAGE 1: Architectural Blueprint ────────────────────────────── */}
         <div id={`design-section-${cId}`} className="pt-2 first:pt-0">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -1262,11 +1294,13 @@ export function ComponentTrack({
                   {`${cId}-blueprint.md`}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.05] text-slate-400 border border-white/[0.06]">
-                  {mode === 'QUICK' && !isPaused ? 'READ-ONLY BLUEPRINT' : 'CLICK TO EDIT'}
-                </span>
-              </div>
+              {mode !== 'QUICK' || isPaused ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.05] text-slate-400 border border-white/[0.06]">
+                    CLICK TO EDIT
+                  </span>
+                </div>
+              ) : null}
             </div>
 
             <ModernScrollbar className="w-full h-64 sm:h-72">
@@ -1527,7 +1561,10 @@ export function ComponentTrack({
             />
           )}
         </div>
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
-}
+};

@@ -74,7 +74,7 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
 
     if (selectedOption === 'feature' || selectedOption === 'bug') {
       setPostCompletionMode('modify');
-      onAdvance(12); // Advance to Stage 12 (Execution View)
+      onAdvance(11); // Advance to Stage 11 (Execution View)
     } else {
       // Product Enquiry: In-place streaming technical answer
       if (!currentCodebase) {
@@ -121,7 +121,7 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             type="button"
-            onClick={() => onAdvance(10)}
+            onClick={() => onAdvance(9)}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             title="Return to Results"
           >
@@ -139,7 +139,7 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
 
         <button
           type="button"
-          onClick={() => onAdvance(10)}
+          onClick={() => onAdvance(9)}
           className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs transition-colors cursor-pointer"
         >
           Back to Results

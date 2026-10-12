@@ -140,31 +140,31 @@ export function AdjudicatorDecision({
 
   // Format verdict display string and styling
   let verdictDisplay = 'EVALUATING';
-  let verdictClass = 'bg-slate-500/20 text-slate-300 border-slate-500/30';
-  let cardClass = 'bg-slate-950 p-5 rounded-lg border border-slate-800 shadow-sm';
+  let verdictClass = 'bg-white/10 text-slate-300 border-white/20';
+  let cardClass = 'bg-slate-950/[0.25] backdrop-blur-md p-5 rounded-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
 
   if (isEarlyStop) {
     verdictDisplay = 'PASSED (EARLY STOP)';
     verdictClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-    cardClass = 'bg-emerald-950/20 p-5 rounded-lg border border-emerald-900/50 shadow-sm';
+    cardClass = 'bg-emerald-950/20 backdrop-blur-md p-5 rounded-2xl border border-emerald-500/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   } else if (isPassed) {
     verdictDisplay = 'PASS';
     verdictClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
-    cardClass = 'bg-emerald-950/20 p-5 rounded-lg border border-emerald-900/50 shadow-sm';
+    cardClass = 'bg-emerald-950/20 backdrop-blur-md p-5 rounded-2xl border border-emerald-500/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   } else if (isMaxRevisions) {
     verdictDisplay = `MAX REVISIONS (${dynamicBudget}/${dynamicBudget})`;
     verdictClass = 'bg-rose-500/20 text-rose-400 border-rose-500/30';
-    cardClass = 'bg-rose-950/20 p-5 rounded-lg border border-rose-900/50 shadow-sm';
+    cardClass = 'bg-rose-950/20 backdrop-blur-md p-5 rounded-2xl border border-rose-500/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   } else if (rawVerdict === 'revise') {
     verdictDisplay = revisionCount > 0
       ? `REVISE (Attempt ${revisionCount}/${dynamicBudget} starting...)`
       : 'REVISE';
     verdictClass = 'bg-rose-500/20 text-rose-400 border-rose-500/30';
-    cardClass = 'bg-rose-950/20 p-5 rounded-lg border border-rose-900/50 shadow-sm';
+    cardClass = 'bg-rose-950/20 backdrop-blur-md p-5 rounded-2xl border border-rose-500/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   } else if (rawVerdict === 'error') {
     verdictDisplay = 'ERROR';
     verdictClass = 'bg-rose-500/20 text-rose-400 border-rose-500/30';
-    cardClass = 'bg-rose-950/20 p-5 rounded-lg border border-rose-900/50 shadow-sm';
+    cardClass = 'bg-rose-950/20 backdrop-blur-md p-5 rounded-2xl border border-rose-500/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]';
   }
 
   // Handle final download zip
@@ -188,7 +188,7 @@ export function AdjudicatorDecision({
     >
       {/* Title */}
       <h3 className="text-lg sm:text-xl font-bold text-slate-200 flex items-center gap-2">
-        <ScaleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400 shrink-0" />
+        <ScaleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white/90 shrink-0" />
         <span>Adjudicator Decision</span>
       </h3>
 
@@ -209,7 +209,7 @@ export function AdjudicatorDecision({
         {/* Scoring & Budget Metrics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-xs font-mono">
           {/* Composite Score */}
-          <div className="p-3 rounded-xl bg-black/40 border border-white/10">
+          <div className="p-3 rounded-xl bg-slate-950/[0.3] border border-white/[0.08]">
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-semibold">
               Weighted Composite
             </div>
@@ -224,11 +224,11 @@ export function AdjudicatorDecision({
           </div>
 
           {/* Dynamic Budget */}
-          <div className="p-3 rounded-lg bg-black/40 border border-slate-800/80">
+          <div className="p-3 rounded-xl bg-slate-950/[0.3] border border-white/[0.08]">
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-semibold">
               Dynamic Budget
             </div>
-            <div className="text-sm sm:text-base font-bold text-indigo-300 mt-0.5">
+            <div className="text-sm sm:text-base font-bold text-slate-100 mt-0.5">
               {`${dynamicBudget} ${dynamicBudget === 1 ? 'Revision' : 'Revisions'}`}
             </div>
             <div className="text-[10px] text-slate-500 font-sans mt-0.5">
@@ -237,7 +237,7 @@ export function AdjudicatorDecision({
           </div>
 
           {/* Score Delta & Early Stop Check */}
-          <div className="p-3 rounded-lg bg-black/40 border border-slate-800/80">
+          <div className="p-3 rounded-xl bg-slate-950/[0.3] border border-white/[0.08]">
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-sans font-semibold">
               Delta Early-Stop
             </div>
@@ -259,7 +259,7 @@ export function AdjudicatorDecision({
           </h4>
           <p
             id="adjudicatorPlan"
-            className="text-slate-300 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed bg-black/30 p-3.5 rounded-lg border border-slate-800/80 font-mono"
+            className="text-slate-300 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed bg-slate-950/[0.3] p-3.5 rounded-xl border border-white/[0.08] font-mono"
           >
             {decision?.revision_plan || storeRevisionPlan || 'No revision plan required.'}
           </p>
@@ -276,7 +276,7 @@ export function AdjudicatorDecision({
             disabled={isGeneratingDocs || docsGenerated}
             className={`w-full font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm text-sm ${
               docsGenerated
-                ? 'bg-slate-800 text-slate-300 border border-white/10 cursor-default'
+                ? 'bg-white/[0.06] text-slate-300 border border-white/[0.1] cursor-default'
                 : 'bg-white/10 hover:bg-white/20 border border-white/20 text-white hover:shadow-md cursor-pointer'
             }`}
           >

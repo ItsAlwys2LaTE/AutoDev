@@ -429,6 +429,12 @@ export function useIntegrationRunner() {
         setIsMaxRevisions(false);
         setVerdictLabel('INTEGRATING');
 
+        useAppStore.setState({
+          integrationRevisionHistory: [],
+          integrationCriticHistory: [],
+          integrationActiveRevisionIndex: 0,
+          integrationActiveCriticIndex: 0,
+        });
         currentStore.setIntegrationRevisionInfo(0, null, 5, null);
       }
 

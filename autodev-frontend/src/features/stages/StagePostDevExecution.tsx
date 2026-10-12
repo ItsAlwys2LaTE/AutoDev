@@ -124,9 +124,9 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
 
         setCurrentStep('completed');
 
-        // Automatic return to Stage 10 (Development Results) after 2.5 seconds
+        // Automatic return to Stage 9 (Development Results) after 2.5 seconds
         autoReturnTimerRef.current = setTimeout(() => {
-          onAdvance(10);
+          onAdvance(9);
         }, 2500);
       } catch (err: any) {
         clearTimeout(timer1);
@@ -144,7 +144,7 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
 
   const handleManualReturn = () => {
     if (autoReturnTimerRef.current) clearTimeout(autoReturnTimerRef.current);
-    onAdvance(10);
+    onAdvance(9);
   };
 
   return (

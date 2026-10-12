@@ -57,12 +57,12 @@ export function CriticsOutput({
       {!hideHeader && (
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-slate-200 flex items-center gap-2 text-base sm:text-lg">
-            <span className="bg-rose-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+            <span className="bg-white/10 text-white border border-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
               3
             </span>
             <span>Arbitration Engine Feedback</span>
           </h2>
-          <span className="px-3 py-1 bg-rose-500/20 text-rose-400 text-xs sm:text-sm rounded-full font-medium border border-rose-500/30 flex items-center gap-1.5">
+          <span className="px-3 py-1 bg-white/10 text-slate-200 text-xs sm:text-sm rounded-full font-medium border border-white/20 flex items-center gap-1.5">
             <ShieldCheckIcon className="w-3.5 h-3.5" />
             <span>Evaluated</span>
           </span>
@@ -78,8 +78,8 @@ export function CriticsOutput({
         className="space-y-4 max-h-[600px] overflow-y-auto pr-1"
       >
         {isEvaluating && feedbacks.length === 0 && (
-          <div className="bg-black/30 backdrop-blur-xl p-6 rounded-2xl border border-white/10 text-center space-y-2">
-            <div className="inline-block animate-spin h-6 w-6 border-2 border-rose-500 border-t-transparent rounded-full" />
+          <div className="bg-slate-950/[0.25] backdrop-blur-md p-6 rounded-2xl border border-white/[0.07] text-center space-y-2">
+            <div className="inline-block animate-spin h-6 w-6 border-2 border-white/80 border-t-transparent rounded-full" />
             <p className="text-slate-300 text-sm font-medium">
               Running parallel Correctness, Completeness, and Architecture critics...
             </p>
@@ -101,7 +101,7 @@ export function CriticsOutput({
           return (
             <div
               key={`${fb.critic_name}-${idx}`}
-              className="bg-black/30 backdrop-blur-xl p-5 rounded-2xl border border-white/10 shadow-sm transition-all hover:border-white/20"
+              className="bg-slate-950/[0.25] backdrop-blur-md p-5 rounded-2xl border border-white/[0.07] shadow-sm transition-all hover:border-white/20"
             >
               {/* Card Header */}
               <div className="flex justify-between items-center border-b border-white/10 pb-3 mb-3">

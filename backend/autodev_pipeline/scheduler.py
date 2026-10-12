@@ -480,25 +480,30 @@ class PipelineScheduler:
 
             # 3. Stage Dispatching
             for stage in StageEnum.linear_order():
-                while self.lock_manager.has_available_slot(stage):
-                    candidate_id = self.queue_manager.peek(stage)
-                    if not candidate_id:
+                candidates = self.queue_manager.peek_all(stage)
+                for candidate_id in candidates:
+                    if not self.lock_manager.has_available_slot(stage):
                         break
-                        
+
                     comp = self.dag.get_component(candidate_id)
                     if not comp or comp.status != ComponentStatus.READY:
                         # Remove stale entry from queue and try next
-                        self.queue_manager.dequeue(stage)
+                        self.queue_manager.remove(stage, candidate_id)
+                        continue
+
+                    semaphore = self.lock_manager._get_semaphore(stage)
+                    if candidate_id in semaphore.current_holders:
+                        self.queue_manager.remove(stage, candidate_id)
                         continue
 
                     if not self._can_dispatch_concurrently(stage, comp):
-                        break
+                        continue
 
                     lease = self.lock_manager.try_acquire_stage(stage, candidate_id)
                     if not lease:
                         break  # No slot available (race condition guard)
 
-                    self.queue_manager.dequeue(stage)
+                    self.queue_manager.remove(stage, candidate_id)
                     from_status = comp.status
                     comp.transition_to(ComponentStatus.IN_STAGE, stage=stage, lease=lease)
                     self.log_event(
@@ -529,17 +534,14 @@ class PipelineScheduler:
         semaphore = self.lock_manager._get_semaphore(stage)
         current_holders = semaphore.current_holders
 
-        # A lower-priority component already in stage is fine since candidate has higher/equal priority
-        # (lower priority_order value = higher priority)
+        # Prevent duplicate occupancy: candidate already holds a slot in this stage
+        if candidate.component_id in current_holders:
+            return False
 
-        # Check if there's a higher-priority component waiting in queue
-        queue_items = self.queue_manager.peek_all(stage)
-        for queued_id in queue_items:
-            if queued_id == candidate.component_id:
-                continue
-            queued_comp = self.dag.get_component(queued_id)
-            if queued_comp and queued_comp.priority_order < candidate.priority_order:
-                # A higher-priority component is waiting - don't skip it
+        # Validate that all upstream DAG dependencies are fully completed
+        for dep_id in candidate.dependencies:
+            dep_comp = self.dag.get_component(dep_id)
+            if dep_comp and dep_comp.status != ComponentStatus.COMPLETED:
                 return False
 
         return True

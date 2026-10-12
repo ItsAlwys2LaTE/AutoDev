@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowRightIcon,
   ScaleIcon,
   CheckBadgeIcon,
 } from '@heroicons/react/24/outline';
@@ -15,7 +14,7 @@ export interface StageIntegrationArbitrationProps {
 }
 
 export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationProps> = ({
-  onAdvance,
+  onAdvance: _onAdvance,
   className = '',
 }) => {
   const storeCritics = useAppStore((s) => s.criticEvaluations) || [];
@@ -64,33 +63,18 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
       className={`h-full flex flex-col max-w-5xl mx-auto px-4 py-4 space-y-4 select-none ${className}`}
     >
       {/* ── Top Bar: Title & Arbitration Engine Pill ── */}
-      <div className="flex items-center justify-between pb-3 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90">
-            <ScaleIcon className="w-4 h-4" />
+      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
+            <ScaleIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
           </div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-white">
-              INTEGRATION AGENT
-            </h2>
-            <span
-              id="arbitrationEnginePill"
-              className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-white/[0.06] border border-white/[0.08] text-slate-200"
-            >
-              Arbitration Engine
-            </span>
-          </div>
+          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            Integration Agent
+          </h2>
         </div>
-
-        <button
-          id="advanceToFinalCodeBtn"
-          type="button"
-          onClick={() => onAdvance(8)}
-          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-2 border border-white/20 transition-all cursor-pointer shadow-md"
-        >
-          <span>Final Source Code</span>
-          <ArrowRightIcon className="w-3.5 h-3.5" />
-        </button>
+        <p className="text-xs md:text-sm text-slate-300">
+          Multi-critic verification and mathematical adjudication evaluating correctness, architecture, and security across the integrated system.
+        </p>
       </div>
 
       {/* ── Revision Tabs ── */}

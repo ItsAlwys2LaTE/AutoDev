@@ -68,7 +68,7 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
               <EnvelopeIcon className="w-3.5 h-3.5 text-slate-400" />
               <span>Email Address</span>
             </label>
-            <div className="rounded-2xl border border-white/10 bg-black/40 transition-colors focus-within:border-purple-400/50 focus-within:bg-black/60">
+            <div className="rounded-2xl border border-white/10 bg-black/40 transition-colors focus-within:border-white/30 focus-within:ring-1 focus-within:ring-white/10">
               <input
                 id="signInEmail"
                 type="email"
@@ -85,7 +85,7 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
               <LockClosedIcon className="w-3.5 h-3.5 text-slate-400" />
               <span>Password</span>
             </label>
-            <div className="rounded-2xl border border-white/10 bg-black/40 transition-colors focus-within:border-purple-400/50 focus-within:bg-black/60 relative">
+            <div className="rounded-2xl border border-white/10 bg-black/40 transition-colors focus-within:border-white/30 focus-within:ring-1 focus-within:ring-white/10 relative">
               <input
                 id="signInPassword"
                 type={showPassword ? 'text' : 'password'}
@@ -115,14 +115,14 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="rounded border-white/20 bg-black/40 text-purple-600 focus:ring-0 cursor-pointer"
+                className="rounded border-white/20 bg-black/40 accent-white focus:ring-0 cursor-pointer"
               />
               <span>Keep me signed in</span>
             </label>
             <button
               type="button"
               onClick={() => onSignInSuccess()}
-              className="text-purple-400 hover:text-purple-300 font-medium transition-colors"
+              className="text-slate-400 hover:text-white font-medium transition-colors cursor-pointer"
             >
               Reset password
             </button>
@@ -158,7 +158,7 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
           <button
             type="button"
             onClick={() => onSignInSuccess()}
-            className="text-purple-400 hover:text-purple-300 font-semibold underline transition-colors"
+            className="text-white hover:text-slate-200 font-semibold underline transition-colors cursor-pointer"
           >
             Create Account
           </button>

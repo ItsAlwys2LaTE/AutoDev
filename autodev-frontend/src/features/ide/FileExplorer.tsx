@@ -34,7 +34,7 @@ function getFileIcon(fileName: string) {
     lower.endsWith('.html') ||
     lower.endsWith('.css')
   ) {
-    return <CodeBracketIcon className="w-4 h-4 text-indigo-400 shrink-0" />;
+    return <CodeBracketIcon className="w-4 h-4 text-white/80 shrink-0" />;
   }
   if (lower.endsWith('.json') || lower.endsWith('.yaml') || lower.endsWith('.yml')) {
     return <DocumentTextIcon className="w-4 h-4 text-amber-400 shrink-0" />;
@@ -57,14 +57,14 @@ export function FileExplorer({
     >
       <div className="p-2.5 text-xs font-semibold text-slate-300 uppercase tracking-wider border-b border-white/10 bg-slate-950/[0.25] flex items-center justify-between">
         <span>Explorer</span>
-        <span className="text-[11px] font-mono text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">
+        <span className="text-[11px] font-mono text-slate-300 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded">
           {`${files.length} ${files.length === 1 ? 'file' : 'files'}`}
         </span>
       </div>
 
       <ScrollFade
         id="fileExplorer"
-        className="flex-1 overflow-y-auto py-2 divide-y divide-slate-800/40"
+        className="flex-1 overflow-y-auto py-2 divide-y divide-white/[0.05]"
         role="tree"
         aria-label="Files in project"
       >
@@ -82,8 +82,8 @@ export function FileExplorer({
                 onClick={() => onSelectFile(index)}
                 className={`file-item w-full text-left px-3 py-2 text-sm cursor-pointer flex items-center gap-2 truncate transition-colors duration-150 ${
                   isActive
-                    ? 'bg-slate-800 text-white font-medium border-l-2 border-purple-500 shadow-inner'
-                    : 'text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                    ? 'bg-white/10 text-white font-medium border-l-2 border-purple-500 shadow-inner'
+                    : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
                 }`}
                 title={file.file_name}
                 aria-selected={isActive}

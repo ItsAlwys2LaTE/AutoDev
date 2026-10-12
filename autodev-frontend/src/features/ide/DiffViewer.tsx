@@ -40,13 +40,13 @@ export function DiffViewer({
   return (
     <div
       id="diffContainer"
-      className={`flex flex-col border border-slate-700 rounded-lg overflow-hidden mb-6 bg-[#1e1e1e] ${className}`}
-      style={{ height }}
+      style={{ backdropFilter: 'blur(14px)', height }}
+      className={`flex flex-col border border-white/[0.07] rounded-2xl overflow-hidden mb-6 bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] ${className}`}
     >
       {/* Diff Header Bar */}
-      <div className="flex items-center justify-between bg-slate-950 border-b border-slate-800 px-4 py-2 text-xs font-mono">
+      <div className="flex items-center justify-between bg-slate-950/[0.4] border-b border-white/[0.07] px-4 py-2.5 text-xs font-mono">
         <div className="flex items-center gap-3 text-slate-300">
-          <span className="font-semibold text-purple-400">{fileName || 'No file selected'}</span>
+          <span className="font-semibold text-white">{fileName || 'No file selected'}</span>
           <span className="text-slate-500">•</span>
           <span className="text-slate-400 capitalize">{language}</span>
         </div>
@@ -55,7 +55,7 @@ export function DiffViewer({
             <span className="w-2 h-2 rounded-full bg-rose-500/80" />
             <span>{previousRevisionLabel} (Original)</span>
           </span>
-          <span className="text-slate-600">→</span>
+          <span className="text-slate-500">→</span>
           <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500/80" />
             <span>{currentRevisionLabel} (Modified)</span>
@@ -87,7 +87,7 @@ export function DiffViewer({
           loading={
             <div className="flex items-center justify-center h-full text-slate-400 font-mono text-xs gap-2">
               <svg
-                className="animate-spin h-4 w-4 text-purple-400"
+                className="animate-spin h-4 w-4 text-white/80"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

@@ -111,7 +111,7 @@ export const Terminal: React.FC<TerminalProps> = ({
               {
                 id: 'init',
                 text: '[System] Connected to AutoDev Uvicorn Backend Stream...',
-                colorClass: 'text-slate-500 mb-2 block border-b border-slate-800 pb-2',
+                colorClass: 'text-slate-500 mb-2 block border-b border-white/[0.07] pb-2',
               },
             ];
           }

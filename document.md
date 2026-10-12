@@ -6867,23 +6867,79 @@ The interface was refactored to align with the minimalistic, unified agent aesth
   - Strict revision limits preserved: 3 maximum for Pipeline, 5 maximum for Integration.
   - Strictly zero emojis across all code, tests, styles, and documentation.
 
-### Section 8.12: Container-Level Stage Sliding Animation Architecture
-- **User Request**: Not satisfied with the stage slide animation. Instead of sliding the stage container outputs, add a sliding animation for the stage containers themselves.
-- **Architectural Shift & Implementation**:
-  - **Container-Level Framer Motion Wrapping**:
-    - Previously, the stage workspace box (`#centralStageWorkspace`) was statically fixed in position, and only the inner stage content was sliding inside it.
-    - Shifted `<AnimatePresence mode="wait" custom={slideDirection} initial={false}>` outside `#centralStageWorkspace` so that `#centralStageWorkspace` itself is converted into a `motion.div`.
-    - Now the entire glassmorphic stage container (frosted obsidian surface, specular borders, backdrop blur, shadows, and all contained children) dynamically slides across the viewport when switching stages.
-  - **Refined Spring Physics & Motion Profile**:
-    - `enter`: `x: 100` (forward) or `-100` (backward), `opacity: 0`, `scale: 0.985`, `filter: 'blur(6px)'`.
-    - `center`: `x: 0`, `opacity: 1`, `scale: 1`, `filter: 'blur(0px)'` with spring physics (`stiffness: 320, damping: 26, mass: 0.75`).
-    - `exit`: `x: -100` (forward) or `100` (backward), `opacity: 0`, `scale: 0.985`, `filter: 'blur(6px)'` with crisp `0.2s` duration.
-  - **DOM & Test Contract Preservation**:
-    - `id="centralStageWorkspace"` is preserved on the sliding container element, ensuring full backwards compatibility with all testing suites and layout queries.
+### Section 8.13: Live Preview Multi-Device Viewport Layout Hardening
+- **User Request**: Fix layout issues in the live preview section when switching to different screen size previews (Desktop, Tablet, Mobile).
+- **Forensic Diagnosis of Viewport Layout Issues**:
+  1. **Fixed Pixel Height Vertical Clipping**:
+     - Mobile and Tablet viewports used static heights (`h-[667px]` and `h-[720px]`).
+     - In standard laptop and browser viewports where the stage container height is ~450–550px, fixed heights combined with `flex items-center justify-center overflow-hidden` vertically centered the device frame, causing top and bottom edges (100–130px each) to be clipped outside the viewport.
+     - The top LivePreview control bar (URL status, static mode, open tab, reload) was inaccessible and pushed off-screen, with no scrollbars due to `overflow-hidden`.
+  2. **Control Bar Horizontal Overflow on Mobile**:
+     - Inside `LivePreview.tsx`, the top control bar rendered status text with `max-w-[260px]` alongside three action buttons (`Static Mode`, `Open Tab`, `Reload`), requiring >500px width.
+     - In a 375px mobile device viewport, the controls overflowed horizontally or broke into wrapped multi-line layouts that distorted the iframe header.
+- **Architectural Fixes Implemented**:
+  1. **Responsive Viewport Dimensions & Container Centering**:
+     - Updated `getViewportDimensions()` in `StageLivePreview.tsx`:
+       - **Mobile**: `w-[375px] max-w-full h-full max-h-[700px]` with authentic iOS rounded corners (`rounded-[40px]`), realistic bezel border (`border-[6px] border-zinc-800/90`), subtle simulated Dynamic Island notch, and bottom home indicator bar.
+       - **Tablet**: `w-[768px] max-w-full h-full max-h-[720px]` with tablet bezel (`rounded-[28px]`, `border-[6px] border-zinc-800/90`), camera indicator dot, and home bar.
+       - **Desktop**: `w-full h-full rounded-2xl border border-white/10` filling the entire canvas.
+     - The preview surface now uses `flex flex-col items-center justify-center overflow-auto p-2 sm:p-4`, with `mx-auto my-auto` on the device frame. On taller screens it scales to max-height; on shorter screens it adjusts cleanly with natural scrolling so no controls are ever clipped.
+  2. **LivePreview Control Bar Responsiveness**:
+     - In `LivePreview.tsx`, added `min-w-0 flex-1 overflow-hidden` and `truncate` to the status text container, `shrink-0` to all action buttons, and responsive button labels so the bar never overflows even down to 320px widths.
+  3. **Stage Title & Typography Harmonization**:
+     - Upgraded `StageLivePreview` top bar from uppercase micro-text to the modern standard `text-2xl md:text-3xl font-bold text-white tracking-tight` with matching subtitle.
 - **Verification & Policy Compliance**:
   - Full Vitest suite passing with 100% pass rate (34/34 files, 578/578 tests).
   - Production build compiled cleanly into `backend/dist` via `tsc && vite build`.
   - Strictly zero emojis across all code, tests, and documentation.
+
+### Section 8.14: Product Status Hue Intensity, Pipeline Accordion Motion & Metrics Tile Refinement
+- **User Requests Addressed**:
+  1. Increase the intensity of green/red color in product development status.
+  2. Add smooth animations for expand and collapse component containers in the pipeline stage.
+  3. Reduce the size of agent tiles in the development metrics section, and remove the green tick marks from the top-right of every tile.
+- **Architectural Enhancements Implemented**:
+  1. **Enhanced Status Hue Radiance (`StageDevelopmentResults.tsx`)**:
+     - Replaced faint `[0.14]` washes with deep multi-stop gradients (`from-emerald-950/60 via-emerald-950/40 to-slate-950/50` for success, `from-rose-950/60 via-rose-950/40 to-slate-950/50` for failure).
+     - Upgraded borders to vivid 2px specular outlines (`border-2 border-emerald-500/50` / `border-rose-500/50`).
+     - Amplified inner specular sheen to `0.45` and ambient glow to `0_0_50px_rgba(..., 0.2)` for a striking visual status indication.
+  2. **Liquid Accordion Animations (`ComponentTrack.tsx`)**:
+     - Equipped `#body-${cId}` with `<AnimatePresence>` and `<motion.div>` featuring spring-eased height interpolation (`height: 0 -> auto` with `ease: [0.16, 1, 0.3, 1]`) and opacity crossfade.
+     - Upgraded the chevron trigger with a 180-degree rotation animation (`rotate: isExpanded ? 180 : 0`).
+  3. **Agent Metrics Milestone Tiles Refinement (`DevelopmentProgressGraph.tsx`)**:
+     - Reduced tile padding to `p-1.5 sm:p-2`, gap to `gap-1.5 sm:gap-2`, and icon footprint to `w-5 h-5` with `w-3 h-3` icons.
+     - Removed the green checkmark (`CheckCircleIcon`) from the top-right of all 8 milestone cards.
+- **Verification & Policy Compliance**:
+  - All 34 test files (578/578 tests) passing cleanly.
+  - Production build verified with zero errors.
+  - 100% zero-emoji policy preserved.
+
+### Section 8.15: System-Wide UI Leftover Modernization & Master Release Preparation
+- **Scope & Objectives**:
+  - Scan the entire codebase for legacy styling artifacts (`border-slate-800`, `bg-slate-900`, `bg-purple-`, `bg-indigo-`) and modernize all leftover components to match the obsidian glassmorphic aesthetic (`bg-slate-950/[0.25]`, `backdrop-blur-md`, `border-white/[0.07]`, specular highlights, zero emojis).
+  - Strictly preserve recent architecture, stage state machines, DOM contracts, and previously modified stage workspaces.
+  - Remove all unnecessary testing artifacts and sync the production bundle for deployment.
+- **Components Modernized**:
+  1. [`CostDisplay.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/CostDisplay.tsx): Obsidian glass container with crisp typography and subtle emerald cost badges.
+  2. [`DarkModeToggle.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/DarkModeToggle.tsx): Rounded frosted glass pill button.
+  3. [`Terminal.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/Terminal.tsx): Subtle frosted separators (`border-white/[0.07]`).
+  4. [`StepperProgress.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/StepperProgress.tsx): Frosted step rings with crisp contrast.
+  5. [`DevelopmentGanttChart.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/DevelopmentGanttChart.tsx): Specular timeline ticks (`bg-white/20`).
+  6. [`AdjudicatorDecision.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/critics/AdjudicatorDecision.tsx): Frosted glass verdict containers, metric cards, and revision plan panels.
+  7. [`CriticsOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/critics/CriticsOutput.tsx): Frosted obsidian stage badge, status pill, and feedback cards.
+  8. [`ExecutionOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/execution/ExecutionOutput.tsx): Monochrome frosted glass pills for stage badge and `#criticBtn`.
+  9. [`DiffViewer.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/ide/DiffViewer.tsx): Monochrome frosted obsidian surfaces replacing purple diff accents.
+  10. [`FileExplorer.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/ide/FileExplorer.tsx): Frosted borders and badge dividers while preserving active tab contract.
+  11. [`IDEView.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/ide/IDEView.tsx): Modernized revision tabs, diff toggle, download ZIP button, and `#execBtn` to obsidian glass.
+  12. [`StageLanding.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageLanding.tsx): Clean monochrome obsidian accents.
+  13. [`StageSignIn.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageSignIn.tsx): Specular focus rings (`focus-within:border-white/30`).
+  14. [`FeatureRequestInput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/input/FeatureRequestInput.tsx): Modernized `#errorSection` to frosted banner while keeping `#abortDevBtn` test contracts intact.
+- **Verification & Policy Compliance**:
+  - All 34 test files (578/578 tests) passing cleanly.
+  - Production build compiled cleanly into `backend/dist` via `tsc && vite build`.
+  - Strictly zero emojis across all code, tests, and documentation.
+
+
 
 
 

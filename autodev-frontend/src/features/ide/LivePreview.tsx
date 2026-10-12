@@ -255,53 +255,53 @@ export function LivePreview({
       className={`flex-1 w-full bg-slate-950/[0.25] backdrop-blur-md relative flex flex-col h-full ${className}`}
     >
       {/* Top Preview Control Bar */}
-      <div className="bg-slate-950/[0.25] backdrop-blur-md border-b border-white/[0.07] px-3 py-1.5 flex items-center justify-between text-xs text-slate-300">
-        <div className="flex items-center gap-2">
+      <div className="bg-slate-950/[0.25] backdrop-blur-md border-b border-white/[0.07] px-3 py-1.5 flex items-center justify-between text-xs text-slate-300 min-w-0 gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
           {isLoading ? (
-            <div className="flex items-center gap-1.5 text-white/80">
-              <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+            <div className="flex items-center gap-1.5 text-white/80 min-w-0">
+              <svg className="animate-spin h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
-              <span className="font-mono text-[11px] truncate max-w-[240px]">
+              <span className="font-mono text-[11px] truncate">
                 {loadingMessage}
               </span>
             </div>
           ) : isInlineMode ? (
-            <div className="flex items-center gap-1.5 text-slate-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-mono text-[11px]">
+            <div className="flex items-center gap-1.5 text-slate-200 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="font-mono text-[11px] truncate">
                 In-Browser Static Preview
               </span>
             </div>
           ) : serverUrl ? (
-            <div className="flex items-center gap-1.5 text-emerald-400">
+            <div className="flex items-center gap-1.5 text-emerald-400 min-w-0">
               <CheckCircleIcon className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-mono text-[11px] font-semibold truncate max-w-[260px]">
-                Container Live: {serverUrl}
+              <span className="font-mono text-[11px] font-semibold truncate" title={`Container Live: ${serverUrl}`}>
+                {serverUrl}
               </span>
             </div>
           ) : errorMessage ? (
-            <div className="flex items-center gap-1.5 text-rose-400">
+            <div className="flex items-center gap-1.5 text-rose-400 min-w-0">
               <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0" />
-              <span className="font-mono text-[11px] truncate max-w-[260px]">
+              <span className="font-mono text-[11px] truncate" title={errorMessage}>
                 {errorMessage}
               </span>
             </div>
           ) : (
-            <span className="text-slate-400 font-mono text-[11px]">Preview Ready</span>
+            <span className="text-slate-400 font-mono text-[11px] truncate">Preview Ready</span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {canShowInlineFallback && !isInlineMode && (
             <button
               type="button"
               onClick={handleInlineFallback}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] text-[11px] font-medium transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] text-[11px] font-medium transition-colors cursor-pointer shrink-0"
               title="Render HTML/CSS/JS in-browser without Docker"
             >
-              <span>Static Mode</span>
+              <span>Static</span>
             </button>
           )}
 
@@ -310,10 +310,10 @@ export function LivePreview({
               href={serverUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] transition-colors text-[11px] font-medium"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] transition-colors text-[11px] font-medium shrink-0"
               title="Open preview in new browser tab"
             >
-              <span>Open Tab</span>
+              <span className="hidden sm:inline">Open</span>
               <ArrowTopRightOnSquareIcon className="w-3 h-3" />
             </a>
           )}
@@ -322,7 +322,7 @@ export function LivePreview({
             type="button"
             onClick={handleRestart}
             disabled={isLoading}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors shrink-0 ${
               isLoading
                 ? 'bg-white/[0.04] text-slate-500 border border-white/[0.05] cursor-not-allowed'
                 : 'bg-white/10 hover:bg-white/20 text-white border border-white/20 cursor-pointer shadow-xs'
@@ -330,7 +330,7 @@ export function LivePreview({
             title="Reload and restart container preview"
           >
             <ArrowPathIcon className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Reload</span>
+            <span className="hidden xs:inline">Reload</span>
           </button>
         </div>
       </div>

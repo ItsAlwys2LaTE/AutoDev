@@ -409,7 +409,7 @@ export const DevelopmentGanttChart: React.FC<DevelopmentGanttChartProps> = ({
                     transform: tick.ratio === 0 ? 'none' : tick.ratio === 1 ? 'translateX(-100%)' : 'translateX(-50%)',
                   }}
                 >
-                  <span className="h-1.5 w-px bg-slate-700 mb-1" />
+                  <span className="h-1.5 w-px bg-white/20 mb-1" />
                   <span>{tick.label}</span>
                 </div>
               ))}

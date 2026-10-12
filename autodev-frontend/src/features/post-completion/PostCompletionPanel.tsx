@@ -1204,7 +1204,8 @@ export function PostCompletionPanel({
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                READ-ONLY TECHNICAL EXPLANATION
+                TECHNICAL EXPLANATION
+                <span className="sr-only">READ-ONLY TECHNICAL EXPLANATION</span>
               </span>
             </div>
 

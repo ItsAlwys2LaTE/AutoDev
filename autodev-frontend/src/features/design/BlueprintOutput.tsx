@@ -17,7 +17,6 @@ import { motion } from 'framer-motion';
 import { useMutation } from '@tanstack/react-query';
 import {
   Square3Stack3DIcon,
-  LockClosedIcon,
   CodeBracketIcon,
   ExclamationCircleIcon,
   CheckBadgeIcon,
@@ -293,7 +292,7 @@ export function BlueprintOutput({
                 ? 'bg-white/10 text-white border-white/20'
                 : !isQuickMode
                 ? 'bg-white/[0.08] text-slate-200 border-white/15'
-                : 'bg-white/[0.06] text-slate-300 border-white/[0.08]'
+                : 'sr-only pointer-events-none'
             }`}
           >
             {isPaused ? (
@@ -301,10 +300,7 @@ export function BlueprintOutput({
             ) : !isQuickMode ? (
               <span>RICH TEXT BLUEPRINT (CLICK TO EDIT)</span>
             ) : (
-              <>
-                <LockClosedIcon className="w-3.5 h-3.5 text-slate-400" />
-                <span>READ-ONLY BLUEPRINT</span>
-              </>
+              <span className="sr-only">READ-ONLY BLUEPRINT</span>
             )}
           </span>
         </div>

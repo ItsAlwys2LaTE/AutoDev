@@ -528,7 +528,7 @@ export function IDEView({
                       isActive
                         ? isPostRun
                           ? 'text-emerald-300 font-bold'
-                          : 'text-purple-200 font-bold'
+                          : 'text-white font-bold'
                         : isPostRun
                         ? 'text-emerald-400/80 hover:text-emerald-300'
                         : 'text-slate-400 hover:text-slate-200'
@@ -540,7 +540,7 @@ export function IDEView({
                         className={`absolute inset-0 rounded-full border shadow-sm ${
                           isPostRun
                             ? 'bg-emerald-600/30 border-emerald-500/50'
-                            : 'bg-purple-500/30 border-purple-500/50'
+                            : 'bg-white/15 border-white/25'
                         }`}
                         transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                       />
@@ -565,7 +565,7 @@ export function IDEView({
         {/* Header Bar */}
         <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
           <h2 className="font-semibold text-slate-200 flex items-center gap-2.5">
-            <span className="bg-purple-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold shadow-sm">
+            <span className="bg-white/10 text-white border border-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold shadow-sm">
               2b
             </span>
             <span id="codeOutputTitle" className="text-base sm:text-lg font-bold">
@@ -583,8 +583,8 @@ export function IDEView({
                 onClick={handleToggleDiff}
                 className={`px-3 py-1 text-xs rounded-full font-medium border transition-colors flex items-center gap-1.5 ${
                   isDiffMode
-                    ? 'bg-purple-600/30 text-purple-300 border-purple-500 font-bold'
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
+                    ? 'bg-white/15 text-white border-white/25 font-bold'
+                    : 'bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border-white/[0.08]'
                 }`}
                 title="Toggle side-by-side diff comparing revisions"
               >
@@ -599,7 +599,7 @@ export function IDEView({
               type="button"
               onClick={handleDownloadZip}
               disabled={isExporting || files.length === 0}
-              className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-full font-medium border border-slate-700 transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="px-3 py-1 bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 text-xs rounded-full font-medium border border-white/[0.08] transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
               title="Download project as ZIP archive"
             >
               <ArrowDownTrayIcon className="w-3.5 h-3.5 text-slate-400" />
@@ -607,8 +607,8 @@ export function IDEView({
             </button>
 
             {/* Status Badge */}
-            <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full font-medium border border-purple-500/30 flex items-center gap-1">
-              <CheckCircleIcon className="w-3.5 h-3.5 text-purple-400" />
+            <span className="px-3 py-1 bg-white/10 text-white text-xs rounded-full font-medium border border-white/20 flex items-center gap-1">
+              <CheckCircleIcon className="w-3.5 h-3.5 text-white" />
               <span>{isStreaming ? 'Generating' : 'Ready'}</span>
             </span>
           </div>
@@ -628,9 +628,9 @@ export function IDEView({
         {isStreaming && (
           <ScrollFade
             id="codeFilesContainer"
-            className="space-y-4 mb-6 max-h-[500px] overflow-y-auto p-4 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-gray-300"
+            className="space-y-4 mb-6 max-h-[500px] overflow-y-auto p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] font-mono text-xs text-slate-300"
           >
-            <div className="flex items-center gap-2 text-indigo-400 font-medium">
+            <div className="flex items-center gap-2 text-white/90 font-medium">
               <svg
                 className="animate-spin h-4 w-4"
                 xmlns="http://www.w3.org/2000/svg"
@@ -682,7 +682,7 @@ export function IDEView({
         {!isStreaming && !isDiffMode && (
           <div
             id="ideContainer"
-            className="flex flex-col sm:flex-row border border-slate-700 rounded-xl overflow-hidden h-[500px] mb-6 bg-[#1e1e1e] shadow-inner"
+            className="flex flex-col sm:flex-row border border-white/[0.07] rounded-2xl overflow-hidden h-[500px] mb-6 bg-slate-950/[0.25] backdrop-blur-md shadow-inner"
           >
             {/* Left Sidebar: File Explorer */}
             <FileExplorer
@@ -694,8 +694,8 @@ export function IDEView({
             {/* Right Pane: Code Editor & Live Preview */}
             <div className="w-full sm:w-2/3 h-full relative flex flex-col">
               {/* Tab Header Bar */}
-              <div className="flex items-center justify-between bg-slate-950 border-b border-slate-700 px-3 py-1.5 h-10">
-                <div className="relative flex items-center p-0.5 rounded-full bg-slate-900 border border-slate-700/60 backdrop-blur-sm">
+              <div className="flex items-center justify-between bg-slate-950/[0.4] border-b border-white/[0.07] px-3 py-1.5 h-10">
+                <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.3] border border-white/10 backdrop-blur-sm">
                   <motion.button
                     id="tabCode"
                     type="button"
@@ -710,7 +710,7 @@ export function IDEView({
                     {!isPreviewOpen && (
                       <motion.div
                         layoutId="idePreviewToggleGlider"
-                        className="absolute inset-0 rounded-full bg-blue-600/30 border border-blue-500/40 shadow-sm"
+                        className="absolute inset-0 rounded-full bg-white/10 border border-white/20 shadow-sm"
                         transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                       />
                     )}
@@ -730,7 +730,7 @@ export function IDEView({
                     {isPreviewOpen && (
                       <motion.div
                         layoutId="idePreviewToggleGlider"
-                        className="absolute inset-0 rounded-full bg-blue-600/30 border border-blue-500/40 shadow-sm"
+                        className="absolute inset-0 rounded-full bg-white/10 border border-white/20 shadow-sm"
                         transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                       />
                     )}
@@ -744,7 +744,7 @@ export function IDEView({
                     {activeFile?.file_name}
                   </span>
                   <span className="text-slate-600">•</span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-white/[0.06] text-slate-300 border border-white/[0.08]">
                     Source
                   </span>
                 </div>
@@ -773,7 +773,7 @@ export function IDEView({
         {/* ===================================================================
          * ACTION TRANSITION (#execBtn)
          * =================================================================== */}
-        <div className="border-t border-slate-700/80 pt-6">
+        <div className="border-t border-white/[0.07] pt-6">
           <p className="text-slate-400 text-xs sm:text-sm mb-3 text-center">
             Source code written. Run tests in isolated sandbox.
           </p>
@@ -783,7 +783,7 @@ export function IDEView({
             type="button"
             onClick={handleExecuteSandbox}
             disabled={isStreaming || files.length === 0}
-            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm cursor-pointer"
           >
             <span>
               {countdown.isRunning && countdown.targetAction === 'execution'

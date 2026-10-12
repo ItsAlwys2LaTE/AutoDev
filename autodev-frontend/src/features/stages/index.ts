@@ -5,6 +5,8 @@ export * from './StageProductEnquiry';
 export * from './StageRequirements';
 export * from './StageDecomposition';
 export * from './StageComponentPipeline';
+export * from './StageIntegration';
+export * from './StageFinalSourceCode';
 export * from './StageIntegrationTesting';
 export * from './StageIntegrationArbitration';
 export * from './StageIntegrationCode';

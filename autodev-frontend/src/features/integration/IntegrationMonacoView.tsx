@@ -161,7 +161,7 @@ export function IntegrationMonacoView({
             >
               <span>{titleText}</span>
               {isReadOnly && (
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.08]">
+                <span className="sr-only">
                   Read Only
                 </span>
               )}

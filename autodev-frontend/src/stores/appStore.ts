@@ -925,19 +925,47 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     }),
 
   addIntegrationRevision: (item) =>
-    set((state) => ({
-      integrationRevisionHistory: [...state.integrationRevisionHistory, item],
-      integrationActiveRevisionIndex: state.integrationRevisionHistory.length,
-    })),
+    set((state) => {
+      const revNum = item.revisionNumber ?? state.integrationRevisionHistory.length;
+      const history = [...state.integrationRevisionHistory];
+      const existingIdx = history.findIndex(
+        (h) => (h.revisionNumber !== undefined ? h.revisionNumber === revNum : h.label === item.label)
+      );
+      const cleanItem = {
+        ...item,
+        revisionNumber: revNum,
+        label: item.label && !item.label.toLowerCase().includes('initial') && !item.label.startsWith('Rev ')
+          ? item.label
+          : revNum === 0
+          ? 'Initial'
+          : `Rev ${revNum}`,
+      };
+      if (existingIdx >= 0) {
+        history[existingIdx] = { ...history[existingIdx], ...cleanItem };
+      } else {
+        history.push(cleanItem);
+      }
+      const cappedHistory = history.slice(0, 5);
+      const targetIdx = existingIdx >= 0 ? existingIdx : cappedHistory.length - 1;
+      return {
+        integrationRevisionHistory: cappedHistory,
+        integrationActiveRevisionIndex: Math.min(targetIdx, cappedHistory.length - 1),
+      };
+    }),
 
   setIntegrationActiveRevisionIndex: (index: number) =>
     set({ integrationActiveRevisionIndex: index }),
 
   addIntegrationCriticEvaluation: (feedbacks, decision) =>
-    set((state) => ({
-      integrationCriticHistory: [...state.integrationCriticHistory, { feedbacks, decision }],
-      integrationActiveCriticIndex: state.integrationCriticHistory.length,
-    })),
+    set((state) => {
+      const history = [...state.integrationCriticHistory];
+      history.push({ feedbacks, decision });
+      const cappedHistory = history.slice(0, 5);
+      return {
+        integrationCriticHistory: cappedHistory,
+        integrationActiveCriticIndex: cappedHistory.length - 1,
+      };
+    }),
 
   setIntegrationActiveCriticIndex: (index: number) =>
     set({ integrationActiveCriticIndex: index }),

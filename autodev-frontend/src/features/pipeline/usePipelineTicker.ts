@@ -224,7 +224,8 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
           currentState.status === 'critic_queued' ||
           currentState.status === 'waiting_design' ||
           currentState.status === 'waiting_code' ||
-          currentState.status === 'waiting_critic';
+          currentState.status === 'waiting_critic' ||
+          currentState.status === 'stalled';
 
         if (cached && !isQueuedWaiting) {
           // If same epoch and same stage, already dispatched; keep active without re-dispatching
@@ -265,7 +266,8 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
           if (
             !currentState ||
             currentState.status === 'queued' ||
-            currentState.status === 'stalled'
+            currentState.status === 'stalled' ||
+            currentState.status === 'waiting_design'
           ) {
             targetStatus = 'designing';
           }
@@ -273,7 +275,9 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
           if (
             !currentState ||
             currentState.status === 'coding_queued' ||
-            currentState.status === 'queued'
+            currentState.status === 'queued' ||
+            currentState.status === 'waiting_code' ||
+            currentState.status === 'stalled'
           ) {
             targetStatus = 'coding';
           }
@@ -281,19 +285,21 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
           if (
             !currentState ||
             currentState.status === 'critic_queued' ||
-            currentState.status === 'queued'
+            currentState.status === 'queued' ||
+            currentState.status === 'waiting_critic' ||
+            currentState.status === 'stalled'
           ) {
             targetStatus = 'executing';
           }
         }
 
-        // Update lease cache
-        lastProcessedLeasesRef.current.set(compId, {
-          stage: stageUpper,
-          epoch: incomingEpoch,
-        });
-
         if (targetStatus) {
+          // Update lease cache only after target status is successfully resolved
+          lastProcessedLeasesRef.current.set(compId, {
+            stage: stageUpper,
+            epoch: incomingEpoch,
+          });
+
           updateComponentState(compId, {
             status: targetStatus,
             currentStage: stageUpper,

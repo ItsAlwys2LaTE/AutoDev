@@ -46,7 +46,7 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
 
     const timer = setTimeout(() => {
       hasAutoAdvancedRef.current = true;
-      onAdvance(8);
+      onAdvance(6);
     }, 1500);
 
     return () => clearTimeout(timer);
@@ -140,7 +140,7 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
           <div className="pt-0.5">
             <PipelineDashboard
               alwaysRender={true}
-              onIntegrate={() => onAdvance(8)}
+              onIntegrate={() => onAdvance(6)}
             />
           </div>
         </div>

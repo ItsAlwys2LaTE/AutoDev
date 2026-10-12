@@ -97,9 +97,7 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
       title="Toggle dark/light mode"
       type="button"
       aria-label="Toggle dark/light mode"
-      className={`w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 ${
-        isDark ? 'bg-slate-800' : 'bg-white'
-      } shadow-sm text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors duration-150 focus:outline-none ${className}`}
+      className={`w-9 h-9 flex items-center justify-center rounded-xl border border-white/[0.08] bg-slate-950/[0.25] backdrop-blur-md hover:bg-white/10 text-slate-300 hover:text-white transition-all focus:outline-none ${className}`}
     >
       {/* Sun icon (shown in dark mode) */}
       <svg

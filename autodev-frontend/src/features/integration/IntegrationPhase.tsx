@@ -12,7 +12,7 @@
  * - Renders IntegrationMonacoView, IntegrationCriticTabs, and final project ZIP exporter
  */
 import { useEffect, useRef } from 'react';
-import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon, CodeBracketIcon } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { useIntegrationRunner } from './useIntegrationRunner';
@@ -151,6 +151,21 @@ export function IntegrationPhase({
 
   const content = (
     <div className="space-y-6">
+      {/* ── Top Header matching Requirements, Decomposition, and Pipeline agents ── */}
+      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
+            <CodeBracketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            Integration Agent
+          </h2>
+        </div>
+        <p className="text-xs md:text-sm text-slate-300">
+          Multi-component codebase unification, dependency resolution, and full-stack integration synthesis.
+        </p>
+      </div>
+
       {/* ── Integration Action Toolbar ─────────────────────────────── */}
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 text-emerald-400 font-semibold text-sm">

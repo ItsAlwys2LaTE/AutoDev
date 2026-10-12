@@ -75,7 +75,7 @@ export const StepperProgress: React.FC<StepperProgressProps> = ({
         {steps.map(({ step, label }) => {
           const status: StepperStatus = stepperStates[step] || 'idle';
 
-          let iconStatusClass = 'bg-slate-800/80 text-slate-400 border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md';
+          let iconStatusClass = 'bg-white/[0.06] text-slate-300 border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md';
           let textStatusClass = 'text-slate-400';
           let iconContent: React.ReactNode = step;
 

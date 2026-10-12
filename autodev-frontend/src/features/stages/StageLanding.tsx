@@ -24,8 +24,8 @@ export const StageLanding: React.FC<StageLandingProps> = ({
     >
       {/* Brand Hero */}
       <div className="space-y-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-400/20 text-xs font-mono text-purple-300">
-          <SparklesIcon className="w-3.5 h-3.5 text-purple-400" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs font-mono text-white/90">
+          <SparklesIcon className="w-3.5 h-3.5 text-white/80" />
           <span>AUTONOMOUS SOFTWARE ENGINEERING ENGINE</span>
         </div>
 
@@ -41,12 +41,12 @@ export const StageLanding: React.FC<StageLandingProps> = ({
       {/* Feature Capability Badges */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 w-full max-w-2xl">
         <div className="p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.2)] flex flex-col items-center text-center gap-1.5">
-          <CpuChipIcon className="w-5 h-5 text-purple-400" />
+          <CpuChipIcon className="w-5 h-5 text-white/90" />
           <span className="text-xs font-semibold text-slate-200">Multi-Agent DAG</span>
           <span className="text-[10px] text-slate-400">Parallel Decomposition</span>
         </div>
         <div className="p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.2)] flex flex-col items-center text-center gap-1.5">
-          <CommandLineIcon className="w-5 h-5 text-indigo-400" />
+          <CommandLineIcon className="w-5 h-5 text-white/90" />
           <span className="text-xs font-semibold text-slate-200">Docker Sandbox</span>
           <span className="text-[10px] text-slate-400">Isolated Verification</span>
         </div>

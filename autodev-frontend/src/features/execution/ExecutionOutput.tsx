@@ -103,7 +103,7 @@ export function ExecutionOutput({
       {/* Header with Title and Badges */}
       <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
         <h2 className="font-semibold text-slate-200 flex items-center gap-2 text-base sm:text-lg">
-          <span className="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+          <span className="bg-white/10 text-white border border-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
             2c
           </span>
           <span>Test Execution Results</span>
@@ -156,7 +156,7 @@ export function ExecutionOutput({
 
       {/* Execution Logs Terminal Block (#execLogsOutput) */}
       <ScrollFade className="bg-black/25 backdrop-blur-md p-4 rounded-2xl border border-white/[0.07] max-h-96 overflow-y-auto shadow-inner mb-6">
-        <div className="flex items-center justify-between text-xs text-slate-500 border-b border-slate-900 pb-2 mb-2 font-mono">
+        <div className="flex items-center justify-between text-xs text-slate-500 border-b border-white/[0.07] pb-2 mb-2 font-mono">
           <span className="flex items-center gap-1.5">
             <CommandLineIcon className="w-3.5 h-3.5 text-slate-400" />
             <span>docker://autodev-sandbox/stdout</span>
@@ -166,7 +166,7 @@ export function ExecutionOutput({
         <pre className="m-0 p-0">
           <code
             id="execLogsOutput"
-            className="text-gray-300 text-xs sm:text-sm block whitespace-pre-wrap font-mono leading-relaxed"
+            className="text-slate-200 text-xs sm:text-sm block whitespace-pre-wrap font-mono leading-relaxed"
           >
             {logs || (isExecuting ? 'Starting container and executing sandbox test commands...' : 'No logs produced.')}
           </code>
@@ -174,7 +174,7 @@ export function ExecutionOutput({
       </ScrollFade>
 
       {/* Phase 3 Action Transition Button (#criticBtn) */}
-      <div className="border-t border-slate-800 pt-5">
+      <div className="border-t border-white/[0.07] pt-5">
         <p className="text-slate-400 text-xs sm:text-sm mb-3 text-center">
           Execution complete. Invoke the parallel Arbitration Engine.
         </p>
@@ -184,7 +184,7 @@ export function ExecutionOutput({
           type="button"
           onClick={onRunCritics}
           disabled={isEvaluatingCritics || isExecuting || pipelineStatus === 'aborted'}
-          className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm cursor-pointer"
         >
           <span>
             {countdown.isRunning && (countdown.targetAction === 'critics' || countdown.targetAction === 'criticBtn')

@@ -6,6 +6,7 @@ export * from './RestorationBanner';
 export * from './StepperProgress';
 export * from './PauseModifyFAB';
 export * from './DevelopmentGanttChart';
+export * from './DevelopmentProgressGraph';
 export * from './GitHubExportModal';
 export * from './GlassToastContainer';
 export * from './SmoothInput';

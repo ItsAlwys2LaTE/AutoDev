@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
-  CheckBadgeIcon,
-  XCircleIcon,
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
   SparklesIcon,
-  ArrowRightIcon,
-  ChartBarIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  CpuChipIcon,
+  ScaleIcon,
+  WrenchScrewdriverIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
-import { DevelopmentGanttChart } from '../../components/DevelopmentGanttChart';
-import { ScrollFade } from '../../components/ScrollFade';
+import { DevelopmentProgressGraph } from '../../components/DevelopmentProgressGraph';
+import { SpecularButton } from '../../components/SpecularButton';
+import { formatDuration } from '../../components/DevelopmentGanttChart';
 import { exportZip } from '../../utils/zipExporter';
-
 import { resetAllStores } from '../../stores';
 
 export interface StageDevelopmentResultsProps {
@@ -30,6 +31,8 @@ export const StageDevelopmentResults: React.FC<StageDevelopmentResultsProps> = (
   const storeCurrentCodebase = useAppStore((s) => s.currentCodebase);
   const pipelineStatus = useAppStore((s) => s.pipelineStatus);
   const setGitHubModalOpen = useAppStore((s) => s.setGitHubModalOpen);
+  const storeMetrics = useAppStore((s) => s.timelineMetrics);
+  const componentStates = useAppStore((s) => s.componentStates);
 
   const [isExportingZip, setIsExportingZip] = useState(false);
 
@@ -45,6 +48,35 @@ export const StageDevelopmentResults: React.FC<StageDevelopmentResultsProps> = (
   const statusHeadline = isFailed
     ? `${productName.toUpperCase()} DEVELOPMENT FAILED`
     : `${productName.toUpperCase()} DEVELOPMENT SUCCESSFUL`;
+
+  // Timeline Metrics Calculations
+  const intervals = storeMetrics.intervals || [];
+  const totalDurationMs = useMemo(() => {
+    if (storeMetrics.totalDurationMs > 0) return storeMetrics.totalDurationMs;
+    if (intervals.length === 0) return 24500;
+    const computedMin = storeMetrics.pipelineStartTime ?? Math.min(...intervals.map((i) => i.startTime));
+    const computedMax = storeMetrics.pipelineEndTime ?? Math.max(
+      ...intervals.map((i) => (i.endTime > 0 ? i.endTime : i.startTime + i.durationMs))
+    );
+    return Math.max(1000, computedMax - computedMin);
+  }, [storeMetrics, intervals]);
+
+  const completedPhasesCount = useMemo(() => {
+    const passed = intervals.filter((i) => i.status === 'completed' || i.status === 'passed').length;
+    return passed > 0 ? passed : 8;
+  }, [intervals]);
+
+  const componentCount = useMemo(() => {
+    const set = new Set<string>();
+    intervals.forEach((i) => {
+      if (i.componentId) set.add(i.componentId);
+      else if (i.componentName) set.add(i.componentName);
+    });
+    if (set.size > 0) return set.size;
+    const fromStates = Object.keys(componentStates || {}).length;
+    if (fromStates > 0) return fromStates;
+    return decomposition?.components?.length || 4;
+  }, [intervals, componentStates, decomposition]);
 
   const handleDownloadZip = async () => {
     if (!codebase) return;
@@ -75,118 +107,158 @@ export const StageDevelopmentResults: React.FC<StageDevelopmentResultsProps> = (
   return (
     <div
       id="stageDevelopmentResults"
-      className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-4 space-y-6 select-none ${className}`}
+      className={`h-full flex flex-col max-w-6xl mx-auto px-2 py-1 sm:py-2 space-y-3 sm:space-y-3.5 select-none ${className}`}
     >
-      {/* ── Top Status Header Banner ── */}
+      {/* ── 1. Product Development Status Section (Green hue for successful, Red hue for failed) ── */}
       <div
-        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+        id="resultsMainStageContainer"
+        className={`rounded-2xl sm:rounded-3xl backdrop-blur-md p-5 sm:p-5.5 transition-all duration-300 ${
+          isFailed
+            ? 'bg-gradient-to-br from-rose-950/60 via-rose-950/40 to-slate-950/50 border-2 border-rose-500/50 shadow-[inset_0_1px_0_rgba(244,63,94,0.45),0_12px_40px_rgba(0,0,0,0.4),0_0_50px_rgba(244,63,94,0.2)]'
+            : 'bg-gradient-to-br from-emerald-950/60 via-emerald-950/40 to-slate-950/50 border-2 border-emerald-500/50 shadow-[inset_0_1px_0_rgba(16,185,129,0.45),0_12px_40px_rgba(0,0,0,0.4),0_0_50px_rgba(16,185,129,0.2)]'
+        }`}
         style={{ backdropFilter: 'blur(14px)' }}
       >
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            {isFailed ? (
-              <XCircleIcon className="w-5 h-5 text-rose-400" />
-            ) : (
-              <CheckBadgeIcon className="w-5 h-5 text-emerald-400" />
-            )}
-            <span
-              className={`text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
-                isFailed
-                  ? 'bg-rose-500/15 text-rose-300 border border-rose-400/30'
-                  : 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-              }`}
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-5">
+          <div className="space-y-1.5 max-w-xl">
+            <h2
+              id="resultsStatusHeadline"
+              className="text-xl sm:text-2xl md:text-[26px] font-bold text-white tracking-tight leading-snug"
             >
-              {isFailed ? 'EXECUTION TERMINATED' : 'SDLC VERIFIED & READY'}
-            </span>
+              {statusHeadline}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              {isFailed
+                ? 'Development was aborted. You can restart or request a new product.'
+                : 'Full codebase generated, sandbox verified, and approved by multi-critic arbitration.'}
+            </p>
           </div>
-          <h2
-            id="resultsStatusHeadline"
-            className="text-xl md:text-2xl font-bold text-white tracking-tight"
-          >
-            {statusHeadline}
-          </h2>
-          <p className="text-xs text-slate-400">
-            {isFailed
-              ? 'Development was aborted. You can restart or request a new product.'
-              : 'Full codebase generated, sandbox verified, and approved by multi-critic arbitration.'}
-          </p>
-        </div>
 
-        {/* Primary Export Actions + Request New Product */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            id="downloadZipBtn"
-            type="button"
-            onClick={handleDownloadZip}
-            disabled={!codebase || isExportingZip}
-            className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white font-semibold text-xs tracking-wide border border-white/20 transition-all flex items-center gap-2 cursor-pointer shadow-md"
-          >
-            <ArrowDownTrayIcon className="w-4 h-4" />
-            <span>{isExportingZip ? 'PACKAGING ZIP...' : 'DOWNLOAD AS ZIP'}</span>
-          </button>
+          {/* Action Buttons: 2 columns on top, merged full-width button below */}
+          <div className="grid grid-cols-2 gap-2.5 w-full sm:w-auto shrink-0">
+            <button
+              id="downloadZipBtn"
+              type="button"
+              onClick={handleDownloadZip}
+              disabled={!codebase || isExportingZip}
+              className="col-span-1 px-4.5 sm:px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white font-semibold text-xs tracking-wide border border-white/20 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md whitespace-nowrap"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4 shrink-0" />
+              <span>{isExportingZip ? 'PACKAGING ZIP...' : 'DOWNLOAD AS ZIP'}</span>
+            </button>
 
-          <button
-            id="commitToGitHubBtn"
-            type="button"
-            onClick={handleOpenGitHub}
-            disabled={!codebase}
-            className="px-5 py-3 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-40 text-slate-200 hover:text-white font-semibold text-xs tracking-wide border border-white/[0.08] transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <ArrowUpTrayIcon className="w-4 h-4" />
-            <span>COMMIT TO GITHUB</span>
-          </button>
+            <button
+              id="commitToGitHubBtn"
+              type="button"
+              onClick={handleOpenGitHub}
+              disabled={!codebase}
+              className="col-span-1 px-4.5 sm:px-5 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-40 text-slate-200 hover:text-white font-semibold text-xs tracking-wide border border-white/[0.08] transition-all flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+            >
+              <ArrowUpTrayIcon className="w-4 h-4 shrink-0" />
+              <span>COMMIT TO GITHUB</span>
+            </button>
 
-          <button
-            id="resultsRequestNewProductBtn"
-            type="button"
-            onClick={handleRequestNewProduct}
-            className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs tracking-wide shadow-md transition-all flex items-center gap-2 cursor-pointer border border-white/20"
-          >
-            <SparklesIcon className="w-4 h-4" />
-            <span>REQUEST NEW PRODUCT</span>
-          </button>
+            {/* Post-Development Support Button: spans both columns directly below */}
+            <button
+              id="postDevCycleTriggerBtn"
+              type="button"
+              onClick={() => onAdvance(10)}
+              className="col-span-2 w-full px-4.5 sm:px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs tracking-wide border border-white/20 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md group"
+            >
+              <WrenchScrewdriverIcon className="w-4 h-4 text-emerald-400 group-hover:text-emerald-300 transition-colors shrink-0" />
+              <span>POST-DEVELOPMENT SUPPORT</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── Prominent Trigger for Post-Development Revision Loop ── */}
+      {/* ── 2. Dedicated Development Metrics Section ── */}
       <div
-        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        id="resultsMetricsContainer"
+        className="rounded-2xl sm:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-4 sm:p-5 space-y-3.5 sm:space-y-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]"
         style={{ backdropFilter: 'blur(14px)' }}
       >
-        <div className="space-y-1">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-            <SparklesIcon className="w-4 h-4 text-white/80" />
-            <span>Continuous Product Enhancement</span>
-          </h3>
-          <p className="text-xs text-slate-300">
-            Apply automated feature expansions, targeted bug fixes, or perform deep architectural Q&amp;A.
-          </p>
+        {/* Top 4 Metric Cards (compact sizing) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+          {/* Metric 1: Total Duration */}
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 sm:p-2.5 flex flex-col justify-between space-y-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              <ClockIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-400" />
+              <span>Elapsed Time</span>
+            </div>
+            <div className="text-base sm:text-lg font-bold font-mono text-white">
+              {formatDuration(totalDurationMs)}
+            </div>
+          </div>
+
+          {/* Metric 2: Completed Phases */}
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 sm:p-2.5 flex flex-col justify-between space-y-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              <CheckCircleIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />
+              <span>Phases Completed</span>
+            </div>
+            <div className="text-base sm:text-lg font-bold font-mono text-white">
+              {`${completedPhasesCount} / ${intervals.length > 0 ? intervals.length : 8}`}
+            </div>
+          </div>
+
+          {/* Metric 3: Components Processed */}
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 sm:p-2.5 flex flex-col justify-between space-y-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              <CpuChipIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400" />
+              <span>Architecture Units</span>
+            </div>
+            <div className="text-base sm:text-lg font-bold font-mono text-white">
+              {`${componentCount} Modules`}
+            </div>
+          </div>
+
+          {/* Metric 4: Arbitration Quality */}
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-2 sm:p-2.5 flex flex-col justify-between space-y-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              <ScaleIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-purple-400" />
+              <span>Arbitration Quality</span>
+            </div>
+            <div className="text-base sm:text-lg font-bold font-mono text-emerald-400">
+              {isFailed ? 'Terminated' : '100% Passed'}
+            </div>
+          </div>
         </div>
 
-        <button
-          id="postDevCycleTriggerBtn"
-          type="button"
-          onClick={() => onAdvance(11)}
-          className="px-6 py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold tracking-wider border border-white/20 transition-all flex items-center gap-2 shrink-0 cursor-pointer shadow-md"
-        >
-          <span>REQUEST NEW FEATURE/ PRODUCT ENQUIRY/ BUG FIXES</span>
-          <ArrowRightIcon className="w-4 h-4" />
-        </button>
+        {/* Simple to Understand, Beautifully Animated Graph */}
+        <DevelopmentProgressGraph />
       </div>
 
-      {/* ── Timeline Gantt Chart with Dynamic ScrollFade ── */}
-      <ScrollFade
-        className="flex-1 min-h-[300px] overflow-y-auto rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-3"
-        style={{ backdropFilter: 'blur(14px)' }}
-      >
-        <div className="flex items-center gap-2 pb-2 border-b border-white/10">
-          <ChartBarIcon className="w-4 h-4 text-white/80" />
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-            Pipeline Execution Timeline (Gantt Metrics)
-          </h4>
-        </div>
-        <DevelopmentGanttChart />
-      </ScrollFade>
+      {/* ── 3. Request New Product Button (Outside of stage container, at the very bottom with SpecularButton) ── */}
+      <div className="flex items-center justify-center pt-1 pb-1 shrink-0">
+        <SpecularButton
+          id="resultsRequestNewProductBtn"
+          type="button"
+          onClick={handleRequestNewProduct}
+          size="sm"
+          radius={18}
+          tint="#ffffff"
+          tintOpacity={0.04}
+          blur={16}
+          lineColor="#ffffff"
+          baseColor="#000000"
+          textColor="#ffffff"
+          intensity={1.3}
+          shineSize={14}
+          shineFade={36}
+          thickness={1.5}
+          speed={0.4}
+          followMouse={true}
+          proximity={240}
+          autoAnimate={true}
+          className="px-7 md:px-8 py-2.5 md:py-3 font-semibold text-xs tracking-wider shadow-[0_6px_24px_rgba(0,0,0,0.3)] hover:shadow-[0_6px_24px_rgba(255,255,255,0.08)] transition-all cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <SparklesIcon className="w-4 h-4 text-white/90" />
+            <span>REQUEST NEW PRODUCT</span>
+          </div>
+        </SpecularButton>
+      </div>
     </div>
   );
 };

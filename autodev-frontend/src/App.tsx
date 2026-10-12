@@ -8,19 +8,18 @@
  *    - Main System ('main'): Autonomous SDLC pipeline presentation shell.
  * 2. 100% Modern Light Theme:
  *    - Clean white cards, slate-50 background, crisp slate-200 borders, slate-900 typography.
- * 3. 12-Stage Main System Lifecycle:
+ * 3. 11-Stage Main System Lifecycle:
  *    - Stage 1: Product Request ("What are we developing today?", START DEVELOPMENT button, Enter trigger)
  *    - Stage 2: Product Enquiry Agent (Conditional; rendered only on clarification questions)
  *    - Stage 3: Requirements Agent (Synthesized specs and acceptance criteria)
  *    - Stage 4: Decomposition Agent (2x2 parallel component cards)
  *    - Stage 5: Component Pipeline Dashboard (Pill toggle + nested dropdowns)
- *    - Stage 6: Integration — Testing ("Testing Results" pill)
- *    - Stage 7: Integration — Arbitration ("Arbitration Engine" pill, 3 critics)
- *    - Stage 8: Integration — Final Code ("Final Source Code" pill, Monaco editor)
- *    - Stage 9: Live Preview (Mobile / Desktop / Tablet switcher)
- *    - Stage 10: Development Results (Success/fail status, ZIP download, GitHub commit, Gantt chart, "REQUEST NEW PRODUCT" trigger)
- *    - Stage 11: Post-Development Request (3-option pill toggle, dynamic placeholders)
- *    - Stage 12: Feature Request / Bug Fix Execution (Codegen, Testing, Arbitration with auto-return to Stage 10)
+ *    - Stage 6: Integration Agent (Common stage with Codegen, Testing, and Evaluation agent tabs)
+ *    - Stage 7: Final Source Code (Dedicated finalized codebase inspection without revision tabs)
+ *    - Stage 8: Live Preview (Mobile / Desktop / Tablet switcher)
+ *    - Stage 9: Development Results (Success/fail status, ZIP download, GitHub commit, Gantt chart, "REQUEST NEW PRODUCT" trigger)
+ *    - Stage 10: Post-Development Request (3-option pill toggle, dynamic placeholders)
+ *    - Stage 11: Feature Request / Bug Fix Execution (Codegen, Testing, Arbitration with auto-return to Stage 9)
  * 4. Maximized Central Workspace occupying majority viewport height below top bar.
  * 5. Dynamic Edge-Hover Navigation: Ghosted left (<) and right (>) chevron buttons revealed only on extreme edge hover.
  * 6. Floating Pause/Resume Widget (PauseModifyFAB): Floating outside of the central stage container on the left.
@@ -89,9 +88,8 @@ import {
   StageRequirements,
   StageDecomposition,
   StageComponentPipeline,
-  StageIntegrationTesting,
-  StageIntegrationArbitration,
-  StageIntegrationCode,
+  StageIntegration,
+  StageFinalSourceCode,
   StageLivePreview,
   StageDevelopmentResults,
   StagePostDevRequest,
@@ -175,8 +173,8 @@ export default function App() {
 
   // Determine initial stage based on stored progress
   const initialStage = useMemo(() => {
-    if (postCompletionVisible || pipelineStatus === 'completed') return 10;
-    if (integratedCodebase) return 8;
+    if (postCompletionVisible || pipelineStatus === 'completed') return 9;
+    if (integratedCodebase) return 7;
     if (storeDecomposition) return 5;
     if (storeRequirements) return 3;
     return 1;
@@ -195,19 +193,19 @@ export default function App() {
   useEffect(() => {
     if (pipelineStatus === 'completed' || postCompletionVisible) {
       setCurrentStage((prev) => {
-        if (prev < 10) {
+        if (prev < 9) {
           setSlideDirection('forward');
-          return 10;
+          return 9;
         }
         return prev;
       });
-      setMaxVisitedStage((prev) => Math.max(prev, 10));
+      setMaxVisitedStage((prev) => Math.max(prev, 9));
     }
   }, [pipelineStatus, postCompletionVisible]);
 
   // Main system navigation handler
   const navigateToStage = useCallback((targetStage: number) => {
-    const clamped = Math.max(1, Math.min(12, targetStage));
+    const clamped = Math.max(1, Math.min(11, targetStage));
     setCurrentStage((prev) => {
       if (clamped > prev) {
         setSlideDirection('forward');
@@ -235,11 +233,11 @@ export default function App() {
     if (next === 2 && !hasClarifications) {
       next = 3;
     }
-    return Math.min(12, next);
+    return Math.min(11, next);
   };
 
   const canNavigatePrev = currentStage > 1;
-  const canNavigateNext = currentStage < Math.max(maxVisitedStage, currentStage + 1) && currentStage < 12;
+  const canNavigateNext = currentStage < Math.max(maxVisitedStage, currentStage + 1) && currentStage < 11;
 
   const handlePrevStage = () => {
     if (canNavigatePrev) {
@@ -268,18 +266,16 @@ export default function App() {
       case 5:
         return <StageComponentPipeline onAdvance={navigateToStage} />;
       case 6:
-        return <StageIntegrationTesting onAdvance={navigateToStage} />;
+        return <StageIntegration onAdvance={navigateToStage} />;
       case 7:
-        return <StageIntegrationArbitration onAdvance={navigateToStage} />;
+        return <StageFinalSourceCode onAdvance={navigateToStage} />;
       case 8:
-        return <StageIntegrationCode onAdvance={navigateToStage} />;
-      case 9:
         return <StageLivePreview onAdvance={navigateToStage} />;
-      case 10:
+      case 9:
         return <StageDevelopmentResults onAdvance={navigateToStage} />;
-      case 11:
+      case 10:
         return <StagePostDevRequest onAdvance={navigateToStage} />;
-      case 12:
+      case 11:
         return <StagePostDevExecution onAdvance={navigateToStage} />;
       default:
         return <StageProductRequest onAdvance={navigateToStage} />;
