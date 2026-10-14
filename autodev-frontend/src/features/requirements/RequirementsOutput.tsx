@@ -23,15 +23,17 @@ import { persistState } from '../../stores';
 import { parseRequirements } from '../../api/endpoints';
 import { formatRequirementsText } from '../../utils/formatters';
 import type { RequirementsDocument, SystemDesignBlueprint } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface RequirementsOutputProps {
   onProceedToDesign?: (blueprint: SystemDesignBlueprint) => void;
+  alwaysRender?: boolean;
   className?: string;
 }
 
 export function RequirementsOutput({
   onProceedToDesign,
+  alwaysRender = false,
   className = '',
 }: RequirementsOutputProps) {
   const isSSR = typeof window === 'undefined';
@@ -42,7 +44,6 @@ export function RequirementsOutput({
   const storeRequirements = useAppStore((s) => s.requirements);
   const storeRawStreamText = useAppStore((s) => s.rawStreamText);
   const storeInFlightPhase = useAppStore((s) => s.inFlightPhase);
-  const storeIsPaused = useAppStore((s) => s.isPaused);
   const storePipelineStatus = useAppStore((s) => s.pipelineStatus);
 
   const mode = isSSR ? (liveStore?.mode ?? storeMode) : storeMode;
@@ -50,7 +51,6 @@ export function RequirementsOutput({
   const requirements = isSSR ? (liveStore?.requirements ?? storeRequirements) : storeRequirements;
   const rawStreamText = isSSR ? (liveStore?.rawStreamText ?? '') : storeRawStreamText;
   const inFlightPhase = isSSR ? (liveStore?.inFlightPhase ?? storeInFlightPhase) : storeInFlightPhase;
-  const isPaused = isSSR ? (liveStore?.isPaused ?? storeIsPaused) : storeIsPaused;
   const pipelineStatus = isSSR ? (liveStore?.pipelineStatus ?? storePipelineStatus) : storePipelineStatus;
 
   const setRequirements = useAppStore((s) => s.setRequirements);
@@ -70,7 +70,6 @@ export function RequirementsOutput({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isQuickMode = generationMode === 'QUICK' || mode === 'QUICK';
-  const isEditable = isPaused || !isQuickMode;
   const contentRef = useRef<HTMLDivElement>(null);
 
   // React Query mutation for re-parsing edited requirements
@@ -172,8 +171,8 @@ export function RequirementsOutput({
     }
   }, [handleProceed]);
 
-  // If no requirements and not running requirements phase, stay hidden
-  if (!requirements && inFlightPhase !== 'requirements' && inFlightPhase !== 'decomposition') {
+  // If no requirements and not running requirements phase, stay hidden unless alwaysRender is set
+  if (!alwaysRender && !requirements && inFlightPhase !== 'requirements' && inFlightPhase !== 'decomposition') {
     return null;
   }
 
@@ -341,11 +340,11 @@ export function RequirementsOutput({
             <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
             <span>Synthesizing system requirements specification...</span>
           </div>
-          <ScrollFade className="bg-black/20 backdrop-blur-xl rounded-2xl p-4 border border-white/[0.07] shadow-inner max-h-[500px] overflow-y-auto">
+          <ModernScrollbar className="bg-black/20 backdrop-blur-xl rounded-2xl border border-white/[0.07] shadow-inner max-h-[500px]" viewportClassName="p-4">
             <pre className="text-xs sm:text-sm font-mono text-slate-300 leading-relaxed whitespace-pre-wrap">
               {displayText || 'Streaming specification...'}
             </pre>
-          </ScrollFade>
+          </ModernScrollbar>
         </div>
       ) : null}
 
@@ -360,21 +359,13 @@ export function RequirementsOutput({
       {/* ── Test & Automation DOM Harness (Hidden visually, preserved for SSR and test contracts) ── */}
       <div className="sr-only pointer-events-none opacity-0 h-0 overflow-hidden" aria-hidden="true">
         <span id="jsonOutputBadge">
-          {isPaused ? (
-            <span>EDITABLE DOCUMENT (PAUSED)</span>
-          ) : !isQuickMode ? (
-            <span>RICH TEXT DOCUMENT (CLICK TO EDIT)</span>
-          ) : (
-            <>
-              <LockClosedIcon className="w-3.5 h-3.5 text-slate-400" />
-              <span>READ-ONLY DOCUMENT</span>
-            </>
-          )}
+          <LockClosedIcon className="w-3.5 h-3.5 text-slate-400" />
+          <span>READ-ONLY DOCUMENT</span>
         </span>
         <div
           id="jsonOutput"
           ref={contentRef}
-          contentEditable={isEditable}
+          contentEditable={false}
           suppressContentEditableWarning
           onInput={() => {
             if (contentRef.current) {

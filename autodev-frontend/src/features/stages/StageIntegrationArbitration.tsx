@@ -6,7 +6,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import type { CriticFeedback, AdjudicatorDecision } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface StageIntegrationArbitrationProps {
   onAdvance: (targetStage: number) => void;
@@ -145,8 +145,12 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
         )}
       </div>
 
-      {/* ── 3 Critic Cards Grid with Dynamic ScrollFade ── */}
-      <ScrollFade id="criticCardsContainer" className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-h-0 overflow-y-auto">
+      {/* ── 3 Critic Cards Grid with ModernScrollbar ── */}
+      <ModernScrollbar
+        id="criticCardsContainer"
+        className="flex-1 min-h-0"
+        viewportClassName="grid grid-cols-1 md:grid-cols-3 gap-4"
+      >
         {defaultFeedbacks.map((critic, idx) => (
           <div
             key={idx}
@@ -179,7 +183,7 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
             )}
           </div>
         ))}
-      </ScrollFade>
+      </ModernScrollbar>
     </div>
   );
 };

@@ -130,7 +130,7 @@ def evaluate_correctness(requirements: RequirementsDocument, execution_result: E
     # Detect if test files exist using has_test_files and partitioned test_files
     tests_present = has_test_files(codebase) or len(test_files) > 0
     mode_label = "Test-Driven Mode (B)" if tests_present else "Build-Verification & Code Review Mode (A)"
-    print(f"Running {critic_name} (Model: {primary_model}, Mode: {mode_label})...")
+    print(f"Running {critic_name}.")
 
     exec_logs = _to_json_str(execution_result)
     reqs_json = _to_json_str(requirements)
@@ -284,7 +284,7 @@ CRITICAL INSTRUCTIONS:
 def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None, component_id: str = None) -> CriticFeedback:
     critic_name = "Architecture Critic (Gemini)"
     primary_model, secondary_model = resolve_models_for_mode(mode)
-    print(f"Running {critic_name} (Model: {primary_model})...")
+    print(f"Running {critic_name}.")
 
     keys = get_gemini_keys_for_stage("CRITICS", mode=mode, component_id=component_id)
     if not keys:
@@ -383,8 +383,8 @@ def evaluate_architecture(blueprint: SystemDesignBlueprint, codebase: GeneratedC
 
 def evaluate_completeness(requirements: RequirementsDocument, blueprint: SystemDesignBlueprint, codebase: GeneratedCodeBase, master_decomposition: ComponentDecomposition = None, mode: str = None, component_id: str = None) -> CriticFeedback:
     primary_model, secondary_model = resolve_models_for_mode(mode)
-    print(f"Running Completeness Critic (Gemini) (Model: {primary_model})...")
     critic_name = "Completeness Critic (Gemini)"
+    print(f"Running {critic_name}.")
     
     keys = get_gemini_keys_for_stage("CRITICS", mode=mode, component_id=component_id)
     if not keys:

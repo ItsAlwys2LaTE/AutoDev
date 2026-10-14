@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, type CSSProperties, type ReactNode, type MouseEventHandler } from 'react';
+import React, { useRef, useEffect, useState, type CSSProperties, type ReactNode, type MouseEventHandler } from 'react';
 import { Renderer, Program, Mesh, Triangle, Color } from 'ogl';
 
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -26,6 +26,8 @@ export interface SpecularButtonProps extends React.ButtonHTMLAttributes<HTMLButt
   className?: string;
   type?: 'button' | 'submit' | 'reset';
   id?: string;
+  /** Force dark mode specular colors (useful for permanently dark surfaces like the Landing Page) */
+  forceDark?: boolean;
 }
 
 interface ShaderProps {
@@ -135,16 +137,66 @@ export const SpecularButton = ({
   className = '',
   type = 'button',
   id,
+  forceDark = false,
   ...props
 }: SpecularButtonProps) => {
   const btnRef = useRef<HTMLButtonElement>(null);
   const fxRef = useRef<HTMLSpanElement>(null);
   const propsRef = useRef<ShaderProps>({} as ShaderProps);
 
+  const [isLightMode, setIsLightMode] = useState<boolean>(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.classList.contains('light');
+  });
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    const syncLightMode = () => {
+      setIsLightMode(document.documentElement.classList.contains('light'));
+    };
+    const handleCustomTheme = (e: Event) => {
+      const detail = (e as CustomEvent<{ isDark?: boolean }>).detail;
+      if (detail && typeof detail.isDark === 'boolean') {
+        setIsLightMode(!detail.isDark);
+      } else {
+        syncLightMode();
+      }
+    };
+
+    window.addEventListener('autodev:theme-change', handleCustomTheme);
+    let observer: MutationObserver | null = null;
+    if (typeof MutationObserver !== 'undefined') {
+      observer = new MutationObserver(syncLightMode);
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+    }
+    syncLightMode();
+    return () => {
+      window.removeEventListener('autodev:theme-change', handleCustomTheme);
+      observer?.disconnect();
+    };
+  }, []);
+
+  const isDefaultWhiteLine = lineColor.toLowerCase() === '#ffffff' || lineColor.toLowerCase() === '#fff';
+  const isDefaultDarkBase = baseColor.toLowerCase() === '#000000' || baseColor.toLowerCase() === '#1e293b';
+  const isDefaultWhiteText = textColor.toLowerCase() === '#ffffff' || textColor.toLowerCase() === '#fff';
+  const isDefaultWhiteTint = tint.toLowerCase() === '#ffffff' || tint.toLowerCase() === '#fff';
+
+  const isLandingBtn = id === 'landingGetStartedBtn' || className.includes('landing');
+  const shouldApplyLight = !forceDark && !isLandingBtn && isLightMode;
+
+  const effectiveLineColor = shouldApplyLight && isDefaultWhiteLine ? '#783ae1' : lineColor;
+  const effectiveBaseColor = shouldApplyLight && isDefaultDarkBase ? '#94a3b8' : baseColor;
+  const effectiveTextColor = shouldApplyLight && isDefaultWhiteText ? '#0f172a' : textColor;
+  const effectiveTint = shouldApplyLight && isDefaultWhiteTint ? '#783ae1' : tint;
+  const effectiveTintOpacity = shouldApplyLight && isDefaultWhiteTint && tintOpacity <= 0.08 ? 0.08 : tintOpacity;
+
   propsRef.current = {
     radius,
-    lineColor,
-    baseColor,
+    lineColor: effectiveLineColor,
+    baseColor: effectiveBaseColor,
     intensity,
     shineSize,
     shineFade,
@@ -284,14 +336,14 @@ export const SpecularButton = ({
       disabled={disabled}
       onClick={onClick}
       {...props}
-      className={`relative m-0 inline-flex cursor-pointer items-center justify-center border border-white/12 font-medium leading-none tracking-[0.01em] outline-none transition-transform duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 [color:var(--sb-text-color)] [border-radius:var(--sb-radius)] [background:color-mix(in_srgb,var(--sb-tint)_calc(var(--sb-tint-opacity)*100%),transparent)] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.25)] focus-visible:outline-2 focus-visible:outline-offset-[3px] ${SIZES[size] || SIZES.md}${className ? ` ${className}` : ''}`}
+      className={`specular-btn relative m-0 inline-flex cursor-pointer items-center justify-center border border-white/12 font-medium leading-none tracking-[0.01em] outline-none transition-all duration-300 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 [color:var(--sb-text-color)] [border-radius:var(--sb-radius)] [background:color-mix(in_srgb,var(--sb-tint)_calc(var(--sb-tint-opacity)*100%),transparent)] backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_8px_24px_rgba(0,0,0,0.25)] focus-visible:outline-2 focus-visible:outline-offset-[3px] ${SIZES[size] || SIZES.md}${className ? ` ${className}` : ''}`}
       style={
         {
           '--sb-radius': `${radius}px`,
-          '--sb-tint': tint,
-          '--sb-tint-opacity': tintOpacity,
+          '--sb-tint': effectiveTint,
+          '--sb-tint-opacity': effectiveTintOpacity,
           '--sb-blur': `${blur}px`,
-          '--sb-text-color': textColor,
+          '--sb-text-color': effectiveTextColor,
         } as CSSProperties
       }
     >

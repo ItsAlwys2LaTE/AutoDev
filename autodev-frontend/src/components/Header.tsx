@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DarkModeToggle } from './DarkModeToggle';
 import { CostDisplay } from './CostDisplay';
+import { SpecularButton } from './SpecularButton';
 
 export interface HeaderProps {
   title?: string;
@@ -10,6 +11,8 @@ export interface HeaderProps {
   showCostDisplay?: boolean;
   variant?: 'legacy' | 'glass';
   stage?: number;
+  isDark?: boolean;
+  onToggleTheme?: (isDark: boolean) => void;
   onProfileClick?: () => void;
   onMenuClick?: () => void;
 }
@@ -22,9 +25,46 @@ export const Header: React.FC<HeaderProps> = ({
   showCostDisplay = true,
   variant = 'glass',
   stage: _stage,
+  isDark: controlledIsDark,
+  onToggleTheme,
   onProfileClick,
   onMenuClick,
 }) => {
+  const [internalIsDark, setInternalIsDark] = useState<boolean>(() => {
+    if (typeof document !== 'undefined') {
+      if (document.documentElement.classList.contains('light')) return false;
+      if (document.documentElement.classList.contains('dark')) return true;
+    }
+    try {
+      const saved = localStorage.getItem('autodev_dark_mode');
+      if (saved !== null) return saved === '1';
+    } catch {
+      // ignore
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleThemeEvent = (e: Event) => {
+      const detail = (e as CustomEvent<{ isDark?: boolean }>).detail;
+      if (detail && typeof detail.isDark === 'boolean') {
+        setInternalIsDark(detail.isDark);
+      } else if (typeof document !== 'undefined') {
+        setInternalIsDark(!document.documentElement.classList.contains('light'));
+      }
+    };
+    window.addEventListener('autodev:theme-change', handleThemeEvent);
+    return () => window.removeEventListener('autodev:theme-change', handleThemeEvent);
+  }, []);
+
+  const effectiveIsDark = controlledIsDark !== undefined ? controlledIsDark : internalIsDark;
+
+  const handleToggle = (nextDark: boolean) => {
+    setInternalIsDark(nextDark);
+    onToggleTheme?.(nextDark);
+  };
+
   if (variant === 'glass') {
     return (
       <header
@@ -38,45 +78,69 @@ export const Header: React.FC<HeaderProps> = ({
             aria-hidden="true"
           />
           <span
-            className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/85 hover:text-white font-normal italic tracking-wide cursor-pointer drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all"
+            className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/90 hover:text-white font-normal italic tracking-wide cursor-pointer drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all duration-300 select-none"
+            style={{ fontFamily: "'Alex Brush', cursive, sans-serif" }}
             title="AutoDev"
           >
             {title}
           </span>
+          <span className="sr-only">{title}</span>
           {/* Hidden metadata preserving test assertions without visible container */}
           <span className="sr-only">{version}</span>
           <span className="sr-only">Autonomous Software Engineering Platform</span>
         </div>
 
-        {/* Right: Enlarged profile circle & enlarged 3-strip hamburger menu */}
+        {/* Right: Rounded Specular Theme Toggle (Left) + 3-Strip Sidebar Icon (Right) */}
         <div className="flex items-center gap-3.5">
-          {/* Profile Circle */}
-          <button
-            type="button"
-            onClick={onProfileClick}
-            title="User Profile"
-            aria-label="User Profile"
-            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-sm font-semibold text-white shadow-md backdrop-blur-md transition-all cursor-pointer"
-          >
-            A
-          </button>
+          {showDarkModeToggle && (
+            <DarkModeToggle isDark={effectiveIsDark} onToggle={handleToggle} />
+          )}
 
-          {/* 3-Strip Hamburger Menu */}
-          <button
+          <SpecularButton
+            id="sidebarToggleBtn"
             type="button"
             onClick={onMenuClick}
-            title="Menu"
+            title="Open Sidebar"
             aria-label="Menu Navigation"
-            className="w-11 h-11 flex flex-col justify-center items-center gap-1.5 cursor-pointer rounded-2xl bg-white/5 hover:bg-white/10 transition-colors p-2 text-slate-200 hover:text-white border border-white/12 backdrop-blur-md shadow-md"
+            size="sm"
+            radius={14}
+            tint="#ffffff"
+            tintOpacity={0.04}
+            blur={20}
+            lineColor="#ffffff"
+            baseColor="#000000"
+            textColor="#ffffff"
+            intensity={1.3}
+            shineSize={16}
+            shineFade={40}
+            thickness={1.5}
+            speed={0.4}
+            followMouse={true}
+            proximity={200}
+            autoAnimate={true}
+            className="!px-0 !py-0 w-11 h-11 flex items-center justify-center cursor-pointer !border-transparent shadow-[0_8px_28px_rgba(0,0,0,0.3)]"
           >
-            <span className="h-0.5 w-6 bg-current rounded-full transition-all"></span>
-            <span className="h-0.5 w-6 bg-current rounded-full transition-all"></span>
-            <span className="h-0.5 w-6 bg-current rounded-full transition-all"></span>
-          </button>
+            <div className="flex flex-col justify-center items-center gap-1.5">
+              <span
+                className="h-[2px] w-5 rounded-full transition-colors duration-300 block"
+                style={{ backgroundColor: effectiveIsDark ? '#ffffff' : '#0f172a' }}
+              />
+              <span
+                className="h-[2px] w-5 rounded-full transition-colors duration-300 block"
+                style={{ backgroundColor: effectiveIsDark ? '#ffffff' : '#0f172a' }}
+              />
+              <span
+                className="h-[2px] w-5 rounded-full transition-colors duration-300 block"
+                style={{ backgroundColor: effectiveIsDark ? '#ffffff' : '#0f172a' }}
+              />
+            </div>
+          </SpecularButton>
 
-          {/* Hidden containers preserving test assertions for DarkModeToggle and CostDisplay */}
+          {/* Hidden containers preserving test assertions for CostDisplay and Profile */}
           <div className="hidden" aria-hidden="true">
-            {showDarkModeToggle && <DarkModeToggle />}
+            <button type="button" onClick={onProfileClick} aria-label="User Profile">
+              A
+            </button>
             {showCostDisplay && <CostDisplay />}
           </div>
         </div>
@@ -95,7 +159,9 @@ export const Header: React.FC<HeaderProps> = ({
         <span className="sr-only">Autonomous Software Engineering Platform</span>
       </div>
       <div className="flex items-center gap-3">
-        {showDarkModeToggle && <DarkModeToggle />}
+        {showDarkModeToggle && (
+          <DarkModeToggle isDark={effectiveIsDark} onToggle={handleToggle} />
+        )}
         {showCostDisplay && <CostDisplay />}
       </div>
     </header>

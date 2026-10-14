@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Optional, List, Any, Union, Dict
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -102,6 +102,25 @@ app.add_middleware(
 )
 app.add_middleware(ClientDisconnectMiddleware)
 
+@app.middleware("http")
+async def extract_custom_api_key_middleware(request: Request, call_next):
+    user_key = request.headers.get("X-AutoDev-User-Key")
+    primary_model = request.headers.get("X-AutoDev-Primary-Model")
+    fallback_model = request.headers.get("X-AutoDev-Fallback-Model")
+
+    from key_balancer import _CURRENT_USER_KEY, _CURRENT_PRIMARY_MODEL, _CURRENT_FALLBACK_MODEL
+    token_user_key = _CURRENT_USER_KEY.set(user_key.strip() if user_key and user_key.strip() else None)
+    token_pri = _CURRENT_PRIMARY_MODEL.set(primary_model.strip() if primary_model and primary_model.strip() else None)
+    token_fb = _CURRENT_FALLBACK_MODEL.set(fallback_model.strip() if fallback_model and fallback_model.strip() else None)
+
+    try:
+        response = await call_next(request)
+        return response
+    finally:
+        _CURRENT_USER_KEY.reset(token_user_key)
+        _CURRENT_PRIMARY_MODEL.reset(token_pri)
+        _CURRENT_FALLBACK_MODEL.reset(token_fb)
+
 # Deterministic base paths for frontend distribution and legacy fallback
 BACKEND_DIR = Path(__file__).resolve().parent
 DIST_DIR = BACKEND_DIR / "dist"
@@ -135,11 +154,19 @@ app.include_router(log_router)
 from pipeline_api import router as pipeline_router
 app.include_router(pipeline_router)
 
+from auth_routes import auth_router
+app.include_router(auth_router)
+
+from session_routes import session_router
+app.include_router(session_router)
+
 @app.on_event("startup")
 def on_startup():
-    print("Welcome user")
+    username = os.environ.get("AUTODEV_USER") or os.environ.get("USERNAME") or os.environ.get("USER") or "Alex"
+    print(f"Welcome {username} to AutoDev!")
 
-print("Welcome user")
+username = os.environ.get("AUTODEV_USER") or os.environ.get("USERNAME") or os.environ.get("USER") or "Alex"
+print(f"Welcome {username} to AutoDev!")
 
 from typing import Optional, List, Any, Union
 import key_balancer
@@ -259,7 +286,7 @@ from agents.product_enquiry_agent import run_product_enquiry
 from models import IntentClassification, ClassifyIntentInput, ProductEnquiryResult, ProductEnquiryInput
 
 @app.post("/api/product-enquiry", response_model=ProductEnquiryResult)
-def api_product_enquiry(user_input: ProductEnquiryInput):
+def api_product_enquiry(user_input: ProductEnquiryInput, request: Request):
     target_prompt = user_input.prompt or user_input.feature_request or ""
     try:
         # Layer 1: Deterministic validation for security and empty input.
@@ -270,10 +297,11 @@ def api_product_enquiry(user_input: ProductEnquiryInput):
         raise HTTPException(status_code=400, detail=str(pe))
 
     mode = user_input.mode or getattr(user_input, "generation_mode", None) or "QUICK"
+    user_api_key = request.headers.get("X-AutoDev-User-Key")
     try:
         active_model = resolve_model_for_mode(mode)
         print(format_phase_transition("System", "INIT", "PRODUCT_ENQUIRY", active_model, "PRODUCT_ENQUIRY", mode=mode))
-        result = run_product_enquiry(prompt=target_prompt, mode=mode, context=user_input.context)
+        result = run_product_enquiry(prompt=target_prompt, mode=mode, context=user_input.context, user_api_key=user_api_key)
         return result
     except Exception as e:
         print(f"Product enquiry unexpected failure: {format_concise_error(e)}")
@@ -718,7 +746,7 @@ def api_generate_documentation(payload: DocumentationInput):
         def docs_stream():
             for chunk in generate_documentation_stream(payload.requirements, payload.blueprint, payload.codebase, mode=active_mode):
                 yield chunk
-            print("development completed")
+            print("Development completed.")
 
         return StreamingResponse(
             docs_stream(),
@@ -741,6 +769,7 @@ def api_post_completion_modify(payload: PostCompletionModifyRequest):
     try:
         active_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
         active_model = resolve_model_for_mode(active_mode)
+        validate_prompt(payload.prompt, reject_non_software=True)
 
         print(format_phase_transition(
             "System", "COMPLETED", "POST_COMPLETION_MODIFY",
@@ -820,6 +849,9 @@ def api_post_completion_modify(payload: PostCompletionModifyRequest):
             critic_feedbacks=critic_feedbacks,
             decision=adjudicator_decision,
         )
+    except PromptGuardError as pe:
+        print(f"Post-completion prompt guard blocked modify request: {pe}")
+        raise HTTPException(status_code=400, detail=str(pe))
     except Exception as e:
         print(f"Post-completion modify failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -835,6 +867,7 @@ def api_post_completion_query(payload: PostCompletionQueryRequest):
         active_mode = payload.generation_mode or payload.mode or get_current_generation_mode()
         active_model = resolve_model_for_mode(active_mode)
         query_text = payload.prompt or payload.query or ""
+        validate_prompt(query_text, reject_non_software=True)
 
         print(format_phase_transition(
             "System", "COMPLETED", "POST_COMPLETION_QUERY",
@@ -851,6 +884,9 @@ def api_post_completion_query(payload: PostCompletionQueryRequest):
             ),
             media_type="text/plain",
         )
+    except PromptGuardError as pe:
+        print(f"Post-completion prompt guard blocked query request: {pe}")
+        raise HTTPException(status_code=400, detail=str(pe))
     except Exception as e:
         print(f"Post-completion query failed: {format_concise_error(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -1114,6 +1150,31 @@ async def spa_fallback(full_path: str):
         return FileResponse(str(target_index))
 
     raise HTTPException(status_code=404, detail="index.html not found.")
+
+
+# ---------------------------------------------------------------------------
+# MongoDB Infrastructure Startup Hook (Phase 1)
+# ---------------------------------------------------------------------------
+import logging
+_db_logger = logging.getLogger(__name__)
+
+@app.on_event("startup")
+async def startup_database():
+    """Initialize MongoDB connection and indexes on server start."""
+    try:
+        from database import connect_db, ensure_indexes
+        await connect_db()
+        await ensure_indexes()
+        _db_logger.info("MongoDB connection established and indexes ensured.")
+        print("[MongoDB] Connection established and indexes ensured.")
+    except Exception as e:
+        try:
+            from database import _mask_uri
+            sanitized_err = _mask_uri(str(e))
+        except Exception:
+            sanitized_err = str(e)
+        _db_logger.warning("MongoDB not available: %s. Auth features disabled, pipeline unaffected.", sanitized_err)
+        print(f"[MongoDB] Not available ({sanitized_err}). Auth features disabled, pipeline unaffected.")
 
 
 

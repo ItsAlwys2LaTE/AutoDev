@@ -18,6 +18,8 @@ import {
   ArrowTopRightOnSquareIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../stores/appStore';
+import { useSessionStore } from '../stores/sessionStore';
+import { useAuthStore } from '../stores/authStore';
 import {
   exportToGitHub,
   prepareExportFiles,
@@ -52,8 +54,11 @@ export function GitHubExportModal({
   const integratedCodebase = isSSR ? (liveStore?.integratedCodebase ?? null) : sIntegratedCodebase;
   const requirements = isSSR ? (liveStore?.requirements ?? null) : sRequirements;
 
+  const authUser = useAuthStore((s) => s.user);
+  const savedGithub = authUser?.github_config;
+
   const [username, setUsername] = useState<string>(() => {
-    return getStoredGitHubCredentials().username || '';
+    return getStoredGitHubCredentials().username || savedGithub?.username || '';
   });
   const [repoName, setRepoName] = useState<string>(() => {
     if (requirements?.project_title) {
@@ -65,14 +70,14 @@ export function GitHubExportModal({
           .replace(/^-|-$/g, '') || 'autodev-project'
       );
     }
-    return 'autodev-project';
+    return savedGithub?.default_repo || 'autodev-project';
   });
   const [token, setToken] = useState<string>(() => {
     return getStoredGitHubCredentials().token || '';
   });
   const [showToken, setShowToken] = useState<boolean>(false);
   const [rememberToken, setRememberToken] = useState<boolean>(() => {
-    return Boolean(getStoredGitHubCredentials().token);
+    return Boolean(getStoredGitHubCredentials().token || savedGithub?.remember_token);
   });
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
 
@@ -85,7 +90,12 @@ export function GitHubExportModal({
   useEffect(() => {
     if (isOpen) {
       const stored = getStoredGitHubCredentials();
-      if (stored.username) setUsername(stored.username);
+      if (stored.username) {
+        setUsername(stored.username);
+      } else if (savedGithub?.username) {
+        setUsername(savedGithub.username);
+      }
+
       if (stored.token) {
         setToken(stored.token);
         setRememberToken(true);
@@ -131,8 +141,12 @@ export function GitHubExportModal({
     const preparedFiles = prepareExportFiles(targetCodebase, requirements);
 
     if (preparedFiles.length === 0) {
-      setError('No codebase files found to export. Please ensure code generation has completed.');
+      const msg = 'No codebase files found to export. Please ensure code generation has completed.';
+      setError(msg);
       setStatus('error');
+      try {
+        useSessionStore.getState().showWarningToast(msg, 'No Codebase Files to Export');
+      } catch { /* ignore */ }
       return;
     }
 
@@ -161,13 +175,29 @@ export function GitHubExportModal({
         setStatus('success');
         setStatusMessage('Codebase successfully exported and committed.');
         setResult(exportResult);
+        try {
+          useSessionStore.getState().showSuccessToast(
+            exportResult.repoUrl
+              ? `Codebase committed to GitHub repository successfully: ${exportResult.repoUrl}`
+              : 'Codebase committed to GitHub repository successfully.',
+            'GitHub Export Succeeded'
+          );
+        } catch { /* ignore */ }
       } else {
         setStatus('error');
-        setError(exportResult.error || 'Failed to export codebase to GitHub.');
+        const errText = exportResult.error || 'Failed to export codebase to GitHub.';
+        setError(errText);
+        try {
+          useSessionStore.getState().showErrorToast(errText, 'GitHub Export Failed');
+        } catch { /* ignore */ }
       }
     } catch (err: any) {
       setStatus('error');
-      setError(err?.message || 'An unexpected error occurred during export.');
+      const errText = err?.message || 'An unexpected error occurred during export.';
+      setError(errText);
+      try {
+        useSessionStore.getState().showErrorToast(errText, 'GitHub Export Failed');
+      } catch { /* ignore */ }
     }
   };
 

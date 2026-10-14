@@ -16,7 +16,7 @@ import type {
   CriticFeedback,
   AdjudicatorDecision,
 } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface IntegrationCriticHistoryItem {
   exec?: ExecutionResult | null;
@@ -202,20 +202,21 @@ export function IntegrationCriticTabs({
           )}
         </div>
 
-        <ScrollFade className="max-h-48 overflow-y-auto">
+        <ModernScrollbar className="max-h-48" viewportClassName="p-0">
           <pre
             id="execLogsOutput"
             className="p-3.5 bg-black/25 rounded-xl text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed border border-white/[0.07]"
           >
             {activeExec?.logs || 'No execution logs available.'}
           </pre>
-        </ScrollFade>
+        </ModernScrollbar>
       </div>
 
-      {/* ── Critic Feedback Cards Container with Dynamic ScrollFade ── */}
-      <ScrollFade
+      {/* ── Critic Feedback Cards Container with ModernScrollbar ── */}
+      <ModernScrollbar
         id="criticCardsContainer"
-        className="grid grid-cols-1 gap-3 mb-6 max-h-60 overflow-y-auto pr-1"
+        className="mb-6 max-h-60"
+        viewportClassName="grid grid-cols-1 gap-3 pr-1"
       >
         {activeLoading ? (
           <div className="text-sm text-slate-400 font-mono animate-pulse p-4 text-center">
@@ -304,7 +305,7 @@ export function IntegrationCriticTabs({
             );
           })
         )}
-      </ScrollFade>
+      </ModernScrollbar>
 
       {/* ── Master Adjudicator Decision Card ──────────────────────── */}
       <div

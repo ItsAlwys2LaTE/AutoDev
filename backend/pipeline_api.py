@@ -135,11 +135,11 @@ def print_queue_status():
         if queue:
             stage_counts[f"QUEUED FOR {stage.name}"] += len(queue)
             
-    print("\n--------------------------------------------------")
+    print("--------------------------------------------------")
     print("[PIPELINE] Pipeline Queue Status:")
     for k, v in stage_counts.items():
         print(f"  - {k}: {v}")
-    print("--------------------------------------------------\n")
+    print("--------------------------------------------------")
 
 @router.post("/api/pipeline/init")
 def pipeline_init(payload: PipelineInitInput):
@@ -190,6 +190,8 @@ def pipeline_init(payload: PipelineInitInput):
 @router.get("/api/pipeline/tick")
 @router.post("/api/pipeline/tick")
 def pipeline_tick():
+    if scheduler is None:
+        return {"assignments": []}
     dispatched = scheduler.tick_schedule()
     assignments = []
     for comp_id, stage, epoch in dispatched:
@@ -215,7 +217,7 @@ def pipeline_pause(payload: Optional[PipelinePauseRequest] = None):
         import time as _t
         phase_display = active_phase or "requirements"
         comp_display = active_comp or "none"
-        print(f"[PAUSE] Development paused. Active phase: {phase_display}, active component: {comp_display}")
+        print("[PAUSE] Product Development paused by the User.")
         return PipelinePauseResponse(
             status="paused",
             paused=True,
@@ -262,9 +264,7 @@ def pipeline_resume(payload: Optional[PipelineResumeRequest] = None):
 
     if scheduler is None:
         target_display = target_stage or "requirements"
-        mods_str = "yes" if mods_detected else "no"
-        rewind_info = earliest_target or "none"
-        print(f"[RESUME] Development resumed. Target phase/stage: {target_display}, modifications detected: {mods_str}, earliest rewind target: {rewind_info}")
+        print(f"[RESUME] Product Development resumed from {target_display} by the user.")
         return PipelineResumeResponse(
             status="resumed",
             paused=False,
@@ -350,7 +350,7 @@ def pipeline_restart(payload: Optional[PipelineRestartRequest] = None):
             cleared_components = len(scheduler.components)
             scheduler.reset()
     else:
-        print("[RESTART] Development restarted. Restarting development from requirements phase.")
+        print("[RESTART] Product Development restarted.")
 
     # 3. Instantiate fresh scheduler
     active_mode = get_generation_mode() or "QUICK"
@@ -433,5 +433,5 @@ def pipeline_complete(payload: CompleteStageInput):
                 codegen_model = "gemini-3.5-flash-lite"
                 print(format_phase_transition(comp_name, "CRITICS", "CODEGEN", codegen_model, "CODEGEN", mode=mode, extra=extra_msg, component_id=eff_comp_id))
     if scheduler.is_pipeline_finished():
-        print("development completed")
+        print("Development completed.")
     return {"success": success}

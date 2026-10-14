@@ -263,9 +263,6 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
       activeAbortController: null,
       isAborted: true,
     });
-
-    // 4. Emit informational toast
-    get().showInfoToast('Development pipeline aborted.');
   },
 
   abortForPause: (reason = 'Development paused') => {
@@ -468,7 +465,7 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
       }));
       get().showWarningToast(
         'Network connection lost. Waiting to reconnect...',
-        'Offline',
+        'Network Offline',
         0 // Sticky until reconnected
       );
     } else {
@@ -483,7 +480,7 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
       }));
       get().showSuccessToast(
         'Network connection re-established. Resuming operations...',
-        'Online',
+        'Network Restored',
         3000
       );
     }
@@ -522,7 +519,7 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
 
   // ── Toast Notifications ───────────────────────────────────────────────────
 
-  addToast: ({ type, message, title, durationMs = 4000 }) => {
+  addToast: ({ type, message, title, durationMs = 5000 }) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const newToast: ToastItem = {
       id,
@@ -565,16 +562,16 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
     set({ toasts: [] });
   },
 
-  showSuccessToast: (message, title, durationMs = 4000) =>
+  showSuccessToast: (message, title, durationMs = 5000) =>
     get().addToast({ type: 'success', message, title, durationMs }),
 
-  showErrorToast: (message, title, durationMs = 6000) =>
+  showErrorToast: (message, title, durationMs = 5000) =>
     get().addToast({ type: 'error', message, title, durationMs }),
 
   showWarningToast: (message, title, durationMs = 5000) =>
     get().addToast({ type: 'warning', message, title, durationMs }),
 
-  showInfoToast: (message, title, durationMs = 3500) =>
+  showInfoToast: (message, title, durationMs = 5000) =>
     get().addToast({ type: 'info', message, title, durationMs }),
 
   // ── Store Reset ──────────────────────────────────────────────────────────

@@ -48,7 +48,10 @@ export async function executePhaseRecovery(
 
   switch (normalized) {
     case 'requirements':
-      if (typeof (window as any).generateRequirements === 'function') {
+      if (store.requirements) {
+        console.log('[AutoDev Recovery Matrix] Requirements output already generated; skipping regeneration.');
+        store.unlockStage(4);
+      } else if (typeof (window as any).generateRequirements === 'function') {
         await (window as any).generateRequirements();
       } else {
         console.warn(
@@ -58,9 +61,9 @@ export async function executePhaseRecovery(
       break;
 
     case 'decomposition':
-      if (typeof (window as any).runDecomposition === 'function') {
-        await (window as any).runDecomposition();
-      } else if (store.decomposition) {
+      if (store.decomposition) {
+        console.log('[AutoDev Recovery Matrix] Decomposition output already generated; skipping regeneration.');
+        store.unlockStage(5);
         if (store.decomposition.is_complex) {
           if (typeof (window as any).startComponentPipeline === 'function') {
             await (window as any).startComponentPipeline();
@@ -70,13 +73,18 @@ export async function executePhaseRecovery(
             await (window as any).generateDesign();
           }
         }
+      } else if (typeof (window as any).runDecomposition === 'function') {
+        await (window as any).runDecomposition();
       }
       break;
 
     case 'single_design':
     case 'single-pass design':
     case 'design':
-      if (typeof (window as any).generateDesign === 'function') {
+      if (store.currentBlueprint) {
+        console.log('[AutoDev Recovery Matrix] Design output already generated; skipping regeneration.');
+        store.unlockStage(5);
+      } else if (typeof (window as any).generateDesign === 'function') {
         await (window as any).generateDesign();
       }
       break;
@@ -84,7 +92,10 @@ export async function executePhaseRecovery(
     case 'single_codegen':
     case 'single-pass codegen':
     case 'codegen':
-      if (typeof (window as any).generateSinglePassCode === 'function') {
+      if (store.currentCodebase?.files?.length || store.singlePassCode?.files?.length) {
+        console.log('[AutoDev Recovery Matrix] Codegen output already generated; skipping regeneration.');
+        store.unlockStage(8);
+      } else if (typeof (window as any).generateSinglePassCode === 'function') {
         await (window as any).generateSinglePassCode();
       } else if (typeof (window as any).generateCode === 'function') {
         await (window as any).generateCode();
@@ -94,7 +105,9 @@ export async function executePhaseRecovery(
     case 'single_execution':
     case 'sandbox execution':
     case 'execution':
-      if (typeof (window as any).runSinglePassExecution === 'function') {
+      if (store.currentExecutionResult) {
+        console.log('[AutoDev Recovery Matrix] Sandbox execution output already generated; skipping regeneration.');
+      } else if (typeof (window as any).runSinglePassExecution === 'function') {
         await (window as any).runSinglePassExecution();
       } else {
         try {
@@ -107,7 +120,9 @@ export async function executePhaseRecovery(
 
     case 'single_critics':
     case 'critics':
-      if (typeof (window as any).runSinglePassCritics === 'function') {
+      if (store.criticEvaluations?.length) {
+        console.log('[AutoDev Recovery Matrix] Critics evaluation output already generated; skipping regeneration.');
+      } else if (typeof (window as any).runSinglePassCritics === 'function') {
         await (window as any).runSinglePassCritics();
       } else {
         try {
@@ -121,6 +136,7 @@ export async function executePhaseRecovery(
     case 'component_dag':
     case 'component dag':
     case 'pipeline':
+      // Resume from exact pipeline state prior to reload: passed components remain passed, in-flight/queued resume
       if (typeof (window as any).resumeComponentPipeline === 'function') {
         (window as any).resumeComponentPipeline();
       } else {
@@ -130,13 +146,23 @@ export async function executePhaseRecovery(
       break;
 
     case 'integration':
-      if (typeof (window as any).generateIntegration === 'function') {
+      if (store.integratedCodebase?.files?.length) {
+        console.log('[AutoDev Recovery Matrix] Integrated codebase already generated; skipping regeneration.');
+        store.unlockStage(7);
+      } else if (typeof (window as any).generateIntegration === 'function') {
         await (window as any).generateIntegration();
       }
       break;
 
     case 'documentation':
-      if (typeof (window as any).generateDocumentation === 'function') {
+      if (
+        store.postCompletionVisible ||
+        store.postCompletionResponse ||
+        (store.integratedCodebase?.files || []).some((f) => f.file_name.toLowerCase() === 'readme.md')
+      ) {
+        console.log('[AutoDev Recovery Matrix] Documentation output already generated; skipping regeneration.');
+        store.unlockStage(9);
+      } else if (typeof (window as any).generateDocumentation === 'function') {
         await (window as any).generateDocumentation();
       } else {
         try {
@@ -151,7 +177,10 @@ export async function executePhaseRecovery(
       console.warn(
         `[AutoDev Recovery Matrix] Unrecognized phase '${phase}', falling back to requirements.`
       );
-      if (typeof (window as any).generateRequirements === 'function') {
+      if (store.requirements) {
+        console.log('[AutoDev Recovery Matrix] Requirements output already generated; skipping regeneration.');
+        store.unlockStage(4);
+      } else if (typeof (window as any).generateRequirements === 'function') {
         await (window as any).generateRequirements();
       }
       break;

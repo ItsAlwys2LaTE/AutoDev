@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -78,8 +80,43 @@
     }
   }
 
-  /* Scoped scrollbar suppression across custom-scrollbar targets */
-  .custom-scrollbar::-webkit-scrollbar,
+  /* Scoped scrollbar hover-only reveal system for inner containers */
+  .custom-scrollbar {
+    scrollbar-width: thin !important;
+    scrollbar-color: transparent transparent !important;
+    transition: scrollbar-color 0.2s ease !important;
+  }
+
+  .custom-scrollbar:hover,
+  .custom-scrollbar:focus-within {
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+    display: block !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent !important;
+    border-radius: 9999px !important;
+    transition: background 0.2s ease !important;
+  }
+
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb,
+  .custom-scrollbar:focus-within::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25) !important;
+  }
+
+  .custom-scrollbar:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.45) !important;
+  }
+
   .scrollbar-none::-webkit-scrollbar,
   .no-scrollbar::-webkit-scrollbar {
     display: none !important;
@@ -88,7 +125,6 @@
     background: transparent !important;
   }
 
-  .custom-scrollbar,
   .scrollbar-none,
   .no-scrollbar {
     scrollbar-width: none !important;
@@ -202,7 +238,7 @@ html.dark body {
 }
 
 .font-cursive {
-  font-family: 'Brush Script MT', 'Dancing Script', 'Caveat', 'Great Vibes', cursive, sans-serif;
+  font-family: 'Alex Brush', 'Dancing Script', cursive, sans-serif;
 }
 
 .glass-pure-black {
@@ -313,4 +349,335 @@ html.dark .shadow-xl {
 html.dark #costBox {
   background-color: #1e293b !important;
   border-color: #334155 !important;
+}
+
+/* =============================================================================
+ * LIGHT MODE THEME OVERRIDES (Apple iOS Frosted Pearl & Violet Glassmorphism)
+ * Smoothly transitions all AutoDev surfaces, typography, and controls
+ * ============================================================================= */
+html.light body {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+/* Smooth theme transition across structural surfaces and typography */
+header,
+main,
+aside,
+button,
+input,
+textarea,
+#rightSidebar {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Primary Glassmorphic Containers & Stage Workspaces in Light Mode */
+html.light .glass-card,
+html.light .glass-card-subtle,
+html.light .glass-pure-black,
+html.light .bg-slate-950\/\[0\.08\],
+html.light .bg-slate-950\/\[0\.12\],
+html.light .bg-slate-950\/\[0\.15\],
+html.light .bg-slate-950\/\[0\.20\],
+html.light .bg-slate-950\/\[0\.25\],
+html.light .bg-slate-950\/\[0\.28\],
+html.light .bg-slate-950\/\[0\.32\],
+html.light .bg-slate-950\/\[0\.35\],
+html.light .bg-slate-950\/\[0\.40\],
+html.light .bg-slate-950\/\[0\.45\],
+html.light .bg-slate-950\/15,
+html.light .bg-slate-950\/20,
+html.light .bg-slate-950\/30,
+html.light .bg-slate-950\/40,
+html.light .bg-slate-950\/50,
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/90,
+html.light .bg-slate-950\/92,
+html.light .bg-slate-900\/40,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/90,
+html.light .bg-black\/30,
+html.light .bg-black\/40 {
+  background-color: rgba(255, 255, 255, 0.62) !important;
+  border-color: rgba(120, 58, 225, 0.16) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 36px rgba(120, 58, 225, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Sidebar Backdrop Blur in Light Mode */
+html.light #rightSidebarBackdrop {
+  background-color: rgba(255, 255, 255, 0.35) !important;
+}
+
+/* Inner Pills, Secondary Buttons & Metric Sub-Cards in Light Mode */
+html.light .glass-pill,
+html.light .bg-white\/\[0\.02\],
+html.light .bg-white\/\[0\.03\],
+html.light .bg-white\/\[0\.04\],
+html.light .bg-white\/\[0\.05\],
+html.light .bg-white\/\[0\.06\],
+html.light .bg-white\/\[0\.08\],
+html.light .bg-white\/\[0\.12\],
+html.light .bg-white\/5,
+html.light .bg-white\/10,
+html.light .bg-white\/15,
+html.light .bg-white\/20 {
+  background-color: rgba(120, 58, 225, 0.06) !important;
+  border-color: rgba(120, 58, 225, 0.16) !important;
+}
+
+html.light button.bg-white\/\[0\.06\]:hover,
+html.light button.bg-white\/\[0\.08\]:hover,
+html.light button.bg-white\/5:hover,
+html.light button.bg-white\/10:hover,
+html.light button.bg-white\/15:hover {
+  background-color: rgba(120, 58, 225, 0.14) !important;
+  border-color: rgba(120, 58, 225, 0.28) !important;
+}
+
+/* Specular & Container Borders in Light Mode */
+html.light .border-white\/\[0\.05\],
+html.light .border-white\/\[0\.06\],
+html.light .border-white\/\[0\.07\],
+html.light .border-white\/\[0\.08\],
+html.light .border-white\/\[0\.09\],
+html.light .border-white\/\[0\.10\],
+html.light .border-white\/\[0\.12\],
+html.light .border-white\/5,
+html.light .border-white\/10,
+html.light .border-white\/12,
+html.light .border-white\/15,
+html.light .border-white\/20,
+html.light .border-white\/25 {
+  border-color: rgba(120, 58, 225, 0.16) !important;
+}
+
+/* Typography Contrast in Light Mode */
+html.light .text-white,
+html.light .text-white\/90,
+html.light .text-white\/85,
+html.light .text-white\/80,
+html.light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html.light .text-slate-200,
+html.light .text-white\/70 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-300,
+html.light .text-white\/60 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-400,
+html.light .text-slate-500,
+html.light .text-white\/50,
+html.light .text-white\/40 {
+  color: #475569 !important;
+}
+
+html.light .font-cursive {
+  color: #1e1b4b !important;
+  filter: drop-shadow(0 2px 10px rgba(120, 58, 225, 0.16)) !important;
+}
+
+/* Status Hued Cards & Badges in Light Mode */
+html.light .bg-sky-950\/40,
+html.light .bg-sky-950\/45,
+html.light .bg-sky-950\/50,
+html.light .bg-sky-950\/60 {
+  background-color: rgba(224, 242, 254, 0.78) !important;
+  border-color: rgba(14, 165, 233, 0.35) !important;
+}
+
+html.light .bg-emerald-950\/40,
+html.light .bg-emerald-950\/45,
+html.light .bg-emerald-950\/50,
+html.light .bg-emerald-950\/60 {
+  background-color: rgba(209, 250, 229, 0.78) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+}
+
+html.light .bg-amber-950\/40,
+html.light .bg-amber-950\/45,
+html.light .bg-amber-950\/50,
+html.light .bg-amber-950\/60 {
+  background-color: rgba(254, 243, 199, 0.82) !important;
+  border-color: rgba(245, 158, 11, 0.35) !important;
+}
+
+html.light .bg-rose-950\/40,
+html.light .bg-rose-950\/50,
+html.light .bg-rose-950\/60 {
+  background-color: rgba(255, 228, 230, 0.82) !important;
+  border-color: rgba(244, 63, 94, 0.35) !important;
+}
+
+html.light .text-sky-200,
+html.light .text-sky-300,
+html.light .text-sky-400 {
+  color: #0284c7 !important;
+}
+
+html.light .text-emerald-200,
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html.light .text-amber-200,
+html.light .text-amber-300,
+html.light .text-amber-400 {
+  color: #d97706 !important;
+}
+
+html.light .text-rose-200,
+html.light .text-rose-300,
+html.light .text-rose-400 {
+  color: #e11d48 !important;
+}
+
+/* Inputs & Textareas in Light Mode */
+html.light textarea,
+html.light input[type="text"],
+html.light input[type="password"],
+html.light input[type="email"] {
+  background-color: rgba(255, 255, 255, 0.55) !important;
+  color: #0f172a !important;
+  border-color: rgba(120, 58, 225, 0.18) !important;
+}
+
+html.light .smooth-input-container textarea,
+html.light .smooth-input-container input {
+  background-color: transparent !important;
+}
+
+html.light textarea::placeholder,
+html.light input::placeholder {
+  color: #64748b !important;
+}
+
+/* Preserve bright white letter on violet circle for User Profile Avatar in Light Mode */
+html.light #sidebarUserProfileAvatar {
+  background-color: #783ae1 !important;
+  border-color: rgba(120, 58, 225, 0.4) !important;
+  color: #ffffff !important;
+}
+
+/* Edge Navigation Side Buttons in Light Mode */
+html.light #stageNavPrevBtn,
+html.light #stageNavNextBtn {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #1e293b !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+html.light #stageNavPrevBtn:hover,
+html.light #stageNavNextBtn:hover {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.22) !important;
+  color: #0f172a !important;
+}
+
+/* Line Sidebar & Stage Number Badge in Light Mode */
+html.light #stageNumberCollapsedBadge {
+  background-color: rgba(255, 255, 255, 0.75) !important;
+  border-color: rgba(120, 58, 225, 0.25) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light #stageNumberCollapsedBadge:hover {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(120, 58, 225, 0.45) !important;
+}
+
+html.light #stageNumberCollapsedBadge span:last-of-type {
+  color: #0f172a !important;
+}
+
+html.light #lineSidebarExpandedPanel {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(120, 58, 225, 0.22) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.16), 0 0 40px rgba(120, 58, 225, 0.1) !important;
+  color: #0f172a !important;
+}
+
+html.light #lineSidebarExpandedPanel h3 {
+  color: #0f172a !important;
+}
+
+html.light #lineSidebarExpandedPanel button {
+  color: #334155 !important;
+}
+
+html.light #lineSidebarExpandedPanel button:hover {
+  background-color: rgba(120, 58, 225, 0.08) !important;
+  color: #0f172a !important;
+}
+
+/* =============================================================================
+ * PERMANENT DARK THEME FOR LANDING PAGE
+ * Ensures pure obsidian black background so 3D Light Rays are fully visible
+ * ============================================================================= */
+#pageLanding,
+#stageLanding {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+}
+
+#lightRaysBackgroundLayer {
+  background-color: #000000 !important;
+}
+
+/* Ensure landing page tagline text is always soft crisp slate-200 and immune to light mode */
+html.light #stageLanding p,
+#stageLanding p,
+#stageLanding .text-slate-300,
+#stageLanding .text-slate-200,
+#stageLanding .text-slate-100 {
+  color: #cbd5e1 !important;
+}
+
+/* Ensure landing page SpecularButton text, arrow icon, and borders are always pure white */
+html.light #stageLanding #landingGetStartedBtn,
+#stageLanding #landingGetStartedBtn,
+html.light #stageLanding #landingGetStartedBtn span,
+#stageLanding #landingGetStartedBtn span,
+html.light #stageLanding #landingGetStartedBtn svg,
+#stageLanding #landingGetStartedBtn svg,
+html.light #stageLanding #landingGetStartedBtn *,
+#stageLanding #landingGetStartedBtn * {
+  color: #ffffff !important;
+}
+
+html.light #stageLanding #landingGetStartedBtn,
+#stageLanding #landingGetStartedBtn {
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* =============================================================================
+ * LAYER UTILITIES: Staggered Entrance Animation Delays
+ * ============================================================================= */
+@layer utilities {
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+  .animate-delay-400 { animation-delay: 400ms; }
+  .animate-delay-500 { animation-delay: 500ms; }
+  .animate-delay-600 { animation-delay: 600ms; }
+  .animate-delay-700 { animation-delay: 700ms; }
+  .animate-delay-800 { animation-delay: 800ms; }
+  .animate-delay-900 { animation-delay: 900ms; }
+  .animate-delay-1000 { animation-delay: 1000ms; }
+  .animate-delay-1100 { animation-delay: 1100ms; }
+  .animate-delay-1200 { animation-delay: 1200ms; }
+  .animate-delay-1300 { animation-delay: 1300ms; }
+  .animate-delay-1400 { animation-delay: 1400ms; }
 }

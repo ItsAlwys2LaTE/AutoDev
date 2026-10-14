@@ -1,12 +1,19 @@
-import React from 'react';
-import {
-  SparklesIcon,
-  CpuChipIcon,
-  ArrowRightIcon,
-  ShieldCheckIcon,
-  CommandLineIcon,
-  PlayIcon,
-} from '@heroicons/react/24/outline';
+/**
+ * AutoDev Landing Page
+ *
+ * Implements the pristine hero landing page reflecting the skeletal layout
+ * in AutoDev_UI/Landing Page.JPG:
+ * - Animated stroke-by-stroke cursive "AutoDev" brand logo with traveling ink glow
+ * - Official product tagline
+ * - Centered frosted glass "Get Started" call-to-action button
+ * - Seamless integration with the 3D AeroShards ambient background
+ * - Strict zero-emoji compliance
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { ArrowRightIcon } from '@heroicons/react/24/outline';
+import { CursiveAutoDevLogo } from '../../components/CursiveAutoDevLogo';
+import { SpecularButton } from '../../components/SpecularButton';
 
 export interface StageLandingProps {
   onGetStarted: () => void;
@@ -17,66 +24,90 @@ export const StageLanding: React.FC<StageLandingProps> = ({
   onGetStarted,
   className = '',
 }) => {
+  const [isRevealed, setIsRevealed] = useState<boolean>(false);
+
+  // Guarantee entrance reveal after stroke animation completes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsRevealed(true);
+    }, 4200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleStart = useCallback(() => {
+    setIsRevealed(false);
+  }, []);
+
+  const handleComplete = useCallback(() => {
+    setIsRevealed(true);
+  }, []);
+
   return (
     <div
       id="stageLanding"
-      className={`h-full min-h-[80vh] flex flex-col items-center justify-center text-center px-4 py-12 max-w-4xl mx-auto space-y-10 select-none ${className}`}
+      className={`h-full min-h-[85vh] flex flex-col items-center justify-center text-center px-4 pt-16 sm:pt-24 md:pt-28 pb-12 max-w-5xl mx-auto space-y-10 select-none text-slate-100 ${className}`}
     >
-      {/* Brand Hero */}
-      <div className="space-y-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.1] text-xs font-mono text-white/90">
-          <SparklesIcon className="w-3.5 h-3.5 text-white/80" />
-          <span>AUTONOMOUS SOFTWARE ENGINEERING ENGINE</span>
+      {/* Brand Hero with Stroke-by-Stroke Cursive Handwriting Logo */}
+      <div className="space-y-6 w-full flex flex-col items-center">
+        <div className="w-full max-w-3xl sm:max-w-4xl lg:max-w-5xl mx-auto flex items-center justify-center px-4 sm:px-6">
+          <CursiveAutoDevLogo
+            variant="hero"
+            replayable={true}
+            autoPlay={true}
+            strokeDuration={4200}
+            onStart={handleStart}
+            onComplete={handleComplete}
+            className="w-full"
+          />
         </div>
 
-        <h1 className="font-cursive text-7xl md:text-9xl text-white font-normal italic tracking-wide leading-tight">
-          AutoDev
-        </h1>
-
-        <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-sans leading-relaxed">
+        {/* Tagline text smoothly fades in and rises first once stroke completes and fill starts */}
+        <p
+          style={{ color: '#cbd5e1' }}
+          className={`text-base sm:text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-sans leading-relaxed tracking-normal px-4 transition-all duration-700 ease-out ${
+            isRevealed
+              ? 'opacity-100 translate-y-0 delay-150'
+              : 'opacity-0 translate-y-4 pointer-events-none'
+          }`}
+        >
           Multi-agent AI pipeline that designs, builds, tests, and self-corrects software from a single prompt.
         </p>
       </div>
 
-      {/* Feature Capability Badges */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 w-full max-w-2xl">
-        <div className="p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.2)] flex flex-col items-center text-center gap-1.5">
-          <CpuChipIcon className="w-5 h-5 text-white/90" />
-          <span className="text-xs font-semibold text-slate-200">Multi-Agent DAG</span>
-          <span className="text-[10px] text-slate-400">Parallel Decomposition</span>
-        </div>
-        <div className="p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.2)] flex flex-col items-center text-center gap-1.5">
-          <CommandLineIcon className="w-5 h-5 text-white/90" />
-          <span className="text-xs font-semibold text-slate-200">Docker Sandbox</span>
-          <span className="text-[10px] text-slate-400">Isolated Verification</span>
-        </div>
-        <div className="p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.2)] flex flex-col items-center text-center gap-1.5">
-          <ShieldCheckIcon className="w-5 h-5 text-emerald-400" />
-          <span className="text-xs font-semibold text-slate-200">Arbitration Loop</span>
-          <span className="text-[10px] text-slate-400">3-Critic Consensus</span>
-        </div>
-        <div className="p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.2)] flex flex-col items-center text-center gap-1.5">
-          <PlayIcon className="w-5 h-5 text-amber-400" />
-          <span className="text-xs font-semibold text-slate-200">Live Preview</span>
-          <span className="text-[10px] text-slate-400">Real-Time Containers</span>
-        </div>
-      </div>
-
-      {/* Primary Call to Action */}
-      <div className="pt-2">
-        <button
+      {/* Primary Call to Action: Specular Get Started Button smoothly fades in and rises second */}
+      <div
+        className={`pt-2 transition-all duration-700 ease-out ${
+          isRevealed
+            ? 'opacity-100 translate-y-0 delay-500'
+            : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+      >
+        <SpecularButton
           id="landingGetStartedBtn"
           type="button"
           onClick={onGetStarted}
-          className="group px-9 py-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm shadow-sm border border-white/20 hover:border-white/30 transition-all duration-200 flex items-center gap-3 cursor-pointer backdrop-blur-md"
+          forceDark={true}
+          size="lg"
+          radius={20}
+          tint="#ffffff"
+          tintOpacity={0.06}
+          blur={24}
+          lineColor="#ffffff"
+          baseColor="#000000"
+          textColor="#ffffff"
+          intensity={1.5}
+          shineSize={18}
+          shineFade={40}
+          thickness={1.6}
+          speed={0.4}
+          followMouse={true}
+          proximity={240}
+          autoAnimate={true}
+          className="!px-10 !py-4 text-base font-semibold tracking-wide cursor-pointer shadow-[0_8px_32px_rgba(0,0,0,0.5)] hover:scale-[1.03] active:scale-[0.98] transition-transform duration-300 !text-white"
         >
-          <span>Get Started</span>
-          <ArrowRightIcon className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform" />
-        </button>
-      </div>
-
-      <div className="text-[11px] font-mono text-slate-500">
-        SYS.v2.5.0 - Emoji-Free Architecture
+          <span className="text-white" style={{ color: '#ffffff' }}>Get Started</span>
+          <ArrowRightIcon className="w-4 h-4 text-white group-hover:translate-x-1 transition-transform ml-1 inline-block" style={{ color: '#ffffff' }} />
+        </SpecularButton>
       </div>
     </div>
   );

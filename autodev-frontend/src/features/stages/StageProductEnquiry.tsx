@@ -55,12 +55,33 @@ export const StageProductEnquiry: React.FC<StageProductEnquiryProps> = ({
   const fetchEnquiry = useCallback(async (promptText: string) => {
     if (!promptText.trim()) return;
     setIsEnquiring(true);
-    setError(null);
+    let enquiryContext: string | undefined;
+    try {
+      const { useAuthStore } = await import('../../stores/authStore');
+      const auth = useAuthStore.getState();
+      if (auth.isAuthenticated && auth.user) {
+        const parts: string[] = [];
+        const personalizedPrompt = auth.user.dev_preferences?.personalized_prompt?.trim();
+        if (personalizedPrompt) {
+          parts.push(`User Persistent Development Preferences:\n${personalizedPrompt}`);
+        }
+        const defaultFramework = auth.user.dev_preferences?.default_framework;
+        if (defaultFramework && defaultFramework !== 'auto') {
+          parts.push(`Preferred Tech Stack: ${defaultFramework}`);
+        }
+        if (parts.length > 0) {
+          enquiryContext = parts.join('\n\n');
+        }
+      }
+    } catch {
+      // Non-blocking fallback
+    }
 
     try {
       const result = await productEnquiry({
         prompt: promptText.trim(),
         mode: generationMode || 'QUICK',
+        context: enquiryContext,
       });
       setProductEnquiryResult(result);
       const initialAnswers = new Array((result.follow_up_questions || []).length).fill('');
@@ -199,12 +220,17 @@ export const StageProductEnquiry: React.FC<StageProductEnquiryProps> = ({
       setStepper(1, 'success');
       setInFlightPhase('decomposition');
       useAppStore.getState().completeTimelineInterval(reqIntervalId, { status: 'completed' });
+      useAppStore.getState().unlockStage(4);
       persistState(true);
     } catch (err: any) {
       useAppStore.getState().setRawStreamText('');
       useAppStore.getState().setJsonRetryState(null);
       useAppStore.getState().completeTimelineInterval(reqIntervalId, { status: 'failed' });
-      setError(err?.message || 'Failed to generate requirements');
+      const errText = err?.message || 'Failed to generate requirements';
+      setError(errText);
+      try {
+        useSessionStore.getState().showErrorToast(errText, 'Requirements Analysis Failed');
+      } catch { /* ignore */ }
     }
   };
 
@@ -238,6 +264,7 @@ export const StageProductEnquiry: React.FC<StageProductEnquiryProps> = ({
     const enquiryContext = contextParts.join('\n\n');
 
     startPipeline();
+    useAppStore.getState().unlockStage(3);
     persistState(true);
     onAdvance(3);
 
@@ -492,16 +519,7 @@ export const StageProductEnquiry: React.FC<StageProductEnquiryProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-white/[0.07]">
-          <button
-            type="button"
-            onClick={handleReturnToRequest}
-            disabled={isSubmitting}
-            className="px-4 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] transition-colors cursor-pointer"
-          >
-            Back / Edit Request
-          </button>
-
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-white/[0.07]">
           <button
             type="button"
             onClick={handleProceedToRequirements}

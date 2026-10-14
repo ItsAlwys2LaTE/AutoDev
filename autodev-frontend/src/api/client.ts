@@ -156,7 +156,7 @@ export interface RetryOptions {
   baseDelayMs?: number; // Default: 1000ms
   backoffFactor?: number; // Default: 2
   maxDelayMs?: number; // Default: 10000ms
-  signal?: AbortSignal;
+  signal?: AbortSignal | null;
 }
 
 export function isAbortError(error: unknown): boolean {
@@ -220,6 +220,40 @@ export async function fetchWithAutoRetry(
   if (fetchOptions.signal?.aborted) {
     throw new ApiAbortError();
   }
+
+  // Inject auth token and user preference headers if available
+  const headers = new Headers(fetchOptions.headers || {});
+
+  try {
+    if (typeof window !== 'undefined') {
+      const authToken =
+        (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('autodev_auth_token') : null) ||
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('autodev_auth_token') : null);
+      if (authToken && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${authToken}`);
+      }
+
+      const customKey =
+        (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('autodev_user_api_key') : null) ||
+        (typeof localStorage !== 'undefined' ? localStorage.getItem('autodev_user_api_key') : null);
+      if (customKey && !headers.has('X-AutoDev-User-Key')) {
+        headers.set('X-AutoDev-User-Key', customKey);
+      }
+
+      const primaryModel = typeof localStorage !== 'undefined' ? localStorage.getItem('autodev_primary_model') : null;
+      const fallbackModel = typeof localStorage !== 'undefined' ? localStorage.getItem('autodev_fallback_model') : null;
+      if (primaryModel && !headers.has('X-AutoDev-Primary-Model')) {
+        headers.set('X-AutoDev-Primary-Model', primaryModel);
+      }
+      if (fallbackModel && !headers.has('X-AutoDev-Fallback-Model')) {
+        headers.set('X-AutoDev-Fallback-Model', fallbackModel);
+      }
+    }
+  } catch {
+    // Graceful fallback if storage access is restricted or throws SecurityError
+  }
+
+  fetchOptions.headers = headers;
 
   let attempt = 0;
 

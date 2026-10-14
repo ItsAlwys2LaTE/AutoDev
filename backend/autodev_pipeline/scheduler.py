@@ -119,7 +119,7 @@ class PipelineScheduler:
             comp_display = inferred_comp or "none"
 
             if self.is_paused:
-                print(f"[PAUSE] Development paused. Active phase: {phase_display}, active component: {comp_display}")
+                print("[PAUSE] Product Development paused by the User.")
                 return {
                     "already_paused": True,
                     "paused_at": self._paused_at if self._paused_at is not None else time.time(),
@@ -133,7 +133,7 @@ class PipelineScheduler:
             self.lock_manager.pause(paused_at=ts)
             active_count = self.lock_manager.count_active_leases()
 
-            print(f"[PAUSE] Development paused. Active phase: {phase_display}, active component: {comp_display}")
+            print("[PAUSE] Product Development paused by the User.")
 
             return {
                 "already_paused": False,
@@ -168,8 +168,9 @@ class PipelineScheduler:
             mods_str = "yes" if modifications_detected else "no"
             rewind_info = earliest_target or "none"
 
+            target_disp = inferred_target or "requirements"
             if not self.is_paused:
-                print(f"[RESUME] Development resumed. Target phase/stage: {inferred_target}, modifications detected: {mods_str}, earliest rewind target: {rewind_info}")
+                print(f"[RESUME] Product Development resumed from {target_disp} by the user.")
                 return {
                     "already_active": True,
                     "paused_duration": 0.0,
@@ -184,7 +185,7 @@ class PipelineScheduler:
 
             extended_count = self._sync_component_leases()
 
-            print(f"[RESUME] Development resumed. Target phase/stage: {inferred_target}, modifications detected: {mods_str}, earliest rewind target: {rewind_info}")
+            print(f"[RESUME] Product Development resumed from {target_disp} by the user.")
 
             return {
                 "already_active": False,
@@ -231,7 +232,7 @@ class PipelineScheduler:
             self._paused_at = None
             self._is_running = False
             self._event_history.clear()
-            print("[RESTART] Development restarted. Restarting development from requirements phase.")
+            print("[RESTART] Product Development restarted.")
             return {"cleared_components": cleared_count}
 
     restart = reset

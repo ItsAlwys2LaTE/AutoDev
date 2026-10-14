@@ -20,6 +20,7 @@ import {
 import { useAppStore } from '../../stores/appStore';
 import { useSessionStore } from '../../stores/sessionStore';
 import { persistState } from '../../stores';
+import { usePausableAutoAdvance } from '../../hooks';
 import { decompose, pipelineInit, generateDesign } from '../../api/endpoints';
 import { safeJsonParse } from '../../utils/jsonParser';
 import {
@@ -186,7 +187,9 @@ export function DecompositionOutput({
       setDecomposition(decomp);
       setStepper(2, 'success');
       useAppStore.getState().completeTimelineInterval(decompIntervalId, { status: 'completed' });
+      useAppStore.getState().unlockStage(5);
       persistState(true);
+      useAppStore.getState().checkAndExecutePendingPause();
     } catch (err: any) {
       useAppStore.getState().setJsonRetryState(null);
       useAppStore.getState().completeTimelineInterval(decompIntervalId, { status: 'failed' });
@@ -203,7 +206,7 @@ export function DecompositionOutput({
       }
       const msg = err.message || 'Decomposition failed';
       setErrorMessage(msg);
-      useSessionStore.getState().showErrorToast(msg);
+      useSessionStore.getState().showErrorToast(msg, 'Decomposition Failed');
     } finally {
       setIsAnalyzing(false);
     }
@@ -241,6 +244,12 @@ export function DecompositionOutput({
       runDecomposition();
     }
   }, [inFlightPhase, decomposition, requirements, pipelineStatus, runDecomposition, isPaused]);
+
+  useEffect(() => {
+    if (decomposition) {
+      useAppStore.getState().unlockStage(5);
+    }
+  }, [decomposition]);
 
   // 2. Simple Product Proceed Handler
   const handleProceedToSingleDesign = useCallback(async () => {
@@ -372,7 +381,7 @@ export function DecompositionOutput({
     } catch (err: any) {
       const msg = err.message || 'Failed to initialize component pipeline.';
       setErrorMessage(msg);
-      useSessionStore.getState().showErrorToast(msg);
+      useSessionStore.getState().showErrorToast(msg, 'Pipeline Initialization Failed');
     } finally {
       setIsLaunching(false);
     }
@@ -391,31 +400,25 @@ export function DecompositionOutput({
     onPipelineLaunched,
   ]);
 
-  // Auto-advance or countdown initiation once decomposition is available
-  useEffect(() => {
-    if (isPaused) return; // <-- PAUSE GUARD
-    if (!decomposition || pipelineStatus !== 'running') {
-      return;
-    }
-
-    if (!hasAutoAdvancedRef.current) {
-      hasAutoAdvancedRef.current = true;
-      const timer = setTimeout(() => {
-        if (decomposition.is_complex) {
-          handleStartPipeline();
-        } else {
-          handleProceedToSingleDesign();
-        }
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [
-    decomposition,
-    pipelineStatus,
-    handleStartPipeline,
-    handleProceedToSingleDesign,
-    isPaused,
-  ]);
+  // Auto-advance once decomposition is available (strictly during decomposition phase)
+  // Pauses seamlessly when development is paused, and resumes remaining time when resumed
+  usePausableAutoAdvance({
+    durationMs: 10000,
+    onAdvance: () => {
+      if (decomposition?.is_complex) {
+        handleStartPipeline();
+      } else {
+        handleProceedToSingleDesign();
+      }
+    },
+    targetStage: 5,
+    enabled: Boolean(
+      decomposition &&
+      pipelineStatus === 'running' &&
+      inFlightPhase === 'decomposition'
+    ),
+    stageKey: 'stage-4-decomposition',
+  });
 
   // User interaction callback
   const handleUserInteraction = () => {

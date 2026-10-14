@@ -131,7 +131,7 @@ export function ComponentToggler({
         role="tablist"
         aria-label="Component Workspace Selector"
         orientation="horizontal"
-        className="inline-flex bg-slate-950/[0.12] backdrop-blur-md p-1.5 rounded-full shadow-inner overflow-x-auto max-w-full items-center gap-1 border border-white/[0.08]"
+        className="inline-flex bg-slate-950/[0.12] backdrop-blur-md p-1.5 rounded-full shadow-inner overflow-x-auto max-w-full items-center gap-1 border border-white/[0.08] custom-scrollbar"
       >
         {queue.map((component) => {
           const cId = component.component_id;

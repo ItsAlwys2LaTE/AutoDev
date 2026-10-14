@@ -22,7 +22,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import { useSessionStore } from '../../stores/sessionStore';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 import type { ExecutionResult } from '../../types';
 
 export interface ExecutionOutputProps {
@@ -155,7 +155,7 @@ export function ExecutionOutput({
       </div>
 
       {/* Execution Logs Terminal Block (#execLogsOutput) */}
-      <ScrollFade className="bg-black/25 backdrop-blur-md p-4 rounded-2xl border border-white/[0.07] max-h-96 overflow-y-auto shadow-inner mb-6">
+      <ModernScrollbar className="bg-black/25 backdrop-blur-md rounded-2xl border border-white/[0.07] max-h-96 shadow-inner mb-6" viewportClassName="p-4">
         <div className="flex items-center justify-between text-xs text-slate-500 border-b border-white/[0.07] pb-2 mb-2 font-mono">
           <span className="flex items-center gap-1.5">
             <CommandLineIcon className="w-3.5 h-3.5 text-slate-400" />
@@ -171,7 +171,7 @@ export function ExecutionOutput({
             {logs || (isExecuting ? 'Starting container and executing sandbox test commands...' : 'No logs produced.')}
           </code>
         </pre>
-      </ScrollFade>
+      </ModernScrollbar>
 
       {/* Phase 3 Action Transition Button (#criticBtn) */}
       <div className="border-t border-white/[0.07] pt-5">

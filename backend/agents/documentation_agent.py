@@ -131,7 +131,7 @@ def generate_documentation_stream(requirements: RequirementsDocument, blueprint:
     {codebase.model_dump_json(indent=2)}
     """
 
-    print(f"Documentation Agent is generating documentation using {primary_model} (Model: {primary_model})...")
+    print("Documentation Agent is generating documentation.")
     for idx, key in enumerate(keys):
         try:
             client = genai.Client(api_key=key)

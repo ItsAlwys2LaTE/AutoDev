@@ -35,7 +35,7 @@ const ScrollArea = React.forwardRef<HTMLDivElement, ScrollAreaProps>(
       <ScrollAreaPrimitive.Root
         ref={ref}
         data-slot="scroll-area"
-        className={cn("relative overflow-hidden", className)}
+        className={cn("relative overflow-hidden group/scroll-area", className)}
         {...props}
       >
         <ScrollAreaPrimitive.Viewport
@@ -75,10 +75,14 @@ function ScrollBar({
       data-orientation={orientation}
       orientation={orientation}
       className={cn(
-        "flex touch-none p-0.5 transition-colors select-none z-10",
+        "flex touch-none p-0.5 select-none z-20 transition-opacity duration-200",
+        "opacity-0 pointer-events-none",
+        "group-hover/scroll-area:opacity-100 group-hover/scroll-area:pointer-events-auto",
+        "data-[hovering]:opacity-100 data-[hovering]:pointer-events-auto",
+        "data-[scrolling]:opacity-100 data-[scrolling]:pointer-events-auto",
         orientation === "vertical"
-          ? "h-full w-2.5 border-l border-transparent"
-          : "w-full h-2.5 flex-col border-t border-transparent",
+          ? "h-full w-2.5 border-l border-transparent right-0 top-0"
+          : "w-full h-2.5 flex-col border-t border-transparent bottom-0 left-0",
         "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-2.5 data-[orientation=vertical]:border-l data-[orientation=vertical]:border-transparent",
         "data-[orientation=horizontal]:h-2.5 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:flex-col data-[orientation=horizontal]:border-t data-[orientation=horizontal]:border-transparent",
         className
@@ -88,7 +92,7 @@ function ScrollBar({
       <ScrollAreaPrimitive.Thumb
         data-slot="scroll-area-thumb"
         className={cn(
-          "relative flex-1 rounded-full bg-white/20 hover:bg-white/40 active:bg-white/60 transition-colors shadow-xs",
+          "relative flex-1 rounded-full bg-white/25 hover:bg-white/45 active:bg-white/65 transition-colors shadow-xs cursor-pointer",
           thumbClassName
         )}
       />

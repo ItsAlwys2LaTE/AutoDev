@@ -14,7 +14,7 @@ import {
   DocumentIcon,
 } from '@heroicons/react/24/outline';
 import type { CodeFile } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface ComponentFileExplorerProps {
   componentId: string;
@@ -74,9 +74,10 @@ export function ComponentFileExplorer({
         </span>
       </div>
 
-      {/* File List with Dynamic ScrollFade */}
-      <ScrollFade
-        className="flex-1 overflow-y-auto py-1 divide-y divide-white/[0.04]"
+      {/* File List with ModernScrollbar */}
+      <ModernScrollbar
+        className="flex-1 min-h-0"
+        viewportClassName="py-1 divide-y divide-white/[0.04]"
         role="tree"
         aria-label={`Files for component ${componentId}`}
       >
@@ -112,7 +113,7 @@ export function ComponentFileExplorer({
             );
           })
         )}
-      </ScrollFade>
+      </ModernScrollbar>
     </div>
   );
 }

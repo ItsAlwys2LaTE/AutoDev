@@ -1,12 +1,12 @@
 # AutoDev: Master Technical Architecture & System Documentation
 
-> **Document Version**: 3.4.0-Prod (Master Edition)  
+> **Document Version**: 3.7.0-Prod (Master Edition)  
 > **Repository Root**: `c:\Users\Anupam Sharma\Documents\AutoDev\AutoDev-main`  
 > **Primary Author & Maintainer**: Anupam Sharma  
 > **System Classification**: Autonomous Multi-Agent Software Engineering Platform  
-> **Commit Span**: `c80d011` (Commit #01) to `HEAD -> main` (20 Eras of Evolution)  
-> **Target Runtimes**: Python 3.11+, FastAPI, Uvicorn, LangGraph, Docker Engine, React 19, TypeScript 5.x, Vite 6, Zustand, Tailwind CSS, Monaco Editor  
-> **Verification Status**: Formally Verified across 399 Backend Pytest Integration & Stress Suites + 879 Frontend Vitest Suites + Production Build & Single Vitest Suite Execution (14 passing tests in m1_app_shell.test.tsx), 100% Pass Rate (1,292 Total Passing Tests), Clean Production Build  
+> **Commit Span**: `c80d011` (Commit #01) to `HEAD -> main` (24 Eras of Evolution)  
+> **Target Runtimes**: Python 3.11+, FastAPI, Uvicorn, LangGraph, Docker Engine, React 19, TypeScript 5.x, Vite 6, Zustand, Tailwind CSS, Monaco Editor, MongoDB Atlas  
+> **Verification Status**: Formally Verified across 399 Backend Pytest Integration & Stress Suites + 657 Frontend Vitest Suites (42 test suites, 100% Pass Rate), Clean Production Build in backend/dist  
 
 ---
 
@@ -17,7 +17,7 @@
    - 1.2 [Multi-Agent Collaboration Architecture](#12-multi-agent-collaboration-architecture)
    - 1.3 [Component-Wise Pipelined Execution Model](#13-component-wise-pipelined-execution-model)
    - 1.4 [High-Level Topology & Data Flow](#14-high-level-topology--data-flow)
-2. [Timeline Format & Chronological Evolution (Commits Across 20 Eras)](#2-timeline-format--chronological-evolution-commits-across-10-eras)
+2. [Timeline Format & Chronological Evolution (Commits Across 24 Eras)](#2-timeline-format--chronological-evolution-commits-across-10-eras)
    - 2.1 [Era 1: Initial Foundational Architecture & Requirements Modeling (Phase 1)](#21-era-1-initial-foundational-architecture--requirements-modeling-phase-1)
    - 2.2 [Era 2: Full SDLC Architecture, Autonomous CodeGen & Subprocess Sandbox (Phase 2)](#22-era-2-full-sdlc-architecture-autonomous-codegen--subprocess-sandbox-phase-2)
    - 2.3 [Era 3: Multi-Agent Arbitration Network & Closed-Loop Self-Correction (Phase 3)](#23-era-3-multi-agent-arbitration-network--closed-loop-self-correction-phase-3)
@@ -38,7 +38,10 @@
    - 2.18 [Era 18: Apple iOS Deep Frosted Obsidian Glassmorphic UI & AeroShards WebGPU 3D Background (HEAD / v3.2.0-Prod)](#218-era-18-apple-ios-deep-frosted-obsidian-glassmorphic-ui--aeroshards-webgpu-3d-background-head--v320-prod)
    - 2.19 [Era 19: Pure Monochromatic 3D AeroShards Background, Ultra-Clean Header Typography, Glassmorphic Stage 1 Textarea Optimization & Synchronized Blinking Caret Engine (HEAD / v3.3.0-Prod)](#219-era-19-pure-monochromatic-3d-aeroshards-background-ultra-clean-header-typography-glassmorphic-stage-1-textarea-optimization--synchronized-blinking-caret-engine-head--v330-prod)
    - 2.20 [Era 20: Comprehensive UI Glassmorphic Harmonization Across Stages 2–8, Pure Monochromatic Controls & Zero-Tint Translucent Obsidian Architecture (HEAD / v3.4.0-Prod)](#220-era-20-comprehensive-ui-glassmorphic-harmonization-across-stages-28-pure-monochromatic-controls--zero-tint-translucent-obsidian-architecture-head--v340-prod)
-   - 2.21 [Comprehensive Milestone & Version Matrix](#211-comprehensive-milestone--version-matrix)
+   - 2.21 [Era 22: Navigation Flow Pause/Resume Restoration, In-Flight Agent Deferral & Pausable Monotonic Stage Timers (HEAD / v3.5.0-Prod)](#222-era-22-navigation-flow-pauseresume-restoration-in-flight-agent-deferral--pausable-monotonic-stage-timers-head--v350-prod)
+   - 2.22 [Era 23: Landing Page Redesign, Animated Cursive Logo, Specular Controls & 3D LightRays Background Engine (HEAD / v3.6.0-Prod)](#223-era-23-landing-page-redesign-animated-cursive-logo-specular-controls--3d-lightrays-background-engine-head--v360-prod)
+   - 2.23 [Era 24: End-to-End User Profile & Authentication Suite, MongoDB Atlas Persistence, Dynamic Preference Injection & Custom API Key Routing (HEAD / v3.7.0-Prod)](#section-824-pipeline-integration-testing-suite--end-to-end-verification-phases-911-implementation)
+   - 2.24 [Comprehensive Milestone & Version Matrix](#211-comprehensive-milestone--version-matrix)
 3. [Deep-Dive: Core Algorithm 1 — Parallel Component Pipeline Scheduler & DAG Engine](#3-deep-dive-core-algorithm-1--parallel-component-pipeline-scheduler--dag-engine)
    - 3.1 [Theoretical Motivation & Concurrency Challenges](#31-theoretical-motivation--concurrency-challenges)
    - 3.2 [Graph-Theoretic Foundations & `PipelineDAG`](#32-graph-theoretic-foundations--pipelinedag)
@@ -111,6 +114,20 @@
    - 7.3 [Decorator & Resilience Unit Suite (`test_backoff.py`)](#73-decorator--resilience-unit-suite-test_backoffpy)
    - 7.4 [Formal Verification Execution Procedures](#74-formal-verification-execution-procedures)
    - 7.5 [React SPA Verification, Zero-Emoji Compliance & Post-Completion Acceptance Suite](#75-react-spa-verification-zero-emoji-compliance--post-completion-acceptance-suite)
+8. [Comprehensive User Profile & Authentication Master Specification (Phase 11 Documentation)](#9-comprehensive-user-profile--authentication-master-specification-phase-11-documentation)
+   - 9.1 [MongoDB Infrastructure and Database Schema](#section-91-mongodb-infrastructure-and-database-schema)
+   - 9.2 [Authentication System (JWT, bcrypt, token lifecycle, auth dependencies)](#section-92-authentication-system-jwt-bcrypt-token-lifecycle-auth-dependencies)
+   - 9.3 [Email OTP Verification (Brevo API integration, OTP flow, TTL)](#section-93-email-otp-verification-brevo-api-integration-otp-flow-ttl)
+   - 9.4 [Google OAuth Integration (ID token flow, user creation/merge)](#section-94-google-oauth-integration-id-token-flow-user-creationmerge)
+   - 9.5 [Login/Signup Page (split-screen layout, form state machine, fallback behavior)](#section-95-loginsignup-page-split-screen-layout-form-state-machine-fallback-behavior)
+   - 9.6 [User Profile Page Architecture (2-column layout, section navigation)](#section-96-user-profile-page-architecture-2-column-layout-section-navigation)
+   - 9.7 [Account Management Section (fields, avatar, password change, notifications)](#section-97-account-management-section-fields-avatar-password-change-notifications)
+   - 9.8 [AI Configuration Section (custom key system, model selection, header injection)](#section-98-ai-configuration-section-custom-key-system-model-selection-header-injection)
+   - 9.9 [Development Preferences Section (personalized prompt injection mechanism)](#section-99-development-preferences-section-personalized-prompt-injection-mechanism)
+   - 9.10 [GitHub Integration Section (profile storage, modal pre-fill)](#section-910-github-integration-section-profile-storage-modal-pre-fill)
+   - 9.11 [Session History and Project Storage (MongoDB schema, ZIP download, stats)](#section-911-session-history-and-project-storage-mongodb-schema-zip-download-stats)
+   - 9.12 [Auth Store and Token Persistence Strategy](#section-912-auth-store-and-token-persistence-strategy)
+   - 9.13 [Backward Compatibility and Unauthenticated Fallback](#section-913-backward-compatibility-and-unauthenticated-fallback)
 
 ---
 
@@ -578,7 +595,12 @@ The AutoDev codebase represents 27 days of continuous evolutionary development (
 | `v2.7.0-Prod` | `e49f2b3` (#88) | 2026-10-03 | Atomic GitHub Export | One-click GitHub export modal, PAT session persistence, commit payload generation |
 | `v2.8.0-Prod` | `71b0ea5` (#89) | 2026-10-04 | Dynamic Floating FAB | Bottom-left 3-button expansion, in-memory multi-phase editing, earliest-phase rewind |
 | `v3.0.0-Prod` | `a38c91d` (#90) | 2026-10-06 | Light UI & 12-Stage Shell | 3-page flow, light theme design system, 12-stage presentation shell, new product lifecycle |
-| `v3.1.0-Prod` | `HEAD -> main` | 2026-10-07 | Product Enquiry Agent | Dedicated Stage 2 enquiry agent, plain-English summary, implementation strategy, non-trivial question filter, enriched requirements handoff |
+| `v3.1.0-Prod` | `8681959` (#91) | 2026-10-07 | Product Enquiry Agent | Dedicated Stage 2 enquiry agent, plain-English summary, implementation strategy, non-trivial question filter, enriched requirements handoff |
+| `v3.2.0-Prod` | `b1ab838` (#92) | 2026-10-08 | Apple Frosted Obsidian UI | Deep frosted obsidian glassmorphism, AeroShards WebGPU 3D background, edge-hover stage navigation |
+| `v3.3.0-Prod` | `cedaa13` (#93) | 2026-10-09 | Monochromatic UI & Live Preview | Multi-agent integration hub, responsive live preview simulation, pure obsidian controls |
+| `v3.4.0-Prod` | `e8b5a8b` (#94) | 2026-10-10 | Spring Stage Animations | Sliding stage transitions with non-blocking spring physics, LineSidebar navigation |
+| `v3.5.0-Prod` | `367190f` (#95) | 2026-10-12 | Symmetrical Pause/Resume | In-flight agent deferral, pausable monotonic stage timers, hover-only dynamic scrollbars, center-top toast system |
+| `v3.6.0-Prod` | `HEAD -> main` | 2026-10-14 | Landing Page & 3D LightRays | Cursive Alex Brush handwriting animation, smooth white fill, SpecularButton CTA, React Bits 3D LightRays background, permanent obsidian landing theme |
 
 ---
 
@@ -6939,13 +6961,1133 @@ The interface was refactored to align with the minimalistic, unified agent aesth
   - Production build compiled cleanly into `backend/dist` via `tsc && vite build`.
   - Strictly zero emojis across all code, tests, and documentation.
 
+### Section 8.16: Post-Development Support & Execution Overhaul, Glassmorphic Right Sidebar & Draggable Live Terminal Console
+- **Scope & Objectives**:
+  1. Overhaul Stage 10 (`StagePostDevRequest`) and Stage 11 (`StagePostDevExecution`) into an intelligent, conditional post-development support workflow.
+  2. Eliminate duplicate/unprompted `Post-Run Rev` toggles by gating Stage 11 behind explicit user prompts and deduplicating revisions by `requestPrompt`.
+  3. Design and implement a collapsible glassmorphic Right Sidebar (`RightSidebar.tsx`) with full-screen background blur, dynamic session metrics, a draggable Live Terminal Console window (`Terminal.tsx`), and User Profile navigation.
+- **Architectural Enhancements Implemented**:
+  1. **Post-Development Support Agent (`StagePostDevRequest.tsx`)**:
+     - Standardized stage header ("Post-Development Support Agent") matching the full-width layout of earlier pipeline stages.
+     - Automatic request intent classification (`classifySupportIntent`) distinguishing technical queries (`query`) from bug fixes and feature modifications (`modify`), paired with prompt injection and non-software query guards (`validateSupportPrompt`).
+     - Integrated `SmoothInput` auto-resizing textarea with an inline right-aligned `SpecularButton` ("PROCEED") and an expandable 6-item FAQ accordion covering common questions on running and deploying AutoDev-generated software.
+  2. **Conditional & Dynamic Post-Development Execution Agent (`StagePostDevExecution.tsx`, `App.tsx`, `appStore.ts`)**:
+     - Stage 11 is non-permanent initially and becomes navigable only after a user submits a post-development support prompt on Stage 10 (`maxAllowedStage` dynamically switches from 10 to 11).
+     - Dynamic output switching based on detected request mode:
+       - **Query Mode (`postCompletionMode === 'query'`)**: Renders a formatted technical explanation window (`#postDevQueryOutputWindow`) with real-time streaming and one-click copy.
+       - **Modify Mode (`postCompletionMode === 'modify'`)**: Renders an integration-style workspace with a 3-Agent Switcher Toggle (`Codegen`, `Testing`, `Evaluation`), deduplicated `Post-Run Rev` tabs, side-by-side diff inspection (`IntegrationMonacoView`), sandbox test logs, and Master Adjudicator + 3-critic evaluation cards.
+     - Deduplicated `revisionHistory` in `appStore.ts` (`addRevision` and `loadSnapshot`) by `requestPrompt` so each user modification request maps strictly to a single `Post-Run Rev` toggle.
+  3. **Top-Right Specular Sidebar Trigger (`Header.tsx`)**:
+     - Replaced the top-right 3-strip menu button border with a colourless `SpecularButton` (`#sidebarToggleBtn`) housing 3 crisp `#ffffff` horizontal bars.
+  4. **Collapsible Glassmorphic Right Sidebar (`RightSidebar.tsx`)**:
+     - Slides smoothly from the right edge (`w-[350px] sm:w-[410px] md:w-[430px]`) with frosted obsidian glassmorphism (`bg-slate-950/[0.32] backdrop-blur-2xl border-l border-white/[0.09]`) over a full-screen blurred backdrop (`#rightSidebarBackdrop`, `backdrop-blur-2xl`).
+     - Features an external top-right close button (`#rightSidebarCloseBtn`, `absolute -left-14 top-4`) positioned outside the sidebar border.
+     - **Stage-1 Visibility Rule**: While on Stage 1 (prior to clicking `START DEVELOPMENT`), displays only the **Live Terminal** button and the bottom **User Account** card. From Stage 2 onward, reveals the full session telemetry suite:
+       - **Unboxed Software Title & Enlarged Status Badge (`#sidebarSoftwareName`, `#sidebarStatusBadge`)**: Displays the active project title directly in the sidebar with an enlarged `IDLE` / `RUNNING` / `COMPLETED` / `PAUSED` status pill beneath it.
+       - **Status-Hued Session Time (`#sidebarSessionTimeCard`)**: Displays elapsed time in `MM:SS mins` format with a dynamic background hue matching the active status (`RUNNING` = sky, `COMPLETED` = emerald, `PAUSED` = amber, `IDLE` = slate). Starts in Stage 2 during Product Enquiry analysis, automatically pauses while Stage 2 waits for user input, resumes when the user clicks `START DEVELOPMENT` in Stage 2 (entering Stage 3), pauses/resumes in sync with pipeline pause controls (`isPaused`), and permanently freezes at Stage 9 product delivery without restarting during post-development support requests.
+       - **Comprehensive Session Cost (`#sidebarSessionCostCard`)**: Displays cumulative cost and token count in `₹X.XXXX (N tokens)` format, incorporating both core pipeline stages and post-development support queries/modifications.
+       - **Live Terminal Launcher (`#sidebarLiveTerminalBtn`)**: Clean icon + `"Live Terminal"` trigger opening the floating console window.
+       - **User Account Footer (`#sidebarUserAccountBtn`)**: Pinned at the bottom of the sidebar with a frosted initial avatar (`A`), username (`Alex`), and email (`alex@autodev.org`), routing to the User Profile page (`#pageUserProfile`).
+  5. **Draggable Live Terminal Console Window (`Terminal.tsx`)**:
+     - Upgraded `Terminal.tsx` with a floating, draggable console window (`#liveTerminalModalWindow`) powered by Framer Motion `useDragControls`.
+     - Includes top drag header, live SSE stream status indicator, log clear button (`#terminalClearBtn`), maximize/restore viewport toggle (`#terminalMaximizeBtn`), and close button (`#terminalCloseBtn`), while preserving the hidden `#terminalPanel` DOM invariant for test compatibility.
+- **Verification & Policy Compliance**:
+  - Frontend production bundle compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors.
+  - Strictly zero emojis across all code, UI components, and documentation.
 
+### Section 8.17: Dynamic Dark/Light Mode Theme System, Rounded Specular Theme Toggle & Theme-Reactive AeroShards 3D Background
+- **Scope & Objectives**:
+  1. Add a rounded Light/Dark system theme toggle button (`#darkModeToggle`) using `SpecularButton` with Sun/Moon icons positioned immediately to the left of the top-right sidebar button (`#sidebarToggleBtn`) in `Header.tsx`.
+  2. Configure `<AeroShards />` in `App.tsx` with dedicated Dark and Light theme palettes and physics parameters that smoothly interpolate in real time when the user switches themes.
+  3. Implement full-application Light/Dark theme synchronization across glassmorphic stage surfaces, typography, inputs, sidebar controls, and WebGL `SpecularButton` shaders.
+- **Architectural Enhancements Implemented**:
+  1. **Rounded Specular Theme Toggle (`DarkModeToggle.tsx` & `Header.tsx`)**:
+     - Positioned `<DarkModeToggle />` directly to the left of `#sidebarToggleBtn` in the top-right navigation bar (`Header.tsx`).
+     - Built on `<SpecularButton>` with circular geometry (`radius={999}`, `rounded-full`, `w-11 h-11`, `!border-transparent`) and animated Sun (`#iconSun`, crisp `#ffffff` in dark mode) and Moon (`#iconMoon`, crisp `#0f172a` in light mode) icons.
+     - Synchronizes `html.dark` and `html.light` root classes, persists user preference in `localStorage` (`autodev_dark_mode`), and dispatches `autodev:theme-change` custom events for instant cross-component reactivity.
+     - Updated `#sidebarToggleBtn` 3-strip bars to smoothly transition between `#ffffff` (Dark Mode) and `#0f172a` (Light Mode).
+  2. **Theme-Reactive `<AeroShards />` 3D WebGPU Background (`App.tsx` & `AeroShards.tsx`)**:
+     - **Dark Theme Configuration (`isDark === true`)**:
+       - `backgroundColor="#000000"`, `shardColor="#7a5fa8"`, `accentColor="#901bff"`
+     - **Light Theme Configuration (`isDark === false`)**:
+       - `backgroundColor="#ffffff"`, `shardColor="#783ae1"`, `accentColor="#a749ff"`
+     - **Shared Sculpture & Physics Parameters**:
+       - `placement="full"`, `flow="stream"`, `material="pearl"`, `detail="balanced"`, `effect="none"`, `scale={1.5}`, `spread={1.1}`, `depth={1}`, `speed={1}`, `spin={1}`, `interaction="repel"`, `density={1.5}`, `shardSize={1.1}`, `stretch={1}`, `turbulence={1}`, `glow={1}`, `edgeSoftness={2}`, `bloom={0.5}`, `grain={0.05}`, `chromaticAberration={0.0075}`, `transitionDuration={1}`, `interactionRadius={1.5}`, `interactionStrength={0.5}`, `rippleIntensity={1}`, `holdToGather={true}`.
+  3. **Theme-Adaptive WebGL `SpecularButton` & Frosted Pearl Light Mode (`SpecularButton.tsx` & `index.css`)**:
+     - Enhanced `SpecularButton.tsx` to observe `html.light` / `autodev:theme-change` and automatically adapt monochrome dark defaults (`lineColor: '#783ae1'`, `baseColor: '#94a3b8'`, `textColor: '#0f172a'`, `tint: '#783ae1'`) in Light Mode.
+     - Added comprehensive `html.light` frosted pearl glassmorphism rules and smooth CSS transitions (`0.35s ease`) in `index.css` covering all stage workspaces, cards, borders, status badges, inputs, and sidebar components.
+- **Verification & Policy Compliance**:
+  - Frontend production bundle compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors.
+  - Strictly zero emojis across all code, UI components, and documentation.
 
+### Section 8.18: Stage Navigation Transition Deadlock & Manual Stage Browsing Fix
+- **Scope & Objectives**:
+  - Fix a critical UI regression where navigating between stages caused the active stage container to animate away while the next or previous stage container failed to appear, leaving a blank screen.
+  - Ensure manual stage navigation via the `<` and `>` header buttons works reliably across all stages without unintended auto-advance redirects or skipped stages.
+- **Root Causes Identified**:
+  1. **Blocking `<AnimatePresence mode="wait">` & Mixed WAAPI/RAF Exit Drivers (`App.tsx`, `StageIntegration.tsx`, `StagePostDevExecution.tsx`)**:
+     - `<AnimatePresence mode="wait">` blocked mounting the incoming stage container (`<motion.div key={currentStage} id="centralStageWorkspace">`) until the outgoing stage container completed its `exit` animation (`x`, `opacity`, `scale`, and `filter: 'blur(6px)'`).
+     - Animating `filter: 'blur(6px)'` runs on the browser's Web Animations API (WAAPI) driver while `x`/`scale` run on Framer Motion's JavaScript `requestAnimationFrame` driver. Combined with rapid state updates or stage clicks, the exit completion callback frequently failed to resolve, leaving the outgoing container at `opacity: 0` and preventing the incoming container from ever mounting.
+  2. **Nested State Updater Re-Render During Stage Switch (`App.tsx`)**:
+     - `navigateToStage` called `setSlideDirection(target > prev ? 1 : -1)` inside `setCurrentStage((prev) => ...)`'s updater function, triggering a secondary state update mid-transition.
+  3. **Unconditional Auto-Advance Effects Overriding Manual Navigation (`App.tsx`, `DecompositionOutput.tsx`, `StageComponentPipeline.tsx`)**:
+     - Navigating backward with `<` to Stage 4 (`DecompositionOutput.tsx`) while the pipeline was running in Stage 5/6 re-triggered the 500ms `handleStartPipeline()` timer because it did not check `inFlightPhase === 'decomposition'`.
+     - Navigating backward to Stage 5 (`StageComponentPipeline.tsx`) after components had completed re-triggered the 1.5s `onAdvance(6)` timer.
+     - `App.tsx`'s `inFlightPhase` effect lacked a previous-phase guard, causing store updates to pull the user away from manually inspected stages.
+  4. **Stage 2 & Stage 3 Visibility Gaps (`App.tsx`, `RequirementsOutput.tsx`, `StageRequirements.tsx`)**:
+     - `hasClarifications` in `getPreviousStage`/`getNextStage` only checked `clarificationQuestions.length > 0`, skipping Stage 2 (`Product Enquiry`) when navigating back if no clarification array was present.
+     - `RequirementsOutput.tsx` returned `null` if `requirements` was empty and `inFlightPhase` had moved past `'requirements'`/`'decomposition'`.
+- **Architectural Fixes Implemented**:
+  1. **Non-Blocking Synchronous Stage Mount Animations (`App.tsx`, `StageIntegration.tsx`, `StagePostDevExecution.tsx`, `index.css`)**:
+     - Removed `<AnimatePresence mode="wait">` and `filter: 'blur(...)'` exit animations from `#centralStageWorkspace` in [`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx) and from the 3-agent sub-tab switchers in [`StageIntegration.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageIntegration.tsx) and [`StagePostDevExecution.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StagePostDevExecution.tsx).
+     - Each `<motion.div key={currentStage}>` now mounts synchronously on state change and plays a directional GPU-accelerated enter animation (`x`, `opacity`, `scale`, `duration: 0.22`), guaranteeing the stage container is always present in the DOM.
+     - Removed `#centralStageWorkspace` from the global CSS `transition` selector list in [`index.css`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/index.css) to prevent CSS transitions from conflicting with Framer Motion transforms.
+  2. **Clean Directional Navigation State Updates (`App.tsx`)**:
+     - Added `currentStageRef` in [`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx) so `navigateToStage` computes `setSlideDirection` and `setCurrentStage` cleanly at the top level without side effects inside state updater callbacks.
+  3. **Phase-Transition Guards on Autonomous Stage Progression (`App.tsx`, `DecompositionOutput.tsx`, `StageComponentPipeline.tsx`)**:
+     - Added `prevInFlightPhaseRef` and `hasAutoAdvancedToResultsRef` in [`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx) so automatic stage advancements fire strictly once when a pipeline phase actually changes, preserving manual `<` and `>` navigation.
+     - Guarded the 500ms auto-start effect in [`DecompositionOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/decomposition/DecompositionOutput.tsx) with `inFlightPhase !== 'decomposition'`.
+     - Initialized `hasAutoAdvancedRef` in [`StageComponentPipeline.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageComponentPipeline.tsx) with `allPassed || Boolean(integratedCodebase)` and required `pipelineStatus === 'running'` before scheduling `onAdvance(6)`.
+  4. **Guaranteed Stage 2 Navigation & Stage 3 Rendering (`App.tsx`, `RequirementsOutput.tsx`, `StageRequirements.tsx`)**:
+     - Updated `hasClarifications` in [`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx) to include `storeProductEnquiryResult !== null || storeIsEnquiring || maxVisitedStage >= 2` so Stage 2 is never skipped during `<` / `>` navigation.
+     - Added `alwaysRender={true}` support to [`RequirementsOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/requirements/RequirementsOutput.tsx) and [`StageRequirements.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageRequirements.tsx) so Stage 3 always renders its container when visited.
+- **Verification & Policy Compliance**:
+  - Frontend production bundle compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors.
+  - Strictly zero emojis across all code, UI components, and documentation.
 
+### Section 8.19: AeroShards Light Theme Background Brightness & Original Luminance Alignment
+- **Scope & Objectives**:
+  - Revert and maintain the authentic 100% original brightness and exposure profile of the `<AeroShards />` 3D WebGPU background in Light Theme (`html.light` / `!isDark`).
+  - Guarantee that zero artificial dimming filters, veils, or opacity reductions are placed on the WebGPU canvas or its background container layer.
+- **Architectural Preservations & Standards**:
+  1. **Unattenuated WebGPU Canvas & Background Layer (`App.tsx` & `AeroShards.tsx`)**:
+     - Confirmed `#aeroShardsBackgroundLayer` in [`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx) operates at full unattenuated 100% opacity without CSS brightness, contrast, or saturation degradation filters.
+     - Preserved exact original WebGPU parameters for Light Theme:
+       - `backgroundColor="#ffffff"`
+       - `shardColor="#783ae1"`
+       - `accentColor="#a749ff"`
+       - `material="pearl"` (`brightness: 0.92`, `glow: 0.54`, `roughness: 0.46`, `highlightMix: 0.78`)
+       - `glow={1}`
+       - `bloom={0.5}`
+       - `edgeSoftness={2}`
+       - `grain={0.05}`
+       - `chromaticAberration={0.0075}`
+       - `interactionRadius={1.5}`
+       - `interactionStrength={0.5}`
+       - `rippleIntensity={1}`
+       - `holdToGather={true}`
+  2. **Original Shader Exposure & Material Luminance Pipeline (`AeroShards.tsx`)**:
+     - Verified [`AeroShards.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/AeroShards.tsx) computes full native material brightness (`brightness: resolvedMaterial.brightness`) and exposure curve (`exposure: 1.12 + (0.96 - 1.12) * lightSurface`) without artificial dampening.
+  3. **Clean Light Mode Base Foundations (`index.css`)**:
+     - Preserved clean `#ffffff` background baseline in [`index.css`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/index.css) (`html.light body { background-color: #ffffff; color: #0f172a; }`) with zero dark veils over the viewport.
+- **Verification & Policy Compliance**:
+  - Frontend production bundle compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors.
+  - Strictly zero emojis across all code, UI components, and documentation.
 
+### Section 8.20: Harmonized Violet AeroShards Configuration Across Light & Dark Themes
+- **Scope & Objectives**:
+  - Update the `<AeroShards />` 3D background configuration in [`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx) for both Light and Dark themes according to the unified violet/purple palette and refined physics parameters.
+- **Architectural Enhancements Implemented**:
+  1. **Unified Violet Palette (`App.tsx`)**:
+     - Light Mode: `backgroundColor="#ffffff"`, `shardColor="#8258c6"`, `accentColor="#a240ff"`.
+     - Dark Mode: `backgroundColor="#000000"`, `shardColor="#8258c6"`, `accentColor="#a240ff"`.
+  2. **Refined Physics & Motion Tuning (`App.tsx`)**:
+     - `spread`: Updated from `1.1` to `1` for tighter particle stream concentration.
+     - `speed`: Softened from `1.0` to `0.6` for gentle ambient wind drift.
+     - Preserved full interactive repelling physics (`interaction="repel"`, `interactionRadius={1.5}`, `interactionStrength={0.5}`, `rippleIntensity={1}`, `holdToGather={true}`).
+- **Verification & Policy Compliance**:
+  - Frontend production bundle compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors.
+  - Strictly zero emojis across all code, UI components, and documentation.
 
+### Section 8.21: Subtle Localized Ambient Backdrop Blur Behind Stage-1 Dynamic Title & Subtitle
+- **Scope & Objectives**:
+  - Implement a subtle localized backdrop blur halo directly behind the Stage-1 dynamic typewriter heading (`What are we developing Alex?`) and descriptive subtitle (`Describe the product you want to build.`) in [`StageProductRequest.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageProductRequest.tsx).
+  - Enhance typography legibility and optical separation against the moving `<AeroShards />` 3D background without introducing boxed card borders or intrusive container lines.
+- **Architectural Enhancements Implemented**:
+  1. **Positioned Ambient Blur Halo (`StageProductRequest.tsx`)**:
+     - Wrapped the title and subtitle in a `relative` container housing `<div id="stage1TitleBlurHalo" className="stage1-title-blur-halo absolute -inset-x-6 sm:-inset-x-12 -inset-y-3 sm:-inset-y-4 rounded-3xl pointer-events-none -z-10" aria-hidden="true" />`.
+  2. **Theme-Reactive Frosted Translucency (`index.css`)**:
+     - Dark Mode: `background-color: rgba(2, 6, 23, 0.16)` with `backdrop-filter: blur(12px)`, `border: none`, and `box-shadow: none` for a seamless soft optical vignette.
+     - Light Mode: `background-color: rgba(255, 255, 255, 0.32)` with `backdrop-filter: blur(12px)`, `border: none`, and `box-shadow: none` ensuring crisp dark charcoal text contrast over bright moving shards.
+- **Verification & Policy Compliance**:
+  - Frontend production bundle compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors.
+  - Strictly zero emojis across all code, UI components, and documentation.
 
+### Section 8.22: Reversion and Removal of Stage-1 Title Localized Blur Halo
+- **Scope & Objectives**:
+  - Revert and cleanly remove the localized blur element (`#stage1TitleBlurHalo`) behind the Stage-1 dynamic typewriter heading and subtitle upon user request, restoring the original floating typography design directly above the `<AeroShards />` 3D background.
+- **Architectural Deliverables**:
+  1. **DOM Cleanliness Restored ([`StageProductRequest.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageProductRequest.tsx))**:
+     - Removed `<div id="stage1TitleBlurHalo">` and restored the title wrapper to `<div className="space-y-2.5 text-center">`.
+  2. **Stylesheet Pruning ([`index.css`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/index.css))**:
+     - Cleanly deleted `.stage1-title-blur-halo` and its `html.light` overrides.
+- **Verification & Policy Compliance**:
+  - Frontend production bundle compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors.
+  - Strictly zero emojis across all code, UI components, and documentation.
 
+### Section 8.23: End-to-End AutoDev Stage Navigation, Extreme Edge Hover Controls & Gated Execution Progression
+- **Scope & Objectives**:
+  - Implement the comprehensive AutoDev end-to-end stage navigation system featuring extreme edge-hover controls, keyboard arrow navigation, sequential execution gating, and inspection timers across all 11 stages.
+  - Enforce strict lifecycle gating where forward progression is unlocked sequentially upon stage task completion, Stage 1 is permanently inaccessible once initiated, and backward navigation allows inspecting previously reached stages.
+- **Architectural Enhancements Implemented**:
+  1. **Extreme Edge Hover Zones & Gated Side Buttons ([`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx))**:
+     - Converted left and right navigation trigger regions (`#leftEdgeHoverZone`, `#rightEdgeHoverZone`) into full-height extreme edge hover zones (`fixed left-0 / right-0 top-16 bottom-0 w-16 sm:w-20 z-40 group pointer-events-auto`).
+     - Gated buttons (`#stageNavPrevBtn`, `#stageNavNextBtn`) are completely invisible (`opacity-0`) and seamlessly reveal themselves (`group-hover:opacity-100 transition-all duration-300`) only when the cursor enters the extreme left or right screen border.
+     - Styled buttons with frosted glassmorphism (`bg-white/[0.08] hover:bg-white/[0.18] border border-white/[0.12] hover:border-white/30 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.3)]`).
+     - Added dedicated Light Mode styling in [`index.css`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/index.css) (`html.light #stageNavPrevBtn`, `html.light #stageNavNextBtn`) with high-contrast surfaces (`rgba(255, 255, 255, 0.75)` / `rgba(255, 255, 255, 0.95)`, `color: #1e293b`).
+  2. **Keyboard Arrow Navigation & Input Safety ([`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx))**:
+     - Registered global `keydown` event listener for `ArrowLeft` and `ArrowRight`.
+     - Added strict input safety guards checking `document.activeElement` for `input`, `textarea`, and `isContentEditable` to prevent navigation interference while typing.
+     - Keyboard navigation operates strictly when backward (`canNavigatePrev`) or forward (`canNavigateNext`) navigation is permitted from the active stage.
+  3. **Stage Gating State Machine ([`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx))**:
+     - `minNavigableStage`: Initialized to 1 on fresh boot; upon submitting Stage 1, permanently locked to 2 (`clamped >= 2`). Resets to 1 only when user triggers "Request New Product".
+     - `maxUnlockedStage`: Tracks the highest stage reached and completed during the SDLC lifecycle.
+     - `canNavigatePrev`: Defined as `currentStage > minNavigableStage && currentStage > 1`. Stage 1 has zero backward navigation; Stage 2 cannot navigate back to Stage 1.
+     - `canNavigateNext`: Defined as `currentStage > 1 && currentStage < maxUnlockedStage && currentStage < maxAllowedStage`. Stage 1 forward arrow is hidden until submitted.
+     - Removed instant `inFlightPhase` stage jump effects from `App.tsx` so autonomous progression respects per-stage inspection timers.
+     - Pruned redundant "Back / Edit Request" button in [`StageProductEnquiry.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageProductEnquiry.tsx) footer to strictly prevent navigating back to Stage 1, while preserving `rephraseRequestBtn` for non-software inputs.
+  4. **Post-Development Support Workflow (Stages 9, 10, 11)**:
+     - On Stage 9 ([`StageDevelopmentResults.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageDevelopmentResults.tsx)), forward navigation remains locked until the user clicks "POST-DEVELOPMENT SUPPORT" (`onAdvance(10)`).
+     - Once Stage 10 is reached, Stage 9's right button becomes active, permitting seamless bidirectional navigation between Stage 9 and Stage 10.
+     - On Stage 10 ([`StagePostDevRequest.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StagePostDevRequest.tsx)), forward navigation to Stage 11 is strictly gated until the user submits a valid query (`validateSupportPrompt`) and clicks Proceed (`onAdvance(11)`).
+     - On Stage 11 ([`StagePostDevExecution.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StagePostDevExecution.tsx)), backward navigation to Stage 10 is permitted; forward navigation is disabled (final stage).
+     - If the support request is a bug fix or new feature addition (`postCompletionMode === 'modify'`), after execution completes, waits 10 seconds and automatically navigates back to Stage 9 so the user can download the updated project ZIP archive.
+     - If the support request is a technical question (`postCompletionMode === 'query'`), auto-advancement is withheld so the user can read the generated architectural explanation.
+  5. **Stage Output Inspection Timers**:
+     - Implemented automated 10-second inspection timers across completed stages:
+       - Stage 3 ([`StageRequirements.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageRequirements.tsx)): 10,000ms after requirements generation completes -> advances to Stage 4.
+       - Stage 4 ([`DecompositionOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/decomposition/DecompositionOutput.tsx)): 10,000ms after architecture decomposition completes -> advances to Stage 5.
+       - Stage 5 ([`StageComponentPipeline.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageComponentPipeline.tsx)): 10,000ms after all component tracks complete (`allPassed`) -> advances to Stage 6.
+       - Stage 6 ([`StageIntegration.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageIntegration.tsx)): 10,000ms after integration passes -> advances to Stage 7.
+       - Stage 7 ([`StageFinalSourceCode.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageFinalSourceCode.tsx)): 10,000ms after verified source code displays -> advances to Stage 8.
+       - Stage 8 ([`StageLivePreview.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageLivePreview.tsx)): 15,000ms after live preview renders -> advances to Stage 9.
+       - Stage 11 ([`StagePostDevExecution.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StagePostDevExecution.tsx)): 10,000ms after modify implementation completes -> returns to Stage 9.
+     - Guarded all inspection timers against paused state (`isPaused`), ensuring pausing development freezes progression.
+     - Maintained zero UI countdown text across all views.
+- **Verification & Policy Compliance**:
+  - Production build compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors in 8.10 seconds.
+  - Strictly zero emojis across all code, UI components, and documentation.
+
+### Section 8.24: Floating Line Sidebar Navigation & Pause/Resume FAB Relocation
+- **Scope & Objectives**:
+  - Implement the floating Line Sidebar navigation component anchored to the left side of the container across all active stages.
+  - Support stage numbering starting from 1 at the Product Enquiry stage, smooth hover-to-expand animation into a full vertical timeline rail, and direct one-click navigation to any unlocked stage with locked stages greyed out.
+  - Relocate the Pause/Resume Floating Action Button (FAB) from the left side to the right side of the container to prevent control overlap and maintain spatial balance.
+- **Architectural Enhancements Implemented**:
+  1. **Stage Number Badge & Expanding Line Sidebar ([`LineSidebar.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/LineSidebar.tsx))**:
+     - Positioned floating on the left side of the workspace container (`#lineSidebarContainer`, `fixed left-4 sm:left-6 top-24 sm:top-28 z-40`).
+     - Resting state renders a compact frosted glass badge (`#stageNumberCollapsedBadge`, `w-12 h-14 rounded-2xl bg-slate-950/45 backdrop-blur-2xl border border-white/15`) displaying the stage label and 1-based SDLC stage number (`STAGE 01` through `STAGE 10`).
+     - Hovering over the badge triggers smooth expansion into the full Line Sidebar panel (`#lineSidebarExpandedPanel`, `w-72 sm:w-80 rounded-3xl bg-slate-950/[0.88] backdrop-blur-3xl border border-white/15 p-4 sm:p-5 shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_40px_rgba(0,0,0,0.6)]`), collapsing back to the stage number on mouse leave.
+     - Features a continuous vertical timeline connecting line with status nodes:
+       - Active/Current stage: Glowing white ring node with pulse indicator.
+       - Navigable/Completed stages: Crisp clickable nodes with hover highlights.
+       - Un-navigable stages: Greyed out (`opacity-35 text-slate-500 cursor-not-allowed`) with lock icons.
+     - Clicking any navigable stage immediately navigates to that stage via `onNavigate(targetStage)`.
+  2. **Pause/Resume FAB Relocation ([`PauseModifyFAB.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/PauseModifyFAB.tsx))**:
+     - Moved from `fixed bottom-8 left-6` to `fixed bottom-8 right-6` with right-aligned column layout (`items-end`).
+     - Flipped tooltip positioning for the 3 expanded action buttons (`Request New Product`, `Restart Development`, `Resume Development`) from `left-14` to `right-14` to render tooltips inwards and avoid screen edge clipping.
+  3. **Theme Harmonization ([`index.css`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/index.css))**:
+     - Added dedicated Light Mode styling for `#stageNumberCollapsedBadge` (`rgba(255, 255, 255, 0.75)`, `border-color: rgba(120, 58, 225, 0.25)`) and `#lineSidebarExpandedPanel` (`rgba(255, 255, 255, 0.94)`, `box-shadow: 0 24px 64px rgba(0, 0, 0, 0.16)`).
+- **Verification & Policy Compliance**:
+  - Production build compiled cleanly into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors in 9.27 seconds.
+  - Strictly zero emojis across all code, UI components, and documentation.
+
+### Section 8.25: Pause/Resume Editability Overhaul & Codegen-Only Change Detection Engine
+- **Scope & Objectives**:
+  - Overhaul the editability of the pause/resume feature to ensure that users can only modify codegen outputs (generated source code in the Component Pipeline and Integration stages) and nothing else.
+  - Remove editing capabilities from non-codegen artifacts (requirements specifications, architectural decomposition, and system design blueprints) across all stage views and tracks.
+  - Overhaul change detection on resumption (`detectModifications`): strictly inspect codegen outputs from the pipeline and integration stages; completely eliminate checks for requirements, decomposition, and blueprints.
+  - If development is paused before the pipeline phase (e.g., during requirements or decomposition when no code has been generated yet), skip modification checks entirely and resume immediately from where execution was paused.
+  - If modifications are detected in any component's generated code upon resumption, rewind development to evaluate the modified code (target stage `CRITICS` / arbitration) and redevelop subsequent components.
+  - Zero extra text regarding this overhaul in the user interface.
+  - Strictly zero emojis across all code, tests, logs, and documentation.
+- **Architectural Enhancements Implemented**:
+  1. **Strict Codegen-Only Editability Enforcement**:
+     - **Requirements Specification ([`RequirementsOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/requirements/RequirementsOutput.tsx))**:
+       - Removed `isEditable` toggle on pause; set `contentEditable={false}` permanently on `#jsonOutput`.
+       - Rendered `#jsonOutputBadge` permanently as `READ-ONLY DOCUMENT` with `LockClosedIcon`.
+     - **Component Design Blueprints ([`ComponentTrack.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentTrack.tsx))**:
+       - Set `readOnly={true}` permanently on `#design-text-${cId}` blueprint textarea.
+       - Removed the `CLICK TO EDIT` badge from the blueprint header.
+       - Preserved `ComponentMonaco` code editor editable on pause (`isReadOnly={mode === 'QUICK' && !isPaused}`).
+     - **System Architecture Blueprints ([`BlueprintOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/design/BlueprintOutput.tsx))**:
+       - Set `contentEditable={false}` permanently on `#designJsonOutput`.
+       - Rendered `#designJsonOutputBadge` permanently as `READ-ONLY BLUEPRINT`.
+       - Removed the pause-time `Save & Re-parse Blueprint` action button.
+     - **Integration Source Code ([`StageIntegration.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageIntegration.tsx), [`StageIntegrationCode.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageIntegrationCode.tsx))**:
+       - Preserved full editability of integrated source code in Monaco editor during pause (`isReadOnly={!isPaused}`).
+       - Synchronized file modifications to `useAppStore.setIntegratedCodebase` to ensure modification detection catches integration code changes.
+  2. **Codegen-Only Modification Detection & Pre-Pipeline Bypass ([`appStore.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/stores/appStore.ts))**:
+     - In `detectModifications()`:
+       - Added an immediate early-exit guard when paused before the pipeline phase (`pausedPhase === 'requirements' || pausedPhase === 'decomposition'`):
+         - Skips all modification checks and returns `earliestModifiedPhase: null` with `changeDescription: 'No modifications checked: paused before pipeline phase (no code generated yet)'`.
+       - Removed all blueprint comparison logic (`hasBlueprintChanged` helper removed entirely).
+       - Removed all requirements and decomposition comparison logic.
+       - In component DAG mode (`isComponentMode`):
+         - Iterates through chronological components and checks strictly `hasCodebaseChanged()` and `hasRevisionHistoryChanged()`.
+         - When component code changes are detected, sets `modifiedComponentTargetStage = 'CRITICS'` to route execution directly to verification and arbitration on the modified code.
+         - Checks `hasCodebaseChanged(snap.integratedCodebase, state.integratedCodebase)` for integration code changes.
+       - In single-pass mode:
+         - Checks strictly `hasCodebaseChanged(snap.codebase, state.currentCodebase)`.
+  3. **Downstream Invalidation & Rewind Integration**:
+     - When component code modifications are detected, `invalidateDownstreamPhases` resets the modified component to `status: 'critic_queued'` and `currentStage: 'CRITICS'`, preserving the modified code, and resets all subsequent/dependent components to `queued`.
+     - When integration code modifications are detected, invalidates integration test results and documentation while preserving the modified integrated codebase.
+- **Verification & Policy Compliance**:
+  - Test Suite: All 34 test files (587 tests) passed with 100% pass rate (`tests/earliest_phase_rewind.test.ts` and `tests/pause_modify_resume_engine.test.ts` updated to assert codegen-only modification detection).
+  - Production Build: Clean compilation into `../backend/dist` via `npm run build` (`tsc && vite build`) with zero errors in 7.82 seconds.
+  - Strictly zero emojis across all code, UI components, tests, and documentation.
+
+---
+
+### 2.22 Era 22: Navigation Flow Pause/Resume Restoration, In-Flight Agent Deferral & Pausable Monotonic Stage Timers (HEAD / v3.5.0-Prod)
+
+- **Commit Scope**: Global Frontend Navigation, AppStore Concurrency Controls & Multi-Stage Auto-Advance Lifecycle
+- **Architectural Motivation**:
+  - In earlier iterations, the Pause/Resume Floating Action Button (`PauseModifyFAB`) was hidden outside the active pipeline stages and aborted network requests immediately on click, creating risk of partial state writes if an agent was actively generating code, designing blueprints, or evaluating test cases.
+  - Furthermore, post-stage auto-advance timeouts proceeded blindly regardless of whether development was paused by the user, leading to stages advancing into downstream phases even when paused.
+- **Architectural Enhancements Implemented**:
+  1. **Restored Pause/Resume Control & Symmetrical Viewport Placement**:
+     - Relocated `PauseModifyFAB` to `fixed right-4 sm:right-6 top-24 sm:top-28 z-40`, positioning it symmetrically opposite the stage number and `LineSidebar` on the left.
+     - Removed artificial visibility restrictions (`pipelineStatus === 'idle'` and `completed` guards) so the control remains accessible across stages.
+     - Added an animated amber pulse state displaying `WAIT` when a pause is requested while an agent is executing.
+  2. **In-Flight Agent Completion Deferral**:
+     - Introduced `isPauseRequested` and `activeAgentRunningCount` in `AppStoreState` to track active execution without aborting fetch streams.
+     - If Pause is clicked while any agent is running (`activeAgentRunningCount > 0`), the system sets `isPauseRequested: true` and logs to the console that pause is deferred until the agent finishes.
+     - Pipeline leasing (`usePipelineTicker`) halts dispatch of new component stages while a pause request is pending.
+     - Integrated `checkAndExecutePendingPause()` at the conclusion of all major agents:
+       - Design Agent: Blueprint generation and validation in `ComponentTrack.tsx`.
+       - CodeGen Agent: Source code synthesis in `ComponentTrack.tsx`.
+       - Critic & Adjudication Agents: Evaluation and test runner in `ComponentTrack.tsx`.
+       - Requirements Agent: Prompt analysis in `FeatureRequestInput.tsx`.
+       - Decomposition Agent: Architecture DAG generation in `DecompositionOutput.tsx`.
+       - Post-Dev Execution: Bug fix and feature modification in `StagePostDevExecution.tsx`.
+     - Once the active agent finishes saving its artifacts, the system cleanly triggers `pauseDevelopment()` with complete, valid output.
+  3. **Pausable Monotonic Stage Auto-Advance Hook (`usePausableAutoAdvance`)**:
+     - Implemented `usePausableAutoAdvance` in `autodev-frontend/src/hooks/usePausableAutoAdvance.ts`.
+     - Measures elapsed runtime monotonically; freezes remaining time when `isPaused` becomes true and resumes with the exact remaining duration when unpaused.
+     - Deployed across Stages 4, 5, 6, 7, 8, 9, and 11.
+     - Maintained zero countdown text in the UI to satisfy clean interface constraints.
+   4. **Hover-Only Dynamic Scrollbar Architecture (ModernScrollbar / ScrollArea)**:
+      - Overhauled utodev-frontend/src/components/ui/scroll-area.tsx with Base UI primitives, styling scrollbar tracks and thumbs to be invisible (opacity-0 pointer-events-none) by default.
+      - Configured hover and active reveal states (group-hover/scroll-area:opacity-100 group-hover/scroll-area:pointer-events-auto data-[hovering]:opacity-100 data-[scrolling]:opacity-100 duration-200) so scrollbars only appear and become interactive when the user hovers over inner containers.
+      - Upgraded .custom-scrollbar in utodev-frontend/src/index.css with 6px rounded scrollbar thumb and smooth hover transitions.
+      - Applied ModernScrollbar across inner containers (file trees, terminal drawers, code inspection panels, log viewers, critic card grids, query explanation boxes, and right sidebar panels) while preserving main stage outer containers (#stageProductEnquiry, #stageRequirements, #stageComponentPipeline, #stageIntegration, etc.).
+
+- **Verification & Policy Compliance**:
+  - `npm run build` compiled cleanly into `../backend/dist` with zero errors.
+  - Vitest test suite (`tests/pause_modify_resume_engine.test.ts`) executed with 55/55 passing tests.
+  - Strictly zero emojis across all code, UI components, tests, and documentation.
+
+---
+
+### 2.23 Era 23: Landing Page Redesign, Animated Cursive Logo, Specular Controls & 3D LightRays Background Engine (HEAD / v3.6.0-Prod)
+
+- **Commit Scope**: Landing Page Experience, WebGL 3D LightRays Background, Specular Shader Controls, Cursive Calligraphy Engine
+- **Architectural Motivation**:
+  - The initial landing screen suffered from visual redundancy (duplication of the top navigation bar during hero presentation) and a generic text title that lacked brand identity and motion design.
+  - The user experience required an elegant, cinematic arrival with stroke-by-stroke cursive animation, smooth color fill transitions, and reactive 3D raymarching depth without impairing the performance or light/dark responsiveness of the core engineering platform.
+- **Architectural Enhancements Implemented**:
+  1. **Landing Hero Immersion & Header Suppression**:
+     - Configured `App.tsx` layout automata to suppress the global header top bar on `currentPage === 'landing'`.
+     - Preserved the standard, clean text logo in Alex Brush cursive calligraphy (`font-cursive`) within the application header for all subsequent development stages.
+  2. **Two-Phase Cursive Logo Animation (`AutoDev_Animated.svg`, `StageLanding.tsx`)**:
+     - Integrated `AutoDev_Animated.svg` styled with Google font 'Alex Brush'.
+     - Phase 1: Progressive path drawing using SVG `stroke-dashoffset` with cubic-bezier easing.
+     - Phase 2: Instant, smooth white fill transition from `transparent` to `#ffffff` over 600ms upon stroke completion.
+  3. **Sequential Staggered Element Choreography (`StageLanding.tsx`)**:
+     - Subtitle tagline and primary "Get Started" call-to-action button remain initially invisible.
+     - Subtitle fades and slides into place 300ms after logo completion; CTA button smoothly emerges at 600ms.
+  4. **React Bits SpecularButton Component Integration (`SpecularButton.tsx`)**:
+     - Integrated WebGL/OGL shader-based button with real-time mouse specular reflections and edge refraction.
+     - Deployed across the landing page "Get Started" trigger (`size="lg"`, `radius={999}`) and system `DarkModeToggle` (`size="sm"`, `radius={999}`).
+  5. **React Bits LightRays WebGL 3D Background Engine (`LightRays.tsx`, `App.tsx`)**:
+     - Custom WebGL fragment shader raymarching simulation rendered via `OGL`.
+     - Configured with `top-center` origin, white `#ffffff` rays color, `0.6` speed, `0.9` spread, `1.2` ray length, `0.3` mouse influence, `0.1` noise, `0.05` distortion, and `1.5` fade distance.
+     - Anchored behind the landing page over a permanent `#000000` obsidian backdrop.
+
+- **Verification & Policy Compliance**:
+  - `npm run build` compiled cleanly into `../backend/dist` in 7.48s with zero errors.
+  - Vitest test suite (`tests/landing_page_cursive_animation.test.tsx`) executed with 4/4 passing tests.
+  - Strictly zero emojis across all code, UI components, tests, and documentation.
+
+---
+
+### Section 8.18: Live Terminal Draggable Window Overhaul, Magic UI Styling & Persistent Log State
+
+- **Key Objectives**:
+  1. Increase standard dimensions of the floating live terminal window for improved developer readability and viewing area.
+  2. Resolve the fullscreen maximize bug where the modal left or clipped outside the viewport due to CSS translation offsets.
+  3. Style the terminal window header and body using the Magic UI terminal design system with macOS traffic-light window controls.
+  4. Remove the manual clear button from the header, automate terminal clearing on new product development, and ensure full state persistence and log restoration across browser refresh.
+  5. Strictly comply with the zero-emoji policy across all code, UI components, tests, and documentation.
+
+- **Architectural Implementation**:
+  1. **Dimensions & Viewport-Safe Maximization (`Terminal.tsx`)**:
+     - Upgraded standard floating modal dimensions from `720px * 450px` to `w-[880px] max-w-[95vw] h-[560px] max-h-[88vh]`.
+     - Resolved the fullscreen displacement issue caused by conflicting CSS translate offsets (`-translate-x-1/2 -translate-y-1/2`) with Framer Motion `drag`. Wrapped the window in a fixed centering container (`fixed inset-0 z-[70] pointer-events-none flex items-center justify-center p-3 sm:p-5`) and attached Framer Motion coordinates using `useMotionValue(0)` for `x` and `y`.
+     - On maximizing, `x` and `y` are reset to `0`, allowing the window to expand safely to `w-full h-full` inside the viewport container without ever leaving the screen or clipping outside viewport bounds.
+  2. **Magic UI Terminal Design System Styling (`Terminal.tsx`)**:
+     - Integrated macOS/Linux traffic light control dots on the top left of the drag header:
+       - Red dot: Close terminal window.
+       - Yellow dot: Minimize/close terminal window.
+       - Green dot: Maximize or restore terminal window dimensions.
+     - Styled title bar with terminal icon, `autodev:~$ terminal` prompt label, and live pulsing stream connectivity indicator badge (`Stream Connected` / `Standby`).
+     - Obsidian translucent styling (`bg-[#09090d]/95 backdrop-blur-2xl border border-white/10 shadow-[0_28px_90px_rgba(0,0,0,0.9)]`) with deep obsidian console interior (`bg-[#07070a]/90`).
+  3. **Clear Button Removal & Store-Backed Auto-Reset (`Terminal.tsx`, `appStore.ts`)**:
+     - Removed the `#terminalClearBtn` manual clear button from the terminal window header.
+     - Bound the terminal log state directly to `useAppStore((s) => s.terminalLogs)`.
+     - Monitored `terminalResetEpoch` from the app store to automatically clear logs when a new product is requested or development restarted.
+  4. **State Persistence & Refresh Restoration (`persistence.ts`, `appStore.ts`, `types/index.ts`)**:
+     - Added `TerminalLogItem` type definition and integrated `terminalLogs?: TerminalLogItem[]` into `AutoDevStateV1`.
+     - Serialized `terminalLogs` inside `toSnapshot()` and hydrated upon browser reload inside `loadSnapshot()`.
+     - Configured prune defense in `pruneState()` to retain up to 500 recent log lines during storage quota constraints.
+
+- **Verification**:
+  - `npm run build` compiled cleanly into `../backend/dist` with zero TypeScript or Vite errors.
+  - Vitest test suite (`tests/abort_and_restart.test.tsx` and all 35 test files) executed with 592/592 passing tests.
+  - Zero emojis verified across all modified files and documentation.
+
+### Section 8.20: Glassmorphic Centre-Top Notification System & Graceful Error Management
+
+- **Key Objectives**:
+  1. Design and deploy an Apple glassmorphic, pill-shaped notification system positioned at center-top of the viewport.
+  2. Implement stackable notifications with spring-animated entry and layout shifts via Framer Motion.
+  3. Include a 5-second automatic dismissal timer synchronized with an active decreasing linear progress bar along the bottom edge of the pill.
+  4. Streamline notifications to display strictly simple, specific titles without verbose message previews or colons.
+  5. Eliminate pipeline lifecycle toasts (start, pause, resume, restart, abort, complete) and agent milestone toasts (requirements approved, decomposition finished) to prevent visual noise, reserving toasts strictly for user action confirmations and system error management.
+  6. Provide resilient, graceful error capture across API requests, streaming operations, GitHub exports, storage quota limits, and global unhandled runtime exceptions without crashing the user interface.
+  7. Comply strictly with the zero-emoji policy across all notification markup, icons, helpers, and documentation.
+
+- **Architectural Implementation**:
+  1. **Center-Top Pill Component (`GlassToastContainer.tsx`)**:
+     - Mounted at `fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-2.5 max-w-[92vw] sm:max-w-xl w-full`.
+     - Styled each notification as an obsidian glassmorphic pill (`rounded-full bg-slate-950/85 backdrop-blur-2xl border shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.18)] pl-3 pr-3.5 py-2 sm:py-2.5`).
+     - Framer Motion animation: `initial={{ opacity: 0, y: -24, scale: 0.95 }}`, `animate={{ opacity: 1, y: 0, scale: 1 }}`, and `exit={{ opacity: 0, y: -16, scale: 0.92 }}` with spring damping `26` and stiffness `420`.
+     - Equipped with a decreasing linear progress bar (`h-[2.5px] bg-white/[0.08] rounded-b-full overflow-hidden`) that animates `width` from `100%` to `0%` over 5 seconds (`durationSec = durationMs / 1000`).
+     - Renders solely the simple and specific title (`toast.title || toast.message`), with zero message body preview and no separator colons.
+     - Added manual dismiss trigger with rounded hover circle and Heroicons `XMarkIcon`.
+  2. **Toast Types & Visual Profiles**:
+     - `success`: Emerald accent border (`border-emerald-500/30`), emerald badge with `CheckCircleIcon`, and glowing emerald progress bar.
+     - `error`: Rose accent border (`border-rose-500/35`), rose badge with `ExclamationCircleIcon`, and glowing rose progress bar.
+     - `warning`: Amber accent border (`border-amber-500/30`), amber badge with `ExclamationTriangleIcon`, and glowing amber progress bar.
+     - `info`: Cyan accent border (`border-cyan-500/25`), cyan badge with `InformationCircleIcon`, and glowing cyan progress bar.
+  3. **Centralized Notification Service (`notificationService.ts`)**:
+     - Built `notificationService.ts` providing typed primitives (`notifySuccess`, `notifyError`, `notifyWarning`, `notifyInfo`) defaulting to 5,000ms duration.
+     - Pruned redundant lifecycle and milestone helpers.
+     - Retained focused semantic helpers with simple, specific titles:
+       - **Exports & Actions**: `notifyGitHubExportSuccess` ("GitHub Export Succeeded"), `notifyGitHubExportFailed` ("GitHub Export Failed"), `notifyZipDownloadStarted` ("Zip Archive Downloaded"), `notifyClipboardCopied` ("Copied to Clipboard"), `notifyPreviewReloaded` ("Preview Reloaded").
+       - **System & Errors**: `notifyNetworkOffline` ("Network Offline"), `notifyNetworkOnline` ("Network Restored"), `notifyStreamDisconnected` ("Stream Disconnected"), `notifyStorageQuotaWarning` ("Storage Quota Exceeded"), `notifyValidationError` ("Input Required"), `notifyApiError` ("Backend Error").
+     - Integrated `initializeGlobalErrorNotifications()` to listen to window `error` and `unhandledrejection` events, automatically capturing unhandled exceptions and formatting user-friendly error pills while filtering benign aborts.
+  4. **System-Wide Clean Up & Error Integration**:
+     - Removed lifecycle toasts from `appStore.ts` (`startPipeline`, `pauseDevelopment`, `resumeDevelopment`, `retryDevelopment`, `abortDevelopment`, `requestNewProduct`) and `sessionStore.ts` (`abortDevelopment`).
+     - Removed milestone toast from `FeatureRequestInput.tsx` (`Requirements Ready`).
+     - Standardized error titles to specific identifiers across `FeatureRequestInput.tsx`, `GitHubExportModal.tsx`, `PostCompletionPanel.tsx`, `DecompositionOutput.tsx`, `StageProductEnquiry.tsx`, `StageRequirements.tsx`, and `persistence.ts`.
+     - Mounted `initializeGlobalErrorNotifications()` at application boot in `App.tsx`.
+
+- **Verification**:
+  - `npm run build` compiled cleanly into `../backend/dist` in 10.25s with zero errors.
+  - Vitest test suite (`tests/notification_system.test.tsx` and all 36 test files) executed with 606/606 passing tests.
+  - Zero emojis verified across all modified files and documentation.
+
+### Section 8.21: Stage Workspace Arrow Keyboard Scrolling & Sidebar Development Progress Metrics
+
+- **Key Objectives**:
+  1. Enable ArrowUp and ArrowDown keyboard scrolling across all active stage containers, matching the horizontal stage traversal powered by ArrowLeft and ArrowRight.
+  2. Protect textareas, inputs, and contentEditable fields from accidental scrolling while typing.
+  3. Display a dedicated "Development Progress" metrics card in the collapsible Right Sidebar right below the Development Status badge and above the Session Timer.
+  4. Format progress metrics with stage name and percentage (e.g. `Development Progress: Integration Stage (86%)`).
+  5. Strictly preserve zero emojis across all code, markup, and tests.
+
+- **Architectural Implementation**:
+  1. **Keyboard Vertical Scrolling (`App.tsx`)**:
+     - Added `scrollActiveStageContainer(direction: 'up' | 'down')` within `App.tsx`.
+     - Intelligently detects hovered scrollable elements, active `ScrollFade` instances, or the main `#centralStageWorkspace` container.
+     - Smoothly increments/decrements scroll position by 120px using native `scrollBy({ top, behavior: 'smooth' })`.
+     - Integrated into the global `keydown` event listener, strictly bypassed when user focus is within `input`, `textarea`, or `contentEditable` elements.
+  2. **Sidebar Development Progress Card (`RightSidebar.tsx`)**:
+     - Placed between the Software Header / Status Badge (`#sidebarSoftwareHeader`) and Session Timer Card (`#sidebarSessionTimeCard`).
+     - Dynamically calculates stage names and calibrated percentages across the SDLC:
+       - Stage 1: Product Request (5%)
+       - Stage 2: Product Enquiry Stage (18% - 25%)
+       - Stage 3: Requirements Stage (35% - 42%)
+       - Stage 4: Decomposition Stage (50% - 58%)
+       - Stage 5: Component Pipeline Stage (60% - 78%, factoring completed component ratio)
+       - Stage 6: Integration Stage (86%)
+       - Stage 7: Final Source Code Stage (92%)
+       - Stage 8: Live Preview Stage (96%)
+       - Stage 9+: Completed Stage / Post-Dev (100%)
+     - Features an Apple glassmorphic container with frosted backdrop blur and specular refraction border, accompanied by an animated linear progress track.
+
+- **Verification**:
+  - `npm run build` compiled cleanly into `../backend/dist` in 10.42s with zero errors.
+  - Vitest test suite (`tests/stage_scroll_and_progress.test.tsx` and all 37 test files) executed with 610/610 passing tests.
+  - Zero emojis verified across all modified files and documentation.
+
+### Section 8.22: Landing Page Redesign, Animated Cursive Logo, Specular Controls & 3D LightRays Background Engine (v3.6.0-Prod)
+
+- **Key Objectives**:
+  1. Complete redesign of the landing page hero experience into an immersive, cinematic presentation.
+  2. Removal of the superfluous header navigation bar from the landing page view, while preserving standard text logo in Alex Brush cursive font on the main system header.
+  3. Integration of an autonomous cursive handwriting logo animation using `AutoDev_Animated.svg` styled with the Google font 'Alex Brush'.
+  4. Execution of a two-phase logo animation lifecycle: dynamic stroke-by-stroke path drawing followed by a smooth, instant white fill transition upon stroke completion.
+  5. Choreograph sequential staggered reveal animations for the subtitle/tagline and Get Started call-to-action button after logo drawing completes.
+  6. Integration of the React Bits `SpecularButton` component for the primary "Get Started" button and the application-wide `DarkModeToggle`.
+  7. Integration of the React Bits `LightRays` WebGL / OGL 3D dynamic background engine with configurable rays origin, color, animation speed, light spread, reach, mouse responsiveness, Perlin noise jitter, and wave distortion.
+  8. Permanent obsidian dark theme (`#000000`) for the landing page so 3D light rays are fully vibrant and visible, while retaining Apple iOS Frosted Pearl & Violet glassmorphic styling when light mode is toggled within the main development environment.
+  9. Strict compliance with the zero-emoji policy across all code, markup, styles, tests, and documentation.
+
+- **Architectural Implementation**:
+  1. **Landing Page Architecture & Removal of Redundant Top Bar (`App.tsx`, `StageLanding.tsx`)**:
+     - Configured `App.tsx` layout logic to suppress the global application header (`<header id="appTopBar">`) whenever `currentPage === 'landing'`.
+     - Provided a pristine, focused hero view where the central stage workspace dominates 100% of the viewport without visual distraction.
+     - Preserved the clean standard text logo (`AutoDev` in `font-cursive` Alex Brush font) on the top bar once entering the development workflow (`currentPage !== 'landing'`).
+  2. **Autonomous Cursive Logo Animation & Smooth Fill Transition (`StageLanding.tsx`)**:
+     - Integrated `AutoDev_Animated.svg` featuring hand-drawn cursive paths of the wordmark in Alex Brush calligraphy.
+     - Implemented dynamic path length extraction via `getTotalLength()` and applied SVG stroke-dashoffset drawing with cubic-bezier easing (`transition: stroke-dashoffset 2.4s cubic-bezier(0.4, 0, 0.2, 1)`).
+     - Bound an `onAnimationEnd` lifecycle callback: once the stroke drawing finishes, the logo state sets `isLogoComplete: true`.
+     - Executed a smooth fill transition: rather than remaining a hollow outline, SVG path fill opacity transitions instantly and smoothly from `transparent` to `#ffffff` over 600ms (`transition: fill 0.6s cubic-bezier(0.16, 1, 0.3, 1)`).
+     - Removed unwanted extraneous textual badges from the top-left of the animated logo, centering the grand insignia cleanly.
+  3. **Sequential Staggered Reveal Choreography (`StageLanding.tsx`)**:
+     - The hero subtitle ("Autonomous Multi-Agent Software Engineering Platform") and the primary call-to-action button remain initial hidden (`opacity-0 translate-y-3 pointer-events-none`).
+     - Once `isLogoComplete` triggers, sequential CSS transitions engage with timed offsets:
+       - Phase 1 (0ms): SVG logo paths finish drawing and smoothly fill with solid white.
+       - Phase 2 (+300ms): Subtitle tagline slides in smoothly with `opacity-100 translate-y-0 duration-700`.
+       - Phase 3 (+600ms): "Get Started" SpecularButton slides in smoothly with `opacity-100 translate-y-0 duration-700 pointer-events-auto`.
+  4. **React Bits SpecularButton Integration (`SpecularButton.tsx`, `StageLanding.tsx`, `DarkModeToggle.tsx`)**:
+     - Integrated WebGL/OGL shader-based `SpecularButton` featuring real-time mouse proximity specular reflections, edge refraction, and configurable blur/intensity parameters.
+     - Fitted to the "Get Started" CTA button with `size="lg"`, `radius={999}`, and responsive hover scale (`hover:scale-[1.03] active:scale-[0.98]`).
+     - Upgraded `DarkModeToggle.tsx` to utilize `SpecularButton` with circular geometry (`radius={999}`, `size="sm"`), maintaining smooth sun and moon rotation animations while adhering to the specular glass design system.
+  5. **React Bits LightRays WebGL 3D Dynamic Background Engine (`LightRays.tsx`, `App.tsx`)**:
+     - Embedded a custom WebGL raymarching canvas shader powered by `OGL` primitives (`Renderer`, `Program`, `Mesh`, `Triangle`).
+     - Renders volumetric light rays originating from `top-center` across a deep black canvas (`#000000`).
+     - Configuration specifications:
+       - `raysOrigin="top-center"`
+       - `raysColor="#00ffff"` (Cyan dynamic beam emission)
+       - `raysSpeed={0.6}` (Gentle, fluid wave oscillation)
+       - `lightSpread={0.9}` (Wide-angle atmospheric beam dispersion)
+       - `rayLength={1.2}` (Extended radial ray reach)
+       - `followMouse={true}` & `mouseInfluence={0.3}` (Smooth reactive pointer tracking)
+       - `noiseAmount={0.1}` (Organic subtle atmospheric grain)
+       - `distortion={0.05}` (Delicate fluid distortion wave)
+       - `fadeDistance={1.5}` (Gradual volumetric light attenuation)
+     - Mounted inside `id="lightRaysBackgroundLayer"` at `fixed inset-0 w-screen h-screen pointer-events-none z-0` behind the landing page surface.
+  6. **Permanent Obsidian Dark Theme for Landing Page (`index.css`)**:
+     - Enforced `#pageLanding` and `#stageLanding` to render transparently over `#lightRaysBackgroundLayer` (`background-color: #000000 !important`).
+     - Ensures optimal contrast and full vibrancy for the 3D LightRays shader regardless of global light/dark mode settings.
+     - Preserved complete Apple iOS Frosted Pearl & Violet glassmorphism theme support in light mode once transitioning into the development workflow stages.
+
+- **Verification & Policy Compliance**:
+  - `npm run build` compiled cleanly into `../backend/dist` with zero errors.
+  - Vitest test suite (`tests/landing_page_cursive_animation.test.tsx`) executed with 4/4 passing tests.
+  - Strictly zero emojis across all code, UI components, tests, and documentation.
+
+### Section 8.23: User Profile & Authentication Management System (Phases 1–8 Implementation)
+
+- **System Context & Scope**:
+  The final major functional component of the AutoDev autonomous platform introduces complete User Profile Management, persistent account credentials, persistent development session metrics and codebase storage backed by MongoDB Atlas, Brevo email OTP verification, Google Identity Services (GIS) OAuth, and a comprehensive 2-column glassmorphic user settings console.
+
+- **Key Objectives & Requirements**:
+  1. **MongoDB Atlas Database Infrastructure (Phase 1)**: Asynchronous document persistence for accounts, authentication OTPs, development session analytics, and full project codebases.
+  2. **Security & Cryptographic Utilities (Phase 2)**: Bcrypt password hashing, HS256 JWT access tokens with configurable expiration (24h default, 30-day "remember me"), and Brevo transactional email OTP dispatcher with TTL expiration.
+  3. **Backend API Endpoints (Phases 3 & 4)**:
+     - 10 dedicated authentication routes: `/signup`, `/login`, `/me`, `/google`, `/send-otp`, `/verify-otp`, `/refresh`, `/profile`, `/password`, and `/account`.
+     - 6 session history and project artifact routes: `/sessions`, `/sessions/stats`, `/sessions/{id}`, `/sessions/{id}/project`, `/sessions/{id}/project/download`.
+  4. **Frontend Architecture & State Persistence (Phase 5)**:
+     - Fully typed API client wrappers in `authEndpoints.ts`.
+     - Reactive Zustand store `useAuthStore` managing authentication state, token storage (`localStorage` vs. `sessionStorage`), and profile convenience getters.
+     - Resilient HTTP header injection in `client.ts` (`Authorization: Bearer <token>`, `X-AutoDev-User-Key`, and custom model headers), strictly maintaining zero regression and byte-identical behavior for unauthenticated requests.
+  5. **Modern Split-Screen Authentication UI (Phase 6)**:
+     - Complete rewrite of `StageSignIn.tsx` adapting the `frontend-planned/pages/SignInPage.tsx` layout into a responsive two-column obsidian glassmorphic console.
+     - 6-digit glassmorphic `OtpInput` component with auto-focus, backspace traversal, and paste handling.
+     - Support for login, registration, OTP email verification, password reset, "remember me" session toggle, and Google Identity Services sign-in.
+  6. **Profile Page Shell & Layout (Phase 7)**:
+     - 2-column layout in `UserProfilePage.tsx`: left column vertical navigation list and user badge; right column wide active section content viewport.
+     - Sticky header with cursive AutoDev logo, theme toggle, and "Back to Workspace" button.
+     - Dynamic user profile data wired to `RightSidebar.tsx` and `StageProductRequest.tsx` greeting with backward-compatible 'Alex' fallback.
+  7. **Complete Profile Sections Suite (Phase 8)**:
+     - `ProfileAccountSection.tsx`: Avatar color customization (6 presets), editable user fields with inline save, password update, authentication metadata, and account deletion.
+     - `ProfileAIConfigSection.tsx`: Radio toggle between the AutoDev 7-key KeyBalancer and custom user API keys, live Google Generative Language API connection verification, and model selection dropdowns.
+     - `ProfileDevPrefsSection.tsx`: Default language/framework selector, Personalized Product Development preferences textarea utilizing the Stage 1 `SmoothInput` component with live character counter (up to 2000 chars), and auto-export on completion toggle.
+     - `ProfileGitHubSection.tsx`: GitHub username, default repository, PAT token with real-time scope validation against the GitHub API, and automatic pre-fill into `GitHubExportModal.tsx`.
+     - `ProfileSessionHistorySection.tsx`: Top 3 development metric cards (Total Sessions, Tokens Consumed, Total Cost in INR), paginated chronological session table with status badges, and in-memory ZIP archive streaming from MongoDB Atlas.
+  8. **Strict Verification & Zero-Emoji Policy**:
+     - All 37 vitest test files (610 tests) pass with zero regressions.
+     - Clean production build (`npm run build`) in `backend/dist`.
+     - Strictly zero emojis across all code, markup, styles, error messages, and documentation.
+
+- **Architectural & Technical Implementation Details**:
+
+  1. **MongoDB Atlas Integration Layer (`backend/database.py`, `backend/main.py`)**:
+     - Built async client wrapper using `motor.motor_asyncio.AsyncIOMotorClient` with `dnspython` for `mongodb+srv://` connection strings.
+     - Initialized collection accessors: `users`, `sessions`, `projects`, `otp_codes`.
+     - Implemented unique and TTL indices:
+       - `users`: unique index on `email` and `username`.
+       - `sessions`: compound index on `user_id` and `created_at` (descending).
+       - `projects`: index on `session_id`.
+       - `otp_codes`: TTL expiration index on `expires_at` (auto-purged after 10 minutes).
+     - Added URI masking function `_mask_uri()` preventing database passwords from appearing in console logs or debug outputs.
+     - Integrated startup hook in `main.py` with graceful fallback if the database is unreachable, allowing local development to proceed uninhibited.
+
+  2. **Cryptographic Utilities & Email OTP Service (`backend/auth.py`, `backend/email_service.py`)**:
+     - Direct `bcrypt` integration (`hashpw`, `checkpw`) ensuring compatibility with modern bcrypt versions while circumventing legacy passlib incompatibilities.
+     - JWT encoding and decoding using `python-jose` with HS256 signatures, extracting user ID claims from the `sub` parameter.
+     - FastAPI dependency injection functions `get_current_user` and `get_optional_user` with explicit `Request` typing.
+     - Brevo transactional email dispatcher via HTTP REST API (`https://api.brevo.com/v3/smtp/email`), with fallback console logging in development mode.
+
+  3. **Backend Route Implementation (`backend/auth_routes.py`, `backend/session_routes.py`)**:
+     - `/api/auth/signup`: Validates uniqueness, hashes password, initializes user document with default AI, development, and GitHub configurations, and issues JWT.
+     - `/api/auth/login`: Verifies bcrypt hash, updates last login timestamp, issues JWT with duration reflecting `remember_me`.
+     - `/api/auth/me`: Returns sanitized user profile document excluding password hash.
+     - `/api/auth/google`: Verifies Google ID token via `google.oauth2.id_token.verify_oauth2_token`, creates or authenticates account.
+     - `/api/auth/send-otp` & `/api/auth/verify-otp`: Dispatches 6-digit cryptographic code, performs single-use verification, updates `email_verified: true`.
+     - `/api/auth/profile`: Updates profile fields (`display_name`, `avatar_color`, `role_title`, `ai_config`, `dev_preferences`, `github_config`).
+     - `/api/auth/password`: Verifies existing password and updates to new bcrypt hash.
+     - `/api/auth/account`: Cascading deletion removing user record, associated session history, and stored projects.
+     - `/api/sessions`: Creates and updates session analytics records (prompt tokens, completion tokens, INR cost, duration, and completion status).
+     - `/api/sessions/stats`: Aggregates user metrics (total sessions, total tokens used, total cost in INR).
+     - `/api/sessions/{id}/project` & `/api/sessions/{id}/project/download`: Stores complete multi-file project codebases and streams dynamic in-memory ZIP archives with `application/zip` MIME type.
+
+  4. **Frontend Typed API Client & Auth Store (`authEndpoints.ts`, `authStore.ts`, `client.ts`)**:
+     - Typed request/response models in `src/api/authEndpoints.ts`.
+     - `useAuthStore` (Zustand) managing authentication lifecycle with dual-storage persistence: `localStorage` when `remember_me` is chosen, `sessionStorage` for temporary sessions.
+     - Added derived preference getters: `getPersonalizedPrompt()`, `getDefaultFramework()`, `getCustomApiKey()`, and `getModelConfig()`.
+     - Updated `client.ts` `fetchWithAutoRetry` to inject `Authorization`, `X-AutoDev-User-Key`, and custom model headers. When unauthenticated, zero headers are added, ensuring 100% backward compatibility.
+     - Updated `RetryOptions.signal` to `AbortSignal | null | undefined` to guarantee type safety with standard DOM `RequestInit`.
+
+  5. **Split-Screen Authentication Rewrite (`StageSignIn.tsx`, `OtpInput.tsx`)**:
+     - Transformed sign-in experience into a responsive split-screen obsidian glassmorphic console.
+     - Left column features an interactive state machine handling `signIn`, `signUp`, `otpVerify`, `forgotPassword`, and `resetPassword`.
+     - Right column presents AutoDev hero branding with Alex Brush cursive logo, subtitle, and frosted testimonial cards with staggered entrance animation delays.
+     - Integrated `OtpInput.tsx` with 6 glassmorphic input boxes, automated focus progression, backspace reversal, and clipboard paste support.
+     - Google Identity Services (`gsi/client`) integration for Google OAuth.
+     - Offline fallback: if the backend or database is unreachable, sign-in allows developer pass-through without blocking application usage.
+
+  6. **User Profile Console & Workspace Integration (`UserProfilePage.tsx`, `App.tsx`, `StageProductRequest.tsx`)**:
+     - 2-column layout in `UserProfilePage.tsx` adhering to the AutoDev glassmorphic design system with a sticky header bar, Alex Brush logo, and theme toggle.
+     - Left column renders a user profile summary badge (avatar color/initial, name, email, and role) alongside a vertical navigation list for the 5 sections.
+     - Right column renders the active section in a high-transparency obsidian glass container.
+     - Mobile responsive design with horizontal scrolling navigation pills.
+     - Mounted in `App.tsx` replacing the static placeholder. Added `loadPersistedAuth()` on boot to automatically restore logged-in sessions.
+     - Wired dynamic user data into `RightSidebar.tsx` and the Stage 1 `StageProductRequest.tsx` greeting, defaulting to 'Alex' when unauthenticated.
+
+  7. **Complete Profile Sections Suite (`features/profile/`)**:
+     - **Account Management (`ProfileAccountSection.tsx`)**:
+       - 6-color avatar accent palette (`#4f46e5`, `#059669`, `#0891b2`, `#7c3aed`, `#e11d48`, `#d97706`).
+       - Display Name, Username, Email, and Role Title inputs with inline "Save" buttons that appear only when dirty.
+       - Password update form with current and new password confirmation (hidden for Google users).
+       - Authentication metadata display (auth provider, verification pill, member since date).
+       - Sign Out trigger and permanent Delete Account action with confirmation prompt.
+     - **AI Configuration (`ProfileAIConfigSection.tsx`)**:
+       - Radio toggle between AutoDev 7-key KeyBalancer rotation and custom personal Gemini API key.
+       - Masked personal API key input with show/hide toggle.
+       - Real-time "Test Connection" button validating the key against the Google Generative Language API.
+       - Primary and fallback model selection dropdowns (`gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-1.5-flash`, `gemini-1.5-pro`, `gemini-3.5-flash-lite`).
+       - "Reset to Defaults" button.
+     - **Development Preferences (`ProfileDevPrefsSection.tsx`)**:
+       - Default framework selector (Auto-detect + 8 popular stacks).
+       - Personalized Product Development preferences textarea using Stage 1 `SmoothInput` with auto-resize, spring caret, and live 2000-character counter.
+       - Auto-export on pipeline completion toggle.
+     - **GitHub Integration (`ProfileGitHubSection.tsx`, `GitHubExportModal.tsx`)**:
+       - GitHub Username, Default Repository, PAT token input with real-time scope validation against `https://api.github.com/user`, default commit message, and auto-create repository toggle.
+       - Updated `GitHubExportModal.tsx` to automatically pre-fill credentials from `authStore.user.github_config` when modal opens.
+     - **Session History (`ProfileSessionHistorySection.tsx`)**:
+       - 3 top stat cards: Total Sessions, Tokens Consumed, Total Cost in INR.
+       - Chronological session table with project title, feature prompt preview, duration, mode, token count, cost, and status badges (`Completed`, `Aborted`, `Active`).
+       - "Download ZIP" button streaming project archives directly from MongoDB Atlas (disabled for aborted sessions).
+       - Empty state card when no development history exists.
+
+- **Verification Results**:
+  - `npm run build` compiled 1,171 modules into `backend/dist` in 10.09s with zero errors.
+  - Vitest test suite (`tests/` across 37 test files) executed with 610/610 passing tests.
+  - Zero emojis verified across all modified code, UI components, tests, and documentation.
+
+### Section 8.24: Pipeline Integration, Testing Suite & End-to-End Verification (Phases 9–11 Implementation)
+
+- **System Context & Scope**:
+  Completes the end-to-end integration of the User Profile and Authentication Management system into the core AutoDev autonomous engineering pipeline. This includes automatic session lifecycle recording, prompt preference injection into the enquiry agent, backend custom API key routing with fallback mechanisms, comprehensive unit test suites covering all authentication and profile features, and end-to-end verification.
+
+- **Phase 9: Core Pipeline Integration (Steps 29–31)**:
+  1. **Session Lifecycle Recording (`autodev-frontend/src/stores/appStore.ts`)**:
+     - Extended `AppStoreState` and `initialAppStoreState` with `currentSessionId: string | null` and added `setCurrentSessionId: (id: string | null) => void` action.
+     - **Pipeline Launch Hook (`startPipeline`)**:
+       - When the pipeline starts, checks if the user is authenticated with a valid JWT token.
+       - Dispatches an asynchronous non-blocking call to `sessionApi.createSession({ prompt, mode, title })` to initialize a new session document in MongoDB Atlas.
+       - Stores the returned `session._id` in `currentSessionId`.
+       - Operates in a fire-and-forget try/catch block so that network interruptions or unauthenticated states never delay or prevent pipeline execution.
+     - **Pipeline Completion Hook (`setPipelineStatus`)**:
+       - When `status === 'completed'` and `currentSessionId` is present, calculates total session duration from `timelineMetrics` (or start time).
+       - Extracts total prompt tokens, completion tokens, and estimated cost in INR from `useSessionStore.sessionCostStats`.
+       - Collects completed pipeline stages from `stepperStates` and counts generated files/components.
+       - Dispatches an asynchronous fire-and-forget call to `sessionApi.updateSession()` to update the session to `'completed'`.
+       - Concurrently calls `sessionApi.storeProject()` with all generated files, `README.md`, and `USER_GUIDE.md` so the finalized codebase is persistently archived in MongoDB Atlas and immediately downloadable as a ZIP archive from the user's Session History.
+     - **Pipeline Abort Hooks (`abortPipeline`, `abortDevelopment`)**:
+       - When the pipeline is aborted by the user, if `currentSessionId` is active, dispatches an asynchronous call to `sessionApi.updateSession(currentSessionId, { status: 'aborted' })`.
+     - **New Product Reset Hook (`requestNewProduct`)**:
+       - If `currentSessionId` is present and the previous pipeline was not completed, dispatches an abort update before clearing state.
+       - Resets `currentSessionId: null` in the fresh initial state.
+
+  2. **Prompt Preference Injection (`autodev-frontend/src/features/stages/StageProductEnquiry.tsx`)**:
+     - In `fetchEnquiry(promptText: string)`, dynamically checks `useAuthStore.getState()` for active authenticated credentials and user preferences.
+     - If authenticated, checks for `dev_preferences.personalized_prompt` and `dev_preferences.default_framework`.
+     - Composes an `enquiryContext` string incorporating:
+       - Persistent development preferences: `"User Persistent Development Preferences:\n{personalized_prompt}"`
+       - Preferred tech stack: `"Preferred Tech Stack: {default_framework}"` (omitted if framework is `'auto'`).
+     - Passes `context: enquiryContext` into `productEnquiry({ prompt, mode, context: enquiryContext })`.
+     - When unauthenticated or if preferences are not set, `enquiryContext` remains `undefined`, ensuring 100% byte-identical request payloads and behavior for guest users.
+
+  3. **Backend Custom API Key & Model Routing (`backend/key_balancer.py`, `backend/agents/product_enquiry_agent.py`, `backend/main.py`)**:
+     - **Context Variables in `key_balancer.py`**:
+       - Added Python `contextvars.ContextVar` instances: `_CURRENT_USER_KEY`, `_CURRENT_PRIMARY_MODEL`, and `_CURRENT_FALLBACK_MODEL`.
+       - Implemented getter/setter utilities: `set_user_api_key()`, `get_user_api_key()`, `set_user_models()`, `get_user_models()`, and `clear_user_context()`.
+       - Context variables ensure request-scoped thread safety across concurrent asynchronous ASGI requests.
+     - **Key Selection Override in `get_gemini_keys_for_stage`**:
+       - When `_CURRENT_USER_KEY` is set in the active request context, `get_gemini_keys_for_stage()` immediately returns `[user_key]`, bypassing the default 7-key rotation pool.
+     - **Model Selection Override in `resolve_models_for_mode`**:
+       - Checks `_CURRENT_PRIMARY_MODEL` and `_CURRENT_FALLBACK_MODEL`. If set by the user, routes execution to their chosen models rather than the hardcoded defaults.
+     - **Execution Helpers**:
+       - Implemented `execute_with_user_key(user_key, primary_model, fallback_model, fn, *args, **kwargs)` and `execute_stream_with_user_key()` to safely set context variables, execute the agent function, and clear context in a `finally` block.
+     - **Product Enquiry Agent Integration (`backend/agents/product_enquiry_agent.py`)**:
+       - Added optional `user_api_key`, `primary_model`, and `fallback_model` parameters to `run_product_enquiry()`.
+       - When a user key is provided, wraps execution in `execute_with_user_key()`.
+     - **HTTP Middleware in `backend/main.py`**:
+       - Added `@app.middleware("http")` to inspect incoming headers on every request:
+         - `X-AutoDev-User-Key`: Sets `_CURRENT_USER_KEY`.
+         - `X-AutoDev-Primary-Model`: Sets `_CURRENT_PRIMARY_MODEL`.
+         - `X-AutoDev-Fallback-Model`: Sets `_CURRENT_FALLBACK_MODEL`.
+       - Cleans up context variables upon request completion.
+     - **Endpoint Routing (`/api/product-enquiry`)**:
+       - Updated route handler to accept `x_autodev_user_key`, `x_autodev_primary_model`, and `x_autodev_fallback_model` headers via FastAPI `Header(None)` and pass them to `run_product_enquiry()`.
+
+- **Phase 10: Testing Suite (Steps 32–33)**:
+  5 dedicated frontend test suites created under `autodev-frontend/tests/`:
+  1. **`auth_store.test.tsx` (13 tests)**:
+     - Verifies initial unauthenticated state and default model configurations (`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`).
+     - Verifies `login` action, user state population, and dual token storage (`sessionStorage` vs. `localStorage` based on `remember_me`).
+     - Verifies `logout` action, user state reset, and storage cleanup.
+     - Verifies `loadPersistedAuth` hydration from both `sessionStorage` and `localStorage`.
+     - Verifies `updateProfile` and `updateDevPreferences` state transitions.
+     - Verifies `getCustomApiKey` resolution and custom model getter.
+     - Verifies strictly zero emojis across all auth store strings and logs.
+  2. **`profile_page.test.tsx` (11 tests)**:
+     - Verifies profile page shell layout: header, brand logo, Back to Workspace button, user badge, and left navigation sidebar.
+     - Verifies all 5 section tabs: Account, AI Config, Dev Preferences, GitHub, Session History.
+     - Verifies active section switching and tab selection indicators.
+     - Verifies 6 avatar accent theme buttons (Indigo, Emerald, Cyan, Violet, Rose, Amber).
+     - Verifies unauthenticated fallback badge and role defaults.
+     - Verifies Danger Zone rendering and unauthenticated redirect / sign-in prompt.
+     - Verifies strictly zero emojis across all rendered HTML and UI components.
+  3. **`session_history.test.tsx` (5 tests)**:
+     - Verifies metric stat cards: Total Sessions, Tokens Consumed, Total Cost in INR.
+     - Verifies session table rendering with project title, prompt preview, duration, tokens, cost, and status badges.
+     - Verifies empty state placeholder card when no sessions are recorded.
+     - Verifies ZIP download trigger on completed session rows.
+     - Verifies strictly zero emojis in rendered table markup.
+  4. **`auth_flow.test.tsx` (9 tests)**:
+     - Verifies responsive split-screen layout with left form pane and right hero branding showcase.
+     - Verifies hero testimonials (Alex Chen, Priya Patel, Marcus Vance) with staggered animation classes.
+     - Verifies form controls: Email Address, Password, Keep me signed in, Reset password, and Sign In button.
+     - Verifies mode navigation between Sign In and Create Account.
+     - Verifies `OtpInput` component with 6 glassmorphic input fields, `maxLength="1"`, `inputMode="numeric"`, and populated digit values.
+     - Verifies Google OAuth button and divider.
+     - Verifies strictly zero emojis across all rendered HTML and labels.
+  5. **`preference_injection.test.tsx` (9 tests)**:
+     - Verifies development preference assembly: combines `personalized_prompt` and `default_framework` into `enquiryContext`.
+     - Verifies unauthenticated pass-through: empty context when user is logged out.
+     - Verifies `'auto'` framework filter: omitted from context when set to default.
+     - Verifies client API header attachment: `Authorization`, `X-AutoDev-User-Key`, `X-AutoDev-Primary-Model`, and `X-AutoDev-Fallback-Model` attached when present in storage.
+     - Verifies unauthenticated header hygiene: zero custom or auth headers attached when logged out.
+     - Verifies `appStore` session lifecycle: `currentSessionId` initialization, setter, and reset upon `requestNewProduct`.
+     - Verifies strictly zero emojis across test code and assertions.
+
+- **Phase 11: End-to-End Verification & Metrics**:
+  - **Vitest Test Suite**: All 42 test files executed with **657 passed (657 total)**, 0 failures, 100% pass rate.
+    - Initial baseline: 37 test files (610 passed).
+    - New Phase 10 tests: 5 test files (+47 tests).
+    - Net result: 42 test files, 657 passing tests, zero regressions.
+  - **Production Build (`npm run build`)**:
+    - TypeScript compilation (`tsc`) and Vite production bundling succeeded in 8.57 seconds.
+    - Output assets generated in `../backend/dist/`:
+      - `index.html`: 1.25 kB (gzip: 0.67 kB)
+      - `assets/index-*.css`: 99.43 kB (gzip: 15.71 kB)
+      - `assets/index-*.js`: 1,605.42 kB (gzip: 465.31 kB)
+    - Zero compile or type errors.
+  - **Zero-Emoji Policy Compliance**:
+    - Formally verified across all 5 new test suites, `document.md`, backend routes, middleware, and frontend components.
+    - Strictly zero emojis exist anywhere in the code, logs, or UI.
+  - **Unauthenticated Fallback Guarantee**:
+    - When not logged in, AutoDev behaves 100% identically to its previous versions:
+      - Product request and pipeline execution proceed with zero friction.
+      - Default 7-key KeyBalancer rotation and default models are used.
+      - Sessions are not recorded to MongoDB Atlas, and zero authentication headers are emitted.
+      - If MongoDB Atlas or backend network connectivity is unavailable, sign-in provides graceful developer pass-through without blocking workspace access.
+
+---
+
+## 9. Comprehensive User Profile & Authentication Master Specification (Phase 11 Documentation)
+
+### Section 9.1: MongoDB Infrastructure and Database Schema
+
+AutoDev utilizes MongoDB Atlas as its persistent asynchronous document storage engine, managing user identities, cryptographic credentials, transactional verification codes, historical pipeline execution telemetry, and completed multi-file codebase archives.
+
+1. **Connection Architecture & Driver Configuration (`backend/database.py`)**:
+   - Built on `motor.motor_asyncio.AsyncIOMotorClient` running asynchronously within FastAPI's ASGI event loop (`uvicorn`).
+   - Uses `dnspython` for resolving `mongodb+srv://` connection strings with automated DNS SRV record discovery.
+   - Initialized via `connect_db()` and terminated cleanly via `close_db()` during application lifespan events.
+   - URI credential masking: `_mask_uri()` redacts sensitive database credentials in standard output logs, masking credentials as `mongodb+srv://user:****@cluster.mongodb.net/`.
+   - Resilience fallback: If MongoDB Atlas is unreachable during startup, the application logs a warning and proceeds with database features disabled, guaranteeing zero downtime or pipeline interruption for local development.
+
+2. **Collection Catalog & Document Schemas**:
+   - **`users` Collection**:
+     - `_id`: String (UUIDv4) or ObjectId representing the primary user identifier.
+     - `email`: Indexed string, strictly lowercase and trimmed, validated for RFC 5322 compliance.
+     - `username`: Unique alphanumeric string (3 to 30 characters).
+     - `password_hash`: Bcrypt hashed password string (`$2b$12$...`), nullable for pure OAuth users.
+     - `display_name`: Optional human-readable name for UI badges and greetings.
+     - `avatar_color`: Hex code string (default `#4f46e5`) matching one of the 6 avatar theme presets.
+     - `role_title`: Professional software engineering role (default "Autonomous Engineer").
+     - `email_verified`: Boolean flag indicating OTP or OAuth email verification state.
+     - `auth_provider`: String identifier (`'local'` | `'google'`).
+     - `created_at`: ISO 8601 UTC timestamp string.
+     - `last_login`: ISO 8601 UTC timestamp string of most recent successful session authentication.
+     - `ai_config`: Embedded document containing:
+       - `use_custom_key`: Boolean flag controlling KeyBalancer bypass.
+       - `custom_api_key`: Masked personal Gemini API key string.
+       - `primary_model`: Selected model string (default `gemini-3.5-flash-lite`).
+       - `fallback_model`: Selected model string (default `gemini-3.1-flash-lite`).
+     - `dev_preferences`: Embedded document containing:
+       - `default_framework`: Selected framework string (default `'auto'`).
+       - `personalized_prompt`: Custom engineering preference guidelines (up to 2000 chars).
+       - `auto_export_on_complete`: Boolean flag for GitHub export modal auto-display.
+     - `github_config`: Embedded document containing:
+       - `username`: GitHub handle string.
+       - `default_repo`: Target repository name string.
+       - `pat_token`: Personal access token string (`ghp_...`).
+       - `auto_create_repo`: Boolean flag for automatic repository provisioning.
+       - `default_commit_message`: Default commit message string.
+
+   - **`sessions` Collection**:
+     - `_id`: Unique session string (UUIDv4).
+     - `user_id`: Reference to owner user `_id`.
+     - `project_name`: Title string derived from user prompt or feature request.
+     - `feature_request`: Full natural language prompt initiating the development run.
+     - `mode`: AppMode enum string (`'QUICK'` | `'BALANCED'` | `'DEEP'`).
+     - `status`: Execution state enum (`'active'` | `'completed'` | `'aborted'`).
+     - `created_at`: ISO 8601 UTC timestamp string.
+     - `duration_ms`: Total wall-clock execution time in milliseconds.
+     - `total_prompt_tokens`: Cumulative input token consumption across all pipeline stages.
+     - `total_completion_tokens`: Cumulative synthesis token consumption across all pipeline stages.
+     - `total_cost_inr`: Estimated monetary consumption in Indian Rupees (INR) at standard rates.
+     - `stages_completed`: Array of completed stage names (`REQUIREMENTS`, `DECOMPOSITION`, etc.).
+     - `component_count`: Integer count of architected and synthesized components.
+
+   - **`projects` Collection**:
+     - `_id`: Unique project archive string (UUIDv4).
+     - `session_id`: Foreign key reference to corresponding `sessions._id`.
+     - `files`: Array of generated file documents:
+       - `file_name`: Relative file path string (e.g., `src/main.py`, `package.json`).
+       - `source_code`: Complete UTF-8 source code string.
+     - `readme`: Optional Markdown string of generated `README.md`.
+     - `user_guide`: Optional Markdown string of generated `USER_GUIDE.md`.
+     - `created_at`: ISO 8601 UTC timestamp string.
+
+   - **`otp_codes` Collection**:
+     - `_id`: ObjectId string.
+     - `email`: Normalized lowercase target email address.
+     - `code`: 6-digit decimal string (`100000` to `999999`).
+     - `purpose`: Verification context enum string (`'signup'` | `'password_reset'`).
+     - `created_at`: ISO 8601 UTC timestamp string.
+     - `expires_at`: Native BSON DateTime object set to `created_at + 600s` (10 minutes).
+
+3. **Database Indexing Architecture (`backend/database.py:ensure_indexes`)**:
+   - `users.create_index("email", unique=True)`: Guarantees unique email identity.
+   - `users.create_index("username", unique=True)`: Guarantees unique username identity.
+   - `sessions.create_index([("user_id", 1), ("created_at", -1)])`: Optimizes paginated chronological session history queries.
+   - `projects.create_index("session_id", unique=True)`: Enforces 1:1 relationship between session and project archive.
+   - `otp_codes.create_index("expires_at", expireAfterSeconds=0)`: MongoDB native TTL index automatically purging expired verification codes upon expiry.
+
+---
+
+### Section 9.2: Authentication System (JWT, bcrypt, token lifecycle, auth dependencies)
+
+1. **Password Hashing & Cryptographic Invariants (`backend/auth.py`)**:
+   - Employs `bcrypt` with cost factor 12 (`gensalt(rounds=12)`).
+   - `hash_password(plain: str) -> str`: Converts UTF-8 string to salted bcrypt hash.
+   - `verify_password(plain: str, hashed: str) -> bool`: Constant-time comparison preventing timing attacks.
+   - Directly interfaces with the C-accelerated `bcrypt` library, avoiding legacy passlib deprecation warnings and compatibility traps with Python 3.11+.
+
+2. **JSON Web Token (JWT) Architecture**:
+   - Standard HS256 HMAC-SHA256 signature using `python-jose`.
+   - Secret key loaded from environment variable `JWT_SECRET_KEY` with automatic generation fallback for ephemeral testing.
+   - Configurable access token expiration:
+     - Standard session: 24 hours (1,440 minutes).
+     - Extended session ("Keep me signed in" checked): 30 days (43,200 minutes).
+   - Standard payload claims:
+     - `sub`: User ID string.
+     - `exp`: Numeric date epoch expiration timestamp.
+     - `email`: Normalized email string.
+     - `username`: Alphanumeric username string.
+
+3. **FastAPI Dependency Injection Architecture**:
+   - `get_current_user(request: Request) -> UserProfile`:
+     - Inspects HTTP `Authorization` header for `Bearer <token>` format.
+     - Decodes and verifies token signature and expiration.
+     - Queries MongoDB `users` collection to confirm active account status.
+     - Raises `HTTPException(status_code=401, detail="...")` upon invalid signature, expiration, or missing subject.
+   - `get_optional_user(request: Request) -> Optional[UserProfile]`:
+     - Non-blocking dependency for pipeline endpoints.
+     - Returns `UserProfile` if a valid token is present; returns `None` without raising exceptions if unauthenticated.
+     - Essential architectural guarantee ensuring the pipeline remains 100% operational for guest users.
+
+---
+
+### Section 9.3: Email OTP Verification (Brevo API integration, OTP flow, TTL)
+
+1. **Transactional Email Dispatch Engine (`backend/email_service.py`)**:
+   - Dispatches transactional verification emails via the Brevo HTTP REST API v3 endpoint (`https://api.brevo.com/v3/smtp/email`).
+   - Uses `BREVO_API_KEY` with standard JSON payload format containing sender (`AutoDev Platform <noreply@autodev.org>`), recipient, subject, and dual HTML/plain-text templates.
+   - Graceful developer pass-through: In development environments where `BREVO_API_KEY` is omitted or unconfigured, the system logs the 6-digit verification code directly to the server terminal, allowing local end-to-end testing without external email delivery dependencies.
+
+2. **Cryptographic Code Generation & Storage**:
+   - Uses Python's `secrets.randbelow(900000) + 100000` to generate a non-predictable 6-digit decimal string.
+   - Stored in the MongoDB Atlas `otp_codes` collection with metadata: `email`, `code`, `purpose`, and `expires_at`.
+
+3. **Verification Lifecycle & Security Controls**:
+   - Expiration window: 10 minutes (600 seconds) enforced by server timestamp evaluation and MongoDB native TTL thread.
+   - Single-use policy: Once verified via `/api/auth/verify-otp`, the OTP document is immediately deleted from the database to prevent replay attacks.
+   - Verification scopes:
+     - `signup`: On verification, updates `users.email_verified = True`.
+     - `password_reset`: On verification, grants single-use password update authorization for the user account.
+
+---
+
+### Section 9.4: Google OAuth Integration (ID token flow, user creation/merge)
+
+1. **Client-Side GIS Integration**:
+   - Uses the modern Google Identity Services (`gsi/client`) JavaScript SDK.
+   - Initializes Google One-Tap and standard Sign-In button using client ID configured via `VITE_GOOGLE_CLIENT_ID`.
+   - On successful authentication, receives a signed OpenID Connect (OIDC) JWT credential token.
+
+2. **Server-Side Token Verification (`backend/auth_routes.py`)**:
+   - Verifies Google token signature, audience, and issuer using `google.oauth2.id_token.verify_oauth2_token()`.
+   - Extracts verified user identity: Google User ID (`sub`), `email`, `name`, and `picture`.
+   - Validates that `email_verified` is true in the Google token payload.
+
+3. **Account Merging & Auto-Provisioning Logic**:
+   - If an account with the Google email already exists:
+     - Links `auth_provider = 'google'`.
+     - Sets `email_verified = True`.
+     - Updates `last_login` timestamp.
+   - If no account exists:
+     - Generates a sanitized alphanumeric username derived from the email prefix.
+     - Provisions a new user document with default configurations (`avatar_color: '#4f46e5'`, `role_title: 'Autonomous Engineer'`).
+     - Leaves `password_hash = None` (preventing password authentication unless explicitly set).
+   - Generates an AutoDev access token with duration matching the `remember_me` preference and returns the standard `AuthResponse`.
+
+---
+
+### Section 9.5: Login/Signup Page (split-screen layout, form state machine, fallback behavior)
+
+1. **Responsive Split-Screen Visual Architecture (`autodev-frontend/src/features/stages/StageSignIn.tsx`)**:
+   - Layout follows the AutoDev obsidian glassmorphism design language (`bg-slate-950/[0.25]`, `backdrop-blur-2xl`, `border-white/[0.08]`).
+   - Left Column: Interactive authentication form container with smooth view transitions.
+   - Right Column: AutoDev hero branding featuring the cursive Alex Brush brand typography, product description, and frosted testimonial cards with staggered animation entrance delays (`animate-delay-1000`, `animate-delay-1200`, `animate-delay-1400`).
+
+2. **Five-State Auth Mode State Machine**:
+   - `'signIn'`: Email and password authentication with "Keep me signed in" toggle, reset password shortcut, and Google Sign-In button.
+   - `'signUp'`: Account registration with username, email, password, and confirm password fields.
+   - `'otpVerify'`: 6-digit OTP verification screen with countdown resend timer (45 seconds cooldown).
+   - `'forgotPassword'`: Password recovery dispatch form requesting account email.
+   - `'resetPassword'`: OTP entry and new password confirmation form.
+
+3. **OtpInput Glassmorphic Sub-Component (`autodev-frontend/src/components/OtpInput.tsx`)**:
+   - Renders 6 individual monospace input boxes with single character constraint (`maxLength={1}`).
+   - Features automated forward focus progression upon digit entry.
+   - Supports backspace traversal: clears current digit and moves focus to preceding box.
+   - Full clipboard paste handling: sanitizes text, strips non-digit characters, and populates boxes sequentially.
+   - Emits `onComplete(code)` callback immediately upon entry of the 6th digit.
+
+4. **Offline & Server Downtime Resiliency**:
+   - If the backend or MongoDB is offline (e.g. 502/503 gateway error, network connection refused), the sign-in form catches the network error, logs a developer warning to the console, and triggers `onSignInSuccess()`.
+   - Guarantees local developers are never locked out of the frontend pipeline during backend maintenance.
+
+---
+
+### Section 9.6: User Profile Page Architecture (2-column layout, section navigation)
+
+1. **Shell Architecture & Navigation Hierarchy (`autodev-frontend/src/features/profile/UserProfilePage.tsx`)**:
+   - Top Header: Sticky navigation bar with cursive AutoDev brand mark, `DarkModeToggle` specular switch, and "Back to Workspace" return button.
+   - Two-Column Layout:
+     - Left Column (Sidebar, 320px): User summary badge displaying custom avatar background color, initial, display name, email, and animated status pulse. Vertical section navigation list.
+     - Right Column (Main Viewport, Flex-1): Dedicated frosted glass container rendering the active section component.
+   - Mobile Responsive Design: Automatically transforms the vertical navigation sidebar into a horizontal scrollbar-free pill navigation bar on small viewports.
+
+2. **Section Routing Matrix**:
+   - Section 1: `account` -> `<ProfileAccountSection />`
+   - Section 2: `ai-config` -> `<ProfileAIConfigSection />`
+   - Section 3: `dev-prefs` -> `<ProfileDevPrefsSection />`
+   - Section 4: `github` -> `<ProfileGitHubSection />`
+   - Section 5: `sessions` -> `<ProfileSessionHistorySection />`
+
+---
+
+### Section 9.7: Account Management Section (fields, avatar, password change, notifications)
+
+1. **Avatar Theme Customization (`ProfileAccountSection.tsx`)**:
+   - 6-color avatar accent palette:
+     - Indigo: `#4f46e5`
+     - Emerald: `#059669`
+     - Cyan: `#0891b2`
+     - Violet: `#7c3aed`
+     - Rose: `#e11d48`
+     - Amber: `#d97706`
+   - Real-time preview with scale animation and persistent update to MongoDB `users.avatar_color`.
+
+2. **Profile Information Form**:
+   - Inputs for Display Name, Username, Email Address, and Role / Title.
+   - Dirty-tracking architecture: Inline "Save" action buttons render only when the input value diverges from the stored profile value.
+   - Displays real-time glassmorphic toast notifications upon successful update or validation error.
+
+3. **Password Security Panel**:
+   - Requires verification of current password and confirmation of new password (minimum 6 characters).
+   - Automatically hidden for Google OAuth authenticated accounts where passwords are not utilized.
+
+4. **Account Danger Zone**:
+   - Sign Out trigger with session cleanup.
+   - Permanent "Delete Account" action with two-step confirmation modal.
+   - Cascading database cleanup: permanently purges user record, associated session records, and stored project files from MongoDB Atlas.
+
+---
+
+### Section 9.8: AI Configuration Section (custom key system, model selection, header injection)
+
+1. **Dual Routing Selection Architecture (`ProfileAIConfigSection.tsx`)**:
+   - Radio option 1: AutoDev 7-key KeyBalancer rotation (default platform pool).
+   - Radio option 2: Personal Google Gemini API key.
+
+2. **Personal API Key Validation**:
+   - Masked input with show/hide visibility toggle.
+   - "Test Connection" button: Issues a real-time validation probe against Google Generative Language API (`https://generativelanguage.googleapis.com/v1beta/models?key={user_key}`).
+   - Displays success badge or clear error diagnostics if the key is invalid or lacks necessary permissions.
+
+3. **Model Selection Hierarchy**:
+   - Primary Synthesis Model dropdown: `gemini-3.5-flash-lite`, `gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-1.5-flash`, `gemini-1.5-pro`.
+   - Fallback Resilience Model dropdown: Same model options for automated fallback retry upon transient 429/503 errors.
+   - "Reset to Defaults" action restoring platform baseline models.
+
+4. **HTTP Header Injection Engine (`autodev-frontend/src/api/client.ts`)**:
+   - In `fetchWithAutoRetry`, checks storage for custom configurations and attaches headers:
+     - `X-AutoDev-User-Key`: User's personal Gemini API key.
+     - `X-AutoDev-Primary-Model`: Selected primary LLM model.
+     - `X-AutoDev-Fallback-Model`: Selected fallback LLM model.
+   - Handled server-side by ASGI middleware in `backend/main.py` which populates Python `contextvars` for thread-safe request scoping.
+
+---
+
+### Section 9.9: Development Preferences Section (personalized prompt injection mechanism)
+
+1. **Engineering Stack Selection (`ProfileDevPrefsSection.tsx`)**:
+   - Preferred Tech Stack dropdown supporting Auto-detect and 8 curated stacks (React + FastAPI, Next.js Fullstack, Node.js + Express, Python Django, Vue.js + Flask, Go Gin + React, Flutter Mobile, Spring Boot + React).
+
+2. **Personalized Preferences Textarea**:
+   - Implemented using the Stage 1 `SmoothInput` textarea component with dynamic vertical auto-resize and spring-animated vertical caret.
+   - Live character counter enforcing a 2,000-character upper bound.
+   - Preserves user engineering style (e.g. strict TypeScript types, TailwindCSS styling patterns, specific testing libraries).
+
+3. **Pipeline Prompt Injection Engine (`StageProductEnquiry.tsx`)**:
+   - In `fetchEnquiry()`, inspects `useAuthStore` state.
+   - If authenticated, extracts `dev_preferences.personalized_prompt` and `dev_preferences.default_framework`.
+   - Assembles `enquiryContext` string and passes it into `productEnquiry({ prompt, mode, context: enquiryContext })`.
+   - The backend `product_enquiry_agent.py` incorporates this context into the prompt sent to Gemini.
+   - Guest users emit `context: undefined`, guaranteeing 100% byte-identical requests when unauthenticated.
+
+4. **Auto-Export Toggle**:
+   - When enabled, automatically opens the `GitHubExportModal` upon successful completion of the development pipeline.
+
+---
+
+### Section 9.10: GitHub Integration Section (profile storage, modal pre-fill)
+
+1. **Credential Management (`ProfileGitHubSection.tsx`)**:
+   - GitHub Username, Default Repository Name, and Personal Access Token (PAT).
+   - Configurable Default Commit Message (default: "feat: automated codebase commit").
+   - "Auto-create repository if not exists" toggle.
+
+2. **Token Scope Validation**:
+   - "Test Token" button initiates an authenticated GET request against `https://api.github.com/user`.
+   - Validates token validity, extracts authenticated user handle, and checks for `repo` scope authorization.
+
+3. **Zero-Friction Modal Synchronization (`GitHubExportModal.tsx`)**:
+   - When opening the export modal from Stage 8 (Product Completion), the modal automatically reads `authStore.user.github_config`.
+   - Pre-fills Username, Repository, and PAT fields, allowing one-click publishing to GitHub without re-entering credentials.
+
+---
+
+### Section 9.11: Session History and Project Storage (MongoDB schema, ZIP download, stats)
+
+1. **Aggregated Analytics Cards (`ProfileSessionHistorySection.tsx`)**:
+   - Card 1: Total Sessions count across all modes.
+   - Card 2: Cumulative Tokens Consumed (prompt + completion tokens formatted with commas).
+   - Card 3: Total Cost in Indian Rupees (INR) calculated using token pricing constants.
+
+2. **Chronological Session Table**:
+   - Columns: Project Name, Prompt Preview, Date & Time, Duration, Mode, Token Usage, Cost, Status Badge, Download Action.
+   - Status Badges:
+     - `Completed`: Emerald frosted glass pill with pulsing indicator.
+     - `Aborted`: Rose frosted glass pill.
+     - `Active`: Blue frosted glass pill indicating in-progress synthesis.
+
+3. **Dynamic In-Memory ZIP Streaming (`backend/session_routes.py`)**:
+   - Route `GET /api/sessions/{session_id}/project/download`:
+     - Queries MongoDB Atlas `projects` collection for the session codebase.
+     - Compiles all source files, `README.md`, and `USER_GUIDE.md` into an in-memory `io.BytesIO` ZIP archive using Python's `zipfile` module.
+     - Streams binary data with `Content-Type: application/zip` and `Content-Disposition: attachment; filename="{project_name}.zip"`.
+   - Abort Guard: The download button is safely disabled and styled with opacity for aborted or incomplete sessions.
+
+---
+
+### Section 9.12: Auth Store and Token Persistence Strategy
+
+1. **Zustand State Store Architecture (`autodev-frontend/src/stores/authStore.ts`)**:
+   - Manages user document state, active JWT token, authentication status, and loading indicators.
+   - Provides action methods: `login()`, `signup()`, `googleAuth()`, `logout()`, `sendOtp()`, `verifyOtp()`, `updateProfile()`, `updateDevPreferences()`, `updateAiConfig()`, `updateGitHubConfig()`, `changePassword()`, and `deleteAccount()`.
+   - Provides derived getters:
+     - `getPersonalizedPrompt()`: Returns custom prompt string or null.
+     - `getDefaultFramework()`: Returns chosen framework or null.
+     - `getCustomApiKey()`: Retrieves personal API key from active config or session storage.
+     - `getModelConfig()`: Resolves primary and fallback model strings, defaulting to `gemini-3.5-flash-lite` and `gemini-3.1-flash-lite`.
+
+2. **Dual-Tier Storage Strategy**:
+   - **Persistent Authentication (`remember_me: true`)**:
+     - Token stored in `localStorage` under key `autodev_auth_token`.
+     - Preserved across browser restarts and session closures.
+   - **Session-Only Authentication (`remember_me: false`)**:
+     - Token stored in `sessionStorage` under key `autodev_auth_token`.
+     - Automatically cleared when the browser tab or window closes.
+
+3. **Hydration Lifecycle (`loadPersistedAuth`)**:
+   - Invoked during application bootstrap in `App.tsx`.
+   - Safely reads token from `sessionStorage` or `localStorage`.
+   - Calls `/api/auth/me` to hydrate the latest user profile document from MongoDB Atlas.
+   - Catches expiration or network failures, clearing stale storage without crashing the application.
+
+---
+
+### Section 9.13: Backward Compatibility and Unauthenticated Fallback
+
+1. **Zero-Regression Principle**:
+   - AutoDev was engineered to function with or without user authentication.
+   - All 8 pipeline stages, component decomposition, parallel DAG execution, docker sandboxing, and post-completion iteration operate 100% identically for unauthenticated guest users.
+
+2. **Unauthenticated Request Hygiene**:
+   - When a user is not logged in, `client.ts` attaches zero authentication or custom key headers.
+   - API endpoints receive standard requests and proceed with the platform's default 7-key KeyBalancer rotation pool.
+   - `fetchEnquiry` passes `context: undefined`, maintaining identical prompt payloads.
+   - Sessions are not recorded to MongoDB Atlas, and zero database writes are attempted.
+
+3. **Graceful Network & Database Degradation**:
+   - If MongoDB Atlas is unavailable or unreachable on server startup, `backend/main.py` traps the connection error and continues server boot.
+   - If the client fails to contact the authentication server, `StageSignIn.tsx` gracefully permits developer pass-through into the workspace.
+   - No database dropout or network interruption can stall or block software generation.
 
 
 

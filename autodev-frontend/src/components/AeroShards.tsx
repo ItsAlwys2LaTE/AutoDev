@@ -4209,6 +4209,7 @@ export function AeroShards({
         height: '100vh',
         zIndex: 0,
         backgroundColor,
+        transition: 'background-color 0.6s ease',
         ...style,
       }}
       aria-hidden="true"

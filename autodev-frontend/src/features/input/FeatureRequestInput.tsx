@@ -12,7 +12,7 @@
  * - Strictly emoji-free professional UI per R4
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   StopCircleIcon,
   ArrowPathIcon,
@@ -228,6 +228,7 @@ export function FeatureRequestInput({
         setInFlightPhase('decomposition');
         useAppStore.getState().completeTimelineInterval(reqIntervalId, { status: 'completed' });
         persistState(true);
+        useAppStore.getState().checkAndExecutePendingPause();
 
         // Trigger callback if provided
         if (onRequirementsGenerated) {
@@ -243,6 +244,9 @@ export function FeatureRequestInput({
           setPipelineStatus('idle');
           useAppStore.getState().setPipelineActive(false);
           persistState(true);
+          try {
+            useSessionStore.getState().showErrorToast(err.message, 'Requirements Parse Error');
+          } catch { /* ignore */ }
           return;
         }
         const isAbortedCleanly =
@@ -257,6 +261,9 @@ export function FeatureRequestInput({
         }
         const msg = err instanceof Error ? err.message : String(err);
         setErrorMessage(`Phase 1 Failed: ${msg}`);
+        try {
+          useSessionStore.getState().showErrorToast(`Phase 1 Failed: ${msg}`, 'Requirements Generation Failed');
+        } catch { /* ignore */ }
         setStepper(1, 'error');
         setPipelineStatus('idle');
         useAppStore.getState().setPipelineActive(false);
@@ -279,7 +286,11 @@ export function FeatureRequestInput({
   const handleGenerateRequirements = useCallback(async () => {
     const trimmedInput = inputText.trim();
     if (!trimmedInput) {
-      setErrorMessage('Please enter a feature request.');
+      const emptyMsg = 'Please enter a feature request or product description before starting.';
+      setErrorMessage(emptyMsg);
+      try {
+        useSessionStore.getState().showWarningToast(emptyMsg, 'Input Required');
+      } catch { /* ignore */ }
       return;
     }
 
@@ -446,78 +457,27 @@ export function FeatureRequestInput({
     setClarificationAnswers([]);
   }, [clearIntentGate]);
 
-  // Restart Development handler (Reimplements legacy retryDevelopment)
-  const isRestartingRef = useRef<boolean>(false);
-  const handleRestartDevelopment = useCallback(async (alreadyReset: boolean = false) => {
-    if (isRestartingRef.current) return;
-    const promptToUse = (
-      inputText ||
-      featureRequest ||
-      useAppStore.getState().featureRequest ||
-      ''
-    ).trim();
-    if (!promptToUse) {
-      setErrorMessage('Please enter a feature request to restart development.');
-      return;
-    }
-
-    isRestartingRef.current = true;
-    setErrorMessage(null);
-    setInputText(promptToUse);
-
-    // Cleanly abort background listeners & cancel any running countdown
-    try {
-      abort();
-    } catch {
-      // ignore
-    }
-    try {
-      useSessionStore.getState().cancelCountdown();
-    } catch {
-      // ignore
-    }
-
-    // Reset store state while preserving prompt and mode if not already reset by event dispatcher
-    if (!alreadyReset) {
-      useAppStore.getState().resetTimelineMetrics();
-      retryDevelopment();
-      persistState(true);
-    }
-
-    try {
-      // Re-execute pipeline starting from requirements
-      await executeRequirementsGeneration(promptToUse);
-    } finally {
-      isRestartingRef.current = false;
-    }
-  }, [
-    inputText,
-    featureRequest,
-    abort,
-    retryDevelopment,
-    executeRequirementsGeneration,
-  ]);
-
   // Event listener for autodev:restart-development
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onRestartEvent = () => {
-      handleRestartDevelopment(true);
+      // Re-development state reset to Stage 2 (Product Enquiry) with pipelineStatus: 'idle'.
+      // Development does not begin until the user clicks 'START DEVELOPMENT' in Stage 2.
     };
     window.addEventListener('autodev:restart-development', onRestartEvent);
     return () => {
       window.removeEventListener('autodev:restart-development', onRestartEvent);
     };
-  }, [handleRestartDevelopment]);
+  }, []);
 
   // Click handler for Abort / Restart button
   const handleAbortBtnClick = useCallback(() => {
     if (pipelineStatus === 'aborted' || pipelineStatus === 'completed') {
-      handleRestartDevelopment();
+      retryDevelopment();
     } else {
       setShowAbortModal(true);
     }
-  }, [pipelineStatus, handleRestartDevelopment]);
+  }, [pipelineStatus, retryDevelopment]);
 
   // Window bridge for legacy script blocks in backend/index.html & automated tests
   useEffect(() => {
@@ -525,16 +485,16 @@ export function FeatureRequestInput({
       (window as any).generateRequirements = handleGenerateRequirements;
       (window as any).abortDevelopment = handleConfirmAbort;
       (window as any).requestNewProduct = handleNewProduct;
-      (window as any).retryDevelopment = handleRestartDevelopment;
-      (window as any).restartDevelopment = handleRestartDevelopment;
+      (window as any).retryDevelopment = () => retryDevelopment();
+      (window as any).restartDevelopment = () => retryDevelopment();
       (window as any).setGenerationMode = handleModeChange;
     }
   }, [
     handleGenerateRequirements,
     handleConfirmAbort,
     handleNewProduct,
-    handleRestartDevelopment,
     handleModeChange,
+    retryDevelopment,
   ]);
 
   const isSubmitting = isStreaming || isClassifyingIntent || (pipelineStatus === 'running' && inFlightPhase === 'requirements');

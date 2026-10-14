@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import type { ExecutionResult } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface StageIntegrationTestingProps {
   onAdvance: (targetStage: number) => void;
@@ -123,12 +123,15 @@ export const StageIntegrationTesting: React.FC<StageIntegrationTestingProps> = (
           </div>
         </div>
 
-        {/* Monospace Log Viewer with Dynamic ScrollFade */}
-        <ScrollFade className="flex-1 min-h-0 rounded-2xl bg-black/50 border border-white/[0.07] p-4 overflow-y-auto font-mono text-xs text-slate-200 leading-relaxed shadow-inner">
+        {/* Monospace Log Viewer with ModernScrollbar */}
+        <ModernScrollbar
+          className="flex-1 min-h-0 rounded-2xl bg-black/50 border border-white/[0.07] shadow-inner"
+          viewportClassName="p-4 font-mono text-xs text-slate-200 leading-relaxed"
+        >
           <pre id="execLogsOutput" className="whitespace-pre-wrap break-all">
             {logs}
           </pre>
-        </ScrollFade>
+        </ModernScrollbar>
       </div>
     </div>
   );

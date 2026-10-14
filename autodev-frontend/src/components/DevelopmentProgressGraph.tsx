@@ -316,16 +316,23 @@ export const DevelopmentProgressGraph: React.FC<DevelopmentProgressGraphProps> =
             const isHovered = hoveredPhase?.key === pt.phase.key;
             return (
               <g key={`pt-${pt.phase.key}`}>
-                {/* Outer Pulse Ring */}
+                {/* Outer Concentric Pulse Ripple (animating SVG radius to stay precisely centered) */}
                 {isHovered && (
-                  <circle
+                  <motion.circle
+                    key={`pulse-${pt.phase.key}`}
                     cx={pt.x}
                     cy={pt.y}
-                    r="11"
+                    initial={{ r: 5, opacity: 0.85 }}
+                    animate={{ r: 13, opacity: 0 }}
+                    transition={{
+                      duration: 1.2,
+                      repeat: Infinity,
+                      ease: 'easeOut',
+                    }}
                     fill="none"
                     stroke={pt.phase.color}
                     strokeWidth="1.5"
-                    className="animate-ping opacity-75"
+                    className="pointer-events-none"
                   />
                 )}
 
@@ -333,16 +340,25 @@ export const DevelopmentProgressGraph: React.FC<DevelopmentProgressGraphProps> =
                 <motion.circle
                   cx={pt.x}
                   cy={pt.y}
-                  r={isHovered ? 6 : 4}
+                  r={isHovered ? 5.5 : 4}
                   fill="#000000"
                   stroke={pt.phase.color}
-                  strokeWidth={isHovered ? 2.8 : 1.8}
+                  strokeWidth={isHovered ? 2.5 : 1.8}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.2 + idx * 0.08, type: 'spring', stiffness: 400, damping: 20 }}
+                  className="pointer-events-none"
+                />
+
+                {/* Generous frictionless hover hit area */}
+                <circle
+                  cx={pt.x}
+                  cy={pt.y}
+                  r="14"
+                  fill="transparent"
+                  className="cursor-pointer"
                   onMouseEnter={() => setHoveredPhase(pt.phase)}
                   onMouseLeave={() => setHoveredPhase(null)}
-                  className="cursor-pointer transition-all duration-200"
                 />
               </g>
             );
@@ -373,7 +389,7 @@ export const DevelopmentProgressGraph: React.FC<DevelopmentProgressGraphProps> =
         </AnimatePresence>
       </div>
 
-      {/* ── Phase Progression Milestone Cards Strip (Agent-wise time below graph) ── */}
+      {/* ── Phase Progression Milestone Cards Strip (Agent-wise time to the right of title) ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-1.5 sm:gap-2 pt-0.5">
         {phaseStats.phases.map((phase) => {
           const Icon = phase.icon;
@@ -384,27 +400,30 @@ export const DevelopmentProgressGraph: React.FC<DevelopmentProgressGraphProps> =
               key={`card-${phase.key}`}
               onMouseEnter={() => setHoveredPhase(phase)}
               onMouseLeave={() => setHoveredPhase(null)}
-              className={`rounded-lg sm:rounded-xl p-1.5 sm:p-2 transition-all duration-200 border flex flex-col justify-between cursor-pointer ${
+              title={`${phase.label}: ${formatDurationLabel(phase.duration)}`}
+              className={`rounded-lg sm:rounded-xl p-1.5 sm:p-2 transition-all duration-200 border cursor-pointer flex flex-col justify-between ${
                 isHovered
                   ? 'bg-white/10 border-white/30 shadow-md scale-[1.02]'
                   : 'bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.05]'
               }`}
             >
-              <div className="flex items-center mb-1">
+              {/* Top Row: Icon on left, Development Time on right side of title */}
+              <div className="flex items-center justify-between gap-1 mb-1">
                 <div
-                  className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                  className="w-4.5 h-4.5 rounded-md flex items-center justify-center shrink-0"
                   style={{ backgroundColor: phase.accentBg, color: phase.color }}
                 >
-                  <Icon className="w-3 h-3" />
+                  <Icon className="w-2.5 h-2.5" />
                 </div>
+                <span className="text-[9.5px] font-mono font-semibold text-emerald-400 shrink-0 leading-none">
+                  {formatDurationLabel(phase.duration)}
+                </span>
               </div>
 
+              {/* Agent Name kept below where it was originally */}
               <div>
                 <p className="text-[10px] font-bold text-slate-200 truncate leading-tight" title={phase.label}>
                   {phase.shortLabel}
-                </p>
-                <p className="text-[9.5px] font-mono font-semibold text-emerald-400 mt-0.5 leading-none">
-                  {formatDurationLabel(phase.duration)}
                 </p>
               </div>
             </div>

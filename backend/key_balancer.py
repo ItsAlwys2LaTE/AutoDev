@@ -38,6 +38,42 @@ def reset_generation_mode() -> None:
     _CURRENT_MODE.set(None)
 
 
+# Context variables for user-specified custom API key and models (Phase 9 / User Profile)
+_CURRENT_USER_KEY: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("autodev_user_key", default=None)
+_CURRENT_PRIMARY_MODEL: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("autodev_primary_model", default=None)
+_CURRENT_FALLBACK_MODEL: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("autodev_fallback_model", default=None)
+
+
+def set_user_api_key(key: Optional[str]) -> None:
+    """Sets the active custom user API key in the context variable."""
+    _CURRENT_USER_KEY.set(key if key and key.strip() else None)
+
+
+def get_user_api_key() -> Optional[str]:
+    """Retrieves the active custom user API key, if set."""
+    return _CURRENT_USER_KEY.get()
+
+
+def set_user_models(primary: Optional[str] = None, fallback: Optional[str] = None) -> None:
+    """Sets custom primary and fallback models in the context variables."""
+    if primary and primary.strip():
+        _CURRENT_PRIMARY_MODEL.set(primary.strip())
+    if fallback and fallback.strip():
+        _CURRENT_FALLBACK_MODEL.set(fallback.strip())
+
+
+def get_user_models() -> Tuple[Optional[str], Optional[str]]:
+    """Retrieves custom primary and fallback models from context variables."""
+    return (_CURRENT_PRIMARY_MODEL.get(), _CURRENT_FALLBACK_MODEL.get())
+
+
+def reset_user_config() -> None:
+    """Resets user-specific API key and models to None."""
+    _CURRENT_USER_KEY.set(None)
+    _CURRENT_PRIMARY_MODEL.set(None)
+    _CURRENT_FALLBACK_MODEL.set(None)
+
+
 def resolve_models_for_mode(
     mode: Optional[str] = None,
     primary_model: str = "gemini-3.5-flash-lite",
@@ -45,10 +81,14 @@ def resolve_models_for_mode(
 ) -> Tuple[str, str]:
     """
     Returns (effective_primary, effective_secondary):
-    - Primary: 'gemini-3.5-flash-lite'
-    - Secondary: 'gemini-3.1-flash-lite'
+    - Primary: custom model if configured, else 'gemini-3.5-flash-lite'
+    - Secondary: custom fallback model if configured, else 'gemini-3.1-flash-lite'
     """
-    return (primary_model or "gemini-3.5-flash-lite", secondary_model or "gemini-3.1-flash-lite")
+    custom_pri = _CURRENT_PRIMARY_MODEL.get()
+    custom_sec = _CURRENT_FALLBACK_MODEL.get()
+    eff_pri = custom_pri or primary_model or "gemini-3.5-flash-lite"
+    eff_sec = custom_sec or secondary_model or "gemini-3.1-flash-lite"
+    return (eff_pri, eff_sec)
 
 
 
@@ -469,14 +509,14 @@ def get_key_env_var_name(key: str, preferred_stage: Optional[str] = None) -> str
         if numbered_var and numbered_var in matching_vars:
             return numbered_var
 
-    # Prioritize stage-specific variables first, then numbered variables GEMINI_API_KEY_1..10, then GEMINI_API_KEY
-    for var in list(STAGE_KEY_MAP.values()):
-        if var in matching_vars:
-            return var
+    # Prioritize numbered variables GEMINI_API_KEY_1..10 first, then stage-specific variables, then GEMINI_API_KEY
     for i in range(1, 11):
         num_var = f"GEMINI_API_KEY_{i}"
         if num_var in matching_vars:
             return num_var
+    for var in list(STAGE_KEY_MAP.values()):
+        if var in matching_vars:
+            return var
 
     return matching_vars[0]
 
@@ -608,6 +648,10 @@ def get_gemini_keys_for_stage(
     When component_id is provided, coordinates with KeyReservationManager so that concurrent
     components executing in the same pipeline stage are strictly assigned DIFFERENT API keys.
     """
+    user_key = _CURRENT_USER_KEY.get()
+    if user_key and user_key.strip():
+        return [user_key.strip()]
+
     active_mode = mode or _CURRENT_MODE.get()
     if active_mode and active_mode.upper() == "QUICK":
         lite_keys = discover_gemini_lite_keys()
@@ -728,7 +772,7 @@ def format_phase_transition(
     extra_str = f" ({extra})" if extra else ""
     return (
         f"[PHASE TRANSITION] [Component: {component_name}] {from_phase} -> {to_phase}{extra_str} | "
-        f"Model: {model} | API Key: {key_name} ({masked_key})"
+        f"API Key: {key_name}."
     )
 
 
@@ -1221,4 +1265,54 @@ def resilient_llm_stream(
         "attempts": max_json_retries + 1
     })
     yield error_json
+
+
+def execute_with_user_key(
+    user_api_key: str,
+    call_fn: Callable,
+    primary_model: str = "gemini-3.5-flash-lite",
+    secondary_model: str = "gemini-3.1-flash-lite",
+) -> Any:
+    """
+    Execute an LLM call using a user-provided API key instead of the
+    stage-based key rotation system. Falls back from primary to secondary
+    model on failure, same as execute_with_key_fallback.
+    """
+    client = genai.Client(api_key=user_api_key)
+    try:
+        setattr(client, "api_key", user_api_key)
+    except Exception:
+        pass
+
+    try:
+        logger.info(f"[User API Key] Executing call with primary model '{primary_model}'...")
+        return _invoke_callable(call_fn, client, primary_model)
+    except Exception as e:
+        logger.warning(f"[User API Key] Call with '{primary_model}' failed ({e}), falling back to '{secondary_model}'...")
+        return _invoke_callable(call_fn, client, secondary_model)
+
+
+def execute_stream_with_user_key(
+    user_api_key: str,
+    stream_fn: Callable,
+    primary_model: str = "gemini-3.5-flash-lite",
+    secondary_model: str = "gemini-3.1-flash-lite",
+) -> Iterator[str]:
+    """
+    Execute a streaming LLM call using a user-provided API key.
+    Falls back from primary to secondary model if an error occurs before first chunk.
+    """
+    client = genai.Client(api_key=user_api_key)
+    try:
+        setattr(client, "api_key", user_api_key)
+    except Exception:
+        pass
+
+    try:
+        logger.info(f"[User API Key] Executing stream with primary model '{primary_model}'...")
+        yield from _invoke_callable(stream_fn, client, primary_model)
+    except Exception as e:
+        logger.warning(f"[User API Key] Stream with '{primary_model}' failed ({e}), falling back to '{secondary_model}'...")
+        yield from _invoke_callable(stream_fn, client, secondary_model)
+
 

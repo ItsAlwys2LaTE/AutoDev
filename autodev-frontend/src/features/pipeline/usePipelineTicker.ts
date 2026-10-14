@@ -146,10 +146,14 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
       return st === 'passed' || st === 'COMPLETED';
     });
 
+  const storeIsPauseRequested = useAppStore((s) => s.isPauseRequested);
+  const isPauseRequested = isSSR ? (liveStore?.isPauseRequested ?? storeIsPauseRequested) : storeIsPauseRequested;
+
   const shouldPoll =
     enabled &&
     !isPausedManually &&
     !isPaused &&
+    !isPauseRequested &&
     isComponentMode &&
     pipelineStatus === 'running' &&
     pipelineActive &&

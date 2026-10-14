@@ -31,7 +31,7 @@ import { persistState } from '../../stores';
 import { parseBlueprint } from '../../api/endpoints';
 import { formatBlueprintText } from '../../utils/formatters';
 import type { SystemDesignBlueprint } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface BlueprintOutputProps {
   onProceedToCode?: (blueprint: SystemDesignBlueprint) => void;
@@ -77,7 +77,6 @@ export function BlueprintOutput({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isQuickMode = generationMode === 'QUICK' || mode === 'QUICK';
-  const isEditable = isPaused || !isQuickMode;
   const contentRef = useRef<HTMLDivElement>(null);
   const hasAutoAdvancedRef = useRef<boolean>(false);
 
@@ -280,28 +279,9 @@ export function BlueprintOutput({
           {/* Dynamic Interactive Badge */}
           <span
             id="designJsonOutputBadge"
-            onClick={() => {
-              if (isEditable) {
-                setViewMode('editor');
-              }
-            }}
-            className={`inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1 rounded-full border shadow-sm transition-colors ${
-              isEditable ? 'cursor-pointer hover:border-white/30' : ''
-            } ${
-              isPaused
-                ? 'bg-white/10 text-white border-white/20'
-                : !isQuickMode
-                ? 'bg-white/[0.08] text-slate-200 border-white/15'
-                : 'sr-only pointer-events-none'
-            }`}
+            className="sr-only pointer-events-none"
           >
-            {isPaused ? (
-              <span>EDITABLE BLUEPRINT (PAUSED)</span>
-            ) : !isQuickMode ? (
-              <span>RICH TEXT BLUEPRINT (CLICK TO EDIT)</span>
-            ) : (
-              <span className="sr-only">READ-ONLY BLUEPRINT</span>
-            )}
+            <span className="sr-only">READ-ONLY BLUEPRINT</span>
           </span>
         </div>
       </div>
@@ -476,11 +456,11 @@ export function BlueprintOutput({
                       <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
                         Pseudocode / Logical Sketch
                       </span>
-                      <ScrollFade fadeSize={16} className="max-h-48 overflow-y-auto">
+                      <ModernScrollbar className="max-h-48 w-full">
                         <pre className="p-3.5 rounded-xl bg-black/40 border border-white/[0.05] text-xs font-mono text-slate-300 leading-relaxed whitespace-pre-wrap select-text">
                           {file.pseudocode}
                         </pre>
-                      </ScrollFade>
+                      </ModernScrollbar>
                     </div>
                   )}
                 </div>
@@ -493,55 +473,18 @@ export function BlueprintOutput({
       {/* Rich Text Blueprint Viewer with Dynamic ScrollFade */}
       {/* Retained in DOM for testing, SSR, and direct text editing */}
       <div className={viewMode === 'editor' || !currentBlueprint ? 'space-y-3' : 'hidden'}>
-        <ScrollFade className="bg-black/40 backdrop-blur-xl rounded-2xl p-4 border border-white/[0.07] shadow-inner max-h-[500px] overflow-y-auto">
+        <ModernScrollbar className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/[0.07] shadow-inner max-h-[500px]" viewportClassName="p-4">
           <div
             id="designJsonOutput"
             ref={contentRef}
-            contentEditable={isEditable}
+            contentEditable={false}
             suppressContentEditableWarning
-            onInput={() => {
-              if (contentRef.current) {
-                setDisplayText(contentRef.current.innerText);
-              }
-            }}
-            className={`w-full min-h-[300px] text-sm sm:text-base leading-relaxed whitespace-pre-wrap outline-none select-text transition-colors font-mono text-slate-300 bg-transparent ${
-              isEditable ? 'cursor-text focus:ring-1 focus:ring-white/20 rounded-lg p-1' : 'cursor-default'
-            }`}
+            className="w-full min-h-[300px] text-sm sm:text-base leading-relaxed whitespace-pre-wrap outline-none select-text transition-colors font-mono text-slate-300 bg-transparent cursor-default"
           >
             {displayText || 'Awaiting architecture design blueprint...'}
           </div>
-        </ScrollFade>
+        </ModernScrollbar>
       </div>
-
-      {/* Paused Edit Action Button */}
-      {isPaused && currentBlueprint && (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            onClick={async () => {
-              const textToParse = contentRef.current?.innerText || displayText;
-              if (textToParse.trim()) {
-                setIsProcessing(true);
-                try {
-                  const parsed = await parseMutation.mutateAsync(textToParse);
-                  if (parsed && parsed.files) {
-                    setBlueprint(parsed);
-                    persistState(true);
-                    setViewMode('structured');
-                  }
-                } catch (e: any) {
-                  setErrorMsg(`Parse failed: ${e.message || String(e)}`);
-                } finally {
-                  setIsProcessing(false);
-                }
-              }
-            }}
-            className="px-4 py-2 text-xs font-medium text-slate-200 bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl transition-colors cursor-pointer shadow-sm"
-          >
-            Save & Re-parse Blueprint
-          </button>
-        </div>
-      )}
 
       {/* Error Display */}
       {errorMsg && (

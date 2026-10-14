@@ -47,7 +47,9 @@ import {
   ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore, type PostCompletionMode } from '../../stores/appStore';
+import { useSessionStore } from '../../stores/sessionStore';
 import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 import { postCompletionModify, postCompletionQuery } from '../../api/endpoints';
 import { persistState, resetAllStores } from '../../stores';
 import { DevelopmentGanttChart } from '../../components/DevelopmentGanttChart';
@@ -279,6 +281,9 @@ export function PostCompletionPanel({
     const onDone = () => {
       setCopyFeedback(true);
       setStatusMessage('Explanation copied to clipboard!');
+      try {
+        useSessionStore.getState().showInfoToast('Explanation copied to clipboard.', 'Copied to Clipboard');
+      } catch { /* ignore */ }
       setTimeout(() => setCopyFeedback(false), 2000);
     };
 
@@ -430,6 +435,9 @@ export function PostCompletionPanel({
         console.error(errorText, err);
         setStatusMessage(errorText);
         setStoreStatus(errorText);
+        try {
+          useSessionStore.getState().showErrorToast(err?.message || 'Failed to apply requested code modification.', 'Code Modification Failed');
+        } catch { /* ignore */ }
       } finally {
         setIsLoading(false);
       }
@@ -467,6 +475,9 @@ export function PostCompletionPanel({
         console.error(errorText, err);
         setStatusMessage(errorText);
         setStoreStatus(errorText);
+        try {
+          useSessionStore.getState().showErrorToast(err?.message || 'Failed to complete codebase query.', 'Query Processing Failed');
+        } catch { /* ignore */ }
       } finally {
         setIsLoading(false);
       }
@@ -1009,9 +1020,10 @@ export function PostCompletionPanel({
                 </div>
               </div>
 
-              <ScrollFade
+              <ModernScrollbar
                 id="postCompLogsContainer"
-                className={`${logsExpanded ? 'block' : 'hidden'} bg-black p-3 rounded-lg border border-slate-800 max-h-56 overflow-y-auto`}
+                className={`${logsExpanded ? 'block' : 'hidden'} bg-black rounded-lg border border-slate-800 max-h-56`}
+                viewportClassName="p-3"
               >
                 <pre>
                   <code
@@ -1021,7 +1033,7 @@ export function PostCompletionPanel({
                     {currentExecResult?.logs || 'No execution logs available.'}
                   </code>
                 </pre>
-              </ScrollFade>
+              </ModernScrollbar>
             </div>
           )}
 
@@ -1180,6 +1192,9 @@ export function PostCompletionPanel({
                     if (typeof window !== 'undefined' && typeof (window as any).renderLivePreview === 'function') {
                       (window as any).renderLivePreview();
                       setStatusMessage('Live Preview hot-reloaded.');
+                      try {
+                        useSessionStore.getState().showInfoToast('Live preview container refreshed with active codebase.', 'Preview Reloaded');
+                      } catch { /* ignore */ }
                     }
                   }}
                   className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
@@ -1195,10 +1210,11 @@ export function PostCompletionPanel({
 
       {/* Technical Q&A Streaming Output Box (Query Mode) (#postCompQueryResponseBox) */}
       {queryResponse && mode === 'query' && (
-        <ScrollFade
+        <ModernScrollbar
           id="postCompQueryResponseBox"
-          className="bg-slate-950/[0.25] backdrop-blur-md p-5 sm:p-6 rounded-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] relative group overflow-y-auto max-h-[600px] fade-in space-y-3"
+          className="bg-slate-950/[0.25] backdrop-blur-md rounded-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] relative group max-h-[600px] fade-in"
           style={{ backdropFilter: 'blur(14px)' }}
+          viewportClassName="p-5 sm:p-6 space-y-3"
         >
           <div className="flex items-center justify-between pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
@@ -1234,7 +1250,7 @@ export function PostCompletionPanel({
           >
             {queryResponse}
           </div>
-        </ScrollFade>
+        </ModernScrollbar>
       )}
     </div>
   );

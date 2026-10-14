@@ -18,6 +18,7 @@ import type {
   CodeFile,
   RevisionHistoryItem,
 } from '../types';
+import { useSessionStore } from './sessionStore';
 
 export const STORAGE_KEY = 'autodev_state_v1';
 export const SCHEMA_VERSION = 1;
@@ -116,6 +117,10 @@ export function pruneState(state: AutoDevStateV1): AutoDevStateV1 {
 
   // ── Tier 3: Strip Raw Stream Buffers & Non-Critical Keys ───────────────────
   delete (copy as any)._rawStreamBuffer;
+
+  if (Array.isArray(copy.terminalLogs) && copy.terminalLogs.length > 500) {
+    copy.terminalLogs = copy.terminalLogs.slice(-500);
+  }
 
   return copy;
 }
@@ -235,6 +240,12 @@ export function flushPersistedState(): boolean {
   } catch (err) {
     if (isQuotaExceeded(err)) {
       console.warn('[StatePersistence] QuotaExceededError trapped. Applying 3-tier prune defense.');
+      try {
+        useSessionStore.getState().showWarningToast(
+          'Local storage limit reached. Older session logs pruned to preserve state.',
+          'Storage Quota Exceeded'
+        );
+      } catch { /* ignore */ }
       const pruned = pruneState(state);
       _inMemoryCache = pruned;
       try {

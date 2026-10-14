@@ -26,45 +26,33 @@
  * 7. Strictly zero emojis across UI, markup, and source code.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, type Variants } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
-// Slide animation variants for smooth stage container switching
+// Non-blocking slide animation variants for smooth, instant stage container switching
 const stageSlideVariants: Variants = {
   enter: (direction: 'forward' | 'backward') => ({
-    x: direction === 'forward' ? 100 : -100,
+    x: direction === 'forward' ? 36 : -36,
     opacity: 0,
-    scale: 0.985,
-    filter: 'blur(6px)',
+    scale: 0.99,
   }),
   center: {
     x: 0,
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
-      type: 'spring' as const,
-      stiffness: 320,
-      damping: 26,
-      mass: 0.75,
+      duration: 0.22,
+      ease: [0.22, 1, 0.36, 1],
     },
   },
-  exit: (direction: 'forward' | 'backward') => ({
-    x: direction === 'forward' ? -100 : 100,
-    opacity: 0,
-    scale: 0.985,
-    filter: 'blur(6px)',
-    transition: {
-      duration: 0.2,
-      ease: [0.32, 0, 0.67, 0],
-    },
-  }),
 };
 
 // State & Stores
 import { useAppStore } from './stores/appStore';
+import { persistState } from './stores';
 import { useAutoRecovery } from './hooks';
+import { initializeGlobalErrorNotifications } from './services';
 
 // Peripheral Components
 import {
@@ -76,7 +64,10 @@ import {
   GitHubExportModal,
   GlassToastContainer,
   AeroShards,
+  LightRays,
   ScrollFade,
+  RightSidebar,
+  LineSidebar,
 } from './components';
 
 // Core Feature Stages
@@ -109,7 +100,10 @@ import {
   PostCompletionPanel,
 } from './features';
 
-export type AppCurrentPage = 'landing' | 'signup' | 'main';
+import { UserProfilePage } from './features/profile/UserProfilePage';
+import { useAuthStore } from './stores/authStore';
+
+export type AppCurrentPage = 'landing' | 'signup' | 'main' | 'profile';
 
 export default function App() {
   // In-flight auto-recovery bootloader and state persistence lifecycle
@@ -126,7 +120,8 @@ export default function App() {
   const storeCurrentCodebase = useAppStore((s) => s.currentCodebase);
   const storeIntegratedCodebase = useAppStore((s) => s.integratedCodebase);
   const storePostCompletionVisible = useAppStore((s) => s.postCompletionVisible);
-  const clarificationState = useAppStore((s) => s.clarificationState);
+  const storePostCompletionPrompt = useAppStore((s) => s.postCompletionPrompt);
+  const storeProductEnquiryResult = useAppStore((s) => s.productEnquiryResult);
 
   const isComponentMode = isSSR ? (liveStore?.isComponentMode ?? false) : storeIsComponentMode;
   const pipelineStatus = isSSR ? (liveStore?.pipelineStatus ?? 'idle') : storePipelineStatus;
@@ -135,8 +130,23 @@ export default function App() {
   const postCompletionVisible = isSSR
     ? (Boolean(liveStore?.postCompletionVisible) || Boolean(liveStore?.currentCodebase) || Boolean(liveStore?.integratedCodebase))
     : (storePostCompletionVisible || Boolean(currentCodebase) || Boolean(integratedCodebase));
+  const postCompletionPrompt = isSSR
+    ? (liveStore?.postCompletionPrompt ?? '')
+    : storePostCompletionPrompt;
+  const hasPostDevRequest = Boolean(postCompletionPrompt && postCompletionPrompt.trim().length > 0);
+  const maxAllowedStage = hasPostDevRequest ? 11 : 10;
 
-  // Top-Level 3-Page Router State ('landing' | 'signup' | 'main')
+  // User profile auth state & persistent session restoration
+  const authUser = useAuthStore((s) => s.user);
+
+  useEffect(() => {
+    useAuthStore.getState().loadPersistedAuth();
+  }, []);
+
+  // Collapsible Right Sidebar state
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+
+  // Top-Level Page Router State ('landing' | 'signup' | 'main' | 'profile')
   const [currentPage, setCurrentPage] = useState<AppCurrentPage>(() => {
     // If active pipeline or saved requirements already exist, default to 'main'
     const hasActivePipeline = Boolean(
@@ -150,7 +160,7 @@ export default function App() {
     if (typeof window !== 'undefined') {
       try {
         const saved = sessionStorage.getItem('autodev_current_page');
-        if (saved === 'landing' || saved === 'signup' || saved === 'main') {
+        if (saved === 'landing' || saved === 'signup' || saved === 'main' || saved === 'profile') {
           return saved;
         }
       } catch {
@@ -171,85 +181,269 @@ export default function App() {
     }
   }, []);
 
-  // Determine initial stage based on stored progress
-  const initialStage = useMemo(() => {
-    if (postCompletionVisible || pipelineStatus === 'completed') return 9;
-    if (integratedCodebase) return 7;
-    if (storeDecomposition) return 5;
-    if (storeRequirements) return 3;
-    return 1;
-  }, [postCompletionVisible, pipelineStatus, integratedCodebase, storeDecomposition, storeRequirements]);
+  // Initialize global unhandled error and rejection notification listener
+  useEffect(() => {
+    const unregister = initializeGlobalErrorNotifications();
+    return () => unregister();
+  }, []);
+  const storeCurrentStage = useAppStore((s) => s.currentStage);
+  const storeMaxUnlockedStage = useAppStore((s) => s.maxUnlockedStage);
+  const storeMinNavigableStage = useAppStore((s) => s.minNavigableStage);
+  const setCurrentStageInStore = useAppStore((s) => s.setCurrentStage);
+  const setMaxUnlockedStageInStore = useAppStore((s) => s.setMaxUnlockedStage);
+  const setMinNavigableStageInStore = useAppStore((s) => s.setMinNavigableStage);
+  const storeFeatureRequest = useAppStore((s) => s.featureRequest);
+  const storePipelineQueue = useAppStore((s) => s.pipelineQueue);
+  const storeComponentStates = useAppStore((s) => s.componentStates);
 
-  const [currentStage, setCurrentStage] = useState<number>(initialStage);
-  const [maxVisitedStage, setMaxVisitedStage] = useState<number>(Math.max(initialStage, 1));
+  const currentStage = isSSR ? (liveStore?.currentStage ?? 1) : storeCurrentStage;
+  const maxUnlockedStage = isSSR ? (liveStore?.maxUnlockedStage ?? 1) : storeMaxUnlockedStage;
+  const minNavigableStage = isSSR ? (liveStore?.minNavigableStage ?? 1) : storeMinNavigableStage;
+  const currentStageRef = useRef<number>(currentStage);
+  currentStageRef.current = currentStage;
+
   const [slideDirection, setSlideDirection] = useState<'forward' | 'backward'>('forward');
-
-  // Keep max visited stage synchronized
-  useEffect(() => {
-    setMaxVisitedStage((prev) => Math.max(prev, currentStage));
-  }, [currentStage]);
-
-  // Sync stage if external pipeline completion occurs
-  useEffect(() => {
-    if (pipelineStatus === 'completed' || postCompletionVisible) {
-      setCurrentStage((prev) => {
-        if (prev < 9) {
-          setSlideDirection('forward');
-          return 9;
-        }
-        return prev;
-      });
-      setMaxVisitedStage((prev) => Math.max(prev, 9));
-    }
-  }, [pipelineStatus, postCompletionVisible]);
 
   // Main system navigation handler
   const navigateToStage = useCallback((targetStage: number) => {
-    const clamped = Math.max(1, Math.min(11, targetStage));
-    setCurrentStage((prev) => {
-      if (clamped > prev) {
-        setSlideDirection('forward');
-      } else if (clamped < prev) {
-        setSlideDirection('backward');
-      }
-      return clamped;
-    });
-    setMaxVisitedStage((prev) => Math.max(prev, clamped));
-  }, []);
+    // If requesting new product / stage 1, reset navigation bounds
+    if (targetStage === 1) {
+      setMinNavigableStageInStore(1);
+      setMaxUnlockedStageInStore(1);
+      currentStageRef.current = 1;
+      setSlideDirection('backward');
+      setCurrentStageInStore(1);
+      persistState(true);
+      return;
+    }
 
-  // Determine previous and next stage accounting for conditional Stage 2
-  const hasClarifications = clarificationState !== null && clarificationState.questions.length > 0;
+    // Moving to stage 2 or beyond permanently locks Stage 1
+    setMinNavigableStageInStore(2);
+
+    const livePrompt = useAppStore.getState().postCompletionPrompt;
+    const allowStage11 = Boolean(livePrompt && livePrompt.trim().length > 0) || hasPostDevRequest;
+    const maxBoundary = allowStage11 ? 11 : 10;
+    const clamped = Math.max(1, Math.min(maxBoundary, targetStage));
+    const prevStage = currentStageRef.current;
+
+    // Instantly cancel any active auto-advance stage timer on previous stage
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('autodev:cancel-stage-timer', {
+          detail: { fromStage: prevStage, toStage: clamped },
+        })
+      );
+    }
+
+    if (clamped > prevStage) {
+      setSlideDirection('forward');
+    } else if (clamped < prevStage) {
+      setSlideDirection('backward');
+    }
+
+    currentStageRef.current = clamped;
+    setCurrentStageInStore(clamped);
+    persistState(true);
+  }, [hasPostDevRequest, setCurrentStageInStore, setMaxUnlockedStageInStore, setMinNavigableStageInStore]);
+
+  // Reactive stage unlocking: as soon as a stage completes execution, unlock next stage immediately
+  useEffect(() => {
+    let unlocked = 1;
+    if (storeProductEnquiryResult || storeFeatureRequest) unlocked = Math.max(unlocked, 2);
+    if (storeRequirements) unlocked = Math.max(unlocked, 4);
+    if (storeDecomposition) unlocked = Math.max(unlocked, 5);
+    const queue = storePipelineQueue || [];
+    const states = storeComponentStates || {};
+    const passedCount = queue.filter((c) => {
+      const st = states[c.component_id]?.status;
+      return st === 'passed' || st === 'COMPLETED';
+    }).length;
+    if (queue.length > 0 && passedCount === queue.length) unlocked = Math.max(unlocked, 6);
+    if (integratedCodebase) unlocked = Math.max(unlocked, 7);
+    if (currentCodebase || integratedCodebase) unlocked = Math.max(unlocked, 8);
+    if (postCompletionVisible || pipelineStatus === 'completed') unlocked = Math.max(unlocked, 9);
+    if (hasPostDevRequest) unlocked = Math.max(unlocked, 11);
+
+    if (unlocked > maxUnlockedStage) {
+      setMaxUnlockedStageInStore(unlocked);
+      persistState(true);
+    }
+  }, [
+    storeFeatureRequest,
+    storeProductEnquiryResult,
+    storeRequirements,
+    storeDecomposition,
+    storePipelineQueue,
+    storeComponentStates,
+    integratedCodebase,
+    currentCodebase,
+    postCompletionVisible,
+    pipelineStatus,
+    hasPostDevRequest,
+    maxUnlockedStage,
+    setMaxUnlockedStageInStore,
+  ]);
+
+  // When all store outputs are cleared (full reset / request new product), return cleanly to Stage 1
+  useEffect(() => {
+    if (
+      pipelineStatus === 'idle' &&
+      !storeRequirements &&
+      !storeDecomposition &&
+      !integratedCodebase &&
+      !currentCodebase &&
+      !storeProductEnquiryResult &&
+      !storeFeatureRequest &&
+      currentStageRef.current > 1
+    ) {
+      navigateToStage(1);
+    }
+  }, [
+    pipelineStatus,
+    storeRequirements,
+    storeDecomposition,
+    integratedCodebase,
+    currentCodebase,
+    storeProductEnquiryResult,
+    storeFeatureRequest,
+    navigateToStage,
+  ]);
+
+  // Determine stage bounds:
+  // - Stage 1 has NO backward navigation and NO forward arrow navigation.
+  // - Stages 2+ can navigate backwards down to minNavigableStage (2).
+  // - Forward navigation is allowed only if target stage <= maxUnlockedStage and < maxAllowedStage.
+  const canNavigatePrev = currentStage > minNavigableStage && currentStage > 1;
+  const canNavigateNext =
+    currentStage > 1 &&
+    currentStage < maxUnlockedStage &&
+    currentStage < maxAllowedStage;
 
   const getPreviousStage = (curr: number): number => {
-    let prev = curr - 1;
-    if (prev === 2 && !hasClarifications) {
-      prev = 1;
-    }
-    return Math.max(1, prev);
+    return Math.max(minNavigableStage, curr - 1);
   };
 
   const getNextStage = (curr: number): number => {
-    let next = curr + 1;
-    if (next === 2 && !hasClarifications) {
-      next = 3;
-    }
-    return Math.min(11, next);
+    return Math.min(maxUnlockedStage, Math.min(maxAllowedStage, curr + 1));
   };
 
-  const canNavigatePrev = currentStage > 1;
-  const canNavigateNext = currentStage < Math.max(maxVisitedStage, currentStage + 1) && currentStage < 11;
-
-  const handlePrevStage = () => {
+  const handlePrevStage = useCallback(() => {
     if (canNavigatePrev) {
       navigateToStage(getPreviousStage(currentStage));
     }
-  };
+  }, [canNavigatePrev, currentStage, minNavigableStage, navigateToStage]);
 
-  const handleNextStage = () => {
+  const handleNextStage = useCallback(() => {
     if (canNavigateNext) {
       navigateToStage(getNextStage(currentStage));
     }
-  };
+  }, [canNavigateNext, currentStage, maxUnlockedStage, maxAllowedStage, navigateToStage]);
+
+  // Smoothly scrolls the active stage workspace container up or down
+  const scrollActiveStageContainer = useCallback((direction: 'up' | 'down') => {
+    const scrollAmount = direction === 'down' ? 120 : -120;
+    let workspace = document.getElementById('centralStageWorkspace');
+    if (!workspace) {
+      workspace =
+        document.getElementById('pageLanding') ||
+        document.getElementById('pageSignIn') ||
+        document.getElementById('pageUserProfile');
+    }
+
+    if (!workspace) {
+      if (typeof window !== 'undefined' && typeof window.scrollBy === 'function') {
+        window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+      }
+      return;
+    }
+
+    // 1. Check if user is hovering over any scrollable element inside workspace
+    let scrollTarget: HTMLElement | null = null;
+    try {
+      const hovered = Array.from(workspace.querySelectorAll<HTMLElement>(':hover'));
+      for (let i = hovered.length - 1; i >= 0; i--) {
+        const el = hovered[i];
+        if (el.scrollHeight > el.clientHeight + 4) {
+          const style = window.getComputedStyle(el);
+          if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+            scrollTarget = el;
+            break;
+          }
+        }
+      }
+    } catch {
+      // In SSR or environments without :hover selector support, ignore
+    }
+
+    // 2. If not hovering a specific scrollable inner element, find the main scrollable container
+    if (!scrollTarget) {
+      const candidates = Array.from(
+        workspace.querySelectorAll<HTMLElement>(
+          '[data-scroll-container], [class*="overflow-y-auto"], [class*="overflow-auto"], div'
+        )
+      );
+      for (const el of candidates) {
+        if (el.scrollHeight > el.clientHeight + 4) {
+          const style = window.getComputedStyle(el);
+          if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+            scrollTarget = el;
+            break;
+          }
+        }
+      }
+    }
+
+    // 3. Fallback to first child or the workspace element itself
+    if (!scrollTarget) {
+      scrollTarget = (workspace.firstElementChild as HTMLElement) || workspace;
+    }
+
+    // Smooth scroll execution
+    if (typeof scrollTarget.scrollBy === 'function') {
+      scrollTarget.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+    } else {
+      scrollTarget.scrollTop += scrollAmount;
+    }
+  }, []);
+
+  // Keyboard navigation listener (ArrowLeft / ArrowRight to change stages, ArrowUp / ArrowDown to scroll)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing inside text inputs, textareas, or contentEditable elements
+      const activeEl = document.activeElement;
+      if (activeEl) {
+        const tagName = activeEl.tagName.toLowerCase();
+        if (
+          tagName === 'input' ||
+          tagName === 'textarea' ||
+          (activeEl as HTMLElement).isContentEditable
+        ) {
+          return;
+        }
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (canNavigatePrev) {
+          e.preventDefault();
+          handlePrevStage();
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (canNavigateNext) {
+          e.preventDefault();
+          handleNextStage();
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        scrollActiveStageContainer('up');
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        scrollActiveStageContainer('down');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canNavigatePrev, canNavigateNext, handlePrevStage, handleNextStage, scrollActiveStageContainer]);
 
 
   // Render active stage in central workspace
@@ -282,59 +476,124 @@ export default function App() {
     }
   };
 
-  // Enforce obsidian dark theme
+  // Dark / Light system theme state (persisted in localStorage, defaults to Dark mode)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('autodev_dark_mode');
+      if (saved !== null) {
+        return saved === '1';
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  });
+
+  // When on landing page, theme is permanently dark. On main page, follows user's isDark setting.
+  const isLanding = currentPage === 'landing';
+  const effectiveIsDark = isLanding ? true : isDark;
+
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-        document.documentElement.classList.add('dark');
-        document.documentElement.classList.remove('light');
+        const html = document.documentElement;
+        if (currentPage === 'landing' || isDark) {
+          html.classList.add('dark');
+          html.classList.remove('light');
+        } else {
+          html.classList.remove('dark');
+          html.classList.add('light');
+        }
       }
     } catch {
       // ignore
     }
+  }, [isDark, currentPage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleThemeEvent = (e: Event) => {
+      const detail = (e as CustomEvent<{ isDark?: boolean }>).detail;
+      if (detail && typeof detail.isDark === 'boolean') {
+        setIsDark(detail.isDark);
+      }
+    };
+    window.addEventListener('autodev:theme-change', handleThemeEvent);
+    return () => window.removeEventListener('autodev:theme-change', handleThemeEvent);
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-black text-slate-100 select-none relative overflow-x-hidden">
-      {/* ── React Bits AeroShards 3D Ambient Background Layer ── */}
-      <div
-        id="aeroShardsBackgroundLayer"
-        className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden"
-        style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}
-        aria-hidden="true"
-      >
-        <AeroShards
-          className="w-full h-full"
-          backgroundColor="#000000"
-          shardColor="#ffffff"
-          accentColor="#ffffff"
-          placement="full"
-          flow="stream"
-          material="pearl"
-          detail="balanced"
-          effect="none"
-          scale={1.5}
-          spread={1.1}
-          depth={1}
-          speed={1}
-          spin={1.15}
-          interaction="repel"
-          density={1.5}
-          shardSize={1.1}
-          stretch={1}
-          turbulence={1}
-          glow={1}
-          edgeSoftness={2}
-          bloom={0.5}
-          grain={0.05}
-          chromaticAberration={0.0075}
-          transitionDuration={1}
-          interactionRadius={1.5}
-          interactionStrength={0.5}
-          rippleIntensity={1}
-          holdToGather={true}
-        />
-      </div>
+    <div
+      className={`min-h-screen w-full select-none relative overflow-x-hidden transition-colors duration-500 ease-in-out ${
+        effectiveIsDark ? 'bg-black text-slate-100' : 'bg-white text-slate-900'
+      }`}
+    >
+      {/* ── 3D Ambient Background Layer ── */}
+      {/* 1. React Bits LightRays 3D Background (Active on Landing and Sign In over pure dark background) */}
+      {(currentPage === 'landing' || currentPage === 'signup') && (
+        <div
+          id="lightRaysBackgroundLayer"
+          className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden transition-opacity duration-700 bg-black"
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, backgroundColor: '#000000' }}
+          aria-hidden="true"
+        >
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#ffffff"
+            raysSpeed={0.6}
+            lightSpread={0.9}
+            rayLength={1.2}
+            followMouse={true}
+            mouseInfluence={0.3}
+            noiseAmount={0.1}
+            distortion={0.05}
+            fadeDistance={1.5}
+            className="custom-rays w-full h-full"
+          />
+        </div>
+      )}
+
+      {/* 2. React Bits AeroShards 3D Background (Active when entering the Main Development System) */}
+      {currentPage !== 'landing' && currentPage !== 'signup' && (
+        <div
+          id="aeroShardsBackgroundLayer"
+          className="fixed inset-0 w-screen h-screen pointer-events-none overflow-hidden transition-opacity duration-700"
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}
+          aria-hidden="true"
+        >
+          <AeroShards
+            className="w-full h-full"
+            backgroundColor={isDark ? '#000000' : '#ffffff'}
+            shardColor="#8258c6"
+            accentColor="#a240ff"
+            placement="full"
+            flow="stream"
+            material="pearl"
+            detail="balanced"
+            effect="none"
+            scale={1.5}
+            spread={1}
+            depth={1}
+            speed={0.6}
+            spin={1}
+            interaction="repel"
+            density={1.5}
+            shardSize={1.1}
+            stretch={1}
+            turbulence={1}
+            glow={1}
+            edgeSoftness={2}
+            bloom={0.5}
+            grain={0.05}
+            chromaticAberration={0.0075}
+            transitionDuration={1}
+            interactionRadius={1.5}
+            interactionStrength={0.5}
+            rippleIntensity={1}
+            holdToGather={true}
+          />
+        </div>
+      )}
 
       {/* ── Foreground Glassmorphic Application Layer ── */}
       <div className="relative z-10 min-h-screen w-full flex flex-col pointer-events-auto">
@@ -344,7 +603,7 @@ export default function App() {
       {/* ── Restoration Banner in DOM ── */}
       <RestorationBanner />
 
-      {/* ── Glass Toast Container (Fixed Top-Right) ── */}
+      {/* ── Glass Toast Container (Fixed Top-Center Pill) ── */}
       <GlassToastContainer />
 
       {/* ── Peripheral Test Invariants (Preserved in DOM for test assertions) ── */}
@@ -353,6 +612,8 @@ export default function App() {
           <Header
             variant="glass"
             version="SYS.v2.5.0"
+            isDark={isDark}
+            onToggleTheme={setIsDark}
             onProfileClick={() => handlePageChange('signup')}
             onMenuClick={() => handlePageChange('landing')}
           />
@@ -381,31 +642,9 @@ export default function App() {
 
       {/* ── Conditional Page Rendering ── */}
       {currentPage === 'landing' && (
-        <div id="pageLanding" className="min-h-screen w-full flex flex-col justify-between overflow-y-auto">
-          {/* Landing Top Header */}
-          <header className="h-16 px-6 sm:px-12 flex items-center justify-between bg-transparent border-none sticky top-0 z-20">
-            <div className="relative inline-flex items-center">
-              <div
-                className="absolute -inset-x-4 -inset-y-2 bg-slate-950/15 backdrop-blur-md rounded-full pointer-events-none -z-10"
-                style={{ filter: 'blur(16px)' }}
-                aria-hidden="true"
-              />
-              <span className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/85 hover:text-white italic font-normal tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all">
-                AutoDev
-              </span>
-            </div>
-            <button
-              id="landingNavSignInBtn"
-              type="button"
-              onClick={() => handlePageChange('signup')}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xl shadow-md cursor-pointer transition-all"
-            >
-              Sign In
-            </button>
-          </header>
-
+        <div id="pageLanding" className="min-h-screen w-full flex flex-col items-center justify-center overflow-y-auto bg-transparent text-slate-100 relative z-20">
           {/* Landing Content Surface */}
-          <main className="flex-1 flex items-center justify-center py-8">
+          <main className="w-full flex-1 flex items-center justify-center py-10 px-4">
             <StageLanding onGetStarted={() => handlePageChange('signup')} />
           </main>
         </div>
@@ -415,8 +654,7 @@ export default function App() {
         <div id="pageSignIn" className="min-h-screen w-full flex flex-col justify-between overflow-y-auto">
           {/* Sign In Top Header */}
           <header className="h-16 px-6 sm:px-12 flex items-center justify-between bg-transparent border-none sticky top-0 z-20">
-            <button
-              type="button"
+            <div
               onClick={() => handlePageChange('landing')}
               className="relative inline-flex items-center group cursor-pointer"
             >
@@ -425,10 +663,13 @@ export default function App() {
                 style={{ filter: 'blur(16px)' }}
                 aria-hidden="true"
               />
-              <span className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/85 group-hover:text-white italic font-normal tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all">
+              <span
+                className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/90 group-hover:text-white italic font-normal tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all select-none"
+                style={{ fontFamily: "'Alex Brush', cursive, sans-serif" }}
+              >
                 AutoDev
               </span>
-            </button>
+            </div>
             <button
               id="signInBackToHomeBtn"
               type="button"
@@ -446,54 +687,74 @@ export default function App() {
         </div>
       )}
 
+      {currentPage === 'profile' && (
+        <UserProfilePage
+          onBack={() => handlePageChange('main')}
+          isDark={isDark}
+          onToggleTheme={setIsDark}
+        />
+      )}
+
       {currentPage === 'main' && (
         <div id="pageMainSystem" className="h-[100dvh] w-full flex flex-col overflow-hidden relative">
-          {/* ── 1. Top Bar (Header with Cursive Logo, Profile, Hamburger, Hidden Cost/Theme) ── */}
+          {/* ── 1. Top Bar (Header with Cursive Logo, Theme Toggle & Specular 3-Strip Sidebar Toggle) ── */}
           <Header
             variant="glass"
             version="SYS.v2.5.0"
             stage={currentStage}
-            onProfileClick={() => handlePageChange('signup')}
-            onMenuClick={() => handlePageChange('landing')}
+            isDark={isDark}
+            onToggleTheme={setIsDark}
+            onProfileClick={() => handlePageChange('profile')}
+            onMenuClick={() => setIsSidebarOpen((prev) => !prev)}
+          />
+
+          {/* ── Collapsible Right Sidebar with Full-Screen Background Blur ── */}
+          <RightSidebar
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            currentStage={currentStage}
+            onOpenProfile={() => handlePageChange('profile')}
+            userName={authUser?.display_name || authUser?.username || 'Alex'}
+            userEmail={authUser?.email || 'alex@autodev.org'}
           />
 
           {/* ── 2. Dynamic Edge-Hover Navigation: Left Hover Zone (<) ── */}
-          <div
-            id="leftEdgeHoverZone"
-            className="fixed left-0 top-1/2 -translate-y-1/2 h-64 w-16 z-40 group flex items-center justify-start pl-3 pointer-events-none"
-          >
-            {canNavigatePrev && (
+          {canNavigatePrev && (
+            <div
+              id="leftEdgeHoverZone"
+              className="fixed left-0 top-16 bottom-0 w-16 sm:w-20 z-40 group flex items-center justify-start pl-3 sm:pl-4 pointer-events-auto"
+            >
               <button
                 id="stageNavPrevBtn"
                 type="button"
                 onClick={handlePrevStage}
                 title="Previous Stage"
                 aria-label="Previous Stage"
-                className="pointer-events-auto w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 backdrop-blur-2xl text-slate-200 hover:text-white flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300 opacity-40 hover:opacity-100 hover:scale-105 cursor-pointer"
+                className="w-12 h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.18] border border-white/[0.12] hover:border-white/30 backdrop-blur-2xl text-slate-200 hover:text-white flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
               >
                 <ChevronLeftIcon className="w-6 h-6" />
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ── 3. Dynamic Edge-Hover Navigation: Right Hover Zone (>) ── */}
-          <div
-            id="rightEdgeHoverZone"
-            className="fixed right-0 top-1/2 -translate-y-1/2 h-64 w-16 z-40 group flex items-center justify-end pr-3 pointer-events-none"
-          >
-            {canNavigateNext && (
+          {canNavigateNext && (
+            <div
+              id="rightEdgeHoverZone"
+              className="fixed right-0 top-16 bottom-0 w-16 sm:w-20 z-40 group flex items-center justify-end pr-3 sm:pr-4 pointer-events-auto"
+            >
               <button
                 id="stageNavNextBtn"
                 type="button"
                 onClick={handleNextStage}
                 title="Next Stage"
                 aria-label="Next Stage"
-                className="pointer-events-auto w-12 h-12 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] hover:border-white/20 backdrop-blur-2xl text-slate-200 hover:text-white flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] transition-all duration-300 opacity-40 hover:opacity-100 hover:scale-105 cursor-pointer"
+                className="w-12 h-12 rounded-full bg-white/[0.08] hover:bg-white/[0.18] border border-white/[0.12] hover:border-white/30 backdrop-blur-2xl text-slate-200 hover:text-white flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_8px_32px_rgba(0,0,0,0.3)] transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-105 cursor-pointer"
               >
                 <ChevronRightIcon className="w-6 h-6" />
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* ── 4. Main Screen Layout: Stage Title Bar + Maximized Central Workspace (~80vh) ── */}
           <main
@@ -502,41 +763,46 @@ export default function App() {
             } mx-auto px-4 sm:px-8 py-2 sm:py-3 flex flex-col min-h-0 overflow-hidden`}
           >
 
-            {/* Maximized Central Workspace Container (~80% Viewport Height) - sliding stage container */}
-            <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
-              <motion.div
-                key={currentStage}
-                id="centralStageWorkspace"
-                custom={slideDirection}
-                variants={stageSlideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
+            {/* Maximized Central Workspace Container (~80% Viewport Height) - non-blocking sliding stage container */}
+            <motion.div
+              key={currentStage}
+              id="centralStageWorkspace"
+              custom={slideDirection}
+              variants={stageSlideVariants}
+              initial="enter"
+              animate="center"
+              className={
+                currentStage === 1
+                  ? 'relative flex-1 w-full flex flex-col overflow-hidden min-h-0'
+                  : currentStage === 2
+                  ? 'relative flex-1 w-full max-w-4xl mx-auto rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
+                  : 'relative flex-1 w-full rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
+              }
+              style={currentStage !== 1 ? { backdropFilter: 'blur(14px)' } : undefined}
+            >
+              {/* Scrollable Stage Content Surface with Dynamic Edge Fade */}
+              <ScrollFade
                 className={
                   currentStage === 1
-                    ? 'relative flex-1 w-full flex flex-col overflow-hidden min-h-0'
-                    : currentStage === 2
-                    ? 'relative flex-1 w-full max-w-4xl mx-auto rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
-                    : 'relative flex-1 w-full rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
+                    ? 'flex-1 w-full overflow-y-auto p-2 sm:p-4 min-h-0'
+                    : 'flex-1 w-full overflow-y-auto p-4 md:p-6 min-h-0'
                 }
-                style={currentStage !== 1 ? { backdropFilter: 'blur(14px)' } : undefined}
               >
-                {/* Scrollable Stage Content Surface with Dynamic Edge Fade */}
-                <ScrollFade
-                  className={
-                    currentStage === 1
-                      ? 'flex-1 w-full overflow-y-auto p-2 sm:p-4 min-h-0'
-                      : 'flex-1 w-full overflow-y-auto p-4 md:p-6 min-h-0'
-                  }
-                >
-                  {renderActiveStage()}
-                </ScrollFade>
-              </motion.div>
-            </AnimatePresence>
+                {renderActiveStage()}
+              </ScrollFade>
+            </motion.div>
           </main>
 
-          {/* ── 5. Floating Pause/Resume Widget Outside the Central Container on the Left ── */}
-          <PauseModifyFAB />
+          {/* ── 5. Floating Stage Number & Expanding Line Sidebar Navigation on the Left ── */}
+          <LineSidebar
+            currentStage={currentStage}
+            maxUnlockedStage={maxUnlockedStage}
+            minNavigableStage={minNavigableStage}
+            onNavigate={navigateToStage}
+          />
+
+          {/* ── 6. Floating Pause/Resume Widget Outside the Central Container on the Right ── */}
+          <PauseModifyFAB currentStage={currentStage} />
         </div>
       )}
       </div>

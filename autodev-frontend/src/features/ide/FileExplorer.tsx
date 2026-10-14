@@ -13,7 +13,7 @@ import {
   CodeBracketIcon,
   DocumentIcon,
 } from '@heroicons/react/24/outline';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 import type { CodeFile } from '../../types';
 
 export interface FileExplorerProps {
@@ -62,9 +62,10 @@ export function FileExplorer({
         </span>
       </div>
 
-      <ScrollFade
+      <ModernScrollbar
         id="fileExplorer"
-        className="flex-1 overflow-y-auto py-2 divide-y divide-white/[0.05]"
+        className="flex-1 min-h-0"
+        viewportClassName="py-2 divide-y divide-white/[0.05]"
         role="tree"
         aria-label="Files in project"
       >
@@ -95,7 +96,7 @@ export function FileExplorer({
             );
           })
         )}
-      </ScrollFade>
+      </ModernScrollbar>
     </div>
   );
 }

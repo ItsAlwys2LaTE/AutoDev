@@ -29,7 +29,7 @@ import { generateCode } from '../../api/endpoints';
 import { executeSandboxCode } from '../pipeline/revisionLoop';
 import { robustJsonParse } from '../../utils/jsonParser';
 import { exportZip } from '../../utils/zipExporter';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 import { FileExplorer } from './FileExplorer';
 import { MonacoEditor } from './MonacoEditor';
 import { DiffViewer } from './DiffViewer';
@@ -506,7 +506,7 @@ export function IDEView({
        * =================================================================== */}
       {revisionHistory.length > 0 && (
         <div id="revisionTabsBar" className="fade-in">
-          <ScrollFade orientation="horizontal" className="flex items-center gap-2 overflow-x-auto pb-2">
+          <ModernScrollbar orientation="horizontal" className="w-full pb-2" viewportClassName="flex items-center gap-2">
             <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mr-2 whitespace-nowrap">
               Revisions:
             </span>
@@ -550,7 +550,7 @@ export function IDEView({
                 );
               })}
             </div>
-          </ScrollFade>
+          </ModernScrollbar>
         </div>
       )}
 
@@ -626,9 +626,10 @@ export function IDEView({
          * STREAMING VIEW CONTAINER (#codeFilesContainer)
          * =================================================================== */}
         {isStreaming && (
-          <ScrollFade
+          <ModernScrollbar
             id="codeFilesContainer"
-            className="space-y-4 mb-6 max-h-[500px] overflow-y-auto p-4 rounded-2xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] font-mono text-xs text-slate-300"
+            className="mb-6 max-h-[500px] rounded-2xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] font-mono text-xs text-slate-300"
+            viewportClassName="space-y-4 p-4"
           >
             <div className="flex items-center gap-2 text-white/90 font-medium">
               <svg
@@ -656,7 +657,7 @@ export function IDEView({
             <pre className="whitespace-pre-wrap text-slate-400 text-xs font-mono break-all">
               <code>{streamText}</code>
             </pre>
-          </ScrollFade>
+          </ModernScrollbar>
         )}
 
         {/* ===================================================================

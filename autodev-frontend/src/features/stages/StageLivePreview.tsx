@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   PlayIcon,
@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import { LivePreview } from '../ide/LivePreview';
+import { usePausableAutoAdvance } from '../../hooks';
 
 export type ViewportMode = 'desktop' | 'tablet' | 'mobile';
 
@@ -17,7 +18,7 @@ export interface StageLivePreviewProps {
 }
 
 export const StageLivePreview: React.FC<StageLivePreviewProps> = ({
-  onAdvance: _onAdvance,
+  onAdvance,
   className = '',
 }) => {
   const [viewport, setViewport] = useState<ViewportMode>('desktop');
@@ -26,6 +27,21 @@ export const StageLivePreview: React.FC<StageLivePreviewProps> = ({
   const currentBlueprint = useAppStore((s) => s.currentBlueprint);
 
   const codebase = storeIntegratedCodebase || storeCurrentCodebase;
+
+  // Immediately unlock Stage 9 (Development Results)
+  useEffect(() => {
+    useAppStore.getState().unlockStage(9);
+  }, []);
+
+  // Automatically proceed to Development Results after 15 seconds of live preview simulation
+  // Pauses seamlessly when development is paused, and resumes remaining time when resumed
+  usePausableAutoAdvance({
+    durationMs: 15000,
+    onAdvance,
+    targetStage: 9,
+    enabled: true,
+    stageKey: 'stage-8-live-preview',
+  });
 
   const getViewportDimensions = () => {
     switch (viewport) {

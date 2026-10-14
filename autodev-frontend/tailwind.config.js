@@ -44,15 +44,26 @@ export default {
         'inner-glow': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
         'inner-glow-strong': 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.2)',
       },
-      backdropBlur: {
-        xs: '2px',
+      keyframes: {
+        fadeUp: {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideRight: {
+          from: { opacity: '0', transform: 'translateX(-24px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
       },
       animation: {
         'pulse-subtle': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        element: 'fadeUp 0.5s ease both',
+        testimonial: 'fadeUp 0.6s ease both',
+        'slide-right': 'slideRight 0.6s ease both',
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
+        cursive: ["'Alex Brush'", 'cursive', 'sans-serif'],
       },
     },
   },

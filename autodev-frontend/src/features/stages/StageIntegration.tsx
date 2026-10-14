@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence, type Variants } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, type Variants } from 'framer-motion';
 import {
   CodeBracketIcon,
   CommandLineIcon,
@@ -18,7 +18,8 @@ import type {
   RevisionHistoryItem,
 } from '../../types';
 import { IntegrationMonacoView } from '../integration/IntegrationMonacoView';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
+import { usePausableAutoAdvance } from '../../hooks';
 
 export type IntegrationAgentTab = 'Codegen' | 'Testing' | 'Evaluation';
 
@@ -30,30 +31,17 @@ export interface StageIntegrationProps {
 // Slide animation variants for switching between the 3 agent views
 const agentSlideVariants: Variants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? 60 : -60,
+    x: direction > 0 ? 30 : -30,
     opacity: 0,
-    filter: 'blur(4px)',
   }),
   center: {
     x: 0,
     opacity: 1,
-    filter: 'blur(0px)',
     transition: {
-      type: 'spring',
-      stiffness: 340,
-      damping: 26,
-      mass: 0.8,
+      duration: 0.2,
+      ease: [0.22, 1, 0.36, 1],
     },
   },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -60 : 60,
-    opacity: 0,
-    filter: 'blur(4px)',
-    transition: {
-      duration: 0.18,
-      ease: [0.32, 0, 0.67, 0],
-    },
-  }),
 };
 
 const AGENT_ORDER: Record<IntegrationAgentTab, number> = {
@@ -63,7 +51,7 @@ const AGENT_ORDER: Record<IntegrationAgentTab, number> = {
 };
 
 export const StageIntegration: React.FC<StageIntegrationProps> = ({
-  onAdvance: _onAdvance,
+  onAdvance,
   className = '',
 }) => {
   // Store subscriptions
@@ -79,6 +67,28 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
   const isDiffMode = useAppStore((s) => s.isDiffMode);
   const setIsDiffMode = useAppStore((s) => s.setIsDiffMode);
   const setCodebase = useAppStore((s) => s.setCodebase);
+  const setIntegratedCodebase = useAppStore((s) => s.setIntegratedCodebase);
+
+  const isIntegrationDone =
+    Boolean(storeIntegratedCodebase) ||
+    (storeExecutionResult && storeExecutionResult.success === true);
+
+  // Immediately unlock Stage 7 (Final Source Code) when integration passes
+  useEffect(() => {
+    if (isIntegrationDone) {
+      useAppStore.getState().unlockStage(7);
+    }
+  }, [isIntegrationDone]);
+
+  // Automatically proceed to Final Source Code after 10 seconds of integration passing
+  // Pauses seamlessly when development is paused, and resumes remaining time when resumed
+  usePausableAutoAdvance({
+    durationMs: 10000,
+    onAdvance,
+    targetStage: 7,
+    enabled: Boolean(isIntegrationDone),
+    stageKey: 'stage-6-integration',
+  });
 
   // Active sub-agent tab ('Codegen' | 'Testing' | 'Evaluation')
   const [activeAgent, setActiveAgent] = useState<IntegrationAgentTab>('Codegen');
@@ -175,12 +185,15 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
     );
     const updatedCodebase = { ...activeCodebase, files: updatedFiles };
     setCodebase(updatedCodebase);
+    if (storeIntegratedCodebase) {
+      setIntegratedCodebase(updatedCodebase);
+    }
   };
 
   return (
     <div
       id="stageIntegration"
-      className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-3 space-y-3.5 select-none ${className}`}
+      className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-3 space-y-3.5 select-none overflow-y-auto custom-scrollbar ${className}`}
     >
       {/* ── Top Bar: Title & 3-Agent Switcher Toggle on right side of title ── */}
       <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
@@ -235,7 +248,7 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
       {/* ── Inner Workspace Container ── */}
       <div
         id="integrationInnerContainer"
-        className="flex-1 min-h-[500px] flex flex-col rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4"
+        className="flex-1 min-h-[500px] flex flex-col rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4 overflow-y-auto custom-scrollbar"
         style={{ backdropFilter: 'blur(14px)' }}
       >
         {/* ── Revision Indicator Inside Inner Container ── */}
@@ -290,183 +303,181 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
           )}
         </div>
 
-        {/* ── Agent Output Views with Slide Animation ── */}
-        <div className="flex-1 min-h-0 relative overflow-hidden">
-          <AnimatePresence mode="wait" custom={slideDirection} initial={false}>
-            {/* 1. Codegen Agent Output View */}
-            {activeAgent === 'Codegen' && (
-              <motion.div
-                key="agent-codegen"
-                custom={slideDirection}
-                variants={agentSlideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="w-full h-full flex flex-col min-h-[420px]"
-              >
-                <IntegrationMonacoView
-                  codebase={activeCodebase}
-                  activeFileIndex={localFileIndex}
-                  activeRevisionIndex={activeRevisionIndex}
-                  revisionHistory={[]}
-                  isReadOnly={!isPaused}
-                  isDiffMode={isDiffMode}
-                  onSelectFile={(idx) => setLocalFileIndex(idx)}
-                  onSelectRevision={(idx) => setActiveRevisionIndex(idx)}
-                  onToggleDiff={() => setIsDiffMode(!isDiffMode)}
-                  onFileContentChange={handleFileChange}
-                  className="h-full"
-                />
-              </motion.div>
-            )}
+        {/* ── Agent Output Views with Non-Blocking Slide Animation ── */}
+        <div className="flex-1 min-h-0 relative overflow-y-auto custom-scrollbar">
+          {/* 1. Codegen Agent Output View */}
+          {activeAgent === 'Codegen' && (
+            <motion.div
+              key="agent-codegen"
+              custom={slideDirection}
+              variants={agentSlideVariants}
+              initial="enter"
+              animate="center"
+              className="w-full flex flex-col min-h-0 overflow-y-auto custom-scrollbar"
+            >
+              <IntegrationMonacoView
+                codebase={activeCodebase}
+                activeFileIndex={localFileIndex}
+                activeRevisionIndex={activeRevisionIndex}
+                revisionHistory={[]}
+                isReadOnly={!isPaused}
+                isDiffMode={isDiffMode}
+                onSelectFile={(idx) => setLocalFileIndex(idx)}
+                onSelectRevision={(idx) => setActiveRevisionIndex(idx)}
+                onToggleDiff={() => setIsDiffMode(!isDiffMode)}
+                onFileContentChange={handleFileChange}
+                className="w-full"
+              />
+            </motion.div>
+          )}
 
-            {/* 2. Testing Agent Output View */}
-            {activeAgent === 'Testing' && (
-              <motion.div
-                key="agent-testing"
-                custom={slideDirection}
-                variants={agentSlideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="w-full h-full flex flex-col space-y-4 min-h-[420px]"
+          {/* 2. Testing Agent Output View */}
+          {activeAgent === 'Testing' && (
+            <motion.div
+              key="agent-testing"
+              custom={slideDirection}
+              variants={agentSlideVariants}
+              initial="enter"
+              animate="center"
+              className="w-full h-full flex flex-col space-y-4 min-h-[420px]"
+            >
+              {/* Status Header */}
+              <div id="execLogsSection" className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-slate-300">Sandbox Test Run:</span>
+                  <span
+                    id="execStatusBadge"
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                      passed
+                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
+                        : 'bg-rose-500/15 text-rose-300 border border-rose-400/30'
+                    }`}
+                  >
+                    {passed ? (
+                      <>
+                        <CheckCircleIcon className="w-3.5 h-3.5" />
+                        <span>PASSED</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircleIcon className="w-3.5 h-3.5" />
+                        <span>FAILED</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+
+                <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                  <ClockIcon className="w-3.5 h-3.5" />
+                  <span>Isolated Container Execution</span>
+                </div>
+              </div>
+
+              {/* Monospace Log Viewer with ModernScrollbar */}
+              <ModernScrollbar
+                className="flex-1 min-h-[320px] rounded-2xl bg-black/50 border border-white/[0.07] shadow-inner"
+                viewportClassName="p-4 font-mono text-xs text-slate-200 leading-relaxed"
               >
-                {/* Status Header */}
-                <div id="execLogsSection" className="flex items-center justify-between pb-3 border-b border-white/10">
+                <pre id="execLogsOutput" className="whitespace-pre-wrap break-all">
+                  {logs}
+                </pre>
+              </ModernScrollbar>
+            </motion.div>
+          )}
+
+          {/* 3. Evaluation Agent Output View */}
+          {activeAgent === 'Evaluation' && (
+            <motion.div
+              key="agent-evaluation"
+              custom={slideDirection}
+              variants={agentSlideVariants}
+              initial="enter"
+              animate="center"
+              className="w-full h-full flex flex-col space-y-4 min-h-[420px]"
+            >
+              {/* Master Adjudicator Decision Box */}
+              <div
+                id="adjudicatorCard"
+                className="rounded-2xl bg-black/40 border border-white/[0.08] p-4 sm:p-5 space-y-3 shadow-inner"
+              >
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-slate-300">Sandbox Test Run:</span>
-                    <span
-                      id="execStatusBadge"
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        passed
-                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-                          : 'bg-rose-500/15 text-rose-300 border border-rose-400/30'
-                      }`}
-                    >
-                      {passed ? (
-                        <>
-                          <CheckCircleIcon className="w-3.5 h-3.5" />
-                          <span>PASSED</span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircleIcon className="w-3.5 h-3.5" />
-                          <span>FAILED</span>
-                        </>
-                      )}
-                    </span>
+                    <CheckBadgeIcon className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Master Adjudicator Verdict
+                    </h3>
                   </div>
-
-                  <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
-                    <ClockIcon className="w-3.5 h-3.5" />
-                    <span>Isolated Container Execution</span>
-                  </div>
+                  <span
+                    id="adjudicatorVerdict"
+                    className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                      verdict.includes('APPROVED') || verdict === 'PASS'
+                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
+                        : 'bg-amber-500/15 text-amber-300 border border-amber-400/30'
+                    }`}
+                  >
+                    {verdict}
+                  </span>
                 </div>
 
-                {/* Monospace Log Viewer with Dynamic ScrollFade */}
-                <ScrollFade className="flex-1 min-h-[320px] rounded-2xl bg-black/50 border border-white/[0.07] p-4 overflow-y-auto font-mono text-xs text-slate-200 leading-relaxed shadow-inner">
-                  <pre id="execLogsOutput" className="whitespace-pre-wrap break-all">
-                    {logs}
-                  </pre>
-                </ScrollFade>
-              </motion.div>
-            )}
+                {decision?.revision_plan && (
+                  <p id="adjudicatorPlan" className="text-xs text-slate-300 leading-relaxed bg-white/[0.03] p-3 rounded-xl border border-white/[0.05]">
+                    {decision.revision_plan}
+                  </p>
+                )}
 
-            {/* 3. Evaluation Agent Output View */}
-            {activeAgent === 'Evaluation' && (
-              <motion.div
-                key="agent-evaluation"
-                custom={slideDirection}
-                variants={agentSlideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="w-full h-full flex flex-col space-y-4 min-h-[420px]"
-              >
-                {/* Master Adjudicator Decision Box */}
-                <div
-                  id="adjudicatorCard"
-                  className="rounded-2xl bg-black/40 border border-white/[0.08] p-4 sm:p-5 space-y-3 shadow-inner"
-                >
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <CheckBadgeIcon className="w-5 h-5 text-emerald-400" />
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                        Master Adjudicator Verdict
-                      </h3>
-                    </div>
-                    <span
-                      id="adjudicatorVerdict"
-                      className={`px-3 py-1 rounded-full text-xs font-extrabold ${
-                        verdict.includes('APPROVED') || verdict === 'PASS'
-                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-                          : 'bg-amber-500/15 text-amber-300 border border-amber-400/30'
-                      }`}
-                    >
-                      {verdict}
-                    </span>
-                  </div>
-
-                  {decision?.revision_plan && (
-                    <p id="adjudicatorPlan" className="text-xs text-slate-300 leading-relaxed bg-white/[0.03] p-3 rounded-xl border border-white/[0.05]">
-                      {decision.revision_plan}
-                    </p>
+                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 pt-1">
+                  {typeof decision?.weighted_composite === 'number' && (
+                    <span>Composite Score: <strong className="text-slate-200">{decision.weighted_composite.toFixed(2)}</strong></span>
                   )}
+                  {typeof decision?.delta === 'number' && (
+                    <span>Delta: <strong className="text-slate-200">{decision.delta.toFixed(2)}</strong></span>
+                  )}
+                  {decision?.dynamic_budget !== undefined && (
+                    <span>Budget: <strong className="text-slate-200">{decision.dynamic_budget}</strong></span>
+                  )}
+                </div>
+              </div>
 
-                  <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 pt-1">
-                    {typeof decision?.weighted_composite === 'number' && (
-                      <span>Composite Score: <strong className="text-slate-200">{decision.weighted_composite.toFixed(2)}</strong></span>
-                    )}
-                    {typeof decision?.delta === 'number' && (
-                      <span>Delta: <strong className="text-slate-200">{decision.delta.toFixed(2)}</strong></span>
-                    )}
-                    {decision?.dynamic_budget !== undefined && (
-                      <span>Budget: <strong className="text-slate-200">{decision.dynamic_budget}</strong></span>
+              {/* 3 Critic Evaluations List */}
+              <div id="criticCardsContainer" className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {defaultFeedbacks.map((critic, cIdx) => (
+                  <div
+                    key={`critic-${cIdx}`}
+                    className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 space-y-2 flex flex-col justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-slate-200 truncate">
+                          {critic.critic_name}
+                        </h4>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                          critic.severity_score === 0
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/20'
+                            : 'bg-amber-500/15 text-amber-300 border border-amber-400/20'
+                        }`}>
+                          Score: {critic.severity_score}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        {critic.overall_comments}
+                      </p>
+                    </div>
+
+                    {critic.issues_list && critic.issues_list.length > 0 && (
+                      <div className="pt-2 border-t border-white/[0.05] space-y-1">
+                        <span className="text-[10px] uppercase font-mono text-slate-500">Issues:</span>
+                        <ul className="text-[11px] text-slate-300 list-disc list-inside space-y-0.5">
+                          {critic.issues_list.map((issue, iIdx) => (
+                            <li key={iIdx} className="truncate">{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </div>
-                </div>
-
-                {/* 3 Critic Evaluations List */}
-                <div id="criticCardsContainer" className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {defaultFeedbacks.map((critic, cIdx) => (
-                    <div
-                      key={`critic-${cIdx}`}
-                      className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 space-y-2 flex flex-col justify-between"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-bold text-slate-200 truncate">
-                            {critic.critic_name}
-                          </h4>
-                          <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
-                            critic.severity_score === 0
-                              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/20'
-                              : 'bg-amber-500/15 text-amber-300 border border-amber-400/20'
-                          }`}>
-                            Score: {critic.severity_score}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-400 leading-snug">
-                          {critic.overall_comments}
-                        </p>
-                      </div>
-
-                      {critic.issues_list && critic.issues_list.length > 0 && (
-                        <div className="pt-2 border-t border-white/[0.05] space-y-1">
-                          <span className="text-[10px] uppercase font-mono text-slate-500">Issues:</span>
-                          <ul className="text-[11px] text-slate-300 list-disc list-inside space-y-0.5">
-                            {critic.issues_list.map((issue, iIdx) => (
-                              <li key={iIdx} className="truncate">{issue}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                ))}
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>

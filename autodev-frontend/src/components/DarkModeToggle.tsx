@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { SpecularButton } from './SpecularButton';
 
 export interface DarkModeToggleProps {
   className?: string;
@@ -20,15 +21,15 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
       }
       return typeof window !== 'undefined' && window.matchMedia
         ? window.matchMedia('(prefers-color-scheme: dark)').matches
-        : false;
+        : true;
     } catch {
-      return false;
+      return true;
     }
   });
 
   const isDark = controlledDark !== undefined ? controlledDark : internalDark;
 
-  // Synchronize DOM root class and localStorage
+  // Synchronize DOM root class, localStorage, and theme listeners
   const applyTheme = useCallback((dark: boolean) => {
     if (typeof document === 'undefined') return;
     const html = document.documentElement;
@@ -48,6 +49,11 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
       } catch (e) {
         console.warn('[DarkModeToggle] Failed to write to localStorage:', e);
       }
+    }
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('autodev:theme-change', { detail: { isDark: dark } })
+      );
     }
   }, []);
 
@@ -72,6 +78,7 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
           setInternalDark(dark);
         }
         applyTheme(dark);
+        onToggle?.(dark);
       };
     }
 
@@ -81,6 +88,7 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
         const nextDark = e.newValue === '1';
         setInternalDark(nextDark);
         applyTheme(nextDark);
+        onToggle?.(nextDark);
       }
     };
 
@@ -88,24 +96,49 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
     return () => {
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, [applyTheme, handleToggle, isDark, controlledDark]);
+  }, [applyTheme, handleToggle, isDark, controlledDark, onToggle]);
 
   return (
-    <button
+    <SpecularButton
       id="darkModeToggle"
-      onClick={handleToggle}
-      title="Toggle dark/light mode"
       type="button"
+      onClick={handleToggle}
+      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label="Toggle dark/light mode"
-      className={`w-9 h-9 flex items-center justify-center rounded-xl border border-white/[0.08] bg-slate-950/[0.25] backdrop-blur-md hover:bg-white/10 text-slate-300 hover:text-white transition-all focus:outline-none ${className}`}
+      size="sm"
+      radius={999}
+      tint={isDark ? '#ffffff' : '#783ae1'}
+      tintOpacity={isDark ? 0.04 : 0.08}
+      blur={20}
+      lineColor={isDark ? '#ffffff' : '#783ae1'}
+      baseColor={isDark ? '#000000' : '#94a3b8'}
+      textColor={isDark ? '#ffffff' : '#0f172a'}
+      intensity={1.3}
+      shineSize={16}
+      shineFade={40}
+      thickness={1.5}
+      speed={0.4}
+      followMouse={true}
+      proximity={200}
+      autoAnimate={true}
+      className={`!px-0 !py-0 w-11 h-11 rounded-full flex items-center justify-center cursor-pointer !border-transparent transition-all duration-300 ${
+        isDark
+          ? 'shadow-[0_8px_28px_rgba(0,0,0,0.3)]'
+          : 'shadow-[0_8px_24px_rgba(120,58,225,0.16)]'
+      } ${className}`}
     >
       {/* Sun icon (shown in dark mode) */}
       <svg
         id="iconSun"
-        className={`${isDark ? '' : 'hidden'} w-5 h-5 text-amber-400`}
+        style={{ color: '#ffffff' }}
+        className={`${
+          isDark ? 'opacity-100 rotate-0 scale-100' : 'hidden opacity-0 -rotate-90 scale-75'
+        } w-5 h-5 transition-all duration-300 ease-out`}
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         viewBox="0 0 24 24"
       >
         <circle cx="12" cy="12" r="5" />
@@ -121,15 +154,20 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
       {/* Moon icon (shown in light mode) */}
       <svg
         id="iconMoon"
-        className={`${!isDark ? '' : 'hidden'} w-5 h-5`}
+        style={{ color: '#0f172a' }}
+        className={`${
+          !isDark ? 'opacity-100 rotate-0 scale-100' : 'hidden opacity-0 rotate-90 scale-75'
+        } w-5 h-5 transition-all duration-300 ease-out`}
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
         viewBox="0 0 24 24"
       >
         <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
       </svg>
-    </button>
+    </SpecularButton>
   );
 };
 

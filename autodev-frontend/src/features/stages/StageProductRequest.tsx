@@ -5,6 +5,8 @@ import {
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
+import { useSessionStore } from '../../stores/sessionStore';
+import { useAuthStore } from '../../stores/authStore';
 import { SmoothInput } from '../../components/SmoothInput';
 import { TextType } from '../../components/TextType';
 import { SpecularButton } from '../../components/SpecularButton';
@@ -54,8 +56,9 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
     }
   }, [storeFeatureRequest]);
 
-  // Placeholder username for user profile integration
-  const username = 'Alex';
+  // Dynamic username from user profile with backward-compatible Alex fallback
+  const authUser = useAuthStore((s) => s.user);
+  const username = authUser?.display_name || authUser?.username || 'Alex';
   const headingPhrases = useMemo(
     () => ['Welcome to AutoDev', `What are we developing ${username}?`],
     [username]
@@ -64,7 +67,11 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
   const handleSubmit = useCallback(async () => {
     const trimmed = prompt.trim();
     if (!trimmed) {
-      setErrorMessage('Please enter a feature request.');
+      const msg = 'Please enter a product prompt or software idea to start development.';
+      setErrorMessage(msg);
+      try {
+        useSessionStore.getState().showWarningToast(msg, 'Input Required');
+      } catch { /* ignore */ }
       return;
     }
 

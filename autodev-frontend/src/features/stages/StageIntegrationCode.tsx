@@ -26,6 +26,7 @@ export const StageIntegrationCode: React.FC<StageIntegrationCodeProps> = ({
   const activeRevisionIndex = useAppStore((s) => s.activeRevisionIndex) || 0;
   const setActiveRevisionIndex = useAppStore((s) => s.setActiveRevisionIndex);
   const setCodebase = useAppStore((s) => s.setCodebase);
+  const setIntegratedCodebase = useAppStore((s) => s.setIntegratedCodebase);
 
   const [localFileIndex, setLocalFileIndex] = useState(storeActiveFileIndex || 0);
 
@@ -38,12 +39,15 @@ export const StageIntegrationCode: React.FC<StageIntegrationCodeProps> = ({
     );
     const updatedCodebase = { ...codebase, files: updatedFiles };
     setCodebase(updatedCodebase);
+    if (storeIntegratedCodebase) {
+      setIntegratedCodebase(updatedCodebase);
+    }
   };
 
   return (
     <div
       id="stageIntegrationCode"
-      className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-4 space-y-4 select-none ${className}`}
+      className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-4 space-y-4 select-none overflow-y-auto custom-scrollbar ${className}`}
     >
       {/* ── Top Bar: Title & Final Source Code Pill ── */}
       <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
@@ -61,7 +65,7 @@ export const StageIntegrationCode: React.FC<StageIntegrationCodeProps> = ({
       </div>
 
       {/* ── Monaco Editor Surface ── */}
-      <div className="flex-1 min-h-[450px]">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
         <IntegrationMonacoView
           codebase={codebase}
           activeFileIndex={localFileIndex}
@@ -76,7 +80,7 @@ export const StageIntegrationCode: React.FC<StageIntegrationCodeProps> = ({
           onSelectRevision={(idx) => setActiveRevisionIndex(idx)}
           onToggleDiff={() => setIsDiffMode(!isDiffMode)}
           onFileContentChange={handleFileChange}
-          className="h-full"
+          className="w-full"
         />
       </div>
     </div>

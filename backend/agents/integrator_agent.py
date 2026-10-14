@@ -186,7 +186,7 @@ def generate_integration_stream(
     You MUST rewrite the integrated codebase to resolve all issues identified in the REVISION PLAN while preserving complete functionality.
     """
 
-    print(f"Integration Agent is merging all components into final product using {primary_model} (Model: {primary_model})...")
+    print("Integration Agent is merging all components into final product.")
     for idx, key in enumerate(keys):
         client = genai.Client(api_key=key)
 

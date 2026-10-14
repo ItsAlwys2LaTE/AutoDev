@@ -8,3 +8,13 @@ SQLAlchemy
 python-dotenv
 pytest
 docker
+
+# User Profile & Auth System
+motor
+pymongo
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+httpx
+google-auth
+dnspython

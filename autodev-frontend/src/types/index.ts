@@ -683,6 +683,7 @@ export interface RevisionHistoryItem {
   modifiedFiles?: string[];
   isPostCompletion?: boolean;
   postCompletionRevNumber?: number;
+  requestPrompt?: string;
 }
 
 /**
@@ -768,6 +769,19 @@ export interface AutoDevStateV1 {
   pauseSnapshot?: PauseSnapshot | null;
   resumeEpoch?: number;
   timelineMetrics?: PipelineTimelineMetrics;
+  currentStage?: number;
+  maxUnlockedStage?: number;
+  minNavigableStage?: number;
+  productEnquiryResult?: import('./api').ProductEnquiryResponse | null;
+  productEnquiryAnswers?: string[];
+  productEnquiryAdditionalNotes?: string;
+  terminalLogs?: TerminalLogItem[];
+}
+
+export interface TerminalLogItem {
+  id: string;
+  text: string;
+  colorClass: string;
 }
 
 /** Snapshot taken at pause time for change detection */

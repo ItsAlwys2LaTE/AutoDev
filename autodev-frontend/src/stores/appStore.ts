@@ -24,7 +24,7 @@
 
 import { create } from 'zustand';
 import { useSessionStore } from './sessionStore';
-import { clearPersistedState } from './persistence';
+import { clearPersistedState, savePersistedState } from './persistence';
 import type {
   AppMode,
   PipelineStatus,
@@ -48,9 +48,9 @@ import type {
   ModificationDetectionResult,
   TimelineInterval,
   PipelineTimelineMetrics,
+  TerminalLogItem,
 } from '../types';
 import { COMPONENT_DAG_PHASES, SINGLE_PASS_PHASES } from '../types';
-import { deepEqual } from '../utils/deepEqual';
 
 
 // =============================================================================
@@ -167,11 +167,14 @@ export interface AppStoreState {
     usingFallback: boolean;
   } | null;
 
-  // --- Terminal Reset Counter ---
+  // --- Terminal Reset Counter & Persistent Logs ---
   terminalResetEpoch: number;
+  terminalLogs: TerminalLogItem[];
 
   // --- Pause & Modify System ---
   isPaused: boolean;
+  isPauseRequested: boolean;
+  activeAgentRunningCount: number;
   pausedAtPhase: InFlightPhase | null;
   pausedAt: number | null;
   inspectingPhase: InFlightPhase | null;
@@ -197,6 +200,14 @@ export interface AppStoreState {
 
   // --- Pipeline Matrix Visualizer State Persistence ---
   pipelineMatrixRows: any[];
+
+  // --- Modern Navigation & Stage Lifecycle ---
+  currentStage: number;
+  maxUnlockedStage: number;
+  minNavigableStage: number;
+
+  // --- Persistent Session Tracking (Phase 9 / MongoDB) ---
+  currentSessionId: string | null;
 }
 
 
@@ -205,6 +216,12 @@ export interface AppStoreState {
 // =============================================================================
 
 export interface AppStoreActions {
+  // Navigation & Stage Lifecycle
+  setCurrentStage: (stage: number) => void;
+  setMaxUnlockedStage: (stage: number) => void;
+  setMinNavigableStage: (stage: number) => void;
+  unlockStage: (stage: number) => void;
+
   // Mode & Configuration
   setMode: (mode: AppMode) => void;
   setGenerationMode: (mode: AppMode) => void;
@@ -306,10 +323,21 @@ export interface AppStoreActions {
   toSnapshot: () => AutoDevStateV1;
   loadSnapshot: (snapshot: Partial<AutoDevStateV1>) => void;
 
+  // Terminal Logs
+  setTerminalLogs: (logs: TerminalLogItem[] | ((prev: TerminalLogItem[]) => TerminalLogItem[])) => void;
+  appendTerminalLogItem: (item: TerminalLogItem) => void;
+  clearTerminalLogs: () => void;
+
   // JSON Parse Retry State
   setJsonRetryState: (state: AppStoreState['jsonRetryState']) => void;
 
   // Pause & Modify Actions
+  requestPause: () => void;
+  cancelPauseRequest: () => void;
+  isAnyAgentExecuting: () => boolean;
+  checkAndExecutePendingPause: () => boolean;
+  notifyAgentStarted: () => void;
+  notifyAgentFinished: () => void;
   pauseDevelopment: () => void;
   resumeDevelopment: (metadata?: {
     targetStage?: string;
@@ -355,6 +383,9 @@ export interface AppStoreActions {
   // Pipeline Matrix Visualizer State Persistence
   setPipelineMatrixRows: (rows: any[]) => void;
   clearPipelineMatrixRows: () => void;
+
+  // Session Tracking (Phase 9)
+  setCurrentSessionId: (id: string | null) => void;
 }
 
 // =============================================================================
@@ -465,11 +496,14 @@ export const initialAppStoreState: AppStoreState = {
   // JSON Parse Retry State
   jsonRetryState: null,
 
-  // Terminal Reset Counter
+  // Terminal Reset Counter & Persistent Logs
   terminalResetEpoch: 0,
+  terminalLogs: [],
 
   // Pause & Modify System
   isPaused: false,
+  isPauseRequested: false,
+  activeAgentRunningCount: 0,
   pausedAtPhase: null,
   pausedAt: null,
   inspectingPhase: null,
@@ -500,6 +534,14 @@ export const initialAppStoreState: AppStoreState = {
 
   // Pipeline Matrix Visualizer State Persistence
   pipelineMatrixRows: [],
+
+  // Modern Navigation & Stage Lifecycle
+  currentStage: 1,
+  maxUnlockedStage: 1,
+  minNavigableStage: 1,
+
+  // Persistent Session Tracking (Phase 9 / MongoDB)
+  currentSessionId: null,
 };
 
 // =============================================================================
@@ -580,6 +622,26 @@ export function formatPhaseLabel(phase: InFlightPhase): string {
 export const useAppStore = create<AppStore>()((set, get) => ({
   ...initialAppStoreState,
 
+  // --- Stage Navigation & Lifecycle ---
+  setCurrentStage: (stage: number) =>
+    set((s) => ({
+      currentStage: stage,
+      maxUnlockedStage: Math.max(s.maxUnlockedStage, stage),
+      minNavigableStage: stage > 1 ? 2 : 1,
+    })),
+
+  setMaxUnlockedStage: (stage: number) =>
+    set((s) => ({
+      maxUnlockedStage: Math.max(s.maxUnlockedStage, stage),
+    })),
+
+  setMinNavigableStage: (stage: number) => set({ minNavigableStage: stage }),
+
+  unlockStage: (stage: number) =>
+    set((s) => ({
+      maxUnlockedStage: Math.max(s.maxUnlockedStage, stage),
+    })),
+
   // --- Mode & Configuration ---
   setMode: (mode: AppMode) => {
     if (get().pipelineActive) return; // Prevent mid-flight mode modification
@@ -590,20 +652,83 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
   setFeatureRequest: (prompt: string) => set({ featureRequest: prompt }),
 
-  setPipelineStatus: (status: PipelineStatus) =>
-    set((state) => ({
+  setPipelineStatus: (status: PipelineStatus) => {
+    if (status === 'completed') {
+      // Fire-and-forget session completion and project storage
+      (async () => {
+        try {
+          const currentStore = get();
+          const sessionId = currentStore.currentSessionId;
+          const { useAuthStore } = await import('./authStore');
+          const auth = useAuthStore.getState();
+          if (auth.isAuthenticated && auth.token && sessionId) {
+            const { sessionApi } = await import('../api/authEndpoints');
+            const usage = currentStore.sessionUsage || { prompt: 0, completion: 0, cost: 0 };
+            const durationMs = currentStore.timelineMetrics?.totalDurationMs || 0;
+            const completedStages = ['REQUIREMENTS', 'DECOMPOSITION', 'DESIGN', 'CODEGEN', 'EXECUTION', 'CRITICS', 'INTEGRATION'];
+            const compCount = currentStore.componentResults?.length || (currentStore.decomposition?.components?.length || 1);
+
+            await sessionApi.updateSession(sessionId, {
+              status: 'completed',
+              duration_ms: durationMs,
+              total_prompt_tokens: Number(usage.prompt) || 0,
+              total_completion_tokens: Number(usage.completion) || 0,
+              total_cost_inr: Number(usage.cost) || 0,
+              stages_completed: completedStages,
+              component_count: compCount,
+            });
+
+            // Store project files if available
+            const codebase = currentStore.integratedCodebase || currentStore.currentCodebase;
+            if (codebase?.files && codebase.files.length > 0) {
+              const files = codebase.files.map((f: any) => ({
+                file_name: f.file_name || f.path || 'unknown.txt',
+                source_code: f.source_code || '',
+              }));
+              const readmeFile = codebase.files.find((f: any) => (f.file_name || f.path || '').toLowerCase().includes('readme'));
+              const userGuideFile = codebase.files.find((f: any) => (f.file_name || f.path || '').toLowerCase().includes('user_guide'));
+              await sessionApi.storeProject(sessionId, {
+                files,
+                readme: readmeFile ? readmeFile.source_code : undefined,
+                user_guide: userGuideFile ? userGuideFile.source_code : undefined,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('[Session] Failed to record completion:', e);
+        }
+      })();
+    }
+
+    return set((state) => ({
       pipelineStatus: status,
       // Latch: once completed, the Post-Completion Control Plane is permanently visible.
       // This flag never goes back to false except via requestNewProduct() full reset.
       postCompletionVisible:
         status === 'completed' ? true : state.postCompletionVisible,
-    })),
+    }));
+  },
 
   setInFlightPhase: (phase: InFlightPhase) => set({ inFlightPhase: phase }),
 
   setPipelineActive: (active: boolean) => set({ pipelineActive: active }),
 
   abortPipeline: (reason = 'Pipeline aborted by user') => {
+    const sessionId = get().currentSessionId;
+    if (sessionId) {
+      (async () => {
+        try {
+          const { useAuthStore } = await import('./authStore');
+          const auth = useAuthStore.getState();
+          if (auth.isAuthenticated && auth.token) {
+            const { sessionApi } = await import('../api/authEndpoints');
+            await sessionApi.updateSession(sessionId, { status: 'aborted' });
+          }
+        } catch (e) {
+          console.warn('[Session] Failed to update session to aborted:', e);
+        }
+      })();
+    }
     try {
       useSessionStore.getState().abortCurrentPipeline(reason);
     } catch (err) {
@@ -826,10 +951,34 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
   // --- Revision History & Quality ---
   addRevision: (item) =>
-    set((state) => ({
-      revisionHistory: [...state.revisionHistory, item],
-      activeRevisionIndex: state.revisionHistory.length,
-    })),
+    set((state) => {
+      if (item.isPostCompletion && item.requestPrompt) {
+        const promptKey = item.requestPrompt.trim().toLowerCase();
+        // Remove any legacy unprompted post-completion items or existing entry for the same prompt
+        const cleaned = state.revisionHistory.filter(
+          (r) =>
+            !r.isPostCompletion ||
+            (Boolean(r.requestPrompt) && r.requestPrompt!.trim().toLowerCase() !== promptKey)
+        );
+        const postRunCount = cleaned.filter((r) => r.isPostCompletion).length;
+        const postRunNum = postRunCount + 1;
+        const normalizedItem: RevisionHistoryItem = {
+          ...item,
+          revisionNumber: cleaned.length,
+          postCompletionRevNumber: postRunNum,
+          label: `Post-Run Rev ${postRunNum}`,
+        };
+        const updated = [...cleaned, normalizedItem];
+        return {
+          revisionHistory: updated,
+          activeRevisionIndex: updated.length - 1,
+        };
+      }
+      return {
+        revisionHistory: [...state.revisionHistory, item],
+        activeRevisionIndex: state.revisionHistory.length,
+      };
+    }),
 
   snapshotRevision: (label) =>
     set((state) => {
@@ -1004,10 +1153,93 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   // --- Token Usage Mirror ---
   setSessionUsage: (sessionUsage) => set({ sessionUsage }),
 
+  // --- Session Tracking (Phase 9) ---
+  setCurrentSessionId: (currentSessionId) => set({ currentSessionId }),
+
   // --- JSON Parse Retry State ---
   setJsonRetryState: (jsonRetryState) => set({ jsonRetryState }),
 
+  // --- Terminal Logs Actions ---
+  setTerminalLogs: (logs) => {
+    set((state) => ({
+      terminalLogs: typeof logs === 'function' ? logs(state.terminalLogs) : logs,
+    }));
+  },
+  appendTerminalLogItem: (item) => {
+    set((state) => {
+      const next = [...state.terminalLogs, item];
+      return {
+        terminalLogs: next.length > 2000 ? next.slice(-2000) : next,
+      };
+    });
+  },
+  clearTerminalLogs: () => set({ terminalLogs: [] }),
+
   // --- Pause & Modify Actions ---
+  requestPause: () => {
+    const state = get();
+    if (state.isPaused) return;
+
+    if (state.isPauseRequested) {
+      set({ isPauseRequested: false });
+      return;
+    }
+
+    const isAgentRunning = state.isAnyAgentExecuting();
+    if (isAgentRunning) {
+      set({ isPauseRequested: true });
+      if (typeof window !== 'undefined') {
+        try {
+          (window as any).appendTerminalLog?.(
+            '[PAUSE] Pause requested. Waiting for active agent to complete execution...',
+            'warn'
+          );
+        } catch { /* ignore */ }
+      }
+    } else {
+      state.pauseDevelopment();
+    }
+  },
+
+  cancelPauseRequest: () => {
+    set({ isPauseRequested: false });
+  },
+
+  isAnyAgentExecuting: () => {
+    const state = get();
+    if (state.activeAgentRunningCount > 0) return true;
+    if (state.componentStates) {
+      const hasRunningComp = Object.values(state.componentStates).some((cs: any) =>
+        ['designing', 'coding', 'executing', 'critiquing'].includes(cs?.status)
+      );
+      if (hasRunningComp) return true;
+    }
+    if (state.inFlightPhase === 'requirements' && state.stepperStates?.[1] === 'loading' && !state.requirements) return true;
+    if (state.inFlightPhase === 'decomposition' && state.stepperStates?.[2] === 'loading' && !state.decomposition) return true;
+    if (state.inFlightPhase === 'integration' && state.pipelineStatus === 'running' && !state.integratedCodebase) return true;
+    if (state.postCompletionStatus === 'running') return true;
+    return false;
+  },
+
+  notifyAgentStarted: () => {
+    set((s) => ({ activeAgentRunningCount: Math.max(0, s.activeAgentRunningCount || 0) + 1 }));
+  },
+
+  notifyAgentFinished: () => {
+    set((s) => ({ activeAgentRunningCount: Math.max(0, (s.activeAgentRunningCount || 1) - 1) }));
+    get().checkAndExecutePendingPause();
+  },
+
+  checkAndExecutePendingPause: () => {
+    const state = get();
+    if (state.isPauseRequested) {
+      set({ isPauseRequested: false });
+      state.pauseDevelopment();
+      return true;
+    }
+    return false;
+  },
+
   pauseDevelopment: () => {
     const state = get();
     
@@ -1061,11 +1293,11 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         activePhase = 'component_dag';
       }
     }
-    const compDisplay = activeComp || 'none';
 
     // 4. Update state
     set({
       isPaused: true,
+      isPauseRequested: false,
       pausedAtPhase: state.inFlightPhase,
       pausedAt: Date.now(),
       inspectingPhase: state.inFlightPhase, // Start inspecting the currently active phase
@@ -1075,16 +1307,14 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     });
     
     // 5. Live Console Terminal Logging
-    const pauseMsg = `[PAUSE] Development paused. Active phase: ${activePhase}, active component: ${compDisplay}`;
+    const pauseMsg = '[PAUSE] Product Development paused by the User.';
     if (typeof window !== 'undefined') {
       try {
         (window as any).appendTerminalLog?.(pauseMsg, 'warn');
       } catch { /* ignore */ }
     }
 
-    try {
-      useSessionStore.getState().showInfoToast('Development paused.');
-    } catch { /* ignore */ }
+
 
     // 6. Backend Lease Scheduler Pause Sync
     if (typeof fetch !== 'undefined') {
@@ -1111,11 +1341,10 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     const state = get();
     const pendingAction = state.pendingResumeAction;
     const targetPhase = metadata?.targetStage || state.pausedAtPhase || state.inFlightPhase || 'component_dag';
-    const modsStr = metadata?.modificationsDetected ? 'yes' : 'no';
-    const earliestStr = metadata?.earliestTarget || 'none';
 
     set({
       isPaused: false,
+      isPauseRequested: false,
       inFlightPhase: ((metadata?.earliestPhase as InFlightPhase) || state.pausedAtPhase || state.inFlightPhase || 'component_dag') as InFlightPhase,
       pausedAtPhase: null,
       pausedAt: null,
@@ -1132,12 +1361,22 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     } catch { /* ignore */ }
 
     // Live Console Terminal Logging
-    const resumeMsg = `[RESUME] Development resumed. Target phase/stage: ${targetPhase}, modifications detected: ${modsStr}, earliest rewind target: ${earliestStr}`;
+    const rawStage = metadata?.earliestTarget || metadata?.targetStage || state.pausedAtPhase || state.inFlightPhase || 'Requirements';
+    let formattedStage = rawStage;
+    if (rawStage === 'requirements') formattedStage = 'Requirements';
+    else if (rawStage === 'decomposition' || rawStage === 'master_architect') formattedStage = 'Master Architect';
+    else if (rawStage === 'component_dag' || rawStage === 'pipeline') formattedStage = 'Component Pipeline';
+    else if (rawStage === 'integration') formattedStage = 'Integration';
+    else if (rawStage === 'documentation') formattedStage = 'Documentation';
+    else if (rawStage === 'product_enquiry') formattedStage = 'Product Enquiry';
+    const resumeMsg = `[RESUME] Product Development resumed from ${formattedStage} by the user.`;
     if (typeof window !== 'undefined') {
       try {
         (window as any).appendTerminalLog?.(resumeMsg, 'success');
       } catch { /* ignore */ }
     }
+
+
 
     // Backend Lease Scheduler Resume Sync
     if (typeof fetch !== 'undefined') {
@@ -1185,6 +1424,22 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       };
     }
 
+    // If paused before the pipeline phase (requirements or decomposition), no code was generated yet:
+    // skip modification detection entirely and resume immediately.
+    const pausedPhase = state.pausedAtPhase || state.inFlightPhase;
+    if (pausedPhase === 'requirements' || pausedPhase === 'decomposition') {
+      return {
+        earliestModifiedPhase: null,
+        earliestModifiedComponentId: null,
+        modifiedComponentTargetStage: undefined,
+        subsequentComponentIds: [],
+        modifiedPhases: [],
+        modifiedComponents: [],
+        restartFromRevision: null,
+        changeDescription: 'No modifications checked: paused before pipeline phase (no code generated yet)',
+      };
+    }
+
     const hasCodebaseChanged = (cb1?: GeneratedCodeBase | null, cb2?: GeneratedCodeBase | null): boolean => {
       const f1 = cb1?.files || [];
       const f2 = cb2?.files || [];
@@ -1215,29 +1470,9 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       return false;
     };
 
-
-    const hasBlueprintChanged = (
-      bp1?: SystemDesignBlueprint | null,
-      bp2?: SystemDesignBlueprint | null
-    ): boolean => {
-      if (!bp1 && !bp2) return false;
-      if (!bp1 || !bp2) return true;
-      if ((bp1.architecture_overview || '').trim() !== (bp2.architecture_overview || '').trim()) return true;
-      if (JSON.stringify(bp1.tech_stack || []) !== JSON.stringify(bp2.tech_stack || [])) return true;
-      if (JSON.stringify(bp1.files || []) !== JSON.stringify(bp2.files || [])) return true;
-      return !deepEqual(bp1, bp2);
-    };
-    
     const modifiedPhases: InFlightPhase[] = [];
     const modifiedComponents: string[] = [];
-    
-    if (!deepEqual(snap.requirements, state.requirements)) {
-      modifiedPhases.push('requirements');
-    }
-    if (!deepEqual(snap.decomposition, state.decomposition)) {
-      modifiedPhases.push('decomposition');
-    }
-    
+
     if (state.isComponentMode) {
       // Determine chronological order of components:
       // 1. Completed components from componentResults
@@ -1251,11 +1486,10 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       for (const cId of chronologicalComponentIds) {
         const snapTrack = snap.componentStates?.[cId];
         const currentTrack = state.componentStates?.[cId];
-        const bpChanged = hasBlueprintChanged(snapTrack?.blueprint, currentTrack?.blueprint);
         const codeChanged =
           hasCodebaseChanged(snapTrack?.codebase, currentTrack?.codebase) ||
           hasRevisionHistoryChanged(snapTrack?.revisionHistory, currentTrack?.revisionHistory);
-        if (bpChanged || codeChanged) {
+        if (codeChanged) {
           modifiedComponents.push(cId);
         }
       }
@@ -1268,14 +1502,11 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         modifiedPhases.push('integration');
       }
     } else {
-      if (hasBlueprintChanged(snap.blueprint, state.currentBlueprint)) {
-        modifiedPhases.push('single_design');
-      }
       if (hasCodebaseChanged(snap.codebase, state.currentCodebase)) {
         modifiedPhases.push('single_codegen');
       }
     }
-    
+
     const phaseOrder = state.isComponentMode ? COMPONENT_DAG_PHASES : SINGLE_PASS_PHASES;
     const earliest = phaseOrder.find(p => modifiedPhases.includes(p)) || null;
 
@@ -1293,27 +1524,15 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       subsequentComponentIds = modIdx >= 0 ? chronologicalComponentIds.slice(modIdx + 1) : [];
 
       if (earliestModifiedComponentId) {
-        const snapTrack = snap.componentStates?.[earliestModifiedComponentId];
-        const currentTrack = state.componentStates?.[earliestModifiedComponentId];
-        const bpChanged = hasBlueprintChanged(snapTrack?.blueprint, currentTrack?.blueprint);
-        const codeChanged =
-          hasCodebaseChanged(snapTrack?.codebase, currentTrack?.codebase) ||
-          hasRevisionHistoryChanged(snapTrack?.revisionHistory, currentTrack?.revisionHistory);
-        if (bpChanged) {
-          modifiedComponentTargetStage = 'CODEGEN';
-        } else if (codeChanged) {
-          modifiedComponentTargetStage = 'CRITICS';
-        } else {
-          modifiedComponentTargetStage = 'DESIGN';
-        }
+        modifiedComponentTargetStage = 'CRITICS';
       }
     }
-    
+
     let restartFromRevision: number | null = null;
     if (modifiedPhases.length === 1 && modifiedPhases[0] === 'single_codegen' && state.currentRevisionCount > 0) {
       restartFromRevision = state.pauseRevisionIndex;
     }
-    
+
     let changeDescription = 'No modifications detected';
     if (earliestModifiedComponentId) {
       changeDescription = `Modifications detected in component ${earliestModifiedComponentId} (${modifiedComponents.join(', ')})`;
@@ -1373,9 +1592,9 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     } catch { /* ignore */ }
 
     // Live Console Terminal Logging for revision resume
-    const targetStage = 'single_execution';
+    const targetStage = 'Single-Pass Execution';
     const earliestTarget = `revision ${revisionIndex}`;
-    const resumeMsg = `[RESUME] Development resumed. Target phase/stage: ${targetStage}, modifications detected: yes, earliest rewind target: ${earliestTarget}`;
+    const resumeMsg = `[RESUME] Product Development resumed from ${targetStage}, revision ${revisionIndex} by the user.`;
     if (typeof window !== 'undefined') {
       try {
         (window as any).appendTerminalLog?.(resumeMsg, 'success');
@@ -1640,17 +1859,56 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
 
   // --- Lifecycle & Transformation Actions ---
-  startPipeline: () =>
-    set({
+  startPipeline: () => {
+    // Fire-and-forget session creation in MongoDB Atlas when authenticated
+    (async () => {
+      try {
+        const { useAuthStore } = await import('./authStore');
+        const auth = useAuthStore.getState();
+        if (auth.isAuthenticated && auth.token) {
+          const { sessionApi } = await import('../api/authEndpoints');
+          const currentStore = get();
+          const session = await sessionApi.createSession({
+            project_name: currentStore.featureRequest?.slice(0, 100) || 'Untitled',
+            feature_request: currentStore.featureRequest || '',
+            mode: currentStore.generationMode || 'QUICK',
+          });
+          set({ currentSessionId: session.id });
+        }
+      } catch (e) {
+        console.warn('[Session] Failed to create session record:', e);
+        // Non-blocking — pipeline continues regardless
+      }
+    })();
+
+    return set((state) => ({
       pipelineStatus: 'running',
       pipelineActive: true,
       inFlightPhase: 'requirements',
       stepperStep: 1,
       stepperStates: { ...initialStepperStates, 1: 'loading' },
       restorationBanner: { visible: false, message: '', phase: null },
-    }),
+      terminalResetEpoch: (state.terminalResetEpoch || 0) + 1,
+      terminalLogs: [],
+    }));
+  },
 
   abortDevelopment: () => {
+    const sessionId = get().currentSessionId;
+    if (sessionId) {
+      (async () => {
+        try {
+          const { useAuthStore } = await import('./authStore');
+          const auth = useAuthStore.getState();
+          if (auth.isAuthenticated && auth.token) {
+            const { sessionApi } = await import('../api/authEndpoints');
+            await sessionApi.updateSession(sessionId, { status: 'aborted' });
+          }
+        } catch (e) {
+          console.warn('[Session] Failed to update session to aborted:', e);
+        }
+      })();
+    }
     try {
       useSessionStore.getState().abortCurrentPipeline();
     } catch (err) {
@@ -1693,7 +1951,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       }
     }
 
-    const restartMsg = '[RESTART] Development restarted. Restarting development from requirements phase.';
+    const restartMsg = '[RESTART] Product Development restarted.';
     if (typeof window !== 'undefined') {
       try {
         (window as any).appendTerminalLog?.(restartMsg, 'system');
@@ -1710,7 +1968,6 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       }
     }
     try {
-      clearPersistedState();
       useSessionStore.getState().resetSessionStore();
     } catch {
       // ignore
@@ -1721,20 +1978,29 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       mode: state.mode,
       currentMode: state.mode,
       generationMode: state.mode,
+      productEnquiryResult: state.productEnquiryResult,
+      productEnquiryAnswers: state.productEnquiryAnswers,
+      productEnquiryAdditionalNotes: state.productEnquiryAdditionalNotes,
       
       // Clear pause state explicitly
       isPaused: false,
+      isPauseRequested: false,
+      activeAgentRunningCount: 0,
       pausedAtPhase: null,
       pausedAt: null,
       inspectingPhase: null,
       pauseSnapshot: null,
       pauseRevisionIndex: -1,
       
-      pipelineStatus: 'running',
-      pipelineActive: true,
-      inFlightPhase: 'requirements',
+      // Stage 2 (Product Enquiry) is the restart target
+      pipelineStatus: 'idle',
+      pipelineActive: false,
+      inFlightPhase: null,
+      currentStage: 2,
+      minNavigableStage: 2,
+      maxUnlockedStage: 2,
       stepperStep: 1,
-      stepperStates: { ...initialStepperStates, 1: 'loading' },
+      stepperStates: { ...initialStepperStates },
       restorationBanner: { visible: false, message: '', phase: null },
       terminalResetEpoch: (state.terminalResetEpoch || 0) + 1,
       timelineMetrics: {
@@ -1744,6 +2010,13 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         intervals: [],
       },
     }));
+
+    // Immediately persist clean Stage 2 restarted state
+    try {
+      savePersistedState(get().toSnapshot(), true);
+    } catch {
+      // ignore
+    }
 
     if (typeof window !== 'undefined') {
       try {
@@ -1755,6 +2028,21 @@ export const useAppStore = create<AppStore>()((set, get) => ({
   },
 
   requestNewProduct: () => {
+    const sessionId = get().currentSessionId;
+    if (sessionId && get().pipelineStatus !== 'completed') {
+      (async () => {
+        try {
+          const { useAuthStore } = await import('./authStore');
+          const auth = useAuthStore.getState();
+          if (auth.isAuthenticated && auth.token) {
+            const { sessionApi } = await import('../api/authEndpoints');
+            await sessionApi.updateSession(sessionId, { status: 'aborted' });
+          }
+        } catch {
+          // ignore
+        }
+      })();
+    }
     if (typeof window !== 'undefined') {
       try {
         (window as any).clearTerminal?.();
@@ -1771,6 +2059,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     }
     set((state) => ({
       ...initialAppStoreState,
+      currentSessionId: null,
       terminalResetEpoch: (state.terminalResetEpoch || 0) + 1,
       timelineMetrics: {
         pipelineStartTime: null,
@@ -2011,6 +2300,13 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       pauseSnapshot: s.pauseSnapshot,
       resumeEpoch: s.resumeEpoch || 0,
       timelineMetrics: s.timelineMetrics,
+      currentStage: s.currentStage,
+      maxUnlockedStage: s.maxUnlockedStage,
+      minNavigableStage: s.minNavigableStage,
+      productEnquiryResult: s.productEnquiryResult,
+      productEnquiryAnswers: s.productEnquiryAnswers,
+      productEnquiryAdditionalNotes: s.productEnquiryAdditionalNotes,
+      terminalLogs: s.terminalLogs || [],
     };
   },
 
@@ -2048,6 +2344,33 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         phase: snapshot.inFlightPhase,
       };
     }
+
+    let derivedCurrentStage = 1;
+    if (snapshot.currentStage !== undefined && snapshot.currentStage >= 1) {
+      derivedCurrentStage = snapshot.currentStage;
+    } else {
+      if (snapshot.pipelineStatus === 'completed' || (snapshot as any).postCompletionVisible) {
+        derivedCurrentStage = 9;
+      } else if (snapshot.integratedCodebase) {
+        derivedCurrentStage = 7;
+      } else if (snapshot.decomposition) {
+        derivedCurrentStage = 5;
+      } else if (snapshot.requirements) {
+        derivedCurrentStage = 3;
+      } else if (snapshot.featureRequest) {
+        derivedCurrentStage = 2;
+      } else {
+        derivedCurrentStage = 1;
+      }
+    }
+
+    const derivedMinNavigable = snapshot.minNavigableStage !== undefined
+      ? snapshot.minNavigableStage
+      : (derivedCurrentStage > 1 ? 2 : 1);
+
+    const derivedMaxUnlocked = snapshot.maxUnlockedStage !== undefined
+      ? Math.max(snapshot.maxUnlockedStage, derivedCurrentStage)
+      : Math.max(derivedCurrentStage, 1);
 
     set({
       mode,
@@ -2087,7 +2410,9 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       },
       singlePassCode: snapshot.singlePassCode || codebase,
       integratedCodebase: snapshot.integratedCodebase || null,
-      revisionHistory: snapshot.revisionHistory || [],
+      revisionHistory: (snapshot.revisionHistory || []).filter(
+        (r) => !r.isPostCompletion || Boolean(r.requestPrompt)
+      ),
       activeRevisionIndex:
         snapshot.activeRevisionIndex !== undefined ? snapshot.activeRevisionIndex : -1,
       activeFileIndex:
@@ -2134,6 +2459,15 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         totalDurationMs: 0,
         intervals: [],
       },
+
+      // Modern Navigation & Stage Lifecycle Hydration
+      currentStage: derivedCurrentStage,
+      maxUnlockedStage: derivedMaxUnlocked,
+      minNavigableStage: derivedMinNavigable,
+      productEnquiryResult: snapshot.productEnquiryResult || null,
+      productEnquiryAnswers: snapshot.productEnquiryAnswers || [],
+      productEnquiryAdditionalNotes: snapshot.productEnquiryAdditionalNotes || '',
+      terminalLogs: Array.isArray(snapshot.terminalLogs) ? snapshot.terminalLogs : [],
     });
   },
 }));

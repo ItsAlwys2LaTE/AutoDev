@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   RectangleGroupIcon,
@@ -7,6 +7,7 @@ import { useAppStore } from '../../stores/appStore';
 import { PipelineDashboard } from '../pipeline/PipelineDashboard';
 import { PipelineAssemblyLine } from '../pipeline/PipelineAssemblyLine';
 import { ScrollFade } from '../../components/ScrollFade';
+import { usePausableAutoAdvance } from '../../hooks';
 
 export interface StageComponentPipelineProps {
   onAdvance: (targetStage: number) => void;
@@ -24,6 +25,8 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
   const setActiveComponent = useAppStore((s) => s.setActiveComponent);
   const pipelineQueue = useAppStore((s) => s.pipelineQueue) || [];
   const componentStates = useAppStore((s) => s.componentStates) || {};
+  const pipelineStatus = useAppStore((s) => s.pipelineStatus);
+  const integratedCodebase = useAppStore((s) => s.integratedCodebase);
 
   // Check if all components have completed
   const passedCount = pipelineQueue.filter((c) => {
@@ -33,24 +36,22 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
   const totalCount = pipelineQueue.length;
   const allPassed = totalCount > 0 && passedCount === totalCount;
 
-  const hasAutoAdvancedRef = useRef(false);
-
-  // Auto-advance to integration phase when all components finish development
-  useEffect(() => {
-    if (!allPassed) {
-      hasAutoAdvancedRef.current = false;
-      return;
+  // Immediately unlock Stage 6 (Integration Engine) when all components pass
+  React.useEffect(() => {
+    if (allPassed) {
+      useAppStore.getState().unlockStage(6);
     }
+  }, [allPassed]);
 
-    if (hasAutoAdvancedRef.current) return;
-
-    const timer = setTimeout(() => {
-      hasAutoAdvancedRef.current = true;
-      onAdvance(6);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [allPassed, onAdvance]);
+  // Auto-advance to integration phase only when components transition to allPassed
+  // Pauses seamlessly when development is paused, and resumes remaining time when resumed
+  usePausableAutoAdvance({
+    durationMs: 10000,
+    onAdvance,
+    targetStage: 6,
+    enabled: Boolean(allPassed && (pipelineStatus === 'running' || !integratedCodebase)),
+    stageKey: 'stage-5-pipeline',
+  });
 
   return (
     <div

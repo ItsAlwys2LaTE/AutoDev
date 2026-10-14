@@ -82,7 +82,8 @@ def _extract_product_enquiry_result(response: Any) -> ProductEnquiryResult:
 def run_product_enquiry(
     prompt: str,
     mode: str = "QUICK",
-    context: Optional[str] = None
+    context: Optional[str] = None,
+    user_api_key: Optional[str] = None,
 ) -> ProductEnquiryResult:
     """
     Executes the Product Enquiry Agent.
@@ -139,13 +140,22 @@ def run_product_enquiry(
         primary_model, secondary_model = resolve_models_for_mode(
             mode, primary_model="gemini-3.5-flash-lite", secondary_model="gemini-3.1-flash-lite"
         )
-        result = execute_with_key_fallback(
-            stage="PRODUCT_ENQUIRY",
-            call_fn=_call,
-            primary_model=primary_model,
-            secondary_model=secondary_model,
-            mode=mode,
-        )
+        if user_api_key:
+            from key_balancer import execute_with_user_key
+            result = execute_with_user_key(
+                user_api_key=user_api_key,
+                call_fn=_call,
+                primary_model=primary_model,
+                secondary_model=secondary_model,
+            )
+        else:
+            result = execute_with_key_fallback(
+                stage="PRODUCT_ENQUIRY",
+                call_fn=_call,
+                primary_model=primary_model,
+                secondary_model=secondary_model,
+                mode=mode,
+            )
         if isinstance(result, ProductEnquiryResult):
             return result
         elif isinstance(result, dict):

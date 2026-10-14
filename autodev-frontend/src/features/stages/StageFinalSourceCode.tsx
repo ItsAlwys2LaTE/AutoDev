@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   CodeBracketIcon,
   DocumentTextIcon,
@@ -7,7 +7,8 @@ import Editor, { type OnMount } from '@monaco-editor/react';
 import { useAppStore } from '../../stores/appStore';
 import { detectLanguage } from '../ide/languageDetector';
 import { handleBeforeMount, patchEditorInstance, patchMonaco } from '../ide/monacoPatcher';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
+import { usePausableAutoAdvance } from '../../hooks';
 import type { GeneratedCodeBase } from '../../types';
 
 export interface StageFinalSourceCodeProps {
@@ -16,7 +17,7 @@ export interface StageFinalSourceCodeProps {
 }
 
 export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
-  onAdvance: _onAdvance,
+  onAdvance,
   className = '',
 }) => {
   const storeIntegratedCodebase = useAppStore((s) => s.integratedCodebase);
@@ -28,6 +29,23 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
 
   // Final source code strictly from integrated or current codebase
   const codebase: GeneratedCodeBase | null = storeIntegratedCodebase || storeCurrentCodebase;
+
+  // Immediately unlock Stage 8 (Live Preview) when codebase is available
+  useEffect(() => {
+    if (codebase) {
+      useAppStore.getState().unlockStage(8);
+    }
+  }, [codebase]);
+
+  // Automatically proceed to Live Preview after 10 seconds of source code inspection
+  // Pauses seamlessly when development is paused, and resumes remaining time when resumed
+  usePausableAutoAdvance({
+    durationMs: 10000,
+    onAdvance,
+    targetStage: 8,
+    enabled: Boolean(codebase),
+    stageKey: 'stage-7-final-code',
+  });
   const files = codebase?.files || [];
   const activeFile = files[activeFileIndex] || files[0] || null;
   const language = activeFile ? detectLanguage(activeFile.file_name) : 'plaintext';
@@ -83,7 +101,7 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
             </span>
           </div>
 
-          <ScrollFade className="flex-1 overflow-y-auto p-2 space-y-1">
+          <ModernScrollbar className="flex-1 min-h-0" viewportClassName="p-2 space-y-1">
             {files.length === 0 ? (
               <p className="text-xs text-slate-500 p-2 italic">No files available</p>
             ) : (
@@ -106,7 +124,7 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
                 );
               })
             )}
-          </ScrollFade>
+          </ModernScrollbar>
         </div>
 
         {/* Right Pane: Code Editor Surface */}

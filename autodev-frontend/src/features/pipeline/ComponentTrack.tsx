@@ -472,6 +472,7 @@ export function ComponentTrack({
       } catch (e) {
         console.warn(`pipelineComplete DESIGN error for ${cId}:`, e);
       }
+      useAppStore.getState().checkAndExecutePendingPause();
     } catch (err: any) {
       console.error(`Design error in component ${cId}:`, err);
       useAppStore.getState().completeTimelineInterval(designIntervalId, { status: 'failed' });
@@ -638,6 +639,7 @@ export function ComponentTrack({
       } catch (e) {
         console.warn(`pipelineComplete CODEGEN error for ${cId}:`, e);
       }
+      useAppStore.getState().checkAndExecutePendingPause();
     } catch (err: any) {
       console.error(`CodeGen error in component ${cId}:`, err);
       useAppStore.getState().completeTimelineInterval(codegenIntervalId, { status: 'failed' });
@@ -733,6 +735,7 @@ export function ComponentTrack({
       if (nextComp) {
         setActiveComponent(nextComp.component_id);
       }
+      useAppStore.getState().checkAndExecutePendingPause();
     },
     [cId, component, mode, trackState, updateComponentState, addComponentResult, setActiveComponent]
   );
@@ -926,6 +929,7 @@ export function ComponentTrack({
           } catch (e) {
             console.warn(`pipelineComplete CRITICS revise error for ${cId}:`, e);
           }
+          useAppStore.getState().checkAndExecutePendingPause();
         } else {
           // Revisions exhausted
           if (mode === 'QUICK') {
@@ -1294,13 +1298,6 @@ export function ComponentTrack({
                   {`${cId}-blueprint.md`}
                 </span>
               </div>
-              {mode !== 'QUICK' || isPaused ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/[0.05] text-slate-400 border border-white/[0.06]">
-                    CLICK TO EDIT
-                  </span>
-                </div>
-              ) : null}
             </div>
 
             <ModernScrollbar className="w-full h-64 sm:h-72">
@@ -1308,39 +1305,10 @@ export function ComponentTrack({
                 id={`design-text-${cId}`}
                 ref={blueprintTextareaRef}
                 value={editedBlueprintText}
-                onChange={(e) => {
-                  const newText = e.target.value;
-                  isEditingBlueprintRef.current = true;
-                  setDesignTimerPaused(true);
-                  setEditedBlueprintText(newText);
-                  if (blueprintTextareaRef.current) {
-                    blueprintTextareaRef.current.style.height = 'auto';
-                    blueprintTextareaRef.current.style.height = `${Math.max(240, blueprintTextareaRef.current.scrollHeight)}px`;
-                  }
-                  const currentBp = trackState.blueprint || {
-                    architecture_overview: '',
-                    tech_stack: [],
-                    docker_image: '',
-                    dev_server_command: 'NONE',
-                    dev_server_port: 0,
-                    run_tests_command: 'pytest',
-                    files: [],
-                  };
-                  updateComponentState(cId, {
-                    blueprint: {
-                      ...currentBp,
-                      architecture_overview: newText,
-                    },
-                  });
-                }}
-                readOnly={mode === 'QUICK' && !isPaused}
+                readOnly={true}
                 spellCheck={false}
                 rows={10}
-                className={`w-full font-mono p-4 bg-transparent border-none text-xs resize-none overflow-hidden block leading-relaxed transition-colors outline-none ${
-                  mode === 'QUICK' && !isPaused
-                    ? 'cursor-not-allowed text-slate-400'
-                    : 'text-slate-200'
-                }`}
+                className="w-full font-mono p-4 bg-transparent border-none text-xs resize-none overflow-hidden block leading-relaxed transition-colors outline-none cursor-not-allowed text-slate-400"
                 placeholder="Blueprint specifications will appear once design phase begins..."
               />
             </ModernScrollbar>

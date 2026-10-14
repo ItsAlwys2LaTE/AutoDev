@@ -1,8 +1,8 @@
 # AutoDev: Autonomous Multi-Agent Software Engineering Platform
 
-**Production Build: v3.3.0-Prod (Master Edition)**
+**Production Build: v3.6.0-Prod (Master Edition)**
 
-**System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, React 19, TypeScript 5.x, Vite 6, Tailwind CSS, Monaco Editor, Framer Motion, and WebGPU.
+**System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, React 19, TypeScript 5.x, Vite 6, Tailwind CSS, Monaco Editor, Framer Motion, and WebGPU / WebGL OGL.
 
 AutoDev is an autonomous, full-stack Software Development Life Cycle (SDLC) engineering platform that converts natural-language feature requests into fully realized, production-ready, multi-file software repositories. Rather than relying on fragile single-prompt code generation, AutoDev models the disciplined engineering methodologies of high-performing software teams. The system compiles requirements into formal specifications, decomposes complex architectures into mathematical Directed Acyclic Graphs (DAGs) of modular components, schedules concurrent development tracks using lease-backed single-occupancy locks, executes polyglot codebases inside isolated Docker sandboxes, verifies correctness through a LangGraph-powered multi-critic peer review network, and synthesizes components into unified, tested, and documented software packages.
 
@@ -74,6 +74,10 @@ AutoDev operates across two primary operational paradigms tailored to project sc
 
 | Feature | Description |
 |---|---|
+| **3D LightRays WebGL Background** | Real-time volumetric light ray simulation rendered with OGL WebGL shader primitives, featuring dynamic cursor rotation tracking, atmospheric noise jitter, and customizable beam dispersion |
+| **Autonomous Cursive Logo Animation** | Hand-drawn SVG stroke-by-stroke cursive animation in Alex Brush calligraphy with a smooth, instant solid white fill transition upon stroke completion |
+| **Sequential Hero Reveal Choreography** | Staggered arrival sequence delaying subtitle tagline (+300ms) and Get Started CTA (+600ms) until logo calligraphy finishes drawing |
+| **SpecularButton Controls** | Dynamic WebGL shader button with real-time mouse specular reflections and edge refraction, powering the primary CTA and circular DarkModeToggle |
 | **3-Page Distinct Routing** | Clean routing separating Landing hero (`StageLanding`), Authentication/Sign-in (`StageSignIn`), and Main System presentation shell |
 | **Apple iOS Obsidian Glassmorphic UI** | Deep frosted obsidian translucency (`bg-slate-950/[0.25]`, `backdrop-blur-md`), delicate specular refraction borders (`border-white/[0.07]`), liquid pill toggles, and colourless `SpecularButton` controls |
 | **AeroShards 3D WebGPU Background** | Full-viewport dynamic wind sculpture rendered via WebGPU with real-time pointer repulsion and graceful CSS ambient gradient fallback |
@@ -450,8 +454,8 @@ The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript 
 - **Stage 7 (Final Source Code)**: Dedicated code inspection environment displaying only the finalized verified production codebase without multi-revision noise.
 - **Stage 8 (Live Preview)**: Interactive responsive container preview with simulated Desktop, Tablet (camera dot, tablet bezel), and Mobile (Dynamic Island pill notch, home indicator bar, compact resilient control bar) viewports.
 - **Stage 9 (Development Results)**: Deep emerald/rose status container, one-click ZIP packaging, commit to GitHub modal, Post-Development Support trigger, and animated SVG Development Lifecycle Progression Graph with agent milestone metrics.
-- **Stage 10 (Post-Development Request)**: 3-pill selector (`Feature Request` | `Bug Fixes` | `Product Enquiry`) with dynamic placeholders.
-- **Stage 11 (Feature Request / Bug Fix Execution)**: Multi-phase synthesis with automatic return to Stage 9.
+- **Stage 10 (Post-Development Support Agent)**: Automatic intent classification distinguishing technical queries from bug fixes and feature modifications, paired with prompt injection guards, `SmoothInput` auto-resizing textarea, inline `SpecularButton` ("PROCEED"), and an expandable 6-item FAQ accordion.
+- **Stage 11 (Post-Development Execution Agent)**: Conditionally unlocked after a Stage 10 support request is submitted. Dynamically switches between a formatted streaming technical explanation window (`query` mode) and a 3-agent integration-style workspace (`Codegen`, `Testing`, `Evaluation` with deduplicated `Post-Run Rev` tabs) for bug fixes and feature modifications (`modify` mode).
 
 ### 9.5 Space-Time Pipeline Visualizer
 - **Continuous Matrix Progression**: 2D coordinate grid with stages as vertical rows and discrete time increments as horizontal columns (T1, T2, T3...).
@@ -482,8 +486,14 @@ The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript 
 - **In-Memory Multi-Phase Editing**: While paused, inspect and edit Requirements Document, Component Design Blueprints, Component Source Code, and Integration Codebase.
 - **Earliest-Phase Rewind Engine**: Compares modified artifacts against a pre-pause snapshot and rewinds execution strictly from the earliest modified phase.
 
-### 9.10 Real-Time Background Terminal Logging
-- Background SSE connection to `GET /api/logs/stream` maintaining continuous telemetry and test execution logging without polluting the visual stage workspace.
+### 9.10 Collapsible Glassmorphic Right Sidebar & Draggable Live Terminal Console
+- **Specular 3-Strip Trigger (`Header.tsx`)**: Top-right `SpecularButton` trigger housing 3 crisp white strips that smoothly toggles the right-hand sidebar.
+- **Glassmorphic Right Sidebar (`RightSidebar.tsx`)**: Slides smoothly from the right edge over a full-screen blurred backdrop (`backdrop-blur-2xl`), with an external top-right close button (`-left-14 top-4`).
+- **Stage-Aware Telemetry**:
+  - In Stage 1 (prior to clicking `START DEVELOPMENT`), displays only the **Live Terminal** launcher and the bottom **User Account** card.
+  - From Stage 2 onward, displays the unboxed active software title with an enlarged `IDLE` / `RUNNING` / `COMPLETED` / `PAUSED` badge, a status-hued **Session Time** counter (`MM:SS mins`) that pauses during Stage 2 user input and pipeline pause states and permanently freezes at Stage 9 product delivery, and a cumulative **Session Cost** card (`₹X.XXXX (N tokens)`) encompassing all pipeline phases and post-development support requests.
+- **Draggable Live Terminal Console (`Terminal.tsx`)**: Clicking **Live Terminal** opens a floating, draggable console window (`#liveTerminalModalWindow`) with live SSE stream logs, clear logs, maximize/restore viewport toggle, and close controls.
+- **User Account Card & Profile Routing**: Pinned at the bottom of the sidebar with a frosted initial avatar (`A`), username, and email, routing to the User Profile page (`#pageUserProfile`).
 
 ---
 

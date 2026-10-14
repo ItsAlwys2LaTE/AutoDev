@@ -13,15 +13,13 @@
  *   - DiffEditor comparison when diff mode is toggled
  */
 
-import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
 import Editor, { DiffEditor, type OnMount, type OnChange } from '@monaco-editor/react';
 import { detectLanguage } from '../ide/languageDetector';
 import { handleBeforeMount, patchEditorInstance, patchMonaco } from '../ide/monacoPatcher';
-import { LivePreview } from '../ide/LivePreview';
 import { IntegrationRevTabs } from './IntegrationRevTabs';
 import type { GeneratedCodeBase, CodeFile } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface IntegrationMonacoViewProps {
   /** Unified integrated codebase */
@@ -80,7 +78,6 @@ export function IntegrationMonacoView({
   className = '',
 }: IntegrationMonacoViewProps) {
   const editorRef = useRef<any>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
 
   const files = codebase?.files || [];
   const activeFile: CodeFile | null = files[activeFileIndex] || files[0] || null;
@@ -133,7 +130,7 @@ export function IntegrationMonacoView({
   return (
     <div
       id="codeOutputSection"
-      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in text-slate-100 ${className}`}
+      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-4 sm:p-5 fade-in text-slate-100 flex flex-col min-h-0 overflow-y-auto custom-scrollbar ${className}`}
       style={{ backdropFilter: 'blur(14px)' }}
     >
       {/* Header bar */}
@@ -187,7 +184,7 @@ export function IntegrationMonacoView({
       {/* IDE Container */}
       <div
         id="ideContainer"
-        className="flex flex-col md:flex-row h-[550px] border border-white/[0.07] rounded-2xl overflow-hidden bg-black/25 backdrop-blur-md"
+        className="flex flex-col md:flex-row min-h-[460px] md:min-h-[500px] h-[520px] max-h-[650px] border border-white/[0.07] rounded-2xl overflow-hidden bg-black/25 backdrop-blur-md shrink-0"
       >
         {/* Left Pane: File Explorer */}
         <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 bg-slate-950/[0.12] backdrop-blur-md flex flex-col flex-shrink-0">
@@ -213,7 +210,7 @@ export function IntegrationMonacoView({
             </span>
           </div>
 
-          <ScrollFade className="flex-1 overflow-y-auto p-2 space-y-1">
+          <ModernScrollbar className="flex-1 min-h-0" viewportClassName="p-2 space-y-1">
             {files.length === 0 ? (
               <div className="p-4 text-xs text-slate-500 font-mono text-center">
                 No files available
@@ -253,68 +250,25 @@ export function IntegrationMonacoView({
                 );
               })
             )}
-          </ScrollFade>
+          </ModernScrollbar>
         </div>
 
-        {/* Right Pane: Monaco Editor / Diff Editor / Live Preview */}
+        {/* Right Pane: Monaco Editor / Diff Editor */}
         <div className="flex-1 h-full relative overflow-hidden bg-[#1e1e1e] flex flex-col">
-          {/* File bar header with Code Editor / Live Preview toggle */}
-          <div className="px-3 py-1.5 border-b border-white/10 bg-slate-950/[0.12] flex items-center justify-between text-xs">
-            <div className="relative flex items-center p-0.5 rounded-full bg-slate-900 border border-slate-700/60 backdrop-blur-sm">
-              <motion.button
-                type="button"
-                id="tabCode"
-                onClick={() => setIsPreviewOpen(false)}
-                whileTap={{ scale: 0.95 }}
-                className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-                  !isPreviewOpen
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {!isPreviewOpen && (
-                  <motion.div
-                    layoutId="integrationPreviewToggleGlider"
-                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
-                    transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
-                  />
-                )}
-                <span className="relative z-10">Code Editor</span>
-              </motion.button>
-              <motion.button
-                type="button"
-                id="tabPreview"
-                onClick={() => setIsPreviewOpen(true)}
-                whileTap={{ scale: 0.95 }}
-                className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
-                  isPreviewOpen
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {isPreviewOpen && (
-                  <motion.div
-                    layoutId="integrationPreviewToggleGlider"
-                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
-                    transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
-                  />
-                )}
-                <span className="relative z-10">Live Preview</span>
-              </motion.button>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-              <span className="truncate max-w-[180px] text-slate-200 font-semibold">
+          {/* File bar header */}
+          <div className="px-3.5 py-2 border-b border-white/10 bg-slate-950/[0.12] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="truncate max-w-[280px] sm:max-w-md text-slate-200 font-semibold">
                 {activeFile?.file_name || 'No file selected'}
               </span>
-              <span className="text-[11px] text-slate-500 uppercase">{language}</span>
             </div>
+            <span className="text-[11px] text-slate-400 uppercase font-mono px-2 py-0.5 rounded bg-white/[0.05] border border-white/[0.08]">
+              {language}
+            </span>
           </div>
 
-          <div className="flex-1 h-full relative">
-            {isPreviewOpen ? (
-              <LivePreview codebase={codebase} />
-            ) : !activeFile ? (
+          <div className="flex-1 h-full relative min-h-[350px]">
+            {!activeFile ? (
               <div className="flex flex-col items-center justify-center h-full text-slate-500 font-mono text-xs p-6 text-center">
                 <p>No source file selected or available.</p>
               </div>

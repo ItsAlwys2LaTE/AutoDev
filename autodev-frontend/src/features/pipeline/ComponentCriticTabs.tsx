@@ -20,7 +20,6 @@ import type {
   CriticFeedback,
   AdjudicatorDecision,
 } from '../../types';
-import { ScrollFade } from '../../components/ScrollFade';
 import { ModernScrollbar } from '../../components/ModernScrollbar';
 
 export interface CriticHistoryEntry {
@@ -200,9 +199,10 @@ export function ComponentCriticTabs({
           <span>Critic Reports</span>
         </h5>
 
-        <ScrollFade
+        <ModernScrollbar
           id={`critic-cards-${componentId}`}
-          className="grid grid-cols-1 gap-3 max-h-72 overflow-y-auto pr-1"
+          className="max-h-72 w-full pr-1"
+          viewportClassName="grid grid-cols-1 gap-3"
         >
           {entryError ? (
             <div className="p-4 bg-rose-950/40 border border-rose-800/50 rounded-2xl text-rose-300 text-xs font-mono">
@@ -260,7 +260,7 @@ export function ComponentCriticTabs({
               );
             })
           )}
-        </ScrollFade>
+        </ModernScrollbar>
       </div>
 
       {/* ── Master Adjudicator Decision Box ─────────────────────────────────── */}

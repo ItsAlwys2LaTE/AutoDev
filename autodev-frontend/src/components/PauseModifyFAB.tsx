@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../stores/appStore';
 import { resetAllStores } from '../stores/index';
 import { pipelineRewind } from '../api/endpoints';
@@ -10,20 +11,21 @@ import {
 } from '@heroicons/react/24/outline';
 
 export interface PauseModifyFABProps {
+  currentStage?: number;
   className?: string;
 }
 
-export function PauseModifyFAB({ className = '' }: PauseModifyFABProps) {
+export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABProps) {
   const isSSR = typeof window === 'undefined';
   const liveStore = isSSR ? useAppStore.getState() : null;
 
   const storeIsPaused = useAppStore((s) => s.isPaused);
+  const storeIsPauseRequested = useAppStore((s) => s.isPauseRequested);
   const storePipelineStatus = useAppStore((s) => s.pipelineStatus);
-  const storePipelineActive = useAppStore((s) => s.pipelineActive);
   const storeIsComponentMode = useAppStore((s) => s.isComponentMode);
-  const storePostCompletionVisible = useAppStore((s) => s.postCompletionVisible);
 
-  const pauseDevelopment = useAppStore((s) => s.pauseDevelopment);
+  const requestPause = useAppStore((s) => s.requestPause);
+  const cancelPauseRequest = useAppStore((s) => s.cancelPauseRequest);
   const resumeDevelopment = useAppStore((s) => s.resumeDevelopment);
   const detectModifications = useAppStore((s) => s.detectModifications);
   const invalidateDownstreamPhases = useAppStore((s) => s.invalidateDownstreamPhases);
@@ -33,25 +35,38 @@ export function PauseModifyFAB({ className = '' }: PauseModifyFABProps) {
   const requestNewProduct = useAppStore((s) => s.requestNewProduct);
 
   const isPaused = isSSR ? (liveStore?.isPaused ?? storeIsPaused) : storeIsPaused;
+  const isPauseRequested = isSSR ? (liveStore?.isPauseRequested ?? storeIsPauseRequested) : storeIsPauseRequested;
   const pipelineStatus = isSSR ? (liveStore?.pipelineStatus ?? storePipelineStatus) : storePipelineStatus;
-  const pipelineActive = isSSR ? (liveStore?.pipelineActive ?? storePipelineActive) : storePipelineActive;
   const isComponentMode = isSSR ? (liveStore?.isComponentMode ?? storeIsComponentMode) : storeIsComponentMode;
-  const postCompletionVisible = isSSR ? (liveStore?.postCompletionVisible ?? storePostCompletionVisible) : storePostCompletionVisible;
 
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 
-  // Hide completely when pipeline is idle, aborted, completed, or post-completion is visible
-  if (
-    pipelineStatus === 'idle' ||
-    pipelineStatus === 'aborted' ||
-    pipelineStatus === 'completed' ||
-    postCompletionVisible === true
-  ) {
+  // If in pre-development product request stage (Stage 1), the SDLC has not started yet
+  const effStage = currentStage !== undefined ? currentStage : 2;
+  if (effStage < 2) {
     return null;
   }
 
+  const storePostCompletionVisible = useAppStore((s) => s.postCompletionVisible);
+  const postCompletionVisible = isSSR ? (liveStore?.postCompletionVisible ?? storePostCompletionVisible) : storePostCompletionVisible;
+
+  if (postCompletionVisible) {
+    return null;
+  }
+
+  // Hide when pipeline is not actively running and not paused/pause-requested
+  if (pipelineStatus === 'idle' || pipelineStatus === 'aborted' || pipelineStatus === 'completed') {
+    if (!isPaused && !isPauseRequested) {
+      return null;
+    }
+  }
+
   const handlePause = () => {
-    pauseDevelopment();
+    if (isPauseRequested) {
+      cancelPauseRequest();
+    } else {
+      requestPause();
+    }
   };
 
   const handleResumeClick = async () => {
@@ -142,21 +157,22 @@ export function PauseModifyFAB({ className = '' }: PauseModifyFABProps) {
 
   return (
     <div
-      className={`fixed bottom-8 left-6 z-50 flex flex-col items-start space-y-3 pointer-events-auto ${className}`}
+      id="pauseResumeControlContainer"
+      className={`fixed right-4 sm:right-6 top-24 sm:top-28 z-40 select-none flex flex-col items-end gap-3 pointer-events-auto ${className}`}
     >
       {/* Restart Development Confirmation Modal */}
       {showRestartConfirm && (
         <div
           id="fabRestartConfirmModal"
-          className="bg-slate-950/[0.20] backdrop-blur-2xl border border-white/15 rounded-3xl p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_16px_48px_rgba(0,0,0,0.6)] w-80 mb-3 animate-in fade-in slide-in-from-bottom-5 text-left"
-          style={{ backdropFilter: 'blur(16px)' }}
+          className="bg-slate-950/[0.85] backdrop-blur-3xl border border-white/15 rounded-3xl p-5 shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] w-80 mb-3 animate-in fade-in slide-in-from-bottom-5 text-left"
+          style={{ backdropFilter: 'blur(20px)' }}
         >
           <div className="flex items-center space-x-2 text-amber-400 mb-3">
             <ArrowPathIcon className="w-6 h-6" />
             <h3 className="font-semibold text-sm text-slate-100">Restart Development</h3>
           </div>
-          <p className="text-xs text-slate-300 mb-4">
-            Are you sure you want to restart development? All current progress will be reset.
+          <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+            Are you sure you want to restart development? All current pipeline progress will be reset.
           </p>
           <div className="flex justify-end space-x-3">
             <button
@@ -179,74 +195,117 @@ export function PauseModifyFAB({ className = '' }: PauseModifyFABProps) {
         </div>
       )}
 
-      {/* Action Controls: 3 Circular Buttons on Pause, Single Circular FAB when Running */}
-      {isPaused ? (
-        <div
-          id="fabExpandedActionGroup"
-          className="flex flex-col items-start gap-3"
-        >
-          {/* 1. Top: Request New Product (star icon) */}
-          <button
-            id="fabRequestNewProductBtn"
-            data-testid="requestNewProductFabBtn"
-            type="button"
-            onClick={handleRequestNewProduct}
-            title="Request New Product"
-            aria-label="Request New Product"
-            className="group relative w-12 h-12 rounded-full flex items-center justify-center shadow-lg bg-white/10 hover:bg-white/15 text-white border border-white/20 backdrop-blur-2xl transition-all cursor-pointer ring-1 ring-white/10"
+      {/* Action Controls: 3 Action Group on Pause, Resting Pause Badge when Active */}
+      <AnimatePresence mode="wait">
+        {isPaused ? (
+          <motion.div
+            key="expandedActionGroup"
+            initial={{ opacity: 0, scale: 0.9, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: -4 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            id="fabExpandedActionGroup"
+            className="flex flex-col items-end gap-2.5 p-2 rounded-3xl bg-slate-950/70 backdrop-blur-2xl border border-white/15 shadow-[0_16px_48px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.12)]"
+            style={{ backdropFilter: 'blur(20px)' }}
           >
-            <SparklesIcon className="w-5 h-5" />
-            <span className="absolute left-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
-              Request New Product
-            </span>
-          </button>
+            {/* 1. Top: Request New Product */}
+            <button
+              id="fabRequestNewProductBtn"
+              data-testid="requestNewProductFabBtn"
+              type="button"
+              onClick={handleRequestNewProduct}
+              title="Request New Product"
+              aria-label="Request New Product"
+              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white border border-white/15 backdrop-blur-xl transition-all cursor-pointer shadow-sm hover:scale-105"
+            >
+              <SparklesIcon className="w-5 h-5 text-purple-300" />
+              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
+                Request New Product
+              </span>
+            </button>
 
-          {/* 2. Middle: Restart Development (redo arrow) */}
-          <button
-            id="fabRestartDevBtn"
-            data-testid="restartDevFabBtn"
-            type="button"
-            onClick={() => setShowRestartConfirm(true)}
-            title="Restart Development"
-            aria-label="Restart Development"
-            className="group relative w-12 h-12 rounded-full flex items-center justify-center shadow-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-2xl transition-all cursor-pointer ring-1 ring-white/10"
-          >
-            <ArrowPathIcon className="w-5 h-5" />
-            <span className="absolute left-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
-              Restart Development
-            </span>
-          </button>
+            {/* 2. Middle: Restart Development */}
+            <button
+              id="fabRestartDevBtn"
+              data-testid="restartDevFabBtn"
+              type="button"
+              onClick={() => setShowRestartConfirm(true)}
+              title="Restart Development"
+              aria-label="Restart Development"
+              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white border border-white/15 backdrop-blur-xl transition-all cursor-pointer shadow-sm hover:scale-105"
+            >
+              <ArrowPathIcon className="w-5 h-5 text-amber-300" />
+              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
+                Restart Development
+              </span>
+            </button>
 
-          {/* 3. Bottom: Resume (play icon) */}
-          <button
-            id="fabResumeDevBtn"
-            data-testid="resumeDevFabBtn"
+            {/* 3. Bottom: Resume Development */}
+            <button
+              id="fabResumeDevBtn"
+              data-testid="resumeDevFabBtn"
+              type="button"
+              onClick={handleResumeClick}
+              title="Resume Development"
+              aria-label="Resume Development"
+              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-200 hover:text-white border border-emerald-400/40 backdrop-blur-xl transition-all cursor-pointer shadow-md hover:scale-105"
+            >
+              <PlayIcon className="w-5 h-5 ml-0.5" />
+              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
+                Resume Development
+              </span>
+            </button>
+          </motion.div>
+        ) : (
+          /* Resting Glass Badge on the Right Side of the Container */
+          <motion.button
+            key="restingPauseBadge"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            id="pauseDevFabBtn"
             type="button"
-            onClick={handleResumeClick}
-            title="Resume Development"
-            aria-label="Resume Development"
-            className="group relative w-12 h-12 rounded-full flex items-center justify-center shadow-lg bg-white/15 hover:bg-white/25 text-white border border-white/25 backdrop-blur-2xl transition-all cursor-pointer ring-1 ring-white/15"
+            onClick={handlePause}
+            title={
+              isPauseRequested
+                ? 'Pause requested. Waiting for active agent to complete execution... (Click to cancel)'
+                : 'Pause Development'
+            }
+            aria-label={isPauseRequested ? 'Cancel Pending Pause' : 'Pause Development'}
+            className={`group flex flex-col items-center justify-center w-12 h-14 rounded-2xl ${
+              isPauseRequested
+                ? 'bg-amber-950/45 hover:bg-amber-950/70 border-amber-400/40 shadow-[0_0_16px_rgba(251,191,36,0.3)]'
+                : 'bg-slate-950/45 hover:bg-slate-950/70 border-white/15 hover:border-white/35 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]'
+            } backdrop-blur-2xl border cursor-pointer transition-all hover:scale-105`}
+            style={{ backdropFilter: 'blur(16px)' }}
           >
-            <PlayIcon className="w-5 h-5 ml-0.5" />
-            <span className="absolute left-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
-              Resume Development
+            <PauseIcon
+              className={`w-5 h-5 transition-colors ${
+                isPauseRequested
+                  ? 'text-amber-300 animate-pulse'
+                  : 'text-white/90 group-hover:text-purple-300'
+              }`}
+            />
+            <span
+              className={`text-[9px] font-mono tracking-widest font-semibold uppercase leading-none mt-1 ${
+                isPauseRequested
+                  ? 'text-amber-300 animate-pulse'
+                  : 'text-slate-400 group-hover:text-slate-200'
+              }`}
+            >
+              {isPauseRequested ? 'WAIT' : 'PAUSE'}
             </span>
-          </button>
-        </div>
-      ) : (pipelineStatus === 'running' || pipelineActive) ? (
-        /* Single Circular Floating Button During Active Running Development */
-        <button
-          id="pauseDevFabBtn"
-          type="button"
-          onClick={handlePause}
-          title="Pause Development"
-          aria-label="Pause Development"
-          className="w-14 h-14 rounded-full flex items-center justify-center bg-slate-950/[0.15] hover:bg-slate-950/[0.25] text-white border border-white/20 hover:border-white/40 ring-2 ring-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl cursor-pointer transition-all"
-        >
-          <PauseIcon className="w-7 h-7" />
-          <span className="sr-only">Pause &amp; Modify</span>
-        </button>
-      ) : null}
+            <div
+              className={`w-4 h-0.5 rounded-full mt-1 ${
+                isPauseRequested
+                  ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse'
+                  : 'bg-purple-400/80 shadow-[0_0_6px_rgba(168,85,247,0.8)]'
+              }`}
+            />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

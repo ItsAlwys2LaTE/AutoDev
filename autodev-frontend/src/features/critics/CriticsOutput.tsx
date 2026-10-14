@@ -19,7 +19,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
-import { ScrollFade } from '../../components/ScrollFade';
+import { ModernScrollbar } from '../../components/ModernScrollbar';
 import type { CriticFeedback } from '../../types';
 
 export interface CriticsOutputProps {
@@ -73,9 +73,10 @@ export function CriticsOutput({
       <div id="integrationCriticTabs" className="flex gap-1 mb-4 flex-wrap hidden" />
 
       {/* Critic Cards Container (#criticCardsContainer) */}
-      <ScrollFade
+      <ModernScrollbar
         id="criticCardsContainer"
-        className="space-y-4 max-h-[600px] overflow-y-auto pr-1"
+        className="max-h-[600px] w-full pr-1"
+        viewportClassName="space-y-4"
       >
         {isEvaluating && feedbacks.length === 0 && (
           <div className="bg-slate-950/[0.25] backdrop-blur-md p-6 rounded-2xl border border-white/[0.07] text-center space-y-2">
@@ -145,7 +146,7 @@ export function CriticsOutput({
             </div>
           );
         })}
-      </ScrollFade>
+      </ModernScrollbar>
     </div>
   );
 }
