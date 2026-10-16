@@ -23,6 +23,7 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
   const storeIsPauseRequested = useAppStore((s) => s.isPauseRequested);
   const storePipelineStatus = useAppStore((s) => s.pipelineStatus);
   const storeIsComponentMode = useAppStore((s) => s.isComponentMode);
+  const storePostCompletionVisible = useAppStore((s) => s.postCompletionVisible);
 
   const requestPause = useAppStore((s) => s.requestPause);
   const cancelPauseRequest = useAppStore((s) => s.cancelPauseRequest);
@@ -38,6 +39,7 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
   const isPauseRequested = isSSR ? (liveStore?.isPauseRequested ?? storeIsPauseRequested) : storeIsPauseRequested;
   const pipelineStatus = isSSR ? (liveStore?.pipelineStatus ?? storePipelineStatus) : storePipelineStatus;
   const isComponentMode = isSSR ? (liveStore?.isComponentMode ?? storeIsComponentMode) : storeIsComponentMode;
+  const postCompletionVisible = isSSR ? (liveStore?.postCompletionVisible ?? storePostCompletionVisible) : storePostCompletionVisible;
 
   const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 
@@ -46,9 +48,6 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
   if (effStage < 2) {
     return null;
   }
-
-  const storePostCompletionVisible = useAppStore((s) => s.postCompletionVisible);
-  const postCompletionVisible = isSSR ? (liveStore?.postCompletionVisible ?? storePostCompletionVisible) : storePostCompletionVisible;
 
   if (postCompletionVisible) {
     return null;
@@ -158,20 +157,20 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
   return (
     <div
       id="pauseResumeControlContainer"
-      className={`fixed right-4 sm:right-6 top-24 sm:top-28 z-40 select-none flex flex-col items-end gap-3 pointer-events-auto ${className}`}
+      className={`fixed right-4 sm:right-6 bottom-6 sm:bottom-8 z-40 select-none flex flex-col items-end gap-3 pointer-events-auto ${className}`}
     >
       {/* Restart Development Confirmation Modal */}
       {showRestartConfirm && (
         <div
           id="fabRestartConfirmModal"
-          className="bg-slate-950/[0.85] backdrop-blur-3xl border border-white/15 rounded-3xl p-5 shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.14)] w-80 mb-3 animate-in fade-in slide-in-from-bottom-5 text-left"
-          style={{ backdropFilter: 'blur(20px)' }}
+          className="bg-white/95 dark:bg-slate-950/[0.45] backdrop-blur-3xl border border-slate-200 dark:border-white/12 rounded-3xl p-5 shadow-2xl w-80 mb-3 animate-in fade-in slide-in-from-bottom-5 text-left"
+          style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
         >
-          <div className="flex items-center space-x-2 text-amber-400 mb-3">
+          <div className="flex items-center space-x-2 text-amber-500 dark:text-amber-400 mb-3">
             <ArrowPathIcon className="w-6 h-6" />
-            <h3 className="font-semibold text-sm text-slate-100">Restart Development</h3>
+            <h3 className="font-semibold text-sm text-slate-900 dark:text-slate-100">Restart Development</h3>
           </div>
-          <p className="text-xs text-slate-300 mb-4 leading-relaxed">
+          <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
             Are you sure you want to restart development? All current pipeline progress will be reset.
           </p>
           <div className="flex justify-end space-x-3">
@@ -179,7 +178,7 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
               id="fabRestartCancelBtn"
               type="button"
               onClick={() => setShowRestartConfirm(false)}
-              className="px-3 py-1.5 text-xs text-slate-300 hover:text-white bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white hover:bg-slate-50 dark:bg-white/10 dark:hover:bg-white/15 border border-slate-300 dark:border-white/10 rounded-xl transition-colors cursor-pointer shadow-sm"
             >
               Cancel
             </button>
@@ -187,7 +186,7 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
               id="fabRestartConfirmBtn"
               type="button"
               onClick={handleRestartConfirm}
-              className="px-3 py-1.5 text-xs text-white bg-white/15 hover:bg-white/25 border border-white/20 font-medium rounded-xl transition-colors cursor-pointer shadow-md"
+              className="px-3 py-1.5 text-xs text-amber-800 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 dark:text-white dark:bg-white/15 dark:hover:bg-white/25 dark:border-white/20 font-medium rounded-xl transition-colors cursor-pointer shadow-sm"
             >
               Restart
             </button>
@@ -205,8 +204,8 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
             exit={{ opacity: 0, scale: 0.9, y: -4 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             id="fabExpandedActionGroup"
-            className="flex flex-col items-end gap-2.5 p-2 rounded-3xl bg-slate-950/70 backdrop-blur-2xl border border-white/15 shadow-[0_16px_48px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.12)]"
-            style={{ backdropFilter: 'blur(20px)' }}
+            className="flex flex-col items-end gap-2.5 p-2 rounded-3xl bg-white/80 dark:bg-slate-950/[0.28] backdrop-blur-2xl border border-slate-200 dark:border-white/[0.09] shadow-2xl"
+            style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
           >
             {/* 1. Top: Request New Product */}
             <button
@@ -216,10 +215,10 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
               onClick={handleRequestNewProduct}
               title="Request New Product"
               aria-label="Request New Product"
-              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white border border-white/15 backdrop-blur-xl transition-all cursor-pointer shadow-sm hover:scale-105"
+              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-white hover:bg-slate-50 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white border border-slate-300/80 dark:border-white/15 backdrop-blur-xl transition-all cursor-pointer shadow-sm hover:scale-105"
             >
-              <SparklesIcon className="w-5 h-5 text-purple-300" />
-              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
+              <SparklesIcon className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-white text-slate-800 border border-slate-300/80 shadow-xl dark:bg-slate-950/90 dark:text-white dark:border-white/15 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-medium z-50 backdrop-blur-xl">
                 Request New Product
               </span>
             </button>
@@ -232,10 +231,10 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
               onClick={() => setShowRestartConfirm(true)}
               title="Restart Development"
               aria-label="Restart Development"
-              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-white/10 hover:bg-white/20 text-white border border-white/15 backdrop-blur-xl transition-all cursor-pointer shadow-sm hover:scale-105"
+              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-white hover:bg-slate-50 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white border border-slate-300/80 dark:border-white/15 backdrop-blur-xl transition-all cursor-pointer shadow-sm hover:scale-105"
             >
-              <ArrowPathIcon className="w-5 h-5 text-amber-300" />
-              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
+              <ArrowPathIcon className="w-5 h-5 text-amber-600 dark:text-amber-300" />
+              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-white text-slate-800 border border-slate-300/80 shadow-xl dark:bg-slate-950/90 dark:text-white dark:border-white/15 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-medium z-50 backdrop-blur-xl">
                 Restart Development
               </span>
             </button>
@@ -248,10 +247,10 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
               onClick={handleResumeClick}
               title="Resume Development"
               aria-label="Resume Development"
-              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-200 hover:text-white border border-emerald-400/40 backdrop-blur-xl transition-all cursor-pointer shadow-md hover:scale-105"
+              className="group relative w-11 h-11 rounded-2xl flex items-center justify-center bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-500/25 dark:hover:bg-emerald-500/40 dark:text-emerald-200 dark:hover:text-white border border-emerald-300 dark:border-emerald-400/40 backdrop-blur-xl transition-all cursor-pointer shadow-sm hover:scale-105"
             >
-              <PlayIcon className="w-5 h-5 ml-0.5" />
-              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-slate-950/90 text-white text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl border border-white/15 font-medium z-50 backdrop-blur-xl">
+              <PlayIcon className="w-5 h-5 ml-0.5 text-emerald-600 dark:text-emerald-200" />
+              <span className="absolute right-14 px-3 py-1.5 rounded-xl bg-white text-slate-800 border border-slate-300/80 shadow-xl dark:bg-slate-950/90 dark:text-white dark:border-white/15 text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none font-medium z-50 backdrop-blur-xl">
                 Resume Development
               </span>
             </button>
@@ -275,23 +274,23 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
             aria-label={isPauseRequested ? 'Cancel Pending Pause' : 'Pause Development'}
             className={`group flex flex-col items-center justify-center w-12 h-14 rounded-2xl ${
               isPauseRequested
-                ? 'bg-amber-950/45 hover:bg-amber-950/70 border-amber-400/40 shadow-[0_0_16px_rgba(251,191,36,0.3)]'
-                : 'bg-slate-950/45 hover:bg-slate-950/70 border-white/15 hover:border-white/35 shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]'
+                ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 dark:bg-amber-950/45 dark:hover:bg-amber-950/70 dark:border-amber-400/40 shadow-[0_0_16px_rgba(251,191,36,0.25)]'
+                : 'bg-white/90 hover:bg-white border-slate-300/80 hover:border-slate-400 dark:bg-slate-950/[0.28] dark:hover:bg-slate-950/[0.45] dark:border-white/[0.09] dark:hover:border-white/20 shadow-lg'
             } backdrop-blur-2xl border cursor-pointer transition-all hover:scale-105`}
-            style={{ backdropFilter: 'blur(16px)' }}
+            style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
           >
             <PauseIcon
               className={`w-5 h-5 transition-colors ${
                 isPauseRequested
-                  ? 'text-amber-300 animate-pulse'
-                  : 'text-white/90 group-hover:text-purple-300'
+                  ? 'text-amber-600 dark:text-amber-300 animate-pulse'
+                  : 'text-slate-700 dark:text-white/90 group-hover:text-purple-600 dark:group-hover:text-purple-300'
               }`}
             />
             <span
               className={`text-[9px] font-mono tracking-widest font-semibold uppercase leading-none mt-1 ${
                 isPauseRequested
-                  ? 'text-amber-300 animate-pulse'
-                  : 'text-slate-400 group-hover:text-slate-200'
+                  ? 'text-amber-700 dark:text-amber-300 animate-pulse'
+                  : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'
               }`}
             >
               {isPauseRequested ? 'WAIT' : 'PAUSE'}
@@ -299,8 +298,8 @@ export function PauseModifyFAB({ currentStage, className = '' }: PauseModifyFABP
             <div
               className={`w-4 h-0.5 rounded-full mt-1 ${
                 isPauseRequested
-                  ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse'
-                  : 'bg-purple-400/80 shadow-[0_0_6px_rgba(168,85,247,0.8)]'
+                  ? 'bg-amber-500 dark:bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] animate-pulse'
+                  : 'bg-purple-500 dark:bg-purple-400/80 shadow-[0_0_6px_rgba(168,85,247,0.8)]'
               }`}
             />
           </motion.button>

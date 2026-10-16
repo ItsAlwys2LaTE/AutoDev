@@ -36,6 +36,13 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
   const totalCount = pipelineQueue.length;
   const allPassed = totalCount > 0 && passedCount === totalCount;
 
+  // Prime auto-advance while components are actively running
+  React.useEffect(() => {
+    if (!allPassed && totalCount > 0) {
+      useAppStore.getState().resetAutoAdvanceStage('stage-5-pipeline');
+    }
+  }, [allPassed, totalCount]);
+
   // Immediately unlock Stage 6 (Integration Engine) when all components pass
   React.useEffect(() => {
     if (allPassed) {
@@ -46,7 +53,7 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
   // Auto-advance to integration phase only when components transition to allPassed
   // Pauses seamlessly when development is paused, and resumes remaining time when resumed
   usePausableAutoAdvance({
-    durationMs: 10000,
+    durationMs: 2500,
     onAdvance,
     targetStage: 6,
     enabled: Boolean(allPassed && (pipelineStatus === 'running' || !integratedCodebase)),
@@ -59,20 +66,20 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
       className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-2 space-y-2.5 sm:space-y-3 select-none ${className}`}
     >
       {/* ── Top Header matching Requirements and Decomposition agents with Toggle on right ── */}
-      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+      <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-white/[0.07]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
-              <RectangleGroupIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-slate-800 dark:text-white/90 shadow-sm shrink-0">
+              <RectangleGroupIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 dark:text-white/90" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
               Component Pipeline Agent
             </h2>
           </div>
 
           {/* Visualizer vs Componentwise Toggle on right side of title */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex items-center p-1 rounded-full bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.08] shadow-inner relative">
+            <div className="flex items-center p-1 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.08] shadow-sm relative">
               <motion.button
                 id="togglePipelineVisualizerBtn"
                 type="button"
@@ -80,14 +87,14 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
                 onClick={() => setViewMode('visualizer')}
                 className={`relative px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-150 cursor-pointer whitespace-nowrap ${
                   viewMode === 'visualizer'
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-slate-900 dark:text-white font-bold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {viewMode === 'visualizer' && (
                   <motion.div
                     layoutId="stagePipelineViewModeGlider"
-                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                    className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                     transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                   />
                 )}
@@ -100,14 +107,14 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
                 onClick={() => setViewMode('componentwise')}
                 className={`relative px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-150 cursor-pointer whitespace-nowrap ${
                   viewMode === 'componentwise'
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-slate-900 dark:text-white font-bold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {viewMode === 'componentwise' && (
                   <motion.div
                     layoutId="stagePipelineViewModeGlider"
-                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                    className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                     transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                   />
                 )}
@@ -117,10 +124,11 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
           </div>
         </div>
 
-        <p className="text-xs md:text-sm text-slate-300">
+        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
           Autonomous parallel component development, code synthesis, container testing, and multi-critic arbitration.
         </p>
       </div>
+
 
       {/* ── Main View Body with Dynamic ScrollFade ── */}
       <ScrollFade className="flex-1 min-h-0 overflow-y-auto">
@@ -141,6 +149,7 @@ export const StageComponentPipeline: React.FC<StageComponentPipelineProps> = ({
           <div className="pt-0.5">
             <PipelineDashboard
               alwaysRender={true}
+              showIntegration={false}
               onIntegrate={() => onAdvance(6)}
             />
           </div>

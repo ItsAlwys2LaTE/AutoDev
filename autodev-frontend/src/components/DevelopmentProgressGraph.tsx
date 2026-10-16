@@ -230,24 +230,24 @@ export const DevelopmentProgressGraph: React.FC<DevelopmentProgressGraphProps> =
   return (
     <div
       id="developmentProgressGraph"
-      className={`rounded-2xl bg-black/30 border border-white/[0.07] p-3.5 sm:p-4 space-y-3 shadow-inner ${className}`}
+      className={`rounded-2xl bg-white/80 dark:bg-black/30 border border-slate-200 dark:border-white/[0.07] p-3.5 sm:p-4 space-y-3 shadow-sm ${className}`}
     >
       {/* ── Graph Header ── */}
-      <div className="flex items-center justify-between pb-2 border-b border-white/10 flex-wrap gap-2">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <ChartBarIcon className="w-4 h-4 text-emerald-400" />
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-100">
+          <ChartBarIcon className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-slate-100">
             Development Lifecycle Progression Graph
           </h4>
         </div>
-        <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+        <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
           <ClockIcon className="w-3.5 h-3.5 text-slate-400" />
-          <span>Cumulative Execution: <strong className="text-emerald-300 font-bold">{formatDurationLabel(phaseStats.totalDuration)}</strong></span>
+          <span>Cumulative Execution: <strong className="text-emerald-700 dark:text-emerald-300 font-bold">{formatDurationLabel(phaseStats.totalDuration)}</strong></span>
         </div>
       </div>
 
       {/* ── Animated SVG Velocity Curve Canvas ── */}
-      <div className="relative w-full h-[125px] sm:h-[135px] overflow-hidden rounded-xl bg-slate-950/[0.2] border border-white/[0.04]">
+      <div className="relative w-full h-[125px] sm:h-[135px] overflow-hidden rounded-xl bg-slate-50 dark:bg-slate-950/[0.2] border border-slate-200 dark:border-white/[0.04]">
         <svg
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           className="w-full h-full preserve-3d"
@@ -403,8 +403,8 @@ export const DevelopmentProgressGraph: React.FC<DevelopmentProgressGraphProps> =
               title={`${phase.label}: ${formatDurationLabel(phase.duration)}`}
               className={`rounded-lg sm:rounded-xl p-1.5 sm:p-2 transition-all duration-200 border cursor-pointer flex flex-col justify-between ${
                 isHovered
-                  ? 'bg-white/10 border-white/30 shadow-md scale-[1.02]'
-                  : 'bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.05]'
+                  ? 'bg-slate-100 border-slate-300 dark:bg-white/10 dark:border-white/30 shadow-md scale-[1.02]'
+                  : 'bg-slate-50/80 hover:bg-slate-100/90 border-slate-200 dark:bg-white/[0.02] dark:hover:bg-white/[0.05] dark:border-white/[0.05]'
               }`}
             >
               {/* Top Row: Icon on left, Development Time on right side of title */}
@@ -415,14 +415,14 @@ export const DevelopmentProgressGraph: React.FC<DevelopmentProgressGraphProps> =
                 >
                   <Icon className="w-2.5 h-2.5" />
                 </div>
-                <span className="text-[9.5px] font-mono font-semibold text-emerald-400 shrink-0 leading-none">
+                <span className="text-[9.5px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 shrink-0 leading-none">
                   {formatDurationLabel(phase.duration)}
                 </span>
               </div>
 
               {/* Agent Name kept below where it was originally */}
               <div>
-                <p className="text-[10px] font-bold text-slate-200 truncate leading-tight" title={phase.label}>
+                <p className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight" title={phase.label}>
                   {phase.shortLabel}
                 </p>
               </div>

@@ -1,798 +1,518 @@
-# AutoDev: Autonomous Multi-Agent Software Engineering Platform
+# AutoDev
 
-**Production Build: v3.6.0-Prod (Master Edition)**
+**Autonomous Multi-Agent Software Engineering Platform -- v3.0.0**
 
-**System Classification:** Autonomous Multi-Agent Software Engineering Platform | Built with Python 3.11+, FastAPI, Docker Engine, LangGraph, React 19, TypeScript 5.x, Vite 6, Tailwind CSS, Monaco Editor, Framer Motion, and WebGPU / WebGL OGL.
+AutoDev is an autonomous software engineering platform that converts natural-language product descriptions into fully realized, production-ready, multi-file software repositories. The system models the disciplined workflows of high-performing engineering teams through a coordinated network of specialized AI agents, a mathematical DAG-based parallel pipeline scheduler, an integrated multi-critic arbitration network, and a glassmorphic real-time dashboard.
 
-AutoDev is an autonomous, full-stack Software Development Life Cycle (SDLC) engineering platform that converts natural-language feature requests into fully realized, production-ready, multi-file software repositories. Rather than relying on fragile single-prompt code generation, AutoDev models the disciplined engineering methodologies of high-performing software teams. The system compiles requirements into formal specifications, decomposes complex architectures into mathematical Directed Acyclic Graphs (DAGs) of modular components, schedules concurrent development tracks using lease-backed single-occupancy locks, executes polyglot codebases inside isolated Docker sandboxes, verifies correctness through a LangGraph-powered multi-critic peer review network, and synthesizes components into unified, tested, and documented software packages.
+Users describe what they want to build in plain English. AutoDev handles everything else: requirements formalization, architectural decomposition, concurrent component development, code generation, automated testing, peer review arbitration, cross-component integration, documentation synthesis, and live preview rendering.
 
 ---
 
 ## Table of Contents
 
-1. [System Overview](#1-system-overview)
-2. [Core Features](#2-core-features)
-3. [System Architecture](#3-system-architecture)
-4. [Technology Stack](#4-technology-stack)
-5. [Autonomous Multi-Agent Subsystems](#5-autonomous-multi-agent-subsystems)
-6. [Parallel DAG Pipeline Scheduler & Concurrency Control](#6-parallel-dag-pipeline-scheduler--concurrency-control)
-7. [Smart API Key Balancer & Resilience Subsystem](#7-smart-api-key-balancer--resilience-subsystem)
-8. [Universal Docker Sandbox & Live Preview Engine](#8-universal-docker-sandbox--live-preview-engine)
-9. [Frontend UI & Embedded Monaco IDE](#9-frontend-ui--embedded-monaco-ide)
-10. [Data Models & State Schemas](#10-data-models--state-schemas)
-11. [API Reference](#11-api-reference)
-12. [Setup & Execution](#12-setup--execution)
-13. [Environment Variables](#13-environment-variables)
-14. [Build System & Evolutionary Milestones](#14-build-system--evolutionary-milestones)
+1. [System Architecture](#1-system-architecture)
+2. [The 12-Stage Development Pipeline](#2-the-12-stage-development-pipeline)
+3. [Multi-Agent Subsystem](#3-multi-agent-subsystem)
+4. [Parallel DAG Pipeline Engine](#4-parallel-dag-pipeline-engine)
+5. [Arbitration and Revision System](#5-arbitration-and-revision-system)
+6. [Smart API Key Balancer](#6-smart-api-key-balancer)
+7. [User Interface](#7-user-interface)
+8. [Authentication and User Profiles](#8-authentication-and-user-profiles)
+9. [Technology Stack](#9-technology-stack)
+10. [Project Structure](#10-project-structure)
+11. [Setup and Installation](#11-setup-and-installation)
+12. [Environment Variables](#12-environment-variables)
+13. [Running the Application](#13-running-the-application)
+14. [Testing](#14-testing)
 15. [Contributors](#15-contributors)
 
 ---
 
-## 1. System Overview
+## 1. System Architecture
 
-AutoDev operates across two primary operational paradigms tailored to project scale:
-
-- **Component-Wise Parallel DAG Mode (Complex Systems)** — For large-scale or multi-tier applications, the Master Architect decomposes requirements into an acyclic graph of loosely coupled components (e.g., Auth Service, Payment Gateway, Task API). Each component executes independently through staged tracks (`DESIGN` $\to$ `CODEGEN` $\to$ `CRITICS`), scheduled concurrently via a mathematical DAG engine. Passing components are merged by an Integrator Agent with unified routing and end-to-end tests.
-- **Single-Pass Autonomous SDLC Mode (Direct Features)** — For focused modules and utility scripts, AutoDev executes a direct linear pipeline from requirements formalization to architectural blueprinting, multi-file code generation, automated Docker testing, multi-critic peer review, and documentation synthesis.
-
-### End-to-End Autonomous Lifecycle
+AutoDev is structured as a monorepo with a FastAPI backend serving both the REST API and the production frontend build. The backend orchestrates all AI agent interactions through Google Gemini models, while the React frontend provides a real-time glassmorphic dashboard for monitoring and interacting with every stage of the development lifecycle.
 
 ```
-[ Natural Language Feature Request ]
-                │
-                ▼
-[ Product Enquiry Agent ] ──────────────> Plain-English Summary, Strategy & Clarifications
-                │
-                ▼
-[ Requirements Modeling Agent ] ──────────> RequirementsDocument (User Stories & Acceptance Criteria)
-                │
-                ▼
-[ Master Architect Agent ] ───────────────> ComponentDecomposition (Acyclic Dependency Graph)
-                │
-                ▼
-[ Parallel DAG Pipeline Scheduler ] ──────> Kahn Topological Sort & Lease-Backed StageMutex
-                │
-      ┌─────────┴─────────┐
-      ▼                   ▼
-[ Component Track 1 ] [ Component Track N ]
-      │                   │
-      ├─ DESIGN Stage (SystemDesignBlueprint & Pseudocode)
-      ├─ CODEGEN Stage (Multi-File Polyglot Codebase & Unit Tests)
-      └─ CRITICS Stage (Docker Sandbox + Correctness, Architecture & Completeness Peer Review)
-      │                   │
-      └─────────┬─────────┘
-                ▼
-[ Multi-Component Integrator Agent ] ─────> Unified Repositories, Cross-Module Wiring & E2E Tests
-                │
-                ▼
-[ Documentation Generation Agent ] ───────> Comprehensive README.md, USER_GUIDE.md & ZIP Bundle
+                        +---------------------+
+                        |   Browser Client    |
+                        |  (React + Vite SPA) |
+                        +----------+----------+
+                                   |
+                            HTTP / SSE
+                                   |
+                        +----------v----------+
+                        |   FastAPI Backend    |
+                        |   (Uvicorn ASGI)     |
+                        +----------+----------+
+                                   |
+              +--------------------+--------------------+
+              |                    |                    |
+     +--------v--------+  +-------v--------+  +-------v--------+
+     | Key Balancer     |  | DAG Scheduler  |  | Auth System    |
+     | (7 API Keys,     |  | (Kahn Sort,    |  | (JWT, OAuth,   |
+     |  Rate Limiting,  |  |  Lease Locks,  |  |  MongoDB Atlas)|
+     |  Backoff)        |  |  Concurrency)  |  |                |
+     +--------+---------+  +-------+--------+  +----------------+
+              |                    |
+     +--------v--------+  +-------v--------+
+     | Gemini Models    |  | Agent Network  |
+     | (gemini-3.5-     |  | (10 Agents)    |
+     |  flash-lite,     |  |                |
+     |  gemini-3.6-     |  +----------------+
+     |  flash)          |
+     +-----------------+
 ```
 
 ---
 
-## 2. Core Features
+## 2. The 12-Stage Development Pipeline
 
-| Feature | Description |
-|---|---|
-| **3D LightRays WebGL Background** | Real-time volumetric light ray simulation rendered with OGL WebGL shader primitives, featuring dynamic cursor rotation tracking, atmospheric noise jitter, and customizable beam dispersion |
-| **Autonomous Cursive Logo Animation** | Hand-drawn SVG stroke-by-stroke cursive animation in Alex Brush calligraphy with a smooth, instant solid white fill transition upon stroke completion |
-| **Sequential Hero Reveal Choreography** | Staggered arrival sequence delaying subtitle tagline (+300ms) and Get Started CTA (+600ms) until logo calligraphy finishes drawing |
-| **SpecularButton Controls** | Dynamic WebGL shader button with real-time mouse specular reflections and edge refraction, powering the primary CTA and circular DarkModeToggle |
-| **3-Page Distinct Routing** | Clean routing separating Landing hero (`StageLanding`), Authentication/Sign-in (`StageSignIn`), and Main System presentation shell |
-| **Apple iOS Obsidian Glassmorphic UI** | Deep frosted obsidian translucency (`bg-slate-950/[0.25]`, `backdrop-blur-md`), delicate specular refraction borders (`border-white/[0.07]`), liquid pill toggles, and colourless `SpecularButton` controls |
-| **AeroShards 3D WebGPU Background** | Full-viewport dynamic wind sculpture rendered via WebGPU with real-time pointer repulsion and graceful CSS ambient gradient fallback |
-| **Container-Level Sliding Stage Transitions** | Smooth container-level spring-based sliding transitions (`forward` and `backward`) with subtle glass blur across all 11 stages powered by Framer Motion |
-| **Product Enquiry Agent** | Interactive Stage 2 agent offering plain-English understanding summaries, transparent implementation strategies, default engineering assumptions, non-trivial clarifying questions (0-3 max), and non-software request handling prior to requirements compilation |
-| **Space-Time Pipeline Visualizer** | 2D continuous matrix tracking execution timestamps (T1, T2...), auto-advancing past the 8th timestamp, auto-scrolling horizontally, and ensuring T1 is never blank |
-| **Liquid Pipeline Accordion Animations** | Spring-eased height interpolation and 180-degree rotating chevrons for smooth expanding and collapsing of component track containers |
-| **Unified Integration Agent Hub** | Single consolidated Stage 6 integration workspace with top-right pill toggles to seamlessly slide between `Codegen`, `Testing`, and `Evaluation` sub-agents |
-| **Dedicated Final Source Code Stage** | Dedicated Stage 7 code explorer displaying the finalized production codebase resulting from rigorous multi-critic adjudication without revision noise |
-| **Multi-Device Live Preview Simulation** | Stage 8 responsive container supporting interactive Desktop, Tablet (camera dot, tablet bezel), and Mobile (Dynamic Island pill notch, home indicator bar, compact resilient control bar) viewports |
-| **Radiant Product Development Status Hue** | Vivid dual-state status container with deep green multi-stop gradient for successful builds and deep red for aborted pipelines |
-| **Development Lifecycle Progression Graph** | Stage 9 animated SVG milestone velocity curve alongside compact agent-wise duration metrics strip below the graph |
-| **Strict Hardcoded Revision Quotas** | Enforces hard limits: pipeline component phase allows up to 3 revisions max, integration phase allows up to 5 revisions max |
-| **One-Click GitHub Export Modal** | Final-screen modal prompting for Username, Repository Name, and Personal Access Token (PAT) with browser session persistence, creating and committing the full repository via GitHub REST API |
-| **Dynamic Floating Action Button (FAB)** | Single circular pause button during active development that expands into 3 actions (Resume, Restart, Request New Product) when paused |
-| **In-Memory Multi-Phase Editing & Earliest Rewind** | Allows editing Requirements, Blueprints, and Integration Code while paused, automatically detecting modified phases and rewinding execution from the earliest modified stage |
-| **11-Stage SDLC Presentation Shell** | Full 11-stage presentation shell covering prompt ingestion, conditional clarifications, specs, DAG, integration hub, final source code, live preview, and results |
-| **Maximized Central Stage Geometry** | Dedicated stage workspace box occupying $\approx 80\%$ viewport height for distraction-free code and architecture review |
-| **Dynamic Edge-Hover Navigation** | Ghosted side chevrons (`<` and `>`) revealed dynamically when hovering near screen borders, minimizing UI chrome |
-| **Dedicated "Request New Product" Flow** | One-click atomic store reset on results view to immediately start building another software product with SpecularButton styling |
-| **Autonomous Requirements Modeling** | Translates unstructured user prompts into structured `RequirementsDocument` schemas with user stories and testable acceptance criteria |
-| **Master Architect Decomposition** | Partitions complex applications into modular, decoupled component specifications with explicit dependency edges and priority scoring |
-| **Parallel DAG Pipeline Scheduler** | Graph-theoretic scheduler executing Kahn's topological sort, Tarjan's SCC cycle detection, and layered concurrency across components |
-| **Deadlock-Free Stage Mutex** | Implements lease-backed locks with monotonic epoch fencing and atomic 2-phase handover, eliminating Coffman's hold-and-wait deadlock |
-| **Priority Min-Heap Queue** | Dispatches ready components using a priority queue with a $-10,000$ priority score bonus for revised components to prevent pipeline stalls |
-| **Polyglot Code Generation** | Produces production-ready typed code across Python, JavaScript, TypeScript, React, HTML/CSS, and shell scripts |
-| **Universal Docker Sandbox v2.0** | Executes generated test suites inside ephemeral, isolated Docker containers with automated dependency injection (`pip`, `npm`) |
-| **Dynamic Live Preview Engine** | Dynamically forwards development server ports (Vite, Next.js, HTTP servers) from Docker containers to browser preview iframes |
-| **LangGraph Multi-Critic Arbitration** | Parallel peer-review network with Correctness (Gemini), Architecture (Mistral), and Completeness (Gemini) peer reviewers |
-| **Smart API Key Balancer** | Manages a 6-key Gemini pool and isolated Mistral key with Least-Connections routing, rate-limit tracking, and automatic cooldown decay |
-| **Multi-Tier Model Fallback Matrix** | Implements graceful degradation: Tier 1 (`gemini-3.6-flash`) $\to$ Tier 2 (`gemini-3.5-flash-lite`) $\to$ Tier 3 (Mistral to Gemini pool failover) |
-| **Universal Exponential Backoff** | Polymorphic decorator (`@with_exponential_backoff`) supporting sync/async functions, streams, full jitter, and error classification |
-| **Embedded Monaco IDE** | Integrated VS Code editor with multi-file tabs, syntax highlighting, live editing, and revision diff comparison |
-| **Rich-Text Document Editors** | User-friendly rich-text editors for requirements and blueprints with LLM-backed schema re-parsing |
-| **Real-Time SSE Streaming** | Token-by-token streaming across all generation endpoints via Server-Sent Events (SSE) |
-| **Live Terminal Log Drawer** | Collapsible real-time SSE log terminal streaming backend engine events, agent activations, and test logs |
-| **Prompt Guard Security Filter** | Defends against prompt injection attacks, system prompt extraction, and malformed/vague input prompts |
-| **One-Click Production ZIP Export** | Bundles full project trees (source code, test suites, blueprints, documentation) into a downloadable `.zip` file via JSZip |
-| **Write-Ahead State Store (WASS)** | Durable append-only event journal (`pipeline_events.jsonl`) and atomic snapshot checkpointing for crash recovery |
-| **Targeted Differential Revision** | Surgically extracts and refactors only broken files via AST/regex error parsing, eliminating whole-codebase token waste and regressions |
-| **Hybrid Verification Strategy** | Decouples verification posture: production build compilation (`npm run build`) for UI vs comprehensive unit tests (`pytest`/`vitest`) for logic |
-| **Python Sandbox Hardening** | Auto-injects `python-multipart` and pins transitive conflicts (`pymongo<4.8`), enforcing defensive dictionary access and Motor mock patterns |
-| **Dynamic Abort/Retry Control Plane** | Stateful pipeline cancellation with single-click "Retry Development" pipeline restart and live terminal connection telemetry |
+AutoDev operates through a 12-stage sequential pipeline. Each stage represents a distinct phase of the software development lifecycle, from initial authentication through to post-development support.
+
+| Stage | Name | Description |
+|-------|------|-------------|
+| 1 | **Sign In** | User authentication via email/password or Google OAuth. |
+| 2 | **Product Request** | User enters a natural-language description of the software they want built. |
+| 3 | **Product Enquiry Agent** | AI agent analyzes the request, generates a product summary, development strategy, technology recommendations, and follow-up clarification questions. |
+| 4 | **Requirements** | Requirements Modeling Agent transforms the product description into a structured requirements document with user stories and acceptance criteria. |
+| 5 | **Decomposition** | Master Architect Agent decomposes the architecture into a Directed Acyclic Graph (DAG) of modular components with explicit dependency edges. |
+| 6 | **Component Pipeline** | Parallel DAG-scheduled execution of each component through Design, Codegen, Sandbox Testing, and Critics/Arbitration stages. Components with no unmet dependencies execute concurrently. |
+| 7 | **Integration** | Integration Agent merges all completed components into a unified codebase with shared routing, imports, and end-to-end test coverage. Includes integration-level critic arbitration. |
+| 8 | **Final Source Code** | Complete synthesized codebase displayed in an embedded Monaco IDE with file explorer, syntax highlighting, and download/export options. |
+| 9 | **Live Preview** | Responsive multi-device viewport emulation (desktop, tablet, iPhone, iPad) with Dynamic Island bezels for mobile previews. |
+| 10 | **Development Results** | Final results dashboard with development progression graph, Gantt chart with chronological phase durations, session cost metrics, and one-click GitHub export. |
+| 11 | **Post-Dev Support (beta)** | Users can submit natural-language modification or enhancement requests against the generated codebase. |
+| 12 | **Post-Dev Execution (beta)** | Refactor Agent processes the modification request and produces updated source code. |
 
 ---
 
-## 3. System Architecture
+## 3. Multi-Agent Subsystem
+
+AutoDev coordinates 10 specialized AI agents, each responsible for a distinct phase of the development lifecycle:
+
+| Agent | Role | Stage |
+|-------|------|-------|
+| **Product Enquiry Agent** | Analyzes the raw product request and produces a structured summary with development strategy, technology recommendations, and clarifying follow-up questions. | 3 |
+| **Requirements Agent** | Converts the product description into formal user stories, acceptance criteria, and technical constraints. | 4 |
+| **Master Architect** | Decomposes the requirements into a DAG of loosely-coupled components with dependency edges, interface contracts, and data flow specifications. | 5 |
+| **Design Agent** | Generates detailed architectural blueprints for each component: module structure, API contracts, data models, and integration interfaces. | 6 |
+| **Codegen Agent** | Produces multi-file source code implementations from the design blueprint, respecting the specified technology stack and coding conventions. | 6 |
+| **Critic Agents (3x)** | Three independent peer reviewers (Correctness, Completeness, Architecture) evaluate generated code against the blueprint and requirements. | 6 |
+| **Master Adjudicator** | Synthesizes critic verdicts into a final pass/fail decision with consolidated revision directives. | 6 |
+| **Integration Agent** | Merges all passing component codebases into a unified project with shared configuration, routing, and cross-component test coverage. | 7 |
+| **Documentation Agent** | Generates README, user guides, and inline documentation for the completed project. | 7 |
+| **Refactor Agent** | Processes post-development modification requests and produces targeted code changes. | 12 |
+
+---
+
+## 4. Parallel DAG Pipeline Engine
+
+The Component Pipeline (Stage 6) uses a mathematical DAG engine to maximize development throughput through concurrent execution.
+
+**How it works:**
+
+1. The Master Architect decomposes requirements into components with explicit dependency edges (e.g., "Auth Service" must complete before "Dashboard" can begin).
+2. The DAG engine performs a topological sort (Kahn's algorithm) to determine valid execution orderings.
+3. Components with all dependencies satisfied are scheduled concurrently.
+4. Each component progresses through a staged track: Design, Codegen, Sandbox Execution, and Critics/Arbitration.
+5. Lease-backed single-occupancy locks prevent duplicate scheduling of the same component.
+6. Passing components are released to dependents; failing components enter a bounded revision loop (max 3 iterations).
+
+**Component Track Lifecycle:**
 
 ```
-+====================================================================================================+
-|                                    AUTODEV FULL-STACK TOPOLOGY                                     |
-+====================================================================================================+
-|                                                                                                    |
-|  +----------------------------------------------------------------------------------------------+  |
-|  |                 BROWSER CLIENT DASHBOARD (backend/index.html - ES6 / Tailwind)               |  |
-|  |                                                                                              |  |
-|  |  +------------------------+  +---------------------------+  +-----------------------------+  |  |
-|  |  | 5-Stage Stepper Header |  | Component Visualizer Grid |  | Embedded Monaco IDE         |  |  |
-|  |  | Real-Time Cost Tracker |  | Horizontal Carousel Cards |  | Multi-File Diff Viewer      |  |  |
-|  |  +------------------------+  +---------------------------+  +-----------------------------+  |  |
-|  |              │                             │                               │                 |  |
-|  |              ▼                             ▼                               ▼                 |  |
-|  |  +----------------------------------------------------------------------------------------+  |  |
-|  |  |             Live SSE Log Stream Drawer & Docker Interactive Preview Sandbox            |  |  |
-|  |  +----------------------------------------------------------------------------------------+  |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                                                │                                                   |
-|                        HTTP REST / SSE Stream  │  Polling Loop (/api/pipeline/tick)                |
-|                                                ▼                                                   |
-|  +----------------------------------------------------------------------------------------------+  |
-|  |                               FASTAPI APPLICATION (backend/main.py)                          |  |
-|  |                                                                                              |  |
-|  |  +---------------------+   +-----------------------+   +----------------------------------+  |  |
-|  |  | Core Workflow APIs  |   | Concurrency & DAG API |   | Log Stream & Security Router     |  |  |
-|  |  | /api/generate-*     |   | /api/pipeline/*       |   | /api/logs/stream, PromptGuard    |  |  |
-|  |  +---------------------+   +-----------------------+   +----------------------------------+  |  |
-|  +----------------------------------------------------------------------------------------------+  |
-|                 │                                                     │                            |
-|                 ▼                                                     ▼                            |
-|  +--------------------------------------------+     +-------------------------------------------+  |
-|  |   AUTODEV DAG ENGINE (backend/autodev_...) |     |  SMART API KEY BALANCER (autodev_balancer)|  |
-|  |                                            |     |                                           |  |
-|  |  - PipelineDAG (Kahn / Tarjan SCC / FAS)   |     |  - KeyPoolManager (6x Gemini, 1x Mistral) |  |
-|  |  - StageLockManager (StageMutex + Epoch)   |     |  - StrictStageReservationGuard (Mistral)  |  |
-|  |  - StageQueueManager (Min-Heap + -10k Rev) |     |  - HealthTracker (Exponential Cooldown)   |  |
-|  |  - StageHandoverProtocol (2-Phase Handover)|     |  - FallbackMatrixEngine (3.6 -> 3.5 -> Lite)|
-|  |  - WASS Journal & CrashRecoveryEngine     |     |  - Universal Backoff (@with_backoff)      |  |
-|  +--------------------------------------------+     +-------------------------------------------+  |
-|                 │                                                     │                            |
-|                 ▼                                                     ▼                            |
-|  +--------------------------------------------+     +-------------------------------------------+  |
-|  |       DOCKER EXECUTION SANDBOX ENGINE      |     |         MULTI-MODEL CLOUD PROVIDERS       |  |
-|  |  - Ephemeral Container Isolation          |     |  - Google Gemini (gemini-3.6-flash, etc.) |  |
-|  |  - Auto-Dependency Injection (npm / pip)   |     |  - Mistral AI (mistral-small-latest)      |  |
-|  |  - Dynamic Live Preview Port Forwarding    |     |  - Groq Open-Weight Infrastructure        |  |
-|  +--------------------------------------------+     +-------------------------------------------+  |
-+====================================================================================================+
+queued -> designing -> coding_queued -> coding -> critic_queued ->
+critics -> [PASS: synthesized] | [FAIL: revision loop -> designing]
 ```
 
 ---
 
-## 4. Technology Stack
+## 5. Arbitration and Revision System
 
-### Backend & Core Infrastructure
-- **FastAPI** — High-performance asynchronous HTTP REST framework and routing engine
-- **Uvicorn** — Production ASGI web server serving endpoints and streaming connections
-- **Pydantic (v2)** — Strict runtime schema validation, data serialization, and model definitions
-- **LangGraph & LangChain Core** — StateGraph-based multi-agent orchestration and consensus arbitration
-- **Docker SDK for Python (`docker`)** — Dynamic container lifecycle management, image pulling, and sandbox execution
-- **SQLAlchemy** — Relational database modeling and transactional state management
-- **python-dotenv** — Environment configuration and multi-tier credential discovery
+Code quality is enforced through a multi-critic peer review network:
 
-### AI Inference & Provider SDKs
-- **Google GenAI SDK (`google-genai`)** — Primary model connectivity (`gemini-3.6-flash`, `gemini-3.5-flash-lite`)
-- **Mistral AI SDK (`mistralai`)** — Specialized architectural peer review (`mistral-small-latest`)
-- **Groq SDK (`groq`)** — High-throughput open-weight model acceleration and fallbacks
+1. **Three Independent Critics** evaluate each component's generated code:
+   - Correctness Critic: verifies functional accuracy against requirements.
+   - Completeness Critic: checks for missing features, edge cases, and error handling.
+   - Architecture Critic: evaluates structural quality, modularity, and design patterns.
 
-### Frontend & User Interface
-- **React 19 & TypeScript 5.x** — Strict typed component architecture with reactive state management powered by Zustand
-- **Vite 6** — Ultra-fast development server and optimized production bundler compiling directly to `backend/dist`
-- **Tailwind CSS** — Custom obsidian glassmorphic styling system with backdrop blur, specular borders, and liquid curves
-- **Apple iOS Obsidian Glassmorphic Design** — Deep frosted base (`bg-slate-950/[0.08]`), specular refraction borders (`border-white/[0.07]`), and liquid pill controls
-- **React Bits AeroShards (WebGPU)** — Full-viewport dynamic wind sculpture with pointer-repel physics and graceful ambient CSS fallback
-- **Framer Motion** — Directional sliding stage transitions, spring-physics layout animations, and bouncy pill toggles
-- **Monaco Editor** — Embedded VS Code browser editing engine with multi-file tabs, syntax highlighting, and side-by-side diff comparison
-- **Server-Sent Events (SSE)** — Real-time token streaming and log output broadcasting
-- **JSZip & FileSaver.js** — In-browser compression and one-click ZIP codebase exports
+2. **Master Adjudicator** synthesizes all three critic reports into a unified verdict:
+   - **PASS**: Component advances to synthesized status.
+   - **FAIL**: Component re-enters the design phase with consolidated revision directives.
+
+3. **Bounded Revision Loops**: Maximum 3 revision iterations per component during pipeline execution, and maximum 5 revisions during the integration phase.
+
+4. **Integration-Level Arbitration**: After all components are merged, the integrated codebase undergoes its own critic review and arbitration cycle.
 
 ---
 
-## 5. Autonomous Multi-Agent Subsystems
+## 6. Smart API Key Balancer
 
-AutoDev organizes software engineering responsibilities into specialized agent personas:
+The Key Balancer manages up to 7 dedicated Google Gemini API keys, distributing them across pipeline stages to prevent rate limiting and maximize throughput.
 
-### 5.1 Product Enquiry Agent (`backend/agents/product_enquiry_agent.py`)
-Engages immediately after initial request submission. Formulates a plain-English explanation of system understanding, provides a transparent implementation strategy, declares default architectural assumptions, filters for non-trivial clarifying questions (capped at 3; skips trivial cosmetic/styling questions), and catches non-software queries with direct answers before handing off enriched context to requirements.
-
-### 5.2 Requirements Modeling Agent (`backend/agents/requirements_agent.py`)
-Transforms natural-language feature requests into formal `RequirementsDocument` structures. It extracts functional objectives, non-functional constraints, structured user stories (`as_a`, `i_want_to`, `so_that`), and numbered, testable acceptance criteria.
-
-### 5.3 Master Architect Agent (`backend/agents/master_architect.py`)
-Analyzes full requirements specifications to determine architectural complexity. For non-trivial systems, it decomposes the problem into modular, loosely coupled components with explicit dependency edges (`dependencies_on`), priority orderings, and integration strategies.
-
-### 5.4 System Design Blueprint Agent (`backend/agents/design_agent.py`)
-Generates comprehensive architectural blueprints (`SystemDesignBlueprint`) for individual components. It specifies directory layouts, module purposes, technical dependencies, Docker container base images (`python:3.11-slim`, `node:20-alpine`), test runner commands, and detailed algorithmic pseudocode.
-
-### 5.5 Autonomous CodeGen Agent (`backend/agents/codegen_agent.py`)
-Translates design blueprints and requirements into production-ready polyglot code and comprehensive unit test suites. It enforces strict typing disciplines, handles nested directory creations, and accepts revision plans during autonomous self-healing loops.
-
-### 5.6 LangGraph Multi-Critic Arbitration Network (`backend/agents/critics.py`)
-Executes a fan-out peer review across three independent LLM critics:
-- **Correctness Critic (`gemini-3.6-flash`)**: Analyzes sandbox test logs, assertion failures, exit codes, and test coverage metrics.
-- **Architecture Critic (`mistral-small-latest` with Gemini fallback)**: Verifies adherence to blueprint file hierarchies, structural patterns, and defensiveness rules.
-- **Completeness Critic (`gemini-3.6-flash`)**: Evaluates edge-case handling, input validation, null safety, and boundary condition guards.
-
-### 5.7 Chief Software Adjudicator (`backend/orchestrator.py`)
-A LangGraph state graph node that synthesizes peer-review feedbacks into a consolidated verdict (`pass`, `revise`, or `error`). On a `revise` verdict, it formulates an actionable revision plan and re-routes the task to CodeGen for up to 3 closed-loop iterations.
-
-### 5.8 Multi-Component Integrator Agent (`backend/agents/integrator_agent.py`)
-Takes independently verified component artifacts, reconciles cross-module import paths, builds root application routers, resolves shared state, and generates end-to-end integration test suites.
-
-### 5.9 Documentation Generation Agent (`backend/agents/documentation_agent.py`)
-Triggered upon pipeline completion to author production-ready `README.md` and `USER_GUIDE.md` files reflecting the generated codebase, installation steps, and API contracts.
+**Key Features:**
+- **Stage-Isolated Keys**: Each pipeline stage (Requirements, Decomposition, Design, Codegen, Critics, Adjudicator, Integration) can have its own dedicated API key.
+- **Numbered Fallback Pool**: Keys numbered 1 through 7 serve as a secondary fallback mapping.
+- **Universal Fallback**: A single `GEMINI_API_KEY` serves as the universal fallback when stage-specific keys are unavailable.
+- **Rate Limit Detection**: Automatic detection of 429/Resource Exhausted errors with exponential backoff and key rotation.
+- **User-Configurable Models**: Users can specify custom primary and fallback models through their profile settings.
+- **Default Models**: `gemini-3.5-flash-lite` (primary), `gemini-3.6-flash` (for complex reasoning).
 
 ---
 
-## 6. Parallel DAG Pipeline Scheduler & Concurrency Control
+## 7. User Interface
 
-The DAG scheduling engine (`backend/autodev_pipeline/`) coordinates multi-component pipeline concurrency while preventing deadlocks and race conditions.
+AutoDev's frontend is built with a glassmorphic design system inspired by Apple's iOS/visionOS visual language.
 
-```
-+====================================================================================================+
-|                    PARALLEL COMPONENT PIPELINE SCHEDULER (DAG ENGINE)                              |
-+====================================================================================================+
-|                                                                                                    |
-|  +---------------------+   +-----------------------+   +----------------------------------+        |
-|  |     PipelineDAG     |   |   StageLockManager    |   |        StageQueueManager         |        |
-|  | Kahn Sort / Tarjan  |-->|  LeaseMutex / Epoch   |-->| Min-Heap (Score + FIFO Seq)      |        |
-|  |  Cycle Resolution   |   |   Mutual Exclusion    |   | Priority Bonus (-10k Revision)   |        |
-|  +---------------------+   +-----------------------+   +----------------------------------+        |
-|             │                         │                                  │                         |
-|             ▼                         ▼                                  ▼                         |
-|  +----------------------------------------------------------------------------------------+        |
-|  |              PipelineScheduler.step() / StageHandoverProtocol (2-Phase)                |        |
-|  |       Phase 1: Release Lock -> Phase 2: Enqueue Target (0 Held Locks in Queue)         |        |
-|  +----------------------------------------------------------------------------------------+        |
-|             │                                                            │                         |
-|             ▼                                                            ▼                         |
-|  +-------------------------------------+      +-------------------------------------------+        |
-|  | MultiTierWatchdog / PoisonPill CB   |      | WriteAheadStateStore (WASS) / Recovery    |        |
-|  | Docker (45s/300s) | Lease TTL Sweep  |      | SHA-256 Event Journal + Atomic Snapshots  |        |
-|  +-------------------------------------+      +-------------------------------------------+        |
-+====================================================================================================+
-```
+**Design System:**
+- Deep frosted obsidian translucency with multi-layered backdrop blur across all panels and containers.
+- Specular refraction borders and subtle inner highlights on interactive elements.
+- AeroShards WebGPU 3D ambient background rendering dynamic wind-sculpture particles behind all UI layers, with graceful CSS gradient fallback when WebGPU is unavailable.
+- Full dark and light mode support with system-preference detection.
+- Liquid stage transition animations powered by Framer Motion.
+- Dynamic favicon that reflects the current pipeline stage.
 
-### 6.1 Graph Foundations & `PipelineDAG`
-Models components as vertices $V$ and dependencies as directed edges $E$ ($u \to v$ indicates component $v$ depends on $u$). Maintains dual adjacency indexing for fast ancestor/descendant resolution.
+**Key UI Components:**
+- **Stepper Progress Bar**: Visual pipeline navigation showing all 12 stages with active state indicators.
+- **Floating Action Button (FAB)**: Dynamic pause/resume/restart controls that expand from a single button during active development. Hidden on completion.
+- **Monaco IDE**: Embedded code editor with syntax highlighting, file explorer tree, and multi-file navigation for inspecting generated code.
+- **Live Preview**: Multi-device viewport emulation with responsive breakpoints and mobile bezels.
+- **Gantt Chart**: Interactive chronological development timeline showing per-phase and per-component execution durations.
+- **Development Progression Graph**: SVG-based agent milestone visualization with duration annotations.
+- **GitHub Export Modal**: One-click commit of the generated codebase to a user's GitHub repository.
+- **Terminal Drawer**: Real-time log streaming from the backend pipeline with collapsible drawer interface.
+- **Right Sidebar**: Session cost tracking, user profile access, and dark mode toggle.
+- **Toast Notifications**: Glassmorphic notification system for pipeline events.
 
-### 6.2 Kahn's Topological Sort & Layered Execution
-Computes optimal layered execution plans $L_0, L_1, \dots, L_k$ in $O(|V| + |E|)$ time, sorting components by dependency prerequisites and deterministic `(priority_order, component_id)` tie-breakers.
+**Pause, Modify, and Resume:**
 
-### 6.3 Tarjan's SCC Cycle Detection & Resolution Policies
-Detects directed cycles using Tarjan's strongly connected components algorithm and extracts exact cycle loops. Supports three deterministic policies:
-- **`ABORT`**: Rejects invalid cyclic graphs immediately with HTTP 400.
-- **`SAFE_STALL`**: Transitions cycle participants and downstream dependents to `STALLED`, allowing independent subgraphs to continue.
-- **`FEEDBACK_ARC_SET_STUB`**: Iteratively cuts cycle back-edges and injects mock interface stubs.
-
-### 6.4 Finite State Automaton (`ComponentStatus`)
-Components transition through strict, immutable lifecycle states:
-$$\text{CREATED} \to \text{PENDING\_DEPS} \to \text{READY} \to \text{IN\_STAGE} \to \text{COMPLETED}$$
-Failed or problematic components transition safely to `STALLED`, `QUARANTINED`, or `FAILED`.
-
-### 6.5 Lease-Backed `StageMutex` & Monotonic Epoch Fencing
-Ensures single occupancy ($\le 1$ component per stage) across `DESIGN`, `CODEGEN`, and `CRITICS`. Every lease acquisition or eviction increments a monotonic epoch counter ($\text{Epoch}_{t+1} = \text{Epoch}_t + 1$), invalidating stale commits from delayed workers.
-
-### 6.6 Atomic 2-Phase Handover (Deadlock Elimination)
-`StageHandoverProtocol` provably eliminates Coffman's hold-and-wait deadlock condition:
-1. **Phase 1 (Unconditional Release)**: The worker releases the active stage mutex and clears its lease token. The stage becomes immediately available to other queued components.
-2. **Phase 2 (Target Enqueue)**: The component transitions to `READY` and enqueues in the next stage's priority queue holding **0 locks**.
-
-### 6.7 Priority Min-Heap Queue Dispatching (`StageQueueManager`)
-Computes priority scores for dispatching:
-$$\text{Score}(c) = \text{priority\_order}(c) - \begin{cases} 10000 & \text{if } \text{is\_revision} = \text{True} \\ 0 & \text{otherwise} \end{cases}$$
-Revised components jump ahead of unstarted components, eliminating revision queue starvation.
-
-### 6.8 Discrete Tick Mechanics (`/api/pipeline/tick`)
-Every scheduling tick (`PipelineScheduler.step()`):
-1. Unblocks DAG nodes whose dependencies have reached `COMPLETED`.
-2. Sweeps expired lease watchdogs and re-enqueues evicted components.
-3. Dispatches highest-priority candidates into unoccupied stages.
-
-### 6.9 Fault Tolerance, Watchdogs & Poison-Pill Isolation
-- **`MultiTierWatchdog`**: Monitors Docker execution limits (45s unit timeout, 300s total cap) and sweeps expired stage leases.
-- **`PoisonPillCircuitBreaker`**: Quarantines components exceeding 3 revision attempts and invokes `CascadePauseEngine` to stall downstream dependents while unaffected branches proceed.
-
-### 6.10 Write-Ahead State Store (WASS) & Deterministic Recovery
-Logs state mutations to an append-only JSONL journal (`pipeline_events.jsonl`) with SHA-256 integrity hashes and persists atomic snapshot checkpoints (`pipeline_snapshot.json`). Upon restart, `CrashRecoveryEngine` replays durable logs and reconstructs queues.
+During active development, users can:
+1. Pause the pipeline at any point.
+2. Inspect and edit outputs from the Requirements, Design, Codegen, or Integration phases.
+3. Resume development. The system detects all modifications and automatically rewinds to the earliest modified phase, re-executing only the affected downstream stages.
 
 ---
 
-## 7. Smart API Key Balancer & Resilience Subsystem
+## 8. Authentication and User Profiles
 
-The API key balancing engine (`autodev_balancer/` and `backend/retry.py`) provides quota isolation, rate-limit defense, and automatic failovers across LLM providers.
+**Authentication Methods:**
+- Email/password registration with OTP email verification (via Brevo/Sendinblue SMTP).
+- Google OAuth 2.0 sign-in.
+- JWT-based session management with secure token storage.
 
-```
-+===================================================================================================+
-|                                AUTODEV BALANCER COMPONENT TOPOLOGY                                |
-+===================================================================================================+
-|                                                                                                   |
-|  [ AutoDev Backend Agents: Requirements, Design, CodeGen, Critics, Adjudicator, Integrator ]       |
-|                                                  │                                                |
-|                                                  ▼                                                |
-|  +---------------------------------------------------------------------------------------------+  |
-|  |                   AutoDevLLMClient / AutoDevBalancerClient Facade Layer                     |  |
-|  |           (generate_content, generate_content_stream, generate_gemini_content)              |  |
-|  +---------------------------------------------------------------------------------------------+  |
-|         │                                      │                                    │             |
-|         ▼                                      ▼                                    ▼             |
-|  +------------------------------+  +------------------------------+  +-------------------------+  |
-|  | StrictStageReservationGuard  |  |         ModelRouter          |  |  TelemetryAggregator    |  |
-|  | Mistral -> CRITIC_ARCH Only  |  | Stage -> Primary/Fallback    |  |  Chi-Square & CV Metric |  |
-|  +------------------------------+  +------------------------------+  +-------------------------+  |
-|                 \                                  /                                              |
-|                  ▼                                ▼                                               |
-|  +---------------------------------------------------------------------------------------------+  |
-|  |                                  FallbackMatrixEngine                                       |  |
-|  |          Tier 1: gemini-3.6-flash (6 Keys) -> Tier 2: gemini-3.5-flash (6 Keys)             |  |
-|  |          Tier 3: Architecture Critic Mistral -> Gemini Pool Fallback                        |  |
-|  +---------------------------------------------------------------------------------------------+  |
-|                                                  │                                                |
-|                                                  ▼                                                |
-|  +---------------------------------------------------------------------------------------------+  |
-|  |                                    KeyPoolManager                                           |  |
-|  |  +---------------------------------------------------------------------------------------+  |  |
-|  |  | RoutingStrategy: LeastConnections (Score = 1000*InFlight + TotalReqs), RR, WRR, LRU  |  |  |
-|  |  | HealthTracker: Rate-Limit (Exp Backoff), Transient (5s), Permanent Disable, Decay     |  |  |
-|  |  | TokenBucket: Capacity=60.0, FillRate=1.0/s                                           |  |  |
-|  |  +---------------------------------------------------------------------------------------+  |  |
-|  +---------------------------------------------------------------------------------------------+  |
-|                                                  │                                                |
-|                        +-------------------------+-------------------------+                      |
-|                        │                                                   │                      |
-|                        ▼                                                   ▼                      |
-|  +-------------------------------------------+   +---------------------------------------------+  |
-|  | 6x Gemini API Keys (General SDLC Stages)  |   | 1x Mistral API Key (Architecture Critic)    |  |
-|  | gemini-3.6-flash / gemini-3.5-flash       |   | mistral-small-latest                        |  |
-|  +-------------------------------------------+   +---------------------------------------------+  |
-+===================================================================================================+
-```
+**User Profile System:**
+- Development preferences: preferred programming languages, frameworks, coding style.
+- AI configuration: custom Gemini API key, primary and fallback model selection.
+- GitHub integration: stored username, repository, and personal access token for one-click export.
+- Session history: browsable list of past development sessions with cost metrics.
 
-### 7.1 Multi-Pool Key Topology & Discovery Hierarchy
-- **6 Gemini API Keys (`ProviderEnum.GEMINI`)**: Distributed across general SDLC stages.
-- **1 Mistral API Key (`ProviderEnum.MISTRAL`)**: Dedicated exclusively to Architecture peer review.
-- **Discovery Precedence**: Resolves keys from `GEMINI_API_KEYS` (comma-separated), numbered keys (`GEMINI_API_KEY_1..6`), legacy stage-specific keys, or fallback `GEMINI_API_KEY`.
-
-### 7.2 Strict Stage Reservation Guard (`StrictStageReservationGuard`)
-Cryptographically restricts the Mistral API key to `CRITIC_ARCHITECTURE`. Unauthorized stages attempting to acquire the Mistral key are immediately blocked with `StageAccessDeniedError`.
-
-### 7.3 Dynamic Health Tracking & Cooldown Decay
-`HealthTracker` classifies errors and updates key statuses:
-- `ACTIVE`: Eligible for immediate dispatch.
-- `RATE_LIMITED`: Exponential backoff cooldown:
-  $$T_{\text{cooldown}} = \min\left(300\text{s}, 15\text{s} \cdot 2^{N-1}\right)$$
-- `COOLDOWN`: 5.0s transient server error pause.
-- `DISABLED`: Permanently evicted due to invalid API credentials.
-
-Keys automatically self-heal to `ACTIVE` once their monotonic cooldown expires.
-
-### 7.4 Pluggable Load-Balancing Strategies
-- **Least-Connections (Default)**: Scores candidates via $\text{Score} = 1000 \cdot \text{in\_flight} + \text{total\_requests}$.
-- **Round-Robin & Weighted Round-Robin**: Deterministic cyclical or weighted distribution.
-- **Least-Recently-Used (LRU)**: Selects keys with the oldest `last_used_timestamp`.
-- **Token Bucket**: Enforces rate limiting ($C = 60.0$, $r = 1.0/\text{s}$).
-
-### 7.5 Multi-Tier Fallback Matrix Engine
-- **Tier 1 (Intra-Tier Rotation)**: Rotates across Gemini keys 1..6 on primary `gemini-3.6-flash`.
-- **Tier 2 (Inter-Tier Model Degradation)**: Downgrades to `gemini-3.5-flash-lite` across all 6 keys only after Tier 1 is exhausted.
-- **Tier 3 (Cross-Provider Critic Failover)**: Architecture Critic fails over from Mistral to the Gemini key pool.
-
-### 7.6 Universal Exponential Backoff Decorator (`backend/retry.py`)
-`@with_exponential_backoff` provides unified retry logic across sync functions, sync generators, async coroutines, and async generator streams with full jitter and fast-fail rules for non-retryable errors.
+**Data Storage:**
+- MongoDB Atlas for user accounts, sessions, and profile data.
+- Motor (async MongoDB driver) for non-blocking database operations.
 
 ---
 
-## 8. Universal Docker Sandbox & Live Preview Engine
+## 9. Technology Stack
 
-AutoDev v2.0 isolates code execution and application previews inside ephemeral Docker containers (`backend/executor.py`).
+### Backend
 
-### 8.1 Ephemeral Container Isolation
-- Spawns isolated Docker containers matching blueprint image specifications (e.g. `python:3.11-slim`, `node:20-alpine`).
-- Transfers generated codebases into containers via in-memory tar archives (`put_archive`), preventing host filesystem contamination.
-- Enforces strict execution timeouts (45s test timeout, 300s total lifespan) and cleans up containers automatically upon completion.
+| Technology | Purpose |
+|------------|---------|
+| Python 3.11+ | Runtime |
+| FastAPI | Web framework and REST API |
+| Uvicorn | ASGI server |
+| Pydantic | Data validation and serialization |
+| Google GenAI SDK | Gemini model interactions |
+| Motor / PyMongo | Async MongoDB driver |
+| python-jose | JWT token encoding/decoding |
+| passlib | Password hashing (bcrypt) |
+| python-dotenv | Environment variable management |
+| httpx | Async HTTP client (Google OAuth) |
+| google-auth | Google OAuth token verification |
 
-### 8.2 Auto-Dependency Injection & Universal Testing
-- Dynamically detects project dependencies and auto-injects installation steps (`pip install -r requirements.txt`, `npm install`).
-- Executes stack-appropriate test runners (`pytest`, `npm test`, `jest`) and parses raw terminal logs and exit codes.
-- Computes source code line coverage metrics via `pytest-cov` and surfaces total coverage percentages directly in the UI.
+### Frontend
 
-### 8.3 Dynamic Port Forwarding & Live Preview Server
-- Starts long-running web application dev servers (`npm run dev`, `python app.py`) inside isolated Docker containers.
-- Dynamically allocates and forwards host ports to container dev ports via `/api/preview/start`.
-- Renders live interactive web applications inside an embedded iframe in the client dashboard.
-
----
-
-## 9. Frontend UI & Embedded Monaco IDE
-
-The AutoDev client interface (`autodev-frontend/`) is a React 19 and TypeScript Single-Page Application bundled with Vite 6 and styled with Tailwind CSS.
-
-### 9.1 3-Page Distinct Routing Architecture
-- **Landing Page (`StageLanding`)**: Brand hero screen showcasing core capabilities (Multi-Agent DAG, Docker Sandbox, 3-Critic Arbitration, Live Preview) and a direct "Get Started" call to action.
-- **Authentication Page (`StageSignIn`)**: Dedicated sign-in screen featuring email/password validation, OAuth Google sign-in triggers, and return navigation to home.
-- **Main System Presentation Shell (`App.tsx`)**: High-productivity presentation shell managing the full 12-stage autonomous engineering lifecycle.
-
-### 9.2 Apple iOS Obsidian Glassmorphic Design System & AeroShards 3D WebGPU Background
-- **Material Profile**: Deep frosted obsidian base (`bg-slate-950/[0.08]`, `backdrop-blur-md`, `backdropFilter: blur(14px)`), delicate specular refraction borders (`border-white/[0.07]`), and top specular sheen (`shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`).
-- **AeroShards Dynamic Wind Sculpture**: Fixed full-viewport 3D ambient canvas (`<AeroShards />`) rendered via WebGPU (`navigator.gpu`) with fluid cursor-repel physics, pearl material shaders, and automatic ambient CSS fallback for non-WebGPU browsers.
-- **Colourless SpecularButton Controls**: Specular reflection buttons (`baseColor="#000000"`, `tint="#ffffff"`, `tintOpacity={0.04}`) and liquid pill toggles with spring physics.
-- **Maximized Central Stage Geometry**: Central workspace occupying $\approx 80\%$ viewport height framed in frosted obsidian glass.
-- **Dynamic Edge-Hover Navigation**: Ghosted side chevrons (`<` and `>`) reveal dynamically upon hovering extreme left/right viewport boundaries.
-
-### 9.3 Directional Sliding Stage Transitions
-- Powered by Framer Motion `AnimatePresence mode="wait"` with custom directional delta (`'forward'` vs `'backward'`).
-- Spring physics (`stiffness: 350, damping: 28, mass: 0.8`) with coordinated spatial translation ($\pm 60\text{px}$), subtle glass blur filtering (`filter: blur(4px)` to `0px`), and opacity fades.
-- Directional awareness: advancing to a later stage slides left; returning to an earlier stage slides right.
-
-### 9.4 11-Stage Main System Lifecycle
-- **Stage 1 (Product Request)**: Natural language prompt input with dedicated "START DEVELOPMENT" SpecularButton and Enter key submit trigger.
-- **Stage 2 (Product Enquiry Agent)**: Conditional clarification stage displayed only when user requests are ambiguous and follow-up questions are needed.
-- **Stage 3 (Requirements Agent)**: Structured specification display with user stories and acceptance criteria.
-- **Stage 4 (Decomposition Agent)**: 2x2 grid representing parallel component dependency graphs.
-- **Stage 5 (Component Pipeline Dashboard)**: Space-time matrix visualizer and component-wise tracks with spring-animated liquid expand/collapse accordions.
-- **Stage 6 (Integration Agent Hub)**: Consolidated integration workspace featuring top-right pill toggles to smoothly slide between `Codegen`, `Testing`, and `Evaluation` sub-agents with deduplicated revision indicators.
-- **Stage 7 (Final Source Code)**: Dedicated code inspection environment displaying only the finalized verified production codebase without multi-revision noise.
-- **Stage 8 (Live Preview)**: Interactive responsive container preview with simulated Desktop, Tablet (camera dot, tablet bezel), and Mobile (Dynamic Island pill notch, home indicator bar, compact resilient control bar) viewports.
-- **Stage 9 (Development Results)**: Deep emerald/rose status container, one-click ZIP packaging, commit to GitHub modal, Post-Development Support trigger, and animated SVG Development Lifecycle Progression Graph with agent milestone metrics.
-- **Stage 10 (Post-Development Support Agent)**: Automatic intent classification distinguishing technical queries from bug fixes and feature modifications, paired with prompt injection guards, `SmoothInput` auto-resizing textarea, inline `SpecularButton` ("PROCEED"), and an expandable 6-item FAQ accordion.
-- **Stage 11 (Post-Development Execution Agent)**: Conditionally unlocked after a Stage 10 support request is submitted. Dynamically switches between a formatted streaming technical explanation window (`query` mode) and a 3-agent integration-style workspace (`Codegen`, `Testing`, `Evaluation` with deduplicated `Post-Run Rev` tabs) for bug fixes and feature modifications (`modify` mode).
-
-### 9.5 Space-Time Pipeline Visualizer
-- **Continuous Matrix Progression**: 2D coordinate grid with stages as vertical rows and discrete time increments as horizontal columns (T1, T2, T3...).
-- **Unstuck Progression Past T8**: Continuous auto-advancement beyond timestamp 8 through pipeline completion.
-- **Auto-Scroll Tracking**: Automatically centers on the active timestamp horizon as components advance.
-- **Guaranteed T1 Rendering**: Eliminates empty initial rows so T1 immediately reflects the initial scheduled stage.
-- **Auto-Advance to Integration**: Automatically advances from Stage 5 to Stage 6 once all components pass.
-
-### 9.6 Strict Hardcoded Revision Quota Policy
-- **Pipeline Component Phase**: Strictly limited to a maximum of **3 revisions** per component (`MAX_PIPELINE_REVISIONS = 3`).
-- **Integration Phase**: Strictly limited to a maximum of **5 revisions** (`MAX_INTEGRATION_REVISIONS = 5`).
-- Enforced across backend orchestrators (`scheduler.py`, `orchestrator.py`) and frontend runners (`useIntegrationRunner.ts`, `appStore.ts`).
-
-### 9.7 Development Lifecycle Progression Graph & Timeline Metrics
-- **Timestamped Execution Intervals**: Captures `startTime`, `endTime`, and `durationMs` for every SDLC phase and DAG component track.
-- **Interactive SVG Velocity Curve**: Rendered directly on the Stage 9 completion screen displaying an animated cubic bezier curve with hover tooltips, pulse milestones, and cumulative execution duration.
-- **Agent Milestone Duration Strip**: Compact milestone tiles situated directly beneath the velocity curve displaying per-agent execution times across Requirements, Decomposition, Design, Codegen, Sandbox Testing, Arbitration, Integration, and Documentation.
-
-### 9.8 One-Click GitHub Export & Commit Modal
-- **Upload to GitHub**: Dedicated button on the completion screen opening an authentication dialog.
-- **Form Controls**: Prompts for GitHub Username, Repository Name (pre-slugified from project title), and Personal Access Token (PAT with `repo` scope).
-- **Session Caching**: Optional browser session storage persistence (`sessionStorage`) for seamless repeat exports.
-- **Direct Link & Commit SHA**: Commits all project files via the GitHub REST API and renders a direct clickable link to the newly published repository.
-
-### 9.9 Dynamic Floating Action Button (FAB) & Earliest-Phase Rewind Engine
-- **Active Pause Button**: Single bottom-left floating circle button during active pipeline execution.
-- **3-Button Dynamic Expansion**: Expands vertically when paused into Resume Development, Restart Development (with confirmation), and Request New Product.
-- **In-Memory Multi-Phase Editing**: While paused, inspect and edit Requirements Document, Component Design Blueprints, Component Source Code, and Integration Codebase.
-- **Earliest-Phase Rewind Engine**: Compares modified artifacts against a pre-pause snapshot and rewinds execution strictly from the earliest modified phase.
-
-### 9.10 Collapsible Glassmorphic Right Sidebar & Draggable Live Terminal Console
-- **Specular 3-Strip Trigger (`Header.tsx`)**: Top-right `SpecularButton` trigger housing 3 crisp white strips that smoothly toggles the right-hand sidebar.
-- **Glassmorphic Right Sidebar (`RightSidebar.tsx`)**: Slides smoothly from the right edge over a full-screen blurred backdrop (`backdrop-blur-2xl`), with an external top-right close button (`-left-14 top-4`).
-- **Stage-Aware Telemetry**:
-  - In Stage 1 (prior to clicking `START DEVELOPMENT`), displays only the **Live Terminal** launcher and the bottom **User Account** card.
-  - From Stage 2 onward, displays the unboxed active software title with an enlarged `IDLE` / `RUNNING` / `COMPLETED` / `PAUSED` badge, a status-hued **Session Time** counter (`MM:SS mins`) that pauses during Stage 2 user input and pipeline pause states and permanently freezes at Stage 9 product delivery, and a cumulative **Session Cost** card (`₹X.XXXX (N tokens)`) encompassing all pipeline phases and post-development support requests.
-- **Draggable Live Terminal Console (`Terminal.tsx`)**: Clicking **Live Terminal** opens a floating, draggable console window (`#liveTerminalModalWindow`) with live SSE stream logs, clear logs, maximize/restore viewport toggle, and close controls.
-- **User Account Card & Profile Routing**: Pinned at the bottom of the sidebar with a frosted initial avatar (`A`), username, and email, routing to the User Profile page (`#pageUserProfile`).
+| Technology | Purpose |
+|------------|---------|
+| React 19 | UI framework |
+| TypeScript 5.x | Type-safe JavaScript |
+| Vite 6 | Build tool and dev server |
+| Tailwind CSS 3 | Utility-first CSS framework |
+| Zustand | Lightweight state management |
+| Framer Motion | Animation library |
+| Monaco Editor | Embedded code editor (VSCode engine) |
+| GSAP | Advanced animation sequences |
+| vgpu | WebGPU rendering (AeroShards background) |
+| OGL | WebGL fallback rendering |
+| JSZip | Client-side ZIP file generation |
+| TanStack React Query | Server state management |
+| Vitest | Testing framework |
+| Testing Library | Component testing utilities |
 
 ---
 
-## 10. Data Models & State Schemas
+## 10. Project Structure
 
-### 10.1 `RequirementsDocument` (`backend/models.py`)
-```json
-{
-  "project_title": "Task Management API",
-  "overview": "RESTful task management system with authentication and CRUD endpoints.",
-  "user_stories": [
-    {
-      "id": "US-001",
-      "title": "User Registration",
-      "as_a": "new user",
-      "i_want_to": "register with email and password",
-      "so_that": "I can access protected endpoints",
-      "acceptance_criteria": [
-        {
-          "id": "AC-001",
-          "description": "Reject duplicate email registration",
-          "expected_behavior": "Returns HTTP 400 Bad Request"
-        }
-      ]
-    }
-  ]
-}
 ```
-
-### 10.2 `ComponentDecomposition` (`backend/models.py`)
-```json
-{
-  "is_complex": true,
-  "project_overview": "Decoupled microservice architecture for Task Management.",
-  "shared_tech_stack": ["Python", "FastAPI", "pytest"],
-  "shared_docker_image": "python:3.11-slim",
-  "components": [
-    {
-      "component_id": "auth-service",
-      "component_name": "Authentication Service",
-      "description": "JWT authentication and user management.",
-      "scoped_requirements": "Requirements for auth...",
-      "dependencies_on": [],
-      "priority_order": 1
-    },
-    {
-      "component_id": "task-service",
-      "component_name": "Task Service",
-      "description": "Task creation, update, deletion, and query APIs.",
-      "scoped_requirements": "Requirements for tasks...",
-      "dependencies_on": ["auth-service"],
-      "priority_order": 2
-    }
-  ],
-  "integration_strategy": "Mount sub-routers into main FastAPI gateway application."
-}
-```
-
-### 10.3 `SystemDesignBlueprint` (`backend/models.py`)
-```json
-{
-  "architecture_overview": "FastAPI service with JWT token verification and SQLite persistence.",
-  "tech_stack": ["Python", "FastAPI", "pytest"],
-  "docker_image": "python:3.11-slim",
-  "dev_server_command": "uvicorn main:app --host 0.0.0.0 --port 8000",
-  "dev_server_port": 8000,
-  "run_tests_command": "pytest --cov=.",
-  "files": [
-    {
-      "file_name": "auth.py",
-      "purpose": "Password hashing and JWT generation logic",
-      "dependencies": ["pyjwt", "passlib"],
-      "pseudocode": "def create_token(data): ...\ndef verify_token(token): ..."
-    },
-    {
-      "file_name": "test_auth.py",
-      "purpose": "Unit test suite for authentication module",
-      "dependencies": ["pytest"],
-      "pseudocode": "def test_token_creation(): ...\ndef test_invalid_token(): ..."
-    }
-  ]
-}
-```
-
-### 10.4 `GeneratedCodeBase` & `CodeFile` (`backend/models.py`)
-```json
-{
-  "files": [
-    {
-      "file_name": "auth.py",
-      "source_code": "import jwt\n\ndef create_token(payload: dict) -> str:\n    return jwt.encode(payload, 'secret', algorithm='HS256')\n"
-    },
-    {
-      "file_name": "test_auth.py",
-      "source_code": "from auth import create_token\n\ndef test_create_token():\n    token = create_token({'user_id': 1})\n    assert isinstance(token, str)\n"
-    }
-  ]
-}
-```
-
-### 10.5 `ExecutionResult` & `ArbitrationDecision` (`backend/models.py`)
-```json
-{
-  "execution_result": {
-    "success": true,
-    "logs": "test_auth.py . [100%]\n1 passed in 0.03s\nTOTAL 10 0 100%"
-  },
-  "decision": {
-    "verdict": "pass",
-    "revision_plan": "All test assertions passed cleanly with 100% line coverage. Approved."
-  }
-}
+AutoDev-main/
+|-- autodev-frontend/           # React frontend application
+|   |-- src/
+|   |   |-- api/                # HTTP client and API endpoint functions
+|   |   |-- assets/             # Static assets
+|   |   |-- components/         # Shared UI components
+|   |   |   |-- AeroShards.tsx          # WebGPU 3D ambient background
+|   |   |   |-- DarkModeToggle.tsx      # Theme switcher
+|   |   |   |-- GitHubExportModal.tsx   # GitHub commit modal
+|   |   |   |-- Header.tsx             # Application header
+|   |   |   |-- PauseModifyFAB.tsx     # Floating action button
+|   |   |   |-- SmoothInput.tsx        # Glassmorphic textarea
+|   |   |   |-- SpecularButton.tsx     # Frosted glass button
+|   |   |   |-- StepperProgress.tsx    # Pipeline stepper
+|   |   |   |-- Terminal.tsx           # Log terminal drawer
+|   |   |   +-- ...
+|   |   |-- features/           # Feature-specific modules
+|   |   |   |-- decomposition/  # Architecture decomposition UI
+|   |   |   |-- design/         # Blueprint display
+|   |   |   |-- execution/      # Sandbox execution output
+|   |   |   |-- ide/            # Monaco IDE integration
+|   |   |   |-- input/          # Product request input
+|   |   |   |-- integration/    # Integration phase UI
+|   |   |   |-- pipeline/       # Component pipeline dashboard
+|   |   |   |-- post-completion/ # Post-dev support UI
+|   |   |   |-- profile/        # User profile pages
+|   |   |   |-- requirements/   # Requirements display
+|   |   |   +-- stages/         # All 12 stage view components
+|   |   |-- hooks/              # Custom React hooks
+|   |   |-- lib/                # Utility libraries
+|   |   |-- services/           # Notification and export services
+|   |   |-- stores/             # Zustand state stores
+|   |   |   |-- appStore.ts     # Core pipeline state
+|   |   |   |-- authStore.ts    # Authentication state
+|   |   |   |-- persistence.ts  # LocalStorage persistence
+|   |   |   +-- sessionStore.ts # Session and cost tracking
+|   |   |-- types/              # TypeScript type definitions
+|   |   +-- utils/              # Utility functions
+|   |-- tests/                  # Vitest test suite (49 files, 711 tests)
+|   |-- index.html              # SPA entry point
+|   +-- package.json            # Frontend dependencies
+|
+|-- backend/                    # FastAPI backend server
+|   |-- agents/                 # AI agent implementations
+|   |   |-- codegen_agent.py
+|   |   |-- critics.py
+|   |   |-- design_agent.py
+|   |   |-- documentation_agent.py
+|   |   |-- integrator_agent.py
+|   |   |-- master_architect.py
+|   |   |-- product_enquiry_agent.py
+|   |   |-- refactor_agent.py
+|   |   |-- requirements_agent.py
+|   |   +-- revision_extractor.py
+|   |-- autodev_pipeline/       # DAG engine and scheduler
+|   |   |-- concurrency.py     # Lease locks and mutex
+|   |   |-- dag_engine.py      # Topological sort and scheduling
+|   |   |-- fault_tolerance.py # Error recovery
+|   |   |-- models.py          # Pipeline data models
+|   |   +-- scheduler.py       # Component track state machine
+|   |-- dist/                   # Production frontend build output
+|   |-- auth.py                 # JWT and authentication logic
+|   |-- auth_models.py          # Auth data models
+|   |-- auth_routes.py          # Auth API endpoints
+|   |-- code_extractor.py       # Source code parsing utilities
+|   |-- database.py             # MongoDB connection management
+|   |-- email_service.py        # Brevo SMTP email service
+|   |-- key_balancer.py         # API key rotation and rate limiting
+|   |-- log_stream.py           # SSE log streaming
+|   |-- main.py                 # FastAPI application entry point
+|   |-- models.py               # Core data models
+|   |-- orchestrator.py         # Agent prompt assembly and coordination
+|   |-- pipeline_api.py         # Pipeline REST endpoints
+|   |-- prompt_guard.py         # Input sanitization
+|   |-- retry.py                # Exponential backoff utilities
+|   |-- session_models.py       # Session data models
+|   |-- session_routes.py       # Session API endpoints
+|   +-- requirements.txt        # Python dependencies
+|
+|-- AutoDev_UI/                 # UI reference screenshots
+|-- Project Documentation/      # Academic project reports
+|-- document.md                 # Internal system documentation
++-- .gitignore
 ```
 
 ---
 
-## 11. API Reference
+## 11. Setup and Installation
 
-All backend endpoints are prefixed under `/api` (except root SPA route `/`).
+### Prerequisites
 
-### Endpoint Catalog (17 Routes)
+- Python 3.11 or later
+- Node.js 18+ and npm (for frontend development only; production builds are pre-compiled)
+- A Google Gemini API key (at minimum one; up to 7 recommended for load distribution)
+- MongoDB Atlas cluster (free tier works for development)
 
-| Route URL | Method | Module Location | Purpose / Description |
-|---|---|---|---|
-| `/` | `GET` | `backend/main.py:65` | Serves the single-page client dashboard (`backend/index.html`) |
-| `/api/product-enquiry` | `POST` | `backend/main.py:261` | Product Enquiry Agent specification and clarifying follow-up endpoint |
-| `/api/generate-requirements` | `POST` | `backend/main.py:75` | Streams `RequirementsDocument` JSON from natural-language prompt |
-| `/api/decompose` | `POST` | `backend/main.py:91` | Streams `ComponentDecomposition` DAG specification |
-| `/api/generate-design` | `POST` | `backend/main.py:129` | Streams `SystemDesignBlueprint` for a scoped component |
-| `/api/generate-code` | `POST` | `backend/main.py:144` | Streams `GeneratedCodeBase` source files and test suites |
-| `/api/parse-requirements` | `POST` | `backend/main.py:168` | Parses edited rich text back into a validated `RequirementsDocument` |
-| `/api/parse-blueprint` | `POST` | `backend/main.py:232` | Parses edited rich text back into a validated `SystemDesignBlueprint` |
-| `/api/execute-code` | `POST` | `backend/main.py:297` | Runs test suite inside an isolated Docker sandbox container |
-| `/api/run-critics` | `POST` | `backend/main.py:305` | Executes LangGraph multi-critic peer review and adjudication |
-| `/api/integrate` | `POST` | `backend/main.py:104` | Synthesizes verified components into a unified codebase |
-| `/api/generate-documentation` | `POST` | `backend/main.py:331` | Streams production `README.md` and `USER_GUIDE.md` specifications |
-| `/api/preview/start` | `POST` | `backend/main.py:361` | Launches Docker live preview container and returns dynamic port URL |
-| `/api/pipeline/init` | `POST` | `backend/pipeline_api.py:48` | Initializes DAG graph topology and queues initial ready components |
-| `/api/pipeline/tick` | `GET` | `backend/pipeline_api.py:65` | Discrete scheduling tick returning active and newly dispatched stages |
-| `/api/pipeline/complete` | `POST` | `backend/pipeline_api.py:79` | Signals stage completion, releases locks, and triggers 2-phase handover |
-| `/api/logs/stream` | `GET` | `backend/log_stream.py:32` | Real-time Server-Sent Events (SSE) log output stream |
-
----
-
-## 12. Setup & Execution
-
-### 12.1 Prerequisites
-- **Python 3.11+** installed on the host machine.
-- **Docker Desktop** (Windows / macOS) or **Docker Engine** (Linux) installed and running in the background.
-- At least one **Google Gemini API Key** (multiple keys recommended for quota balancing).
-- *(Optional)* **Mistral API Key** for dedicated Architecture Critic peer review.
-- *(Optional)* **Groq API Key** for high-speed open-weight fallback inference.
-
-### 12.2 Installation & Virtual Environment
-
-Clone the repository and install backend dependencies:
+### Clone the Repository
 
 ```bash
-# Clone repository
 git clone https://github.com/ItsAlwys2LaTE/AutoDev.git
 cd AutoDev
+```
 
-# Create and activate Python virtual environment
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+### Install Backend Dependencies
 
-# Install dependencies
+```bash
 cd backend
+python -m venv venv
+
+# Activate the virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-### 12.3 Environment Configuration
+### Install Frontend Dependencies (Development Only)
 
-Create a `.env` file inside the `backend/` directory:
-
-```dotenv
-# =====================================================================
-# Google Gemini API Keys (Single Key OR Multi-Key Pool)
-# =====================================================================
-# Option A: Single Key (Automatically shared across all stages)
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Option B: Dedicated Multi-Key Pool (Recommended for load balancing)
-GEMINI_API_KEY_REQUIREMENTS=your_gemini_key_1
-GEMINI_API_KEY_DESIGN=your_gemini_key_2
-GEMINI_API_KEY_CODEGEN=your_gemini_key_3
-GEMINI_API_KEY_CRITICS=your_gemini_key_4
-GEMINI_API_KEY_ADJUDICATOR=your_gemini_key_5
-GEMINI_API_KEY_INTEGRATION=your_gemini_key_6
-
-# =====================================================================
-# Optional Multi-Provider Keys
-# =====================================================================
-MISTRAL_API_KEY=your_mistral_api_key_here
-GROQ_API_KEY=your_groq_api_key_here
-```
-
-### 12.4 Running the Application Server
-
-Start the FastAPI backend with Uvicorn:
+The production frontend is pre-built and served from `backend/dist/`. For frontend development:
 
 ```bash
-# From the backend/ directory
+cd autodev-frontend
+npm install
+```
+
+---
+
+## 12. Environment Variables
+
+Create a `.env` file inside the `backend/` directory with the following variables:
+
+### Required
+
+| Variable | Description |
+|----------|-------------|
+| `GEMINI_API_KEY` | Universal fallback Google Gemini API key. At minimum, one valid key is required. |
+| `MONGODB_URI` | MongoDB Atlas connection string (e.g., `mongodb+srv://user:pass@cluster.mongodb.net/autodev`). |
+| `JWT_SECRET_KEY` | Secret key for JWT token signing. Use a long random string. |
+
+### API Key Pool (Recommended)
+
+For optimal throughput, assign dedicated keys to each pipeline stage:
+
+| Variable | Stage |
+|----------|-------|
+| `GEMINI_API_KEY_REQUIREMENTS` | Requirements and Product Enquiry agents |
+| `GEMINI_API_KEY_MASTER_ARCHITECT` | Master Architect and Decomposition |
+| `GEMINI_API_KEY_DESIGN` | Design Agent |
+| `GEMINI_API_KEY_CODEGEN` | Codegen Agent |
+| `GEMINI_API_KEY_CRITICS` | Critic agents |
+| `GEMINI_API_KEY_ADJUDICATOR` | Master Adjudicator |
+| `GEMINI_API_KEY_INTEGRATION` | Integration Agent |
+
+Alternatively, use numbered keys `GEMINI_API_KEY_1` through `GEMINI_API_KEY_7` as a fallback pool.
+
+### Authentication
+
+| Variable | Description |
+|----------|-------------|
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 client ID for sign-in. |
+| `BREVO_API_KEY` | Brevo (Sendinblue) API key for OTP verification emails. |
+| `BREVO_SENDER_EMAIL` | Verified sender email address for Brevo. |
+| `BREVO_SENDER_NAME` | Display name for verification emails. |
+
+### Example `.env` File
+
+```dotenv
+# Core
+GEMINI_API_KEY=your_gemini_api_key
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/autodev
+JWT_SECRET_KEY=your_random_secret_key
+
+# Stage-Specific API Keys (recommended)
+GEMINI_API_KEY_REQUIREMENTS=key_1
+GEMINI_API_KEY_MASTER_ARCHITECT=key_2
+GEMINI_API_KEY_DESIGN=key_3
+GEMINI_API_KEY_CODEGEN=key_4
+GEMINI_API_KEY_CRITICS=key_5
+GEMINI_API_KEY_ADJUDICATOR=key_6
+GEMINI_API_KEY_INTEGRATION=key_7
+
+# Authentication
+GOOGLE_CLIENT_ID=your_google_client_id
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=noreply@yourdomain.com
+BREVO_SENDER_NAME=AutoDev
+```
+
+---
+
+## 13. Running the Application
+
+Start the FastAPI backend with Uvicorn from the `backend/` directory:
+
+```bash
+cd backend
 uvicorn main:app --reload --port 8000
 ```
 
-The application client dashboard will be live at `http://localhost:8000`.
+The application will be available at `http://localhost:8000`. The backend serves both the API and the pre-built frontend from the `dist/` directory.
 
-### 12.5 Executing an Autonomous Pipeline
+### Using the Application
 
-1. Open `http://localhost:8000` in your web browser.
-2. Enter a natural-language software feature request (e.g., *"Build a distributed task queue with worker heartbeats, job retries, and REST monitoring"*).
-3. Click **Compile Requirements** to stream user stories and acceptance criteria.
-4. Click **Decompose Architecture** to generate the component dependency graph.
-5. Click **Launch Parallel Pipeline** to watch the DAG engine concurrently schedule and execute component tracks (`DESIGN` $\to$ `CODEGEN` $\to$ `CRITICS`).
-6. Inspect generated code inside the embedded Monaco IDE, view live Docker sandbox test logs, and download the final project `.zip`.
+1. Open `http://localhost:8000` in a modern browser (Chrome or Edge recommended for WebGPU support).
+2. Sign in with email/password or Google OAuth.
+3. Enter a natural-language product description (e.g., "Build a real-time chat application with user authentication, message history, and file sharing").
+4. The Product Enquiry Agent will analyze your request and may ask follow-up questions.
+5. Requirements are automatically compiled and presented for review.
+6. The Master Architect decomposes the system into components.
+7. The parallel pipeline develops all components concurrently through Design, Codegen, and Critics stages.
+8. Integration merges all components into a unified codebase.
+9. Review the final source code, live preview, and development metrics.
+10. Export to GitHub or download as a ZIP archive.
 
-### 12.6 Generation Modes (QUICK vs COMPLEX)
+### Frontend Development
 
-At the start of the pipeline, users can toggle between two primary operational modes:
-
-1. **QUICK Mode (Default):**
-   - Designed for high-speed, fully autonomous project execution.
-   - Phases progress seamlessly without pausing for human review.
-   - User Interface (text areas) are set to read-only.
-   - Backend logic bypasses the parse-blueprint endpoint to save time.
-   - API Keys strictly isolate generation to gemini-3.5-flash-lite models to maximize throughput.
-   - Max arbitration revisions are capped at 2 (forcing advancement if verification still fails).
-
-2. **COMPLEX Mode:**
-   - Designed for deeper, iterative software design involving human-in-the-loop oversight.
-   - Implements a **30-second CountdownManager**. If no input is detected, the pipeline auto-advances.
-   - If a user clicks into a text box to edit constraints or architecture, the countdown instantly pauses.
-   - Restores standard 3-iteration self-healing and uses the more powerful gemini-3.6-flash as primary logic model.
-
-### 12.7 Verification & Test Suite Execution
-
-AutoDev includes an automated verification suite covering end-to-end integration flows, adversarial DAG stress tests, and balancer backoff mechanics:
+For frontend development with hot reload:
 
 ```bash
-# 1. Run Complete End-to-End Pipeline Integration Suite
-pytest test_pipeline_flow.py -v
+cd autodev-frontend
+npm run dev
+```
 
-# 2. Run Adversarial Concurrency & Stress Challenger Suite
-pytest test_pipeline_stress_challenge.py -v
+Build the production frontend (outputs to `backend/dist/`):
 
-# 3. Run Universal Exponential Backoff & Balancer Unit Tests
-python -m unittest test_backoff.py -v
+```bash
+cd autodev-frontend
+npm run build
 ```
 
 ---
 
-## 13. Environment Variables
+## 14. Testing
 
-| Variable | Required | Subsystem | Description |
-|---|---|---|---|
-| `GEMINI_API_KEY` | Yes* | LLM Client & Balancer | Universal fallback Google Gemini API key |
-| `GEMINI_API_KEY_1` .. `_6` | No | Smart Balancer Pool | Numbered Gemini API keys for Least-Connections load distribution |
-| `GEMINI_API_KEY_PRODUCT_ENQUIRY` | No | Product Enquiry Agent | Dedicated key for product enquiry and clarifying questions |
-| `GEMINI_API_KEY_REQUIREMENTS` | No | Requirements Agent | Dedicated key for requirements modeling |
-| `GEMINI_API_KEY_DESIGN` | No | Design Blueprint Agent | Dedicated key for architectural blueprinting |
-| `GEMINI_API_KEY_CODEGEN` | No | Autonomous CodeGen | Dedicated key for multi-file code generation |
-| `GEMINI_API_KEY_CRITICS` | No | Arbitration Network | Dedicated key for peer review critics |
-| `GEMINI_API_KEY_ADJUDICATOR` | No | Adjudicator Node | Dedicated key for Chief Software Adjudicator |
-| `GEMINI_API_KEY_INTEGRATION` | No | Integrator Agent | Dedicated key for cross-component integration |
-| `MISTRAL_API_KEY` | No | Architecture Critic | Dedicated API key for Mistral `mistral-small-latest` |
-| `GROQ_API_KEY` | No | Open-Weight Inference | API key for high-speed Groq inference fallbacks |
+### Frontend Tests
 
-*\*At least one valid Gemini key is required for basic operation.*
+The frontend includes a comprehensive test suite with 49 test files covering 711 tests:
 
----
+```bash
+cd autodev-frontend
+npm test
+```
 
-## 14. Build System & Evolutionary Milestones
-
-AutoDev has evolved through **78 commits across 9 architectural eras**, progressing from a basic prompt wrapper into a formally verified autonomous multi-agent engineering platform:
-
-| Version Tag | Commit Hash | Milestone Scope | Core Architectural Capabilities |
-|---|---|---|---|
-| `v0.1.0-alpha` | `5e2d61d` | Phase 1 Requirements | Pydantic model definition, FastAPI scaffold, Gemini API integration |
-| `v0.2.0-alpha` | `059979f` | Phase 2 SDLC Loop | Design Blueprint, CodeGen Agent, Subprocess execution sandbox |
-| `v1.0.0-alpha` | `afdb38b` | Phase 3 Arbitration | LangGraph 3-Critic Consensus Network, Chief Adjudicator node |
-| `v1.1.0-alpha` | `d2d37c2` | Self-Correction Loop | Closed-loop 3-iteration self-healing CodeGen retry loop |
-| `v1.2.0-alpha` | `22b9c8a` | Rich-Text UX | Rich text document editing with Gemini schema parsing endpoints |
-| `v1.3.0-alpha` | `9e6535c` | Monaco IDE & SSE | Monaco editor embed, SSE token streaming, `pytest-cov` metrics |
-| `v1.3.1-alpha` | `0d80e90` | Balancer & Docs | Phase 3.5 Documentation Agent, Adjudicator key isolation |
-| `v1.4.0-alpha` | `c395cf2` | Polyglot SDLC | Multi-language tech stack tracking, dynamic live preview |
-| `v2.0.0` | `08b1693` | Docker Engine v2.0 | Isolated Docker container execution, auto-dependency injection |
-| `v2.1.0` | `3fdbde3` | Component Pipeline | Master Architect, Integrator, modular multi-component pipeline |
-| `v2.2.0-DAG` | `9166d0a` | Mathematical DAG | Kahn sort, Tarjan SCC, StageMutex, 2-phase handover, WASS |
-| `v2.2.1-Prod` | `5502746` | Production Release | Live SSE terminal, Prompt Guard, horizontal carousel UI, Backoff |
-| `v2.3.0-Prod` | `7a19c4d` | Differential & Hybrid SDLC | Targeted differential revision, hybrid UI build verification, Python runtime defense, Abort->Retry control plane |
-| `v3.0.0-Prod` | `a38c91d` | Light UI & 12-Stage Shell | 3-page flow, light theme design system, 12-stage presentation shell, new product lifecycle |
-| `v3.2.0-Prod` | `e8b5a8b` | Glassmorphic UI & Hardened SDLC | Apple iOS obsidian glassmorphic design system, AeroShards 3D WebGPU ambient background, directional sliding stage transitions, space-time matrix visualizer hardening, strict revision limits (3 pipeline, 5 integration), endscreen Gantt metrics, and one-click GitHub export modal |
-| `v3.3.0-Prod` | `HEAD` | Multi-Agent Hub & Viewport Emulation | Unified 3-agent integration hub (Codegen, Testing, Evaluation tabs), dedicated final source code stage, responsive multi-device live preview with iPhone/iPad bezels & Dynamic Island, liquid pipeline accordion motion, radiant green/red development status hue, and SVG development progression graph with agent milestone durations |
+Tests cover:
+- Store state management and persistence
+- Pipeline lifecycle and component tracks
+- Authentication flows
+- Pause/modify/resume engine and earliest-phase rewind logic
+- GitHub export service
+- Notification system
+- UI component rendering
+- Stream and JSON parsing utilities
 
 ---
 
 ## 15. Contributors
 
-- **Aman Adil** — Bhilai Institute of Technology, Durg
-- **Amit Sahu** — Bhilai Institute of Technology, Durg
-- **Anupam Sharma** — Bhilai Institute of Technology, Durg
+- **Aman Adil** -- Bhilai Institute of Technology, Durg
+- **Amit Sahu** -- Bhilai Institute of Technology, Durg
+- **Anupam Sharma** -- Bhilai Institute of Technology, Durg

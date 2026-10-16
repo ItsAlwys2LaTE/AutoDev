@@ -304,10 +304,9 @@ export const useSessionStore = create<SessionStoreState>()((set, get) => ({
     });
   },
 
-  // ── Countdown Manager (COMPLEX Mode) ──────────────────────────────────────
+  // ── Countdown Manager ─────────────────────────────────────────────────────
 
-  startCountdown: (targetAction, onExpire, seconds = 30, mode = 'COMPLEX') => {
-    // Disabled strictly in QUICK mode
+  startCountdown: (targetAction, onExpire, seconds = 30, mode = 'STANDARD') => {
     if (mode === 'QUICK') {
       get().cancelCountdown();
       return;

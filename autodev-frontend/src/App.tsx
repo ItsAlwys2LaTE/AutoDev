@@ -51,7 +51,7 @@ const stageSlideVariants: Variants = {
 // State & Stores
 import { useAppStore } from './stores/appStore';
 import { persistState } from './stores';
-import { useAutoRecovery } from './hooks';
+import { useAutoRecovery, useDynamicFavicon } from './hooks';
 import { initializeGlobalErrorNotifications } from './services';
 
 // Peripheral Components
@@ -108,6 +108,8 @@ export type AppCurrentPage = 'landing' | 'signup' | 'main' | 'profile';
 export default function App() {
   // In-flight auto-recovery bootloader and state persistence lifecycle
   useAutoRecovery();
+  // Dynamic Alex Brush favicon with active development status light
+  useDynamicFavicon();
 
   const isSSR = typeof window === 'undefined';
   const liveStore = isSSR ? useAppStore.getState() : null;
@@ -186,6 +188,16 @@ export default function App() {
     const unregister = initializeGlobalErrorNotifications();
     return () => unregister();
   }, []);
+
+  // Handle global logout by transitioning back to signup / login page
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleLogoutEvent = () => {
+      handlePageChange('signup');
+    };
+    window.addEventListener('autodev:logout', handleLogoutEvent);
+    return () => window.removeEventListener('autodev:logout', handleLogoutEvent);
+  }, [handlePageChange]);
   const storeCurrentStage = useAppStore((s) => s.currentStage);
   const storeMaxUnlockedStage = useAppStore((s) => s.maxUnlockedStage);
   const storeMinNavigableStage = useAppStore((s) => s.minNavigableStage);
@@ -225,6 +237,29 @@ export default function App() {
     const maxBoundary = allowStage11 ? 11 : 10;
     const clamped = Math.max(1, Math.min(maxBoundary, targetStage));
     const prevStage = currentStageRef.current;
+
+    // Instantly mark auto-advance completed on the stage the user is leaving
+    const STAGE_NUMBER_TO_AUTO_ADVANCE_KEY: Record<number, string> = {
+      3: 'stage-3-requirements',
+      4: 'stage-4-decomposition',
+      5: 'stage-5-pipeline',
+      6: 'stage-6-integration',
+      7: 'stage-7-final-code',
+      8: 'stage-8-live-preview',
+      11: 'stage-11-post-dev',
+    };
+
+    const prevKey = STAGE_NUMBER_TO_AUTO_ADVANCE_KEY[prevStage];
+    if (prevKey) {
+      useAppStore.getState().markAutoAdvanceCompleted(prevKey);
+    }
+
+    // If navigating back to an earlier stage, mark it completed
+    // so it will never automatically advance the user after 10 seconds
+    const targetKey = STAGE_NUMBER_TO_AUTO_ADVANCE_KEY[clamped];
+    if (targetKey && clamped <= prevStage) {
+      useAppStore.getState().markAutoAdvanceCompleted(targetKey);
+    }
 
     // Instantly cancel any active auto-advance stage timer on previous stage
     if (typeof window !== 'undefined') {
@@ -489,15 +524,15 @@ export default function App() {
     }
   });
 
-  // When on landing page, theme is permanently dark. On main page, follows user's isDark setting.
-  const isLanding = currentPage === 'landing';
-  const effectiveIsDark = isLanding ? true : isDark;
+  // When on landing or sign in/signup page, theme is permanently dark irrespective of the main autodev system theme.
+  const isPermanentlyDarkPage = currentPage === 'landing' || currentPage === 'signup';
+  const effectiveIsDark = isPermanentlyDarkPage ? true : isDark;
 
   useEffect(() => {
     try {
       if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         const html = document.documentElement;
-        if (currentPage === 'landing' || isDark) {
+        if (currentPage === 'landing' || currentPage === 'signup' || effectiveIsDark) {
           html.classList.add('dark');
           html.classList.remove('light');
         } else {
@@ -508,7 +543,7 @@ export default function App() {
     } catch {
       // ignore
     }
-  }, [isDark, currentPage]);
+  }, [currentPage, effectiveIsDark]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -522,10 +557,12 @@ export default function App() {
     return () => window.removeEventListener('autodev:theme-change', handleThemeEvent);
   }, []);
 
+  const shouldRenderDark = isPermanentlyDarkPage || effectiveIsDark;
+
   return (
     <div
       className={`min-h-screen w-full select-none relative overflow-x-hidden transition-colors duration-500 ease-in-out ${
-        effectiveIsDark ? 'bg-black text-slate-100' : 'bg-white text-slate-900'
+        shouldRenderDark ? 'bg-black text-slate-100' : 'bg-white text-slate-900'
       }`}
     >
       {/* ── 3D Ambient Background Layer ── */}
@@ -548,6 +585,7 @@ export default function App() {
             noiseAmount={0.1}
             distortion={0.05}
             fadeDistance={1.5}
+            lightMode={false}
             className="custom-rays w-full h-full"
           />
         </div>
@@ -651,37 +689,9 @@ export default function App() {
       )}
 
       {currentPage === 'signup' && (
-        <div id="pageSignIn" className="min-h-screen w-full flex flex-col justify-between overflow-y-auto">
-          {/* Sign In Top Header */}
-          <header className="h-16 px-6 sm:px-12 flex items-center justify-between bg-transparent border-none sticky top-0 z-20">
-            <div
-              onClick={() => handlePageChange('landing')}
-              className="relative inline-flex items-center group cursor-pointer"
-            >
-              <div
-                className="absolute -inset-x-4 -inset-y-2 bg-slate-950/15 backdrop-blur-md rounded-full pointer-events-none -z-10"
-                style={{ filter: 'blur(16px)' }}
-                aria-hidden="true"
-              />
-              <span
-                className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/90 group-hover:text-white italic font-normal tracking-wide drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all select-none"
-                style={{ fontFamily: "'Alex Brush', cursive, sans-serif" }}
-              >
-                AutoDev
-              </span>
-            </div>
-            <button
-              id="signInBackToHomeBtn"
-              type="button"
-              onClick={() => handlePageChange('landing')}
-              className="text-xs text-slate-300 hover:text-white transition-colors cursor-pointer px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-md"
-            >
-              Back to Home
-            </button>
-          </header>
-
+        <div id="pageSignIn" className="dark min-h-screen w-full flex flex-col items-center justify-center overflow-y-auto py-8 px-4 relative z-20 text-slate-100">
           {/* Sign In Content Surface */}
-          <main className="flex-1 flex items-center justify-center py-8">
+          <main className="w-full flex-1 flex items-center justify-center">
             <StageSignIn onSignInSuccess={() => handlePageChange('main')} />
           </main>
         </div>
@@ -690,6 +700,7 @@ export default function App() {
       {currentPage === 'profile' && (
         <UserProfilePage
           onBack={() => handlePageChange('main')}
+          onLoggedOut={() => handlePageChange('signup')}
           isDark={isDark}
           onToggleTheme={setIsDark}
         />
@@ -716,6 +727,7 @@ export default function App() {
             onOpenProfile={() => handlePageChange('profile')}
             userName={authUser?.display_name || authUser?.username || 'Alex'}
             userEmail={authUser?.email || 'alex@autodev.org'}
+            avatarColor={authUser?.avatar_color || 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'}
           />
 
           {/* ── 2. Dynamic Edge-Hover Navigation: Left Hover Zone (<) ── */}
@@ -758,9 +770,7 @@ export default function App() {
 
           {/* ── 4. Main Screen Layout: Stage Title Bar + Maximized Central Workspace (~80vh) ── */}
           <main
-            className={`flex-1 w-full ${
-              currentStage === 2 ? 'max-w-4xl' : 'max-w-7xl'
-            } mx-auto px-4 sm:px-8 py-2 sm:py-3 flex flex-col min-h-0 overflow-hidden`}
+            className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-2 sm:py-3 flex flex-col min-h-0 overflow-hidden"
           >
 
             {/* Maximized Central Workspace Container (~80% Viewport Height) - non-blocking sliding stage container */}
@@ -774,8 +784,6 @@ export default function App() {
               className={
                 currentStage === 1
                   ? 'relative flex-1 w-full flex flex-col overflow-hidden min-h-0'
-                  : currentStage === 2
-                  ? 'relative flex-1 w-full max-w-4xl mx-auto rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
                   : 'relative flex-1 w-full rounded-2xl md:rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] flex flex-col overflow-hidden min-h-0'
               }
               style={currentStage !== 1 ? { backdropFilter: 'blur(14px)' } : undefined}

@@ -11,18 +11,89 @@
 // Custom Error Hierarchy
 // ============================================================================
 
+/**
+ * Safely extracts a clean human-readable error detail string from response bodies.
+ * Handles FastAPI string details, Pydantic 422 validation arrays, and nested error dictionaries.
+ */
+export function formatErrorDetail(body: any, fallback: string = 'Operation failed'): string {
+  if (!body) return fallback;
+  if (typeof body === 'string') return body;
+
+  // 1. Standard FastAPI detail string
+  if (typeof body.detail === 'string') return body.detail;
+
+  // 2. FastAPI/Pydantic validation error array: [{ loc: [...], msg: "..." }]
+  if (Array.isArray(body.detail)) {
+    const messages = body.detail
+      .map((item: any) => {
+        if (typeof item === 'string') return item;
+        if (item?.msg) {
+          const loc = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : '';
+          return loc && loc !== 'body' ? `${loc}: ${item.msg}` : item.msg;
+        }
+        return null;
+      })
+      .filter(Boolean);
+    if (messages.length > 0) return messages.join('; ');
+  }
+
+  // 3. Alternate common error payload properties
+  if (typeof body.message === 'string' && body.message !== '[object Object]') return body.message;
+  if (typeof body.error === 'string' && body.error !== '[object Object]') return body.error;
+
+  // 4. Nested detail dictionary
+  if (typeof body.detail === 'object' && body.detail !== null) {
+    if (typeof body.detail.message === 'string') return body.detail.message;
+    if (typeof body.detail.error === 'string') return body.detail.error;
+    try {
+      return JSON.stringify(body.detail);
+    } catch {
+      return fallback;
+    }
+  }
+
+  return fallback;
+}
+
+/**
+ * Normalizes any error (ApiError, Error, string, or arbitrary object) into a human-readable message.
+ * Eliminates "[object Object]" and "API Error 400: " prefixes for UI feedback presentation.
+ */
+export function extractErrorMessage(err: any, fallback: string = 'Operation failed'): string {
+  if (!err) return fallback;
+
+  if (typeof err === 'string') {
+    if (err === '[object Object]' || err === 'Object [object]') return fallback;
+    return err;
+  }
+
+  // If err has an HTTP response body (ApiError)
+  if (err.body) {
+    const formatted = formatErrorDetail(err.body, '');
+    if (formatted && formatted !== '[object Object]' && formatted !== 'Object [object]') {
+      return formatted;
+    }
+  }
+
+  // Standard Error.message
+  if (typeof err.message === 'string') {
+    if (err.message === '[object Object]' || err.message === 'Object [object]') return fallback;
+    const cleaned = err.message.replace(/^API Error \d+:\s*/, '').trim();
+    if (cleaned && cleaned !== '[object Object]' && cleaned !== 'Object [object]') {
+      return cleaned;
+    }
+  }
+
+  return fallback;
+}
+
 export class ApiError extends Error {
   public readonly status: number;
   public readonly statusText: string;
   public readonly body: any;
 
   constructor(status: number, statusText: string, body: any) {
-    const detail =
-      typeof body === 'object' && body?.detail
-        ? body.detail
-        : typeof body === 'string'
-        ? body
-        : statusText;
+    const detail = formatErrorDetail(body, statusText || `HTTP ${status}`);
     super(`API Error ${status}: ${detail}`);
     this.name = 'ApiError';
     this.status = status;
@@ -162,7 +233,15 @@ export interface RetryOptions {
 export function isAbortError(error: unknown): boolean {
   if (!error) return false;
   const err = error as any;
-  return err.name === 'AbortError' || err instanceof ApiAbortError || err.code === 20;
+  const msg = typeof err === 'string' ? err : err?.message || '';
+  return (
+    err.name === 'AbortError' ||
+    err instanceof ApiAbortError ||
+    err.code === 20 ||
+    msg.includes('aborted') ||
+    msg.includes('Superseded') ||
+    msg.includes('AbortError')
+  );
 }
 
 export function isNetworkError(error: unknown): boolean {

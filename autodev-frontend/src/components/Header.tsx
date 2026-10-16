@@ -68,17 +68,17 @@ export const Header: React.FC<HeaderProps> = ({
   if (variant === 'glass') {
     return (
       <header
-        className={`w-full h-16 px-6 md:px-10 flex items-center justify-between bg-transparent border-none shadow-none z-30 select-none text-slate-100 ${className}`}
+        className={`w-full h-16 px-6 md:px-10 flex items-center justify-between bg-transparent border-none shadow-none z-30 select-none text-slate-900 dark:text-slate-100 ${className}`}
       >
         {/* Left: Cursive AutoDev logo directly on background with subtle blur behind text */}
         <div className="relative inline-flex items-center">
           <div
-            className="absolute -inset-x-4 -inset-y-2 bg-slate-950/15 backdrop-blur-md rounded-full pointer-events-none -z-10"
+            className="absolute -inset-x-4 -inset-y-2 bg-slate-950/5 dark:bg-slate-950/15 backdrop-blur-md rounded-full pointer-events-none -z-10"
             style={{ filter: 'blur(16px)' }}
             aria-hidden="true"
           />
           <span
-            className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-white/90 hover:text-white font-normal italic tracking-wide cursor-pointer drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all duration-300 select-none"
+            className="font-cursive text-3xl sm:text-4xl md:text-[42px] text-slate-900 hover:text-black dark:text-white/90 dark:hover:text-white font-normal italic tracking-wide cursor-pointer drop-shadow-none dark:drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] transition-all duration-300 select-none"
             style={{ fontFamily: "'Alex Brush', cursive, sans-serif" }}
             title="AutoDev"
           >

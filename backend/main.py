@@ -93,6 +93,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
     ],
@@ -282,7 +284,7 @@ from prompt_guard import validate_prompt, PromptGuardError
 from key_balancer import resilient_llm_stream
 from agents.requirements_agent import generate_requirements_stream
 from agents.intent_classifier import classify_intent
-from agents.product_enquiry_agent import run_product_enquiry
+from agents.product_enquiry_agent import run_product_enquiry, derive_product_title
 from models import IntentClassification, ClassifyIntentInput, ProductEnquiryResult, ProductEnquiryInput
 
 @app.post("/api/product-enquiry", response_model=ProductEnquiryResult)
@@ -309,6 +311,7 @@ def api_product_enquiry(user_input: ProductEnquiryInput, request: Request):
         non_sw_reason = get_non_software_reason(target_prompt)
         if non_sw_reason:
             return ProductEnquiryResult(
+                product_title="Non-Software Query",
                 understanding_summary=f"Non-software query detected: {target_prompt}",
                 implementation_strategy="AutoDev is an automated software engineering platform and cannot develop non-software queries. Please specify a software project to build.",
                 is_valid_software=False,
@@ -318,6 +321,7 @@ def api_product_enquiry(user_input: ProductEnquiryInput, request: Request):
                 direct_answer=non_sw_reason,
             )
         return ProductEnquiryResult(
+            product_title=derive_product_title(target_prompt),
             understanding_summary=f"Automated software development for: {target_prompt}",
             implementation_strategy="AutoDev will decompose requirements and implement verified components.",
             is_valid_software=True,

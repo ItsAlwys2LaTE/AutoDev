@@ -17,6 +17,10 @@ export interface ComponentTheme {
   borderTint: string;
   badgeBg: string;
   badgeText: string;
+  colorLight?: string;
+  colorDark?: string;
+  badgeTextLight?: string;
+  badgeTextDark?: string;
 }
 
 /**
@@ -27,66 +31,201 @@ export const COMPONENT_PALETTE: Array<Omit<ComponentTheme, 'number' | 'index'>> 
   {
     name: 'indigo',
     color: '#818cf8',
-    bgTint: 'rgba(99, 102, 241, 0.05)',
-    borderTint: 'rgba(99, 102, 241, 0.18)',
-    badgeBg: 'rgba(99, 102, 241, 0.12)',
+    bgTint: 'rgba(99, 102, 241, 0.12)',
+    borderTint: 'rgba(99, 102, 241, 0.30)',
+    badgeBg: 'rgba(99, 102, 241, 0.20)',
     badgeText: '#c7d2fe',
+    colorLight: '#4338ca',
+    colorDark: '#818cf8',
+    badgeTextLight: '#3730a3',
+    badgeTextDark: '#c7d2fe',
   },
   {
     name: 'emerald',
     color: '#34d399',
-    bgTint: 'rgba(16, 185, 129, 0.05)',
-    borderTint: 'rgba(16, 185, 129, 0.18)',
-    badgeBg: 'rgba(16, 185, 129, 0.12)',
+    bgTint: 'rgba(16, 185, 129, 0.12)',
+    borderTint: 'rgba(16, 185, 129, 0.30)',
+    badgeBg: 'rgba(16, 185, 129, 0.20)',
     badgeText: '#a7f3d0',
+    colorLight: '#047857',
+    colorDark: '#34d399',
+    badgeTextLight: '#065f46',
+    badgeTextDark: '#a7f3d0',
   },
   {
     name: 'sky',
     color: '#38bdf8',
-    bgTint: 'rgba(14, 165, 233, 0.05)',
-    borderTint: 'rgba(14, 165, 233, 0.18)',
-    badgeBg: 'rgba(14, 165, 233, 0.12)',
+    bgTint: 'rgba(14, 165, 233, 0.12)',
+    borderTint: 'rgba(14, 165, 233, 0.30)',
+    badgeBg: 'rgba(14, 165, 233, 0.20)',
     badgeText: '#bae6fd',
+    colorLight: '#0284c7',
+    colorDark: '#38bdf8',
+    badgeTextLight: '#075985',
+    badgeTextDark: '#bae6fd',
   },
   {
     name: 'violet',
     color: '#a78bfa',
-    bgTint: 'rgba(139, 92, 246, 0.05)',
-    borderTint: 'rgba(139, 92, 246, 0.18)',
-    badgeBg: 'rgba(139, 92, 246, 0.12)',
+    bgTint: 'rgba(139, 92, 246, 0.12)',
+    borderTint: 'rgba(139, 92, 246, 0.30)',
+    badgeBg: 'rgba(139, 92, 246, 0.20)',
     badgeText: '#ddd6fe',
+    colorLight: '#6d28d9',
+    colorDark: '#a78bfa',
+    badgeTextLight: '#5b21b6',
+    badgeTextDark: '#ddd6fe',
   },
   {
     name: 'amber',
     color: '#fbbf24',
-    bgTint: 'rgba(245, 158, 11, 0.05)',
-    borderTint: 'rgba(245, 158, 11, 0.18)',
-    badgeBg: 'rgba(245, 158, 11, 0.12)',
+    bgTint: 'rgba(245, 158, 11, 0.12)',
+    borderTint: 'rgba(245, 158, 11, 0.30)',
+    badgeBg: 'rgba(245, 158, 11, 0.20)',
     badgeText: '#fde68a',
+    colorLight: '#b45309',
+    colorDark: '#fbbf24',
+    badgeTextLight: '#92400e',
+    badgeTextDark: '#fde68a',
   },
   {
     name: 'teal',
     color: '#2dd4bf',
-    bgTint: 'rgba(20, 184, 166, 0.05)',
-    borderTint: 'rgba(20, 184, 166, 0.18)',
-    badgeBg: 'rgba(20, 184, 166, 0.12)',
+    bgTint: 'rgba(20, 184, 166, 0.12)',
+    borderTint: 'rgba(20, 184, 166, 0.30)',
+    badgeBg: 'rgba(20, 184, 166, 0.20)',
     badgeText: '#99f6e4',
+    colorLight: '#0f766e',
+    colorDark: '#2dd4bf',
+    badgeTextLight: '#115e59',
+    badgeTextDark: '#99f6e4',
   },
   {
     name: 'rose',
     color: '#fb7185',
-    bgTint: 'rgba(244, 63, 94, 0.05)',
-    borderTint: 'rgba(244, 63, 94, 0.18)',
-    badgeBg: 'rgba(244, 63, 94, 0.12)',
+    bgTint: 'rgba(244, 63, 94, 0.12)',
+    borderTint: 'rgba(244, 63, 94, 0.30)',
+    badgeBg: 'rgba(244, 63, 94, 0.20)',
     badgeText: '#fecdd3',
+    colorLight: '#be123c',
+    colorDark: '#fb7185',
+    badgeTextLight: '#9f1239',
+    badgeTextDark: '#fecdd3',
   },
   {
     name: 'cyan',
     color: '#22d3ee',
-    bgTint: 'rgba(6, 182, 212, 0.05)',
-    borderTint: 'rgba(6, 182, 212, 0.18)',
-    badgeBg: 'rgba(6, 182, 212, 0.12)',
+    bgTint: 'rgba(6, 182, 212, 0.12)',
+    borderTint: 'rgba(6, 182, 212, 0.30)',
+    badgeBg: 'rgba(6, 182, 212, 0.20)',
     badgeText: '#a5f3fc',
+    colorLight: '#0e7490',
+    colorDark: '#22d3ee',
+    badgeTextLight: '#155e75',
+    badgeTextDark: '#a5f3fc',
+  },
+];
+
+/**
+ * Curated high-contrast palette for light mode theme.
+ * Uses deeper, richer saturation to ensure high readability and contrast against white surfaces.
+ */
+export const COMPONENT_PALETTE_LIGHT: Array<Omit<ComponentTheme, 'number' | 'index'>> = [
+  {
+    name: 'indigo',
+    color: '#4338ca',
+    bgTint: 'rgba(99, 102, 241, 0.15)',
+    borderTint: 'rgba(99, 102, 241, 0.38)',
+    badgeBg: 'rgba(99, 102, 241, 0.22)',
+    badgeText: '#3730a3',
+    colorLight: '#4338ca',
+    colorDark: '#818cf8',
+    badgeTextLight: '#3730a3',
+    badgeTextDark: '#c7d2fe',
+  },
+  {
+    name: 'emerald',
+    color: '#047857',
+    bgTint: 'rgba(16, 185, 129, 0.15)',
+    borderTint: 'rgba(16, 185, 129, 0.38)',
+    badgeBg: 'rgba(16, 185, 129, 0.22)',
+    badgeText: '#065f46',
+    colorLight: '#047857',
+    colorDark: '#34d399',
+    badgeTextLight: '#065f46',
+    badgeTextDark: '#a7f3d0',
+  },
+  {
+    name: 'sky',
+    color: '#0284c7',
+    bgTint: 'rgba(14, 165, 233, 0.15)',
+    borderTint: 'rgba(14, 165, 233, 0.38)',
+    badgeBg: 'rgba(14, 165, 233, 0.22)',
+    badgeText: '#075985',
+    colorLight: '#0284c7',
+    colorDark: '#38bdf8',
+    badgeTextLight: '#075985',
+    badgeTextDark: '#bae6fd',
+  },
+  {
+    name: 'violet',
+    color: '#6d28d9',
+    bgTint: 'rgba(139, 92, 246, 0.15)',
+    borderTint: 'rgba(139, 92, 246, 0.38)',
+    badgeBg: 'rgba(139, 92, 246, 0.22)',
+    badgeText: '#5b21b6',
+    colorLight: '#6d28d9',
+    colorDark: '#a78bfa',
+    badgeTextLight: '#5b21b6',
+    badgeTextDark: '#ddd6fe',
+  },
+  {
+    name: 'amber',
+    color: '#b45309',
+    bgTint: 'rgba(245, 158, 11, 0.15)',
+    borderTint: 'rgba(245, 158, 11, 0.38)',
+    badgeBg: 'rgba(245, 158, 11, 0.22)',
+    badgeText: '#92400e',
+    colorLight: '#b45309',
+    colorDark: '#fbbf24',
+    badgeTextLight: '#92400e',
+    badgeTextDark: '#fde68a',
+  },
+  {
+    name: 'teal',
+    color: '#0f766e',
+    bgTint: 'rgba(20, 184, 166, 0.15)',
+    borderTint: 'rgba(20, 184, 166, 0.38)',
+    badgeBg: 'rgba(20, 184, 166, 0.22)',
+    badgeText: '#115e59',
+    colorLight: '#0f766e',
+    colorDark: '#2dd4bf',
+    badgeTextLight: '#115e59',
+    badgeTextDark: '#99f6e4',
+  },
+  {
+    name: 'rose',
+    color: '#be123c',
+    bgTint: 'rgba(244, 63, 94, 0.15)',
+    borderTint: 'rgba(244, 63, 94, 0.38)',
+    badgeBg: 'rgba(244, 63, 94, 0.22)',
+    badgeText: '#9f1239',
+    colorLight: '#be123c',
+    colorDark: '#fb7185',
+    badgeTextLight: '#9f1239',
+    badgeTextDark: '#fecdd3',
+  },
+  {
+    name: 'cyan',
+    color: '#0e7490',
+    bgTint: 'rgba(6, 182, 212, 0.15)',
+    borderTint: 'rgba(6, 182, 212, 0.38)',
+    badgeBg: 'rgba(6, 182, 212, 0.22)',
+    badgeText: '#155e75',
+    colorLight: '#0e7490',
+    colorDark: '#22d3ee',
+    badgeTextLight: '#155e75',
+    badgeTextDark: '#a5f3fc',
   },
 ];
 
@@ -140,14 +279,27 @@ export function getComponentNumber(
 }
 
 /**
- * Returns the complete theme specification for a component.
+ * Checks whether light mode theme is active in the document.
+ */
+function isLightMode(): boolean {
+  if (typeof document !== 'undefined') {
+    return document.documentElement.classList.contains('light') || !document.documentElement.classList.contains('dark');
+  }
+  return false;
+}
+
+/**
+ * Returns the complete theme specification for a component, adapting colors to light or dark mode.
  */
 export function getComponentTheme(
   identifier: string | number,
-  components?: Array<{ component_id?: string }>
+  components?: Array<{ component_id?: string }>,
+  forceDark?: boolean
 ): ComponentTheme {
   const index = resolveComponentIndex(identifier, components);
-  const paletteItem = COMPONENT_PALETTE[index % COMPONENT_PALETTE.length];
+  const activeIsLight = forceDark === undefined ? isLightMode() : !forceDark;
+  const palette = activeIsLight ? COMPONENT_PALETTE_LIGHT : COMPONENT_PALETTE;
+  const paletteItem = palette[index % palette.length];
   return {
     ...paletteItem,
     number: `C${index + 1}`,

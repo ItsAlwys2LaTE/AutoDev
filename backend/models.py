@@ -111,23 +111,106 @@ class ClassifyIntentInput(BaseModel):
 
 class AcceptanceCriteria(BaseModel):
     """Specific conditions that a software feature must satisfy to be accepted."""
-    id: str = Field(description="A unique identifier for the AC, e.g., AC-1")
-    description: str = Field(description="Clear, testable description of the condition")
-    expected_behavior: str = Field(description="What the system should do if the condition is met")
+    id: str = Field(default="AC-1", description="A unique identifier for the AC, e.g., AC-1")
+    description: str = Field(default="", description="Clear, testable description of the condition")
+    expected_behavior: str = Field(default="", description="What the system should do if the condition is met")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_ac(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            clean_str = data.strip()
+            return {"id": "AC-1", "description": clean_str, "expected_behavior": clean_str}
+        if isinstance(data, dict):
+            d = dict(data)
+            if not d.get("id"):
+                d["id"] = "AC-1"
+            if not d.get("description"):
+                d["description"] = d.get("expected_behavior") or d.get("criterion") or d.get("text") or ""
+            if not d.get("expected_behavior"):
+                d["expected_behavior"] = d.get("description") or ""
+            return d
+        return data
 
 class UserStory(BaseModel):
     """A single user story representing a piece of functionality."""
-    title: str = Field(description="Short title of the feature")
-    as_a: str = Field(description="The user persona (e.g., 'As a regular user')")
-    i_want_to: str = Field(description="The action the user wants to perform")
-    so_that: str = Field(description="The business value or benefit")
-    acceptance_criteria: List[AcceptanceCriteria] = Field(description="Acceptance criteria for this story")
+    id: Optional[str] = Field(default="US-001", description="Unique identifier for the story")
+    title: str = Field(default="User Story", description="Short title of the feature")
+    as_a: str = Field(default="User", description="The user persona (e.g., 'As a regular user')")
+    i_want_to: str = Field(default="perform action", description="The action the user wants to perform")
+    so_that: str = Field(default="achieve result", description="The business value or benefit")
+    acceptance_criteria: List[AcceptanceCriteria] = Field(default_factory=list, description="Acceptance criteria for this story")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_story(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            clean_str = data.strip()
+            return {
+                "id": "US-001",
+                "title": clean_str[:60],
+                "as_a": "User",
+                "i_want_to": clean_str,
+                "so_that": "achieve result",
+                "acceptance_criteria": [{"id": "AC-1", "description": clean_str, "expected_behavior": clean_str}],
+            }
+        if isinstance(data, dict):
+            d = dict(data)
+            if not d.get("id"):
+                d["id"] = "US-001"
+            if not d.get("title"):
+                d["title"] = d.get("i_want_to") or d.get("name") or "User Story"
+            if not d.get("as_a"):
+                d["as_a"] = "User"
+            if not d.get("i_want_to"):
+                d["i_want_to"] = d.get("title") or "perform action"
+            if not d.get("so_that"):
+                d["so_that"] = "achieve result"
+            raw_acs = d.get("acceptance_criteria")
+            if raw_acs is None:
+                d["acceptance_criteria"] = []
+            elif isinstance(raw_acs, list):
+                normalized_acs = []
+                for idx, ac in enumerate(raw_acs):
+                    if isinstance(ac, str):
+                        clean_ac = ac.strip()
+                        normalized_acs.append({"id": f"AC-{idx+1}", "description": clean_ac, "expected_behavior": clean_ac})
+                    elif isinstance(ac, dict):
+                        ac_dict = dict(ac)
+                        if not ac_dict.get("id"):
+                            ac_dict["id"] = f"AC-{idx+1}"
+                        if not ac_dict.get("description"):
+                            ac_dict["description"] = ac_dict.get("expected_behavior") or ac_dict.get("criterion") or ac_dict.get("text") or ""
+                        if not ac_dict.get("expected_behavior"):
+                            ac_dict["expected_behavior"] = ac_dict.get("description") or ""
+                        normalized_acs.append(ac_dict)
+                    else:
+                        normalized_acs.append(ac)
+                d["acceptance_criteria"] = normalized_acs
+            return d
+        return data
 
 class RequirementsDocument(BaseModel):
     """The final structured output from the Requirements Agent."""
-    project_title: str = Field(description="Inferred title of the project/feature")
-    overview: str = Field(description="Brief summary of what is being built")
-    user_stories: List[UserStory] = Field(description="All user stories required to build the feature")
+    project_title: str = Field(default="Untitled Project", description="Inferred title of the project/feature")
+    overview: str = Field(default="", description="Brief summary of what is being built")
+    user_stories: List[UserStory] = Field(default_factory=list, description="All user stories required to build the feature")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_requirements(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            d = dict(data)
+            if "requirements" in d and isinstance(d["requirements"], dict):
+                d = dict(d["requirements"])
+            if not d.get("project_title"):
+                d["project_title"] = d.get("title") or d.get("name") or d.get("product_name") or "Untitled Project"
+            if not d.get("overview"):
+                d["overview"] = d.get("description") or d.get("summary") or d.get("problem_statement") or ""
+            if d.get("user_stories") is None:
+                d["user_stories"] = []
+            return d
+        return data
 
 # --- PHASE 2 MODELS (Design & Execution) ---
 
@@ -502,7 +585,7 @@ class PostCompletionModifyRequest(BaseModel):
     codebase: GeneratedCodeBase = Field(description="The current codebase snapshot to be selectively refactored")
     blueprint: Optional[SystemDesignBlueprint] = Field(default=None, description="The system architecture blueprint providing tech stack and verification context")
     run_verification: Optional[bool] = Field(default=True, description="Whether to invoke executor sandbox verification after applying modifications")
-    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
+    mode: Optional[str] = Field(default="STANDARD", description="Generation mode: STANDARD")
     generation_mode: Optional[str] = Field(default=None, description="Alias for mode to maintain backward compatibility")
     requirements: Optional[RequirementsDocument] = Field(default=None, description="Optional requirements document for arbitration context")
 
@@ -513,7 +596,7 @@ class PostCompletionQueryRequest(BaseModel):
     query: Optional[str] = Field(default=None, description="Alias for prompt")
     codebase: GeneratedCodeBase = Field(description="The current codebase snapshot to inspect (read-only)")
     blueprint: Optional[SystemDesignBlueprint] = Field(default=None, description="Optional system architecture blueprint for context")
-    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
+    mode: Optional[str] = Field(default="STANDARD", description="Generation mode: STANDARD")
     generation_mode: Optional[str] = Field(default=None, description="Alias for mode")
 
     @model_validator(mode="before")
@@ -548,6 +631,10 @@ class PostCompletionModifyResponse(BaseModel):
 
 class ProductEnquiryResult(BaseModel):
     """Structured response from the Product Enquiry Agent."""
+    product_title: Optional[str] = Field(
+        default=None,
+        description="A concise, professional title for the software product (e.g. 'AI Markdown Notebook', 'Decentralized Task Manager'). Maximum 3-6 words."
+    )
     understanding_summary: str = Field(
         description="A simple, clear explanation of what AutoDev understands the user wants to build."
     )
@@ -576,6 +663,7 @@ class ProductEnquiryResult(BaseModel):
     def set_defaults(cls, data: Any) -> Any:
         if not isinstance(data, dict):
             return data
+        data.setdefault("product_title", None)
         data.setdefault("understanding_summary", "")
         data.setdefault("implementation_strategy", "")
         data.setdefault("is_valid_software", True)
@@ -608,8 +696,8 @@ class ProductEnquiryResult(BaseModel):
             val = [val]
         if isinstance(val, (list, tuple)):
             cleaned = [str(q).strip() for q in val if q and str(q).strip()]
-            # Cap at 3 questions to strictly prevent asking too many questions
-            return cleaned[:3]
+            # Allow up to 5 questions
+            return cleaned[:5]
         return []
 
     @field_validator("assumptions", mode="before")
@@ -635,7 +723,7 @@ class ProductEnquiryInput(BaseModel):
     """Payload for Product Enquiry request."""
     prompt: Optional[str] = Field(default=None, description="The user's prompt or feature request")
     feature_request: Optional[str] = Field(default=None, description="Alias for prompt")
-    mode: Optional[str] = Field(default="QUICK", description="Generation mode: QUICK")
+    mode: Optional[str] = Field(default="STANDARD", description="Generation mode: STANDARD")
     generation_mode: Optional[str] = Field(default=None, description="Alias for mode")
     context: Optional[str] = Field(default=None, description="Optional multi-round clarification history")
 
@@ -647,7 +735,7 @@ class ProductEnquiryInput(BaseModel):
             if p is not None:
                 data["prompt"] = str(p)
                 data["feature_request"] = str(p)
-            m = data.get("mode") or data.get("generation_mode") or "QUICK"
+            m = data.get("mode") or data.get("generation_mode") or "STANDARD"
             data["mode"] = str(m)
             data["generation_mode"] = str(m)
         return data

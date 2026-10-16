@@ -360,7 +360,7 @@ export type InFlightPhase =
 /**
  * Pipeline generation mode toggle.
  */
-export type AppMode = 'QUICK' | 'COMPLEX';
+export type AppMode = 'STANDARD' | 'QUICK' | 'COMPLEX';
 
 /**
  * Cumulative token counts and INR monetary cost tracking.
@@ -762,6 +762,7 @@ export interface AutoDevStateV1 {
   integrationActiveCriticIndex: number;
   isPreviewOpen?: boolean;
   isPaused?: boolean;
+  isPauseRequested?: boolean;
   pausedAtPhase?: InFlightPhase | null;
   pausedAt?: number | null;
   inspectingPhase?: InFlightPhase | null;
@@ -776,6 +777,7 @@ export interface AutoDevStateV1 {
   productEnquiryAnswers?: string[];
   productEnquiryAdditionalNotes?: string;
   terminalLogs?: TerminalLogItem[];
+  completedAutoAdvanceStages?: Record<string, boolean>;
 }
 
 export interface TerminalLogItem {

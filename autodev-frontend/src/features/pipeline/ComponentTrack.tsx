@@ -82,96 +82,96 @@ export function getTrackStatusConfig(status: string = 'queued'): {
       return {
         badgeText: 'Queued for Design',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.04] text-slate-400 border border-white/[0.07]',
-        dotClass: 'w-2 h-2 rounded-full bg-slate-400 shrink-0',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-300 dark:bg-white/[0.04] dark:text-slate-400 dark:border-white/[0.07]',
+        dotClass: 'w-2 h-2 rounded-full bg-slate-500 dark:bg-slate-400 shrink-0',
       };
     case 'designing':
       return {
         badgeText: 'Designing...',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.06] text-slate-300 border border-white/[0.08]',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 dark:bg-white/[0.06] dark:text-slate-300 dark:border-white/[0.08]',
         dotClass:
-          'w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-blue-600 dark:bg-white animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)] dark:shadow-[0_0_8px_rgba(255,255,255,0.6)] shrink-0',
       };
     case 'waiting_design':
     case 'waiting_code':
       return {
         badgeText: 'Action Required',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 animate-pulse',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30 animate-pulse',
         dotClass:
-          'w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-amber-500 dark:bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)] dark:shadow-[0_0_8px_rgba(234,179,8,0.6)] shrink-0',
       };
     case 'coding_queued':
       return {
         badgeText: 'Queued for Code',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.04] text-slate-400 border border-white/[0.07]',
-        dotClass: 'w-2 h-2 rounded-full bg-slate-400 shrink-0',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-300 dark:bg-white/[0.04] dark:text-slate-400 dark:border-white/[0.07]',
+        dotClass: 'w-2 h-2 rounded-full bg-slate-500 dark:bg-slate-400 shrink-0',
       };
     case 'coding':
       return {
         badgeText: 'Coding...',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.06] text-slate-300 border border-white/[0.08]',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-purple-50 text-purple-700 border border-purple-200 dark:bg-white/[0.06] dark:text-slate-300 dark:border-white/[0.08]',
         dotClass:
-          'w-2 h-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-purple-600 dark:bg-white animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.6)] dark:shadow-[0_0_8px_rgba(255,255,255,0.6)] shrink-0',
       };
     case 'critic_queued':
       return {
         badgeText: 'Queued for Tests',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-white/[0.04] text-slate-400 border border-white/[0.07]',
-        dotClass: 'w-2 h-2 rounded-full bg-slate-400 shrink-0',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-300 dark:bg-white/[0.04] dark:text-slate-400 dark:border-white/[0.07]',
+        dotClass: 'w-2 h-2 rounded-full bg-slate-500 dark:bg-slate-400 shrink-0',
       };
     case 'executing':
       return {
         badgeText: 'Executing...',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-400 dark:border-amber-500/30',
         dotClass:
-          'w-2 h-2 rounded-full bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-amber-500 dark:bg-amber-400 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)] shrink-0',
       };
     case 'critiquing':
       return {
         badgeText: 'Evaluating...',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-rose-500/20 text-rose-400 border border-rose-500/30',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30',
         dotClass:
-          'w-2 h-2 rounded-full bg-rose-400 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-rose-500 dark:bg-rose-400 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.6)] shrink-0',
       };
     case 'waiting_critic':
       return {
         badgeText: 'Action Required',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 animate-pulse',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30 animate-pulse',
         dotClass:
-          'w-2 h-2 rounded-full bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-amber-500 dark:bg-yellow-400 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)] dark:shadow-[0_0_8px_rgba(234,179,8,0.6)] shrink-0',
       };
     case 'passed':
     case 'completed':
       return {
         badgeText: 'Passed',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30 shadow-xs dark:shadow-[0_0_10px_rgba(16,185,129,0.2)]',
         dotClass:
-          'w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 shadow-xs dark:shadow-[0_0_8px_rgba(16,185,129,0.6)] shrink-0',
       };
     case 'failed':
     case 'quarantined':
       return {
         badgeText: 'Failed',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-red-500/20 text-red-400 border border-red-500/30',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-red-100 text-red-800 border border-red-300 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30',
         dotClass:
-          'w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] shrink-0',
+          'w-2 h-2 rounded-full bg-red-600 dark:bg-red-500 shadow-xs dark:shadow-[0_0_8px_rgba(239,68,68,0.6)] shrink-0',
       };
     default:
       return {
         badgeText: 'Queued for Design',
         badgeClass:
-          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700',
-        dotClass: 'w-2 h-2 rounded-full bg-slate-400 shrink-0',
+          'text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-md bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
+        dotClass: 'w-2 h-2 rounded-full bg-slate-500 dark:bg-slate-400 shrink-0',
       };
   }
 }
@@ -219,7 +219,7 @@ export function ComponentTrack({
   const storePipelineStatus = useAppStore((s) => s.pipelineStatus);
   const storeIsPaused = useAppStore((s) => s.isPaused);
 
-  const mode = (isSSR ? liveStore?.mode : storeMode) || 'QUICK';
+  const mode = (isSSR ? liveStore?.mode : storeMode) || 'STANDARD';
   const activeComponentId = isSSR
     ? liveStore?.activeComponentId
     : storeActiveId;
@@ -467,7 +467,7 @@ export function ComponentTrack({
           component_id: cId,
           stage: 'DESIGN',
           verdict: 'approve',
-          mode: 'QUICK',
+          mode: 'STANDARD',
         });
       } catch (e) {
         console.warn(`pipelineComplete DESIGN error for ${cId}:`, e);
@@ -476,8 +476,19 @@ export function ComponentTrack({
     } catch (err: any) {
       console.error(`Design error in component ${cId}:`, err);
       useAppStore.getState().completeTimelineInterval(designIntervalId, { status: 'failed' });
+      lastProcessedEpochByStageRef.current.delete('DESIGN');
       if (!isStale()) {
         updateComponentState(cId, { status: 'failed' });
+      }
+      try {
+        await pipelineComplete({
+          component_id: cId,
+          stage: 'DESIGN',
+          verdict: 'error',
+          mode: 'STANDARD',
+        });
+      } catch (e) {
+        console.warn(`pipelineComplete DESIGN error notification for ${cId}:`, e);
       }
     } finally {
       if (runIdRef.current === myRun) inFlightStageRef.current = null;
@@ -496,7 +507,7 @@ export function ComponentTrack({
       files: [],
     };
 
-    if (mode === 'COMPLEX' && editedBlueprintText) {
+    if (editedBlueprintText) {
       try {
         finalBp = await parseBlueprint({ text: editedBlueprintText });
       } catch (e) {
@@ -634,7 +645,7 @@ export function ComponentTrack({
           component_id: cId,
           stage: 'CODEGEN',
           verdict: 'approve',
-          mode: 'QUICK',
+          mode: 'STANDARD',
         });
       } catch (e) {
         console.warn(`pipelineComplete CODEGEN error for ${cId}:`, e);
@@ -643,8 +654,19 @@ export function ComponentTrack({
     } catch (err: any) {
       console.error(`CodeGen error in component ${cId}:`, err);
       useAppStore.getState().completeTimelineInterval(codegenIntervalId, { status: 'failed' });
+      lastProcessedEpochByStageRef.current.delete('CODEGEN');
       if (!isStale()) {
         updateComponentState(cId, { status: 'failed' });
+      }
+      try {
+        await pipelineComplete({
+          component_id: cId,
+          stage: 'CODEGEN',
+          verdict: 'error',
+          mode: 'STANDARD',
+        });
+      } catch (e) {
+        console.warn(`pipelineComplete CODEGEN error notification for ${cId}:`, e);
       }
     } finally {
       if (runIdRef.current === myRun) inFlightStageRef.current = null;
@@ -896,12 +918,7 @@ export function ComponentTrack({
 
       // Branch Decisions
       if (isPass) {
-        if (mode === 'QUICK') {
-          await approveComponentFinal(false);
-        } else {
-          updateComponentState(cId, { status: 'waiting_critic' });
-          setCriticCountdown(30);
-        }
+        await approveComponentFinal(false);
       } else {
         // Revision required
         const currentRevs = currentTrack.revisionCount || 0;
@@ -909,6 +926,10 @@ export function ComponentTrack({
           const nextRev = currentRevs + 1;
           completedStagesRef.current.delete('CODEGEN');
           lastProcessedEpochByStageRef.current.delete('CODEGEN');
+          completedStagesRef.current.delete('CRITICS');
+          lastProcessedEpochByStageRef.current.delete('CRITICS');
+          completedRevisionsRef.current.delete('CODEGEN');
+          completedRevisionsRef.current.delete('CRITICS');
           inFlightStageRef.current = null;
           updateComponentState(cId, {
             status: 'coding_queued',
@@ -932,12 +953,7 @@ export function ComponentTrack({
           useAppStore.getState().checkAndExecutePendingPause();
         } else {
           // Revisions exhausted
-          if (mode === 'QUICK') {
-            await approveComponentFinal(true);
-          } else {
-            updateComponentState(cId, { status: 'waiting_critic' });
-            setCriticCountdown(30);
-          }
+          await approveComponentFinal(true);
         }
       }
     } catch (err: any) {
@@ -945,8 +961,19 @@ export function ComponentTrack({
       if (currentPhaseIntervalId) {
         useAppStore.getState().completeTimelineInterval(currentPhaseIntervalId, { status: 'failed' });
       }
+      lastProcessedEpochByStageRef.current.delete('CRITICS');
       if (!isStale()) {
         updateComponentState(cId, { status: 'failed' });
+      }
+      try {
+        await pipelineComplete({
+          component_id: cId,
+          stage: 'CRITICS',
+          verdict: 'error',
+          mode: 'STANDARD',
+        });
+      } catch (e) {
+        console.warn(`pipelineComplete CRITICS error notification for ${cId}:`, e);
       }
     } finally {
       if (runIdRef.current === myRun) inFlightStageRef.current = null;
@@ -1004,7 +1031,7 @@ export function ComponentTrack({
     const curRev = trackState?.revisionCount ?? 0;
 
     // Disregard if already completed
-    if (curStatus === 'passed' || curStatus === 'COMPLETED' || curStatus === 'failed') {
+    if (curStatus === 'passed' || curStatus === 'COMPLETED') {
       return;
     }
 
@@ -1135,7 +1162,7 @@ export function ComponentTrack({
 
       {/* ── Accordion Header ───────────────────────────────────────────────── */}
       <div
-        className="p-4 bg-slate-950/[0.25] border-b border-white/[0.07] flex justify-between items-center cursor-pointer hover:bg-white/[0.04] transition-colors select-none"
+        className="p-4 bg-white/60 dark:bg-slate-950/[0.2] border-b border-slate-200 dark:border-white/[0.07] flex justify-between items-center cursor-pointer hover:bg-slate-50/80 dark:hover:bg-white/[0.04] transition-colors select-none"
         onClick={handleHeaderClick}
       >
         <div className="flex items-center gap-3">
@@ -1147,10 +1174,10 @@ export function ComponentTrack({
           >
             {`ID: ${cId}`}
           </span>
-          <span className="font-mono text-xs text-slate-300 bg-white/[0.04] px-2 py-0.5 rounded-md border border-white/[0.07]">
+          <span className="font-mono text-xs text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/[0.04] px-2 py-0.5 rounded-md border border-slate-300 dark:border-white/[0.07]">
             {`Priority: ${component.priority_order ?? 1}`}
           </span>
-          <h3 className="font-bold text-slate-100 text-base tracking-tight truncate max-w-md sm:max-w-xl">
+          <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base tracking-tight truncate max-w-md sm:max-w-xl">
             {displayTitle}
           </h3>
         </div>
@@ -1165,7 +1192,7 @@ export function ComponentTrack({
           </span>
           <button
             type="button"
-            className="text-slate-400 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
+            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white p-1 rounded-md transition-colors cursor-pointer"
             aria-label={isExpanded ? 'Collapse section' : 'Expand section'}
           >
             <motion.div
@@ -1201,81 +1228,74 @@ export function ComponentTrack({
                 opacity: { duration: 0.18, ease: 'easeIn' },
               },
             }}
-            className="overflow-hidden bg-slate-950/[0.25]"
+            className="overflow-hidden bg-transparent"
           >
-            <div className="p-6 space-y-8 divide-y divide-white/[0.07]">
+            <div className="p-6 space-y-8 divide-y divide-slate-200 dark:divide-white/[0.07]">
         {/* ── STAGE 1: Architectural Blueprint ────────────────────────────── */}
         <div id={`design-section-${cId}`} className="pt-2 first:pt-0">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-sm shrink-0">
-                <DocumentTextIcon className="w-4 h-4 text-white/90" />
+              <div className="w-8 h-8 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-slate-800 dark:text-white/90 shadow-xs shrink-0">
+                <DocumentTextIcon className="w-4 h-4 text-slate-800 dark:text-white/90" />
               </div>
               <div>
-                <h4 className="text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
+                <h4 className="text-slate-900 dark:text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
                   Architectural Blueprint
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Component specifications, runtime image, container commands, and source file manifest
                 </p>
               </div>
             </div>
-            {trackState.blueprint && (
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Synthesized
-                </span>
-              </div>
-            )}
           </div>
 
           {/* Structured Bento Cards when blueprint data exists */}
           {trackState.blueprint && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
-                  <CubeIcon className="w-3.5 h-3.5 text-slate-300" />
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/[0.08] shadow-xs">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-xs font-medium mb-1">
+                  <CubeIcon className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                   <span>Runtime Container</span>
                 </div>
-                <div className="font-mono text-xs text-slate-200 truncate">
+                <div className="font-mono text-xs text-slate-900 dark:text-slate-200 truncate">
                   {trackState.blueprint.docker_image || 'node:20-alpine'}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
-                  <CodeBracketIcon className="w-3.5 h-3.5 text-slate-300" />
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/[0.08] shadow-xs">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-xs font-medium mb-1">
+                  <CodeBracketIcon className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                   <span>Tech Stack</span>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {(trackState.blueprint.tech_stack || []).length > 0 ? (
                     (trackState.blueprint.tech_stack || []).slice(0, 3).map((t: string) => (
-                      <span key={t} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300 border border-white/[0.08]">
+                      <span key={t} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/[0.08]">
                         {t}
                       </span>
                     ))
                   ) : (
-                    <span className="font-mono text-xs text-slate-400">Standard</span>
+                    <span className="font-mono text-xs text-slate-500 dark:text-slate-400">Standard</span>
                   )}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
-                  <CommandLineIcon className="w-3.5 h-3.5 text-slate-300" />
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/[0.08] shadow-xs">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-xs font-medium mb-1">
+                  <CommandLineIcon className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                   <span>Test Suite</span>
                 </div>
-                <div className="font-mono text-xs text-slate-200 truncate">
+                <div className="font-mono text-xs text-slate-900 dark:text-slate-200 truncate">
                   {trackState.blueprint.run_tests_command || 'pytest'}
                 </div>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-950/[0.2] border border-white/[0.07] backdrop-blur-md">
-                <div className="flex items-center gap-2 text-slate-400 text-xs font-medium mb-1">
-                  <DocumentTextIcon className="w-3.5 h-3.5 text-slate-300" />
+              <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/[0.08] shadow-xs">
+                <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 text-xs font-medium mb-1">
+                  <DocumentTextIcon className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
                   <span>Manifest Files</span>
                 </div>
-                <div className="font-mono text-xs text-slate-200 truncate">
+                <div className="font-mono text-xs text-slate-900 dark:text-slate-200 truncate">
                   {`${(trackState.blueprint.files || []).length} files planned`}
                 </div>
               </div>
@@ -1284,17 +1304,17 @@ export function ComponentTrack({
 
           <div
             id={`blueprint-container-${cId}`}
-            className="mb-4 rounded-2xl border border-white/[0.08] bg-slate-950/[0.25] backdrop-blur-md shadow-inner focus-within:border-white/25 focus-within:ring-1 focus-within:ring-white/20 overflow-hidden"
+            className="mb-4 rounded-2xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-slate-900/95 shadow-xs dark:shadow-inner focus-within:border-slate-400 dark:focus-within:border-white/25 focus-within:ring-1 focus-within:ring-slate-300 dark:focus-within:ring-white/20 overflow-hidden"
           >
             {/* Editor Window Header */}
-            <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06] flex items-center justify-between">
+            <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-950/60 border-b border-slate-200 dark:border-white/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1.5 items-center mr-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/20" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-white/10" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-white/10" />
                 </div>
-                <span className="font-mono text-xs text-slate-300 font-medium">
+                <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-medium">
                   {`${cId}-blueprint.md`}
                 </span>
               </div>
@@ -1308,7 +1328,7 @@ export function ComponentTrack({
                 readOnly={true}
                 spellCheck={false}
                 rows={10}
-                className="w-full font-mono p-4 bg-transparent border-none text-xs resize-none overflow-hidden block leading-relaxed transition-colors outline-none cursor-not-allowed text-slate-400"
+                className="w-full font-mono p-4 bg-transparent border-none text-xs resize-none overflow-hidden block leading-relaxed transition-colors outline-none cursor-not-allowed text-slate-700 dark:text-slate-400"
                 placeholder="Blueprint specifications will appear once design phase begins..."
               />
             </ModernScrollbar>
@@ -1320,7 +1340,7 @@ export function ComponentTrack({
               id={`design-approve-btn-${cId}`}
               type="button"
               onClick={handleApproveDesign}
-              className="w-full bg-white/10 hover:bg-white/20 active:scale-[0.99] border border-white/20 text-white font-semibold py-3.5 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white/10 dark:hover:bg-white/20 active:scale-[0.99] border border-slate-800 dark:border-white/20 font-semibold py-3.5 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
             >
               <SparklesIcon className="w-5 h-5" />
               <span>
@@ -1330,7 +1350,7 @@ export function ComponentTrack({
               </span>
             </button>
           ) : status === 'designing' ? (
-            <div className="w-full py-3 text-center text-xs font-mono text-slate-300 bg-white/[0.05] border border-white/[0.08] rounded-2xl animate-pulse">
+            <div className="w-full py-3 text-center text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] rounded-2xl animate-pulse">
               Synthesizing system blueprint...
             </div>
           ) : null}
@@ -1348,14 +1368,14 @@ export function ComponentTrack({
         <div id={`code-section-${cId}`} className="pt-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-sm shrink-0">
-                <CodeBracketIcon className="w-4 h-4 text-white/90" />
+              <div className="w-8 h-8 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-slate-800 dark:text-white/90 shadow-xs shrink-0">
+                <CodeBracketIcon className="w-4 h-4 text-slate-800 dark:text-white/90" />
               </div>
               <div>
-                <h4 className="text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
+                <h4 className="text-slate-900 dark:text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
                   Generated Codebase
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Isolated component source files, live syntax inspection, and revisions
                 </p>
               </div>
@@ -1364,7 +1384,7 @@ export function ComponentTrack({
             {/* Revision Tabs */}
             <div
               id={`rev-tabs-${cId}`}
-              className="flex items-center gap-1.5 overflow-x-auto max-w-sm custom-scrollbar p-1 rounded-xl bg-slate-950/[0.2] border border-white/[0.07]"
+              className="flex items-center gap-1.5 overflow-x-auto max-w-sm custom-scrollbar p-1 rounded-xl bg-slate-100/80 dark:bg-slate-900/90 border border-slate-200 dark:border-white/[0.07] shadow-xs"
             >
               {(trackState.revisionHistory || []).map((_: any, rIdx: number) => {
                 const isCur = rIdx === activeRevisionIndex;
@@ -1377,8 +1397,8 @@ export function ComponentTrack({
                     onClick={() => handleSelectRevision(rIdx)}
                     className={`text-xs font-mono px-3 py-1 rounded-lg border transition-all cursor-pointer whitespace-nowrap ${
                       isCur
-                        ? 'bg-white/15 text-white border-white/20 font-semibold shadow-sm'
-                        : 'bg-transparent text-slate-400 border-transparent hover:text-slate-200 hover:bg-white/[0.05]'
+                        ? 'bg-white text-slate-900 dark:bg-white/15 dark:text-white border-slate-300/80 dark:border-white/20 font-bold shadow-xs'
+                        : 'bg-transparent text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-white/[0.05]'
                     }`}
                   >
                     {rLabel}
@@ -1389,19 +1409,19 @@ export function ComponentTrack({
           </div>
 
           {/* Monaco & File Explorer Split View in Frosted Frame */}
-          <div className="border border-white/[0.08] rounded-2xl overflow-hidden mb-4 bg-slate-950/[0.25] backdrop-blur-md shadow-2xl flex flex-col">
-            <div className="px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06] flex items-center justify-between">
+          <div className="border border-slate-200 dark:border-white/[0.08] rounded-2xl overflow-hidden mb-4 bg-white dark:bg-slate-900/95 shadow-sm dark:shadow-2xl flex flex-col">
+            <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-950/60 border-b border-slate-200 dark:border-white/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1.5 items-center mr-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/20" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-white/10" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-white/10" />
                 </div>
-                <span className="font-mono text-xs text-slate-300 font-medium">
+                <span className="font-mono text-xs text-slate-700 dark:text-slate-300 font-medium">
                   Workspace Editor
                 </span>
               </div>
-              <div className="flex items-center gap-2 font-mono text-[11px] text-slate-400">
+              <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
                 <span>{`${currentFiles.length} files`}</span>
               </div>
             </div>
@@ -1420,7 +1440,7 @@ export function ComponentTrack({
                   codebase={activeCodebase}
                   activeFileIndex={activeFileIndex}
                   activeRevisionIndex={activeRevisionIndex}
-                  isReadOnly={mode === 'QUICK' && !isPaused}
+                  isReadOnly={!isPaused}
                   onSelectFile={handleSelectFile}
                   onSelectRevision={handleSelectRevision}
                   onFileContentChange={handleFileContentChange}
@@ -1431,7 +1451,7 @@ export function ComponentTrack({
           </div>
 
           {status === 'coding' ? (
-            <div className="w-full py-3 text-center text-xs font-mono text-slate-300 bg-white/[0.05] border border-white/[0.08] rounded-2xl animate-pulse mb-2">
+            <div className="w-full py-3 text-center text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] rounded-2xl animate-pulse mb-2">
               Synthesizing component code...
             </div>
           ) : null}
@@ -1449,14 +1469,14 @@ export function ComponentTrack({
         <div id={`critic-section-${cId}`} className="pt-6">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-sm shrink-0">
-                <ShieldCheckIcon className="w-4 h-4 text-white/90" />
+              <div className="w-8 h-8 rounded-xl bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-slate-800 dark:text-white/90 shadow-xs shrink-0">
+                <ShieldCheckIcon className="w-4 h-4 text-slate-800 dark:text-white/90" />
               </div>
               <div>
-                <h4 className="text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
+                <h4 className="text-slate-900 dark:text-slate-100 font-bold text-base tracking-tight flex items-center gap-2">
                   Arbitration Feedback
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-400">
                   Automated container execution, multi-critic quality arbitration, and adjudication verdict
                 </p>
               </div>
@@ -1464,11 +1484,11 @@ export function ComponentTrack({
           </div>
 
           {status === 'executing' ? (
-            <div className="w-full py-3 text-center text-xs font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-2xl animate-pulse mb-4">
+            <div className="w-full py-3 text-center text-xs font-mono text-amber-800 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/20 rounded-2xl animate-pulse mb-4">
               Executing sandbox tests in container...
             </div>
           ) : status === 'critiquing' ? (
-            <div className="w-full py-3 text-center text-xs font-mono text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-2xl animate-pulse mb-4">
+            <div className="w-full py-3 text-center text-xs font-mono text-rose-800 dark:text-rose-400 bg-rose-100 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/20 rounded-2xl animate-pulse mb-4">
               Evaluating quality critics & adjudication...
             </div>
           ) : null}
@@ -1492,9 +1512,9 @@ export function ComponentTrack({
               id={`approve-component-${cId}`}
               type="button"
               disabled
-              className="w-full bg-white/[0.04] text-slate-400 font-medium py-3.5 rounded-2xl flex justify-center items-center gap-2 border border-white/[0.07] shadow-inner mt-4"
+              className="w-full bg-slate-100 text-slate-700 dark:bg-white/[0.04] dark:text-slate-400 font-medium py-3.5 rounded-2xl flex justify-center items-center gap-2 border border-slate-200 dark:border-white/[0.07] shadow-xs mt-4"
             >
-              <LockClosedIcon className="w-5 h-5 text-emerald-400" />
+              <LockClosedIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               <span>Component Locked & Passed</span>
             </button>
           ) : status === 'waiting_critic' ? (
@@ -1502,7 +1522,7 @@ export function ComponentTrack({
               id={`approve-component-${cId}`}
               type="button"
               onClick={() => approveComponentFinal(false)}
-              className="w-full bg-white/10 hover:bg-white/20 active:scale-[0.99] border border-white/20 text-white font-semibold py-3.5 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 shadow-sm cursor-pointer mt-4"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white/10 dark:hover:bg-white/20 active:scale-[0.99] border border-slate-800 dark:border-white/20 font-semibold py-3.5 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 shadow-xs cursor-pointer mt-4"
             >
               <CheckCircleIcon className="w-5 h-5" />
               <span>
@@ -1516,7 +1536,7 @@ export function ComponentTrack({
               id={`approve-component-${cId}`}
               type="button"
               disabled
-              className="w-full bg-orange-600/20 text-orange-400 font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 border border-orange-500/30 shadow-sm animate-pulse mt-4 cursor-not-allowed"
+              className="w-full bg-orange-100 text-orange-800 dark:bg-orange-600/20 dark:text-orange-400 font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 border border-orange-300 dark:border-orange-500/30 shadow-xs animate-pulse mt-4 cursor-not-allowed"
             >
               <span>{`Auto-Revising (Attempt ${trackState.revisionCount}/${trackState.dynamicBudget || 3})...`}</span>
             </button>

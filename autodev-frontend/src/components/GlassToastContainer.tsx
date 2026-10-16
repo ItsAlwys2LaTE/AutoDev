@@ -25,32 +25,32 @@ export const GlassToastContainer: React.FC<GlassToastContainerProps> = ({ toasts
     switch (type) {
       case 'success':
         return {
-          icon: <CheckCircleIcon className="w-4 h-4 text-emerald-400 shrink-0" />,
-          iconBg: 'bg-emerald-500/15 border border-emerald-500/30',
-          accentBorder: 'border-emerald-500/30',
-          progressBar: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]',
+          icon: <CheckCircleIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />,
+          iconBg: 'bg-emerald-100 border border-emerald-300 dark:bg-emerald-500/15 dark:border-emerald-500/30',
+          accentBorder: 'border-emerald-400/60 dark:border-emerald-500/30',
+          progressBar: 'bg-emerald-600 dark:bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]',
         };
       case 'error':
         return {
-          icon: <ExclamationCircleIcon className="w-4 h-4 text-rose-400 shrink-0" />,
-          iconBg: 'bg-rose-500/15 border border-rose-500/30',
-          accentBorder: 'border-rose-500/35',
-          progressBar: 'bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]',
+          icon: <ExclamationCircleIcon className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />,
+          iconBg: 'bg-rose-100 border border-rose-300 dark:bg-rose-500/15 dark:border-rose-500/30',
+          accentBorder: 'border-rose-400/60 dark:border-rose-500/35',
+          progressBar: 'bg-rose-600 dark:bg-rose-400 shadow-[0_0_8px_rgba(251,113,133,0.8)]',
         };
       case 'warning':
         return {
-          icon: <ExclamationTriangleIcon className="w-4 h-4 text-amber-400 shrink-0" />,
-          iconBg: 'bg-amber-500/15 border border-amber-500/30',
-          accentBorder: 'border-amber-500/30',
-          progressBar: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]',
+          icon: <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />,
+          iconBg: 'bg-amber-100 border border-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30',
+          accentBorder: 'border-amber-400/60 dark:border-amber-500/30',
+          progressBar: 'bg-amber-600 dark:bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]',
         };
       case 'info':
       default:
         return {
-          icon: <InformationCircleIcon className="w-4 h-4 text-cyan-400 shrink-0" />,
-          iconBg: 'bg-cyan-500/15 border border-cyan-500/30',
-          accentBorder: 'border-cyan-500/25',
-          progressBar: 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]',
+          icon: <InformationCircleIcon className="w-4 h-4 text-sky-600 dark:text-cyan-400 shrink-0" />,
+          iconBg: 'bg-sky-100 border border-sky-300 dark:bg-cyan-500/15 dark:border-cyan-500/30',
+          accentBorder: 'border-sky-400/60 dark:border-cyan-500/25',
+          progressBar: 'bg-sky-600 dark:bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]',
         };
     }
   };
@@ -76,7 +76,7 @@ export const GlassToastContainer: React.FC<GlassToastContainerProps> = ({ toasts
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -16, scale: 0.92, transition: { duration: 0.18 } }}
               transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-              className={`pointer-events-auto relative overflow-hidden rounded-full bg-slate-950/85 backdrop-blur-2xl border ${config.accentBorder} shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.18)] pl-3 pr-3.5 py-2 sm:py-2.5 flex items-center gap-3 text-xs text-white max-w-full select-none`}
+              className={`pointer-events-auto relative overflow-hidden rounded-full bg-white/95 dark:bg-slate-950/85 backdrop-blur-2xl border ${config.accentBorder} shadow-[0_12px_36px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.18)] pl-3 pr-3.5 py-2 sm:py-2.5 flex items-center gap-3 text-xs text-slate-900 dark:text-white max-w-full select-none`}
               style={{ backdropFilter: 'blur(20px)' }}
             >
               {/* Type Icon in pill badge */}
@@ -88,7 +88,7 @@ export const GlassToastContainer: React.FC<GlassToastContainerProps> = ({ toasts
 
               {/* Notification Title (Simple & Specific, no message preview) */}
               <div className="flex items-center min-w-0 flex-1 leading-snug">
-                <span className="font-medium text-xs sm:text-sm text-slate-100 tracking-tight truncate">
+                <span className="font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-100 tracking-tight truncate">
                   {toast.title || toast.message}
                 </span>
               </div>
@@ -97,7 +97,7 @@ export const GlassToastContainer: React.FC<GlassToastContainerProps> = ({ toasts
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}
-                className="text-slate-400 hover:text-white transition-colors p-1 rounded-full hover:bg-white/10 shrink-0 cursor-pointer ml-1"
+                className="text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors p-1 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 shrink-0 cursor-pointer ml-1"
                 title="Dismiss notification"
                 aria-label="Dismiss notification"
               >
@@ -105,7 +105,7 @@ export const GlassToastContainer: React.FC<GlassToastContainerProps> = ({ toasts
               </button>
 
               {/* Decreasing Progress Bar (Indicates 5-second auto-dismissal) */}
-              <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-white/[0.08] overflow-hidden rounded-b-full">
+              <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-200/80 dark:bg-white/[0.08] overflow-hidden rounded-b-full">
                 <motion.div
                   className={`h-full ${config.progressBar}`}
                   initial={{ width: '100%' }}

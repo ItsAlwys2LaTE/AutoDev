@@ -99,44 +99,44 @@ export const ProfileDevPrefsSection: React.FC<ProfileDevPrefsSectionProps> = ({
       {/* ── 1. Default Framework Selection ── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs uppercase tracking-wider text-slate-400 font-mono font-semibold flex items-center gap-1.5">
+          <h3 className="text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-mono font-semibold flex items-center gap-1.5">
             <CodeBracketIcon className="w-3.5 h-3.5" />
             <span>Default Language / Framework</span>
           </h3>
-          <span className="text-[11px] text-slate-400 font-mono">Applies to new requirements</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Applies to new requirements</span>
         </div>
 
         <select
           value={defaultFramework}
           onChange={(e) => setDefaultFramework(e.target.value)}
-          className="w-full bg-slate-900 border border-white/10 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-100 focus:border-white/30 focus:outline-none cursor-pointer"
+          className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl p-3.5 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:border-slate-500 dark:focus:border-white/30 focus:outline-none cursor-pointer shadow-sm"
         >
           {FRAMEWORK_OPTIONS.map((opt) => (
-            <option key={opt.id} value={opt.id}>
+            <option key={opt.id} value={opt.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
               [{opt.category}] {opt.label}
             </option>
           ))}
         </select>
-        <p className="text-[11px] text-slate-400 leading-relaxed">
+        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
           When set to &quot;Let AutoDev Decide&quot;, the System Architect analyzes product requirements to select optimal libraries. Choosing a specific framework pins that stack across all new sessions.
         </p>
       </div>
 
       {/* ── 2. Personalized Product Development Textarea (Stage 1 SmoothInput) ── */}
-      <div className="space-y-3 pt-4 border-t border-white/[0.08]">
+      <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-white/[0.08]">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <h3 className="text-xs uppercase tracking-wider text-white font-mono font-semibold flex items-center gap-1.5">
-              <SparklesIcon className="w-3.5 h-3.5 text-indigo-400" />
+            <h3 className="text-xs uppercase tracking-wider text-slate-900 dark:text-white font-mono font-semibold flex items-center gap-1.5">
+              <SparklesIcon className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
               <span>Personalized Product Development Preferences</span>
             </h3>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
               Persistent instructions injected into the Product Enquiry Agent alongside your Stage 1 prompts.
             </p>
           </div>
           <span
             className={`text-xs font-mono transition-colors ${
-              isNearLimit ? 'text-amber-400 font-semibold' : 'text-slate-400'
+              isNearLimit ? 'text-amber-500 dark:text-amber-400 font-semibold' : 'text-slate-500 dark:text-slate-400'
             }`}
           >
             {charCount}/{PROMPT_MAX_LENGTH}
@@ -154,30 +154,30 @@ export const ProfileDevPrefsSection: React.FC<ProfileDevPrefsSectionProps> = ({
           value={personalizedPrompt}
           onChange={(e) => setPersonalizedPrompt(e.target.value)}
           placeholder="e.g. Use glassmorphism design language with obsidian background, prefer React and Tailwind CSS, write thorough unit tests, avoid emojis in logs and terminal messages..."
-          caretColorClass="text-white/80 font-semibold"
-          wrapperClassName="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10 transition-all overflow-hidden"
-          className="w-full bg-transparent border-none outline-none focus:outline-none transition-all text-xs sm:text-sm text-white placeholder:text-white/35 font-sans leading-relaxed resize-none p-4 sm:p-5"
-          style={{ backdropFilter: 'blur(14px)' }}
+          caretColorClass="text-slate-900 dark:text-white/80 font-semibold"
+          wrapperClassName="rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.08] shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] focus-within:border-slate-400 dark:focus-within:border-white/20 focus-within:ring-1 focus-within:ring-slate-300 dark:focus-within:ring-white/10 transition-all overflow-hidden"
+          className="w-full bg-transparent border-none outline-none focus:outline-none transition-all text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/35 font-sans leading-relaxed resize-none p-4 sm:p-5"
+          wrapperStyle={{ backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
         />
 
-        <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.06] text-[11px] text-slate-400 leading-relaxed">
-          <strong className="text-slate-300">How this works:</strong> Whenever you request a new product in Stage 1, this text is automatically appended to your prompt as persistent architectural guidance, saving you from re-typing your core stylistic or engineering preferences each session.
+        <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.06] text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+          <strong className="text-slate-800 dark:text-slate-300">How this works:</strong> Whenever you request a new product in Stage 1, this text is automatically appended to your prompt as persistent architectural guidance, saving you from re-typing your core stylistic or engineering preferences each session.
         </div>
       </div>
 
       {/* ── 3. Auto-Export on Completion ── */}
-      <div className="space-y-3 pt-4 border-t border-white/[0.08]">
-        <h3 className="text-xs uppercase tracking-wider text-slate-400 font-mono font-semibold flex items-center gap-1.5">
+      <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-white/[0.08]">
+        <h3 className="text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-mono font-semibold flex items-center gap-1.5">
           <ArrowDownTrayIcon className="w-3.5 h-3.5" />
           <span>Post-Development Automation</span>
         </h3>
 
-        <label className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-between gap-4 cursor-pointer hover:bg-white/[0.05] transition-colors">
+        <label className="p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-100/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.05] border border-slate-200 dark:border-white/[0.07] flex items-center justify-between gap-4 cursor-pointer transition-colors shadow-sm">
           <div className="space-y-1">
-            <span className="text-xs font-semibold text-white block">
+            <span className="text-xs font-semibold text-slate-900 dark:text-white block">
               Auto-Export on Pipeline Completion
             </span>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
               Automatically trigger GitHub synchronization or codebase ZIP download upon reaching final stage completion.
             </p>
           </div>
@@ -185,15 +185,15 @@ export const ProfileDevPrefsSection: React.FC<ProfileDevPrefsSectionProps> = ({
             type="checkbox"
             checked={autoExport}
             onChange={(e) => setAutoExport(e.target.checked)}
-            className="w-4 h-4 rounded border-white/20 bg-black/40 accent-white focus:ring-0 cursor-pointer shrink-0"
+            className="w-4 h-4 rounded border-slate-300 dark:border-white/20 bg-white dark:bg-black/40 accent-slate-900 dark:accent-white focus:ring-0 cursor-pointer shrink-0"
           />
         </label>
       </div>
 
       {/* ── 4. Save Controls ── */}
-      <div className="pt-4 border-t border-white/[0.08] flex items-center justify-end gap-3">
+      <div className="pt-4 border-t border-slate-200 dark:border-white/[0.08] flex items-center justify-end gap-3">
         {hasSaved && (
-          <span className="text-xs text-emerald-400 flex items-center gap-1 animate-element">
+          <span className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 animate-element">
             <CheckCircleIcon className="w-4 h-4" />
             <span>Saved successfully</span>
           </span>
@@ -203,7 +203,7 @@ export const ProfileDevPrefsSection: React.FC<ProfileDevPrefsSectionProps> = ({
           type="button"
           disabled={isSaving}
           onClick={handleSave}
-          className="px-6 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white transition-all cursor-pointer disabled:opacity-50"
+          className="px-6 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 shadow-sm dark:bg-white/15 dark:hover:bg-white/25 dark:text-white dark:border-white/20 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
         >
           {isSaving ? 'Saving Preferences...' : 'Save Preferences'}
         </button>

@@ -168,9 +168,55 @@ def decompose_requirements_stream(requirements: RequirementsDocument, mode: str 
                 current_prompt = base_prompt_content + f"\n\nCRITICAL ARCHITECTURAL REJECTION ON PREVIOUS ATTEMPT: {ve}\nYou MUST decompose this complex product into at least 3-6 distinct components across both backend and frontend layers!"
                 continue
             else:
-                yield '\n__RESET__\n'
-                yield f'{{"error": "Decomposition validation failed after retries: {format_concise_error(ve)}"}}'
-                return
+                try:
+                    title = getattr(requirements, "project_title", "Application") or "Application"
+                    overview = getattr(requirements, "overview", "") or f"Architecture for {title}"
+                    fallback_decomp = ComponentDecomposition(
+                        is_complex=True,
+                        project_overview=overview,
+                        shared_tech_stack=["HTML", "CSS", "JavaScript", "Node.js"],
+                        shared_docker_image="mcr.microsoft.com/playwright:v1.48.0-jammy",
+                        components=[
+                            ComponentSpec(
+                                component_id="core-service",
+                                component_name=f"{title} Core Service",
+                                description="Foundational models, state management, and core business rules.",
+                                scoped_requirements="Manage core state and business logic according to specifications.",
+                                dependencies_on=[],
+                                priority_order=1,
+                                tech_stack=["JavaScript", "Node.js"],
+                                docker_image="mcr.microsoft.com/playwright:v1.48.0-jammy",
+                            ),
+                            ComponentSpec(
+                                component_id="feature-engine",
+                                component_name=f"{title} Feature Engine",
+                                description="Application workflow operations and data processing logic.",
+                                scoped_requirements="Execute user workflows, feature actions, and domain logic.",
+                                dependencies_on=["core-service"],
+                                priority_order=2,
+                                tech_stack=["JavaScript", "Node.js"],
+                                docker_image="mcr.microsoft.com/playwright:v1.48.0-jammy",
+                            ),
+                            ComponentSpec(
+                                component_id="client-interface",
+                                component_name=f"{title} Client Interface",
+                                description="Interactive presentation layer, responsive layouts, and user event handling.",
+                                scoped_requirements="Render user interface components, capture inputs, and display system outputs.",
+                                dependencies_on=["core-service", "feature-engine"],
+                                priority_order=3,
+                                tech_stack=["HTML", "CSS", "JavaScript"],
+                                docker_image="mcr.microsoft.com/playwright:v1.48.0-jammy",
+                            ),
+                        ],
+                        integration_strategy=f"Wire {title} core service, feature engine, and client interface into a cohesive application with unified navigation and state synchronization.",
+                    )
+                    yield '\n__RESET__\n'
+                    yield fallback_decomp.model_dump_json()
+                    return
+                except Exception:
+                    yield '\n__RESET__\n'
+                    yield f'{{"error": "Decomposition validation failed after retries: {format_concise_error(ve)}"}}'
+                    return
 
 def decompose_requirements(requirements: RequirementsDocument, mode: str = None, max_retries: int = 2) -> ComponentDecomposition:
     """

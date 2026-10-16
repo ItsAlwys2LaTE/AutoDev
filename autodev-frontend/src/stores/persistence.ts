@@ -164,7 +164,7 @@ export function validatePersistedState(raw: unknown): AutoDevStateV1 | null {
     return null;
   }
 
-  const validModes = ['QUICK', 'COMPLEX', 'UNIFIED'];
+  const validModes = ['STANDARD', 'QUICK', 'COMPLEX', 'UNIFIED'];
   const modeStr = typeof obj.currentMode === 'string' ? obj.currentMode.trim().toUpperCase() : '';
   if (!validModes.includes(modeStr)) {
     console.warn(`[StatePersistence] Invalid currentMode: ${obj.currentMode}`);

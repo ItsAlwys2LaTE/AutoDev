@@ -1,4 +1,5 @@
-import { fetchWithAutoRetry, ApiError } from './client';
+import { fetchWithAutoRetry, ApiError, extractErrorMessage } from './client';
+export { extractErrorMessage };
 
 const API_BASE = '';
 
@@ -179,6 +180,9 @@ export const authApi = {
 
   googleAuth: (data: GoogleAuthRequest): Promise<AuthResponse> =>
     jsonRequest<AuthResponse>(`${API_BASE}/api/auth/google`, 'POST', data),
+
+  getAuthConfig: (): Promise<{ google_client_id: string; has_brevo: boolean }> =>
+    jsonRequest<{ google_client_id: string; has_brevo: boolean }>(`${API_BASE}/api/auth/config`, 'GET'),
 
   sendOtp: (data: SendOtpRequest): Promise<{ success: boolean; message: string }> =>
     jsonRequest<{ success: boolean; message: string }>(`${API_BASE}/api/auth/send-otp`, 'POST', data),

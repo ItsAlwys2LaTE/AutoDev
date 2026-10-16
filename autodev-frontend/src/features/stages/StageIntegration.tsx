@@ -18,6 +18,7 @@ import type {
   RevisionHistoryItem,
 } from '../../types';
 import { IntegrationMonacoView } from '../integration/IntegrationMonacoView';
+import { useIntegrationRunner } from '../integration/useIntegrationRunner';
 import { ModernScrollbar } from '../../components/ModernScrollbar';
 import { usePausableAutoAdvance } from '../../hooks';
 
@@ -69,9 +70,28 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
   const setCodebase = useAppStore((s) => s.setCodebase);
   const setIntegratedCodebase = useAppStore((s) => s.setIntegratedCodebase);
 
+  const runner = useIntegrationRunner();
+  const hasTriggeredRef = React.useRef(false);
+
+  // Trigger codebase unification when arriving at Stage 6 if not already integrated
+  useEffect(() => {
+    if (
+      !storeIntegratedCodebase &&
+      !runner.integratedCodebase &&
+      !runner.isLoopActive &&
+      !hasTriggeredRef.current
+    ) {
+      hasTriggeredRef.current = true;
+      runner.runIntegration();
+    }
+  }, [storeIntegratedCodebase, runner.integratedCodebase, runner.isLoopActive]);
+
   const isIntegrationDone =
     Boolean(storeIntegratedCodebase) ||
-    (storeExecutionResult && storeExecutionResult.success === true);
+    Boolean(runner.integratedCodebase) ||
+    (storeExecutionResult && storeExecutionResult.success === true) ||
+    (runner.currentExecutionResult && runner.currentExecutionResult.success === true) ||
+    runner.isPassed;
 
   // Immediately unlock Stage 7 (Final Source Code) when integration passes
   useEffect(() => {
@@ -106,13 +126,28 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
 
   // Deduplicate and sanitize revision history
   const cleanRevisions: RevisionHistoryItem[] = useMemo(() => {
-    const rawRevs = integrationRevisionHistory.length > 0 ? integrationRevisionHistory : revisionHistory;
+    const rawRevs =
+      runner.revisionHistory.length > 0
+        ? runner.revisionHistory.map((item, idx) => ({
+            revisionNumber: idx,
+            label: item.label || (idx === 0 ? 'Initial' : `Rev ${idx}`),
+            timestamp: Date.now(),
+            codebase: item.codebase,
+            blueprint: item.blueprint,
+            executionResult: item.executionResult,
+            criticFeedbacks: item.feedbacks,
+            decision: item.decision,
+            compositeScore: item.compositeScore,
+          }))
+        : integrationRevisionHistory.length > 0
+        ? integrationRevisionHistory
+        : revisionHistory;
     if (!rawRevs || rawRevs.length === 0) {
       return [{
         revisionNumber: 0,
         label: 'Initial',
         timestamp: Date.now(),
-        codebase: storeIntegratedCodebase || storeCurrentCodebase || { files: [] },
+        codebase: runner.integratedCodebase || storeIntegratedCodebase || storeCurrentCodebase || { files: [] },
       }];
     }
 
@@ -134,22 +169,30 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
       revisionNumber: 0,
       label: 'Initial',
       timestamp: Date.now(),
-      codebase: storeIntegratedCodebase || storeCurrentCodebase || { files: [] },
+      codebase: runner.integratedCodebase || storeIntegratedCodebase || storeCurrentCodebase || { files: [] },
     }];
-  }, [integrationRevisionHistory, revisionHistory, storeIntegratedCodebase, storeCurrentCodebase]);
+  }, [runner.revisionHistory, runner.integratedCodebase, integrationRevisionHistory, revisionHistory, storeIntegratedCodebase, storeCurrentCodebase]);
 
   // Selected revision data
   const currentRevision = cleanRevisions[activeRevisionIndex] || cleanRevisions[0];
   const activeCodebase: GeneratedCodeBase | null =
-    currentRevision?.codebase || storeIntegratedCodebase || storeCurrentCodebase || null;
+    currentRevision?.codebase || runner.integratedCodebase || storeIntegratedCodebase || storeCurrentCodebase || null;
 
   const execResult: ExecutionResult | null =
-    currentRevision?.executionResult || storeExecutionResult || null;
+    currentRevision?.executionResult || runner.currentExecutionResult || storeExecutionResult || null;
   const logs = execResult?.logs || executionLogs || 'No sandbox test execution logs available.';
   const passed = execResult?.success ?? true;
 
-  const feedbacks: CriticFeedback[] = currentRevision?.criticFeedbacks || storeCritics || [];
-  const decision: AdjudicatorDecision | null = currentRevision?.decision || storeAdjudicators[0] || null;
+  const feedbacks: CriticFeedback[] =
+    currentRevision?.criticFeedbacks ||
+    (runner.criticHistory[runner.activeCriticIndex]?.feedbacks) ||
+    storeCritics ||
+    [];
+  const decision: AdjudicatorDecision | null =
+    currentRevision?.decision ||
+    (runner.criticHistory[runner.activeCriticIndex]?.decision) ||
+    storeAdjudicators[0] ||
+    null;
 
   // Fallback critics if empty
   const defaultFeedbacks: CriticFeedback[] = feedbacks.length > 0 ? feedbacks : [
@@ -185,7 +228,7 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
     );
     const updatedCodebase = { ...activeCodebase, files: updatedFiles };
     setCodebase(updatedCodebase);
-    if (storeIntegratedCodebase) {
+    if (storeIntegratedCodebase || runner.integratedCodebase) {
       setIntegratedCodebase(updatedCodebase);
     }
   };
@@ -196,20 +239,20 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
       className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-3 space-y-3.5 select-none overflow-y-auto custom-scrollbar ${className}`}
     >
       {/* ── Top Bar: Title & 3-Agent Switcher Toggle on right side of title ── */}
-      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+      <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-white/[0.07]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
-              <CodeBracketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
+            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-slate-800 dark:text-white/90 shadow-sm shrink-0">
+              <CodeBracketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 dark:text-white/90" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
               Integration Agent
             </h2>
           </div>
 
           {/* 3-Agent Switcher Toggle on right side of title */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_16px_rgba(0,0,0,0.1)]">
+            <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-md shadow-sm">
               {(['Codegen', 'Testing', 'Evaluation'] as const).map((agent) => {
                 const isSelected = activeAgent === agent;
                 return (
@@ -220,13 +263,13 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
                     onClick={() => handleAgentChange(agent)}
                     whileTap={{ scale: 0.96 }}
                     className={`relative px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                      isSelected ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+                      isSelected ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                     }`}
                   >
                     {isSelected && (
                       <motion.div
                         layoutId="integrationAgentGlider"
-                        className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                        className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                         transition={{ type: 'spring', stiffness: 450, damping: 26, mass: 0.8 }}
                       />
                     )}
@@ -240,25 +283,44 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
             </div>
           </div>
         </div>
-        <p className="text-xs md:text-sm text-slate-300">
+        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
           Unified multi-component synthesis, isolated sandbox verification, and multi-critic adjudication.
         </p>
       </div>
 
+      {/* ── Active Integration Status Banner ── */}
+      {runner.isLoopActive && (
+        <div
+          id="integrationRunningBanner"
+          className="flex items-center gap-3 p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-500/30 backdrop-blur-md shadow-sm shrink-0"
+        >
+          <div className="w-4 h-4 border-2 border-cyan-600 dark:border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+          <p className="text-xs sm:text-sm font-medium text-cyan-900 dark:text-cyan-200">
+            {runner.isIntegrating
+              ? 'Unifying component codebases into integrated system...'
+              : runner.isExecutingCode
+              ? 'Executing sandbox container integration tests...'
+              : runner.isEvaluatingCritics
+              ? 'Arbitrating multi-critic evaluation...'
+              : 'Integration agent processing...'}
+          </p>
+        </div>
+      )}
+
       {/* ── Inner Workspace Container ── */}
       <div
         id="integrationInnerContainer"
-        className="flex-1 min-h-[500px] flex flex-col rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4 overflow-y-auto custom-scrollbar"
+        className="flex-1 min-h-[500px] flex flex-col rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-4 sm:p-5 shadow-sm space-y-4 overflow-y-auto custom-scrollbar"
         style={{ backdropFilter: 'blur(14px)' }}
       >
         {/* ── Revision Indicator Inside Inner Container ── */}
         <div
           id="integrationRevTabs"
-          className="flex items-center justify-between pb-3 border-b border-white/10 gap-2 flex-wrap"
+          className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 gap-2 flex-wrap"
         >
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-slate-400">Revisions:</span>
-            <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm gap-1">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Revisions:</span>
+            <div className="relative flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-sm gap-1">
               {cleanRevisions.map((rev, idx) => {
                 const isActive = activeRevisionIndex === idx;
                 return (
@@ -268,13 +330,13 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setActiveRevisionIndex(idx)}
                     className={`relative px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                      isActive ? 'text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                      isActive ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                     }`}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="integrationInnerRevGlider"
-                        className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                        className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                         transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                       />
                     )}
@@ -292,10 +354,10 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
               type="button"
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsDiffMode(!isDiffMode)}
-              className="text-xs px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="text-xs px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-300 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:text-slate-300 dark:hover:text-white dark:border-white/[0.08] flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Compare changes against previous revision"
             >
-              <svg className="w-3.5 h-3.5 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-slate-600 dark:text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
               </svg>
               <span>{isDiffMode ? 'Close Diff' : 'Compare Diff'}</span>
@@ -342,15 +404,15 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
               className="w-full h-full flex flex-col space-y-4 min-h-[420px]"
             >
               {/* Status Header */}
-              <div id="execLogsSection" className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div id="execLogsSection" className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-300">Sandbox Test Run:</span>
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Sandbox Test Run:</span>
                   <span
                     id="execStatusBadge"
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                       passed
-                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-                        : 'bg-rose-500/15 text-rose-300 border border-rose-400/30'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30'
+                        : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-400/30'
                     }`}
                   >
                     {passed ? (
@@ -367,7 +429,7 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
                   </span>
                 </div>
 
-                <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <ClockIcon className="w-3.5 h-3.5" />
                   <span>Isolated Container Execution</span>
                 </div>
@@ -375,10 +437,14 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
 
               {/* Monospace Log Viewer with ModernScrollbar */}
               <ModernScrollbar
-                className="flex-1 min-h-[320px] rounded-2xl bg-black/50 border border-white/[0.07] shadow-inner"
-                viewportClassName="p-4 font-mono text-xs text-slate-200 leading-relaxed"
+                className="flex-1 min-h-[320px] rounded-2xl bg-slate-950 text-slate-100 dark:bg-black/50 dark:text-slate-200 border border-slate-800 dark:border-white/[0.07] shadow-inner overflow-hidden"
+                viewportClassName="p-4 font-mono text-xs leading-relaxed text-slate-100 dark:text-slate-200"
               >
-                <pre id="execLogsOutput" className="whitespace-pre-wrap break-all">
+                <pre
+                  id="execLogsOutput"
+                  className="whitespace-pre-wrap break-all text-slate-100 dark:text-slate-200 font-mono"
+                  style={{ color: '#f1f5f9' }}
+                >
                   {logs}
                 </pre>
               </ModernScrollbar>
@@ -398,21 +464,21 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
               {/* Master Adjudicator Decision Box */}
               <div
                 id="adjudicatorCard"
-                className="rounded-2xl bg-black/40 border border-white/[0.08] p-4 sm:p-5 space-y-3 shadow-inner"
+                className="rounded-2xl bg-slate-50/80 dark:bg-black/40 border border-slate-200 dark:border-white/[0.08] p-4 sm:p-5 space-y-3 shadow-sm"
               >
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
-                    <CheckBadgeIcon className="w-5 h-5 text-emerald-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                    <CheckBadgeIcon className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                       Master Adjudicator Verdict
                     </h3>
                   </div>
                   <span
                     id="adjudicatorVerdict"
-                    className={`px-3 py-1 rounded-full text-xs font-extrabold ${
+                    className={`px-3 py-1 rounded-full text-xs font-extrabold border ${
                       verdict.includes('APPROVED') || verdict === 'PASS'
-                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-                        : 'bg-amber-500/15 text-amber-300 border border-amber-400/30'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30'
+                        : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30'
                     }`}
                   >
                     {verdict}
@@ -420,20 +486,20 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
                 </div>
 
                 {decision?.revision_plan && (
-                  <p id="adjudicatorPlan" className="text-xs text-slate-300 leading-relaxed bg-white/[0.03] p-3 rounded-xl border border-white/[0.05]">
+                  <p id="adjudicatorPlan" className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-white/[0.03] p-3 rounded-xl border border-slate-200 dark:border-white/[0.05]">
                     {decision.revision_plan}
                   </p>
                 )}
 
-                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 pt-1">
+                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1">
                   {typeof decision?.weighted_composite === 'number' && (
-                    <span>Composite Score: <strong className="text-slate-200">{decision.weighted_composite.toFixed(2)}</strong></span>
+                    <span>Composite Score: <strong className="text-slate-900 dark:text-slate-200">{decision.weighted_composite.toFixed(2)}</strong></span>
                   )}
                   {typeof decision?.delta === 'number' && (
-                    <span>Delta: <strong className="text-slate-200">{decision.delta.toFixed(2)}</strong></span>
+                    <span>Delta: <strong className="text-slate-900 dark:text-slate-200">{decision.delta.toFixed(2)}</strong></span>
                   )}
                   {decision?.dynamic_budget !== undefined && (
-                    <span>Budget: <strong className="text-slate-200">{decision.dynamic_budget}</strong></span>
+                    <span>Budget: <strong className="text-slate-900 dark:text-slate-200">{decision.dynamic_budget}</strong></span>
                   )}
                 </div>
               </div>
@@ -443,30 +509,30 @@ export const StageIntegration: React.FC<StageIntegrationProps> = ({
                 {defaultFeedbacks.map((critic, cIdx) => (
                   <div
                     key={`critic-${cIdx}`}
-                    className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 space-y-2 flex flex-col justify-between"
+                    className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] p-3.5 space-y-2 flex flex-col justify-between shadow-sm"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-slate-200 truncate">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
                           {critic.critic_name}
                         </h4>
-                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
                           critic.severity_score === 0
-                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/20'
-                            : 'bg-amber-500/15 text-amber-300 border border-amber-400/20'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/20'
+                            : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/20'
                         }`}>
                           Score: {critic.severity_score}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-snug">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
                         {critic.overall_comments}
                       </p>
                     </div>
 
                     {critic.issues_list && critic.issues_list.length > 0 && (
-                      <div className="pt-2 border-t border-white/[0.05] space-y-1">
+                      <div className="pt-2 border-t border-slate-200 dark:border-white/[0.05] space-y-1">
                         <span className="text-[10px] uppercase font-mono text-slate-500">Issues:</span>
-                        <ul className="text-[11px] text-slate-300 list-disc list-inside space-y-0.5">
+                        <ul className="text-[11px] text-slate-700 dark:text-slate-300 list-disc list-inside space-y-0.5">
                           {critic.issues_list.map((issue, iIdx) => (
                             <li key={iIdx} className="truncate">{issue}</li>
                           ))}

@@ -132,6 +132,21 @@ export function getComponentAgent(state?: ComponentTrackState | null): StationKe
 const timelineCache = new Map<string, MatrixRow[]>();
 
 /**
+ * Deterministically serializes phase station cell allocations into a canonical string.
+ * Uses consistent key and value ordering to prevent JSON object insertion-order mismatches.
+ */
+export function serializeAllocation(
+  cells?: Record<string, string[]> | { design?: string[]; codegen?: string[]; critics?: string[]; completed?: string[] }
+): string {
+  if (!cells) return '';
+  const design = [...(cells.design || [])].sort().join(',');
+  const codegen = [...(cells.codegen || [])].sort().join(',');
+  const critics = [...(cells.critics || [])].sort().join(',');
+  const completed = [...(cells.completed || [])].sort().join(',');
+  return `design:[${design}]|codegen:[${codegen}]|critics:[${critics}]|completed:[${completed}]`;
+}
+
+/**
  * Sanitizes matrix rows by removing any row where all stations are empty,
  * and re-indexing the timeUnit labels sequentially (T1, T2, etc.).
  */
@@ -240,21 +255,19 @@ export const PipelineAssemblyLine: React.FC<PipelineAssemblyLineProps> = ({
 
   // Serialized fingerprint of the current allocation to detect state shifts
   const allocationFingerprint = useMemo(() => {
-    return JSON.stringify({
-      design: [...currentAllocation.design].sort(),
-      codegen: [...currentAllocation.codegen].sort(),
-      critics: [...currentAllocation.critics].sort(),
-      completed: [...currentAllocation.completed].sort(),
-    });
+    return serializeAllocation(currentAllocation);
   }, [currentAllocation]);
 
   // Maintain chronological recorded rows in state with 3-tier persistence
   const initialRows = useMemo(() => loadStoredMatrixRows(queueFingerprint), [queueFingerprint]);
   const [recordedRows, setRecordedRows] = useState<MatrixRow[]>(initialRows);
+  const recordedRowsRef = useRef<MatrixRow[]>(initialRows);
+  recordedRowsRef.current = recordedRows;
 
   useEffect(() => {
     if (initialRows.length > 0 && recordedRows.length === 0) {
       setRecordedRows(initialRows);
+      recordedRowsRef.current = initialRows;
     }
   }, [initialRows]);
 
@@ -264,15 +277,10 @@ export const PipelineAssemblyLine: React.FC<PipelineAssemblyLineProps> = ({
     const sanitized = sanitizeRows(rows);
     if (sanitized.length > 0) {
       const lastRow = sanitized[sanitized.length - 1];
-      return JSON.stringify({
-        codegen: [...(lastRow.cells?.codegen || [])].sort(),
-        completed: [...(lastRow.cells?.completed || [])].sort(),
-        critics: [...(lastRow.cells?.critics || [])].sort(),
-        design: [...(lastRow.cells?.design || [])].sort(),
-      });
+      return serializeAllocation(lastRow.cells);
     }
     return '';
-  }, [queueFingerprint, initialRows, recordedRows]);
+  }, [queueFingerprint, initialRows]);
 
   const prevAllocationRef = useRef<string>(initialFingerprint);
 
@@ -283,6 +291,7 @@ export const PipelineAssemblyLine: React.FC<PipelineAssemblyLineProps> = ({
     // If empty pipeline, clear cache and reset
     if (pipelineQueue.length === 0) {
       setRecordedRows([]);
+      recordedRowsRef.current = [];
       prevAllocationRef.current = '';
       if (typeof window !== 'undefined' && queueFingerprint !== 'empty') {
         try {
@@ -306,21 +315,15 @@ export const PipelineAssemblyLine: React.FC<PipelineAssemblyLineProps> = ({
     }
 
     const currentHash = allocationFingerprint;
+    const currentRows = recordedRowsRef.current;
 
     // Check if current allocation matches the last recorded row (prevents duplicates when returning from component inspection)
-    const lastRow = recordedRows[recordedRows.length - 1];
-    const lastRowHash = lastRow
-      ? JSON.stringify({
-          codegen: [...(lastRow.cells?.codegen || [])].sort(),
-          completed: [...(lastRow.cells?.completed || [])].sort(),
-          critics: [...(lastRow.cells?.critics || [])].sort(),
-          design: [...(lastRow.cells?.design || [])].sort(),
-        })
-      : '';
+    const lastRow = currentRows[currentRows.length - 1];
+    const lastRowHash = lastRow ? serializeAllocation(lastRow.cells) : '';
 
     if (
       (currentHash === prevAllocationRef.current || currentHash === lastRowHash) &&
-      recordedRows.length > 0
+      currentRows.length > 0
     ) {
       prevAllocationRef.current = currentHash;
       return;
@@ -355,7 +358,10 @@ export const PipelineAssemblyLine: React.FC<PipelineAssemblyLineProps> = ({
         },
         revisions: revSnapshot,
       };
-      const nextRows = [...updatedPrev, newRow];
+      // Cap at 60 rows to prevent memory exhaustion and browser freezing
+      const trimmed = updatedPrev.length >= 60 ? updatedPrev.slice(updatedPrev.length - 59) : updatedPrev;
+      const nextRows = [...trimmed, newRow];
+      recordedRowsRef.current = nextRows;
       timelineCache.set(queueFingerprint, nextRows);
       useAppStore.getState().setPipelineMatrixRows(nextRows);
       if (typeof window !== 'undefined' && queueFingerprint !== 'empty') {
@@ -367,7 +373,7 @@ export const PipelineAssemblyLine: React.FC<PipelineAssemblyLineProps> = ({
       }
       return nextRows;
     });
-  }, [queueFingerprint, allocationFingerprint, currentAllocation, pipelineQueue, componentStates, recordedRows]);
+  }, [queueFingerprint, allocationFingerprint, currentAllocation, pipelineQueue, componentStates]);
 
   // Construct historical rows from timeline metrics if recorded rows are fewer
   const matrixRows = useMemo(() => {

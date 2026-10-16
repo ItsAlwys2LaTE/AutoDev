@@ -205,7 +205,8 @@ export function IntegrationCriticTabs({
         <ModernScrollbar className="max-h-48" viewportClassName="p-0">
           <pre
             id="execLogsOutput"
-            className="p-3.5 bg-black/25 rounded-xl text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed border border-white/[0.07]"
+            className="p-3.5 bg-slate-950/90 rounded-xl text-xs font-mono text-slate-100 dark:text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed border border-slate-800 dark:border-white/[0.07]"
+            style={{ color: '#f1f5f9' }}
           >
             {activeExec?.logs || 'No execution logs available.'}
           </pre>

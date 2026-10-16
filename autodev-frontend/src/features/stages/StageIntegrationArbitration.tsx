@@ -63,16 +63,16 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
       className={`h-full flex flex-col max-w-5xl mx-auto px-4 py-4 space-y-4 select-none ${className}`}
     >
       {/* ── Top Bar: Title & Arbitration Engine Pill ── */}
-      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+      <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-white/[0.07]">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
-            <ScaleIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
+          <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 dark:bg-white/[0.06] dark:border-white/[0.08] dark:text-white/90 flex items-center justify-center shadow-sm shrink-0">
+            <ScaleIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 dark:text-white/90" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
             Integration Agent
           </h2>
         </div>
-        <p className="text-xs md:text-sm text-slate-300">
+        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
           Multi-critic verification and mathematical adjudication evaluating correctness, architecture, and security across the integrated system.
         </p>
       </div>
@@ -80,7 +80,7 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
       {/* ── Revision Tabs ── */}
       {allRevs.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm gap-1">
+          <div className="relative flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-sm gap-1">
             {allRevs.map((rev, idx) => {
               const isActive = activeTab === idx;
               return (
@@ -91,14 +91,14 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
                   onClick={() => setActiveTab(idx)}
                   className={`relative px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'text-white font-semibold'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'text-slate-900 dark:text-white font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="stageIntegrationArbitrationRevGlider"
-                      className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                      className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                       transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                     />
                   )}
@@ -113,30 +113,30 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
       {/* ── Master Adjudicator Decision Box ── */}
       <div
         id="adjudicatorCard"
-        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-3"
+        className="rounded-3xl bg-slate-50/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-5 shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-3"
         style={{ backdropFilter: 'blur(14px)' }}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckBadgeIcon className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+            <CheckBadgeIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
               Master Adjudicator Verdict
             </h3>
           </div>
           <span
             id="adjudicatorVerdict"
-            className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30"
+            className="px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30"
           >
             {verdict}
           </span>
         </div>
 
-        <p id="adjudicatorPlan" className="text-xs text-slate-300 leading-relaxed">
+        <p id="adjudicatorPlan" className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
           {decision?.revision_plan || 'All multi-agent modules synthesized and approved for deployment. No further revision required.'}
         </p>
 
         {decision?.weighted_composite !== undefined && decision?.weighted_composite !== null && (
-          <div className="text-[11px] font-mono text-slate-400 pt-1 border-t border-white/10 flex items-center gap-4">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-white/10 flex items-center gap-4">
             <span>Weighted Composite: {decision.weighted_composite.toFixed(2)} / 10.0</span>
             {decision.delta !== undefined && decision.delta !== null && (
               <span>Delta Improvement: {decision.delta.toFixed(2)}</span>
@@ -154,27 +154,27 @@ export const StageIntegrationArbitration: React.FC<StageIntegrationArbitrationPr
         {defaultFeedbacks.map((critic, idx) => (
           <div
             key={idx}
-            className="rounded-2xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-4 flex flex-col justify-between space-y-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]"
+            className="rounded-2xl bg-white dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-4 flex flex-col justify-between space-y-3 shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]"
             style={{ backdropFilter: 'blur(14px)' }}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-bold text-slate-100 truncate">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
                   {critic.critic_name}
                 </h4>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/[0.06] text-slate-200 border border-white/[0.08]">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-white/[0.06] dark:text-slate-200 dark:border-white/[0.08]">
                   {critic.severity_score}/10
                 </span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                 {critic.overall_comments}
               </p>
             </div>
 
             {critic.issues_list && critic.issues_list.length > 0 && (
-              <div className="pt-2 border-t border-white/10 space-y-1">
-                <span className="text-[10px] uppercase font-semibold text-slate-400">Noted Issues:</span>
-                <ul className="text-[11px] text-amber-300 list-disc list-inside space-y-0.5">
+              <div className="pt-2 border-t border-slate-200 dark:border-white/10 space-y-1">
+                <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400">Noted Issues:</span>
+                <ul className="text-[11px] text-amber-700 dark:text-amber-300 list-disc list-inside space-y-0.5">
                   {critic.issues_list.map((issue, i) => (
                     <li key={i} className="truncate">{issue}</li>
                   ))}

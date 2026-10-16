@@ -202,40 +202,40 @@ export const ProfileGitHubSection: React.FC<ProfileGitHubSectionProps> = ({
     <div className={`space-y-8 ${className}`}>
       {/* ── 1. Username & Default Repository ── */}
       <div className="space-y-4">
-        <h3 className="text-xs uppercase tracking-wider text-slate-400 font-mono font-semibold flex items-center gap-1.5">
+        <h3 className="text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-mono font-semibold flex items-center gap-1.5">
           <CommandLineIcon className="w-3.5 h-3.5" />
           <span>Repository & Identity</span>
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">GitHub Username</label>
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">GitHub Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="e.g. octocat"
-              className="w-full bg-black/30 border border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:border-white/30 focus:outline-none"
+              className="w-full bg-white dark:bg-black/30 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-slate-500 dark:focus:border-white/30 focus:outline-none shadow-sm"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Default Repository Name</label>
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Default Repository Name</label>
             <input
               type="text"
               value={defaultRepo}
               onChange={(e) => setDefaultRepo(e.target.value)}
               placeholder="e.g. autodev-projects"
-              className="w-full bg-black/30 border border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:border-white/30 focus:outline-none"
+              className="w-full bg-white dark:bg-black/30 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-slate-500 dark:focus:border-white/30 focus:outline-none shadow-sm"
             />
           </div>
         </div>
       </div>
 
       {/* ── 2. Personal Access Token (PAT) ── */}
-      <div className="space-y-3 pt-4 border-t border-white/[0.08]">
+      <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-white/[0.08]">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs uppercase tracking-wider text-slate-400 font-mono font-semibold flex items-center gap-1.5">
+          <h3 className="text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-mono font-semibold flex items-center gap-1.5">
             <KeyIcon className="w-3.5 h-3.5" />
             <span>GitHub Personal Access Token (PAT)</span>
           </h3>
@@ -243,7 +243,7 @@ export const ProfileGitHubSection: React.FC<ProfileGitHubSectionProps> = ({
             href="https://github.com/settings/tokens/new?scopes=repo&description=AutoDev+Autonomous+Platform"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[11px] text-indigo-400 hover:underline"
+            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline"
           >
             Generate PAT on GitHub
           </a>
@@ -258,12 +258,12 @@ export const ProfileGitHubSection: React.FC<ProfileGitHubSectionProps> = ({
               setTestResult(null);
             }}
             placeholder="ghp_... or github_pat_..."
-            className="w-full bg-black/30 border border-white/10 rounded-2xl p-3 pr-10 text-xs sm:text-sm text-slate-100 placeholder-slate-500 font-mono focus:border-white/30 focus:outline-none"
+            className="w-full bg-white dark:bg-black/30 border border-slate-300 dark:border-white/10 rounded-2xl p-3 pr-10 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 font-mono focus:border-slate-500 dark:focus:border-white/30 focus:outline-none shadow-sm"
           />
           <button
             type="button"
             onClick={() => setShowToken(!showToken)}
-            className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-white"
+            className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700 dark:hover:text-white"
             title={showToken ? 'Hide token' : 'Show token'}
           >
             {showToken ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
@@ -276,16 +276,16 @@ export const ProfileGitHubSection: React.FC<ProfileGitHubSectionProps> = ({
             type="button"
             disabled={isTestingToken || !token.trim()}
             onClick={handleTestToken}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+            className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-sm dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/15 text-xs font-semibold dark:text-white flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isTestingToken ? (
               <>
-                <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-slate-300" />
                 <span>Verifying Token...</span>
               </>
             ) : (
               <>
-                <ShieldCheckIcon className="w-3.5 h-3.5" />
+                <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Test Token &amp; Scopes</span>
               </>
             )}
@@ -294,7 +294,7 @@ export const ProfileGitHubSection: React.FC<ProfileGitHubSectionProps> = ({
           {testResult && (
             <div
               className={`text-xs flex items-center gap-1.5 font-medium ${
-                testResult.success ? 'text-emerald-400' : 'text-rose-400'
+                testResult.success ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
               }`}
             >
               {testResult.success ? (
@@ -308,42 +308,42 @@ export const ProfileGitHubSection: React.FC<ProfileGitHubSectionProps> = ({
         </div>
 
         {/* Remember Token Checkbox */}
-        <label className="flex items-center gap-2 cursor-pointer pt-2 text-xs text-slate-300">
+        <label className="flex items-center gap-2 cursor-pointer pt-2 text-xs text-slate-600 dark:text-slate-300">
           <input
             type="checkbox"
             checked={rememberToken}
             onChange={(e) => setRememberToken(e.target.checked)}
-            className="rounded border-white/20 bg-black/40 accent-white focus:ring-0 cursor-pointer"
+            className="rounded border-slate-300 dark:border-white/20 bg-white dark:bg-black/40 accent-slate-900 dark:accent-white focus:ring-0 cursor-pointer"
           />
           <span>Remember token across browser sessions (stored in local storage)</span>
         </label>
       </div>
 
       {/* ── 3. Commit Message & Automation Preferences ── */}
-      <div className="space-y-4 pt-4 border-t border-white/[0.08]">
-        <h3 className="text-xs uppercase tracking-wider text-slate-400 font-mono font-semibold flex items-center gap-1.5">
+      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-white/[0.08]">
+        <h3 className="text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 font-mono font-semibold flex items-center gap-1.5">
           <ChatBubbleLeftRightIcon className="w-3.5 h-3.5" />
           <span>Commit &amp; Push Configuration</span>
         </h3>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-slate-300">Default Commit Message</label>
+          <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Default Commit Message</label>
           <input
             type="text"
             value={defaultCommitMessage}
             onChange={(e) => setDefaultCommitMessage(e.target.value)}
             placeholder="Commit message"
-            className="w-full bg-black/30 border border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:border-white/30 focus:outline-none"
+            className="w-full bg-white dark:bg-black/30 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-slate-500 dark:focus:border-white/30 focus:outline-none shadow-sm"
           />
         </div>
 
-        <label className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-center justify-between gap-4 cursor-pointer hover:bg-white/[0.05] transition-colors">
+        <label className="p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-100/80 dark:bg-white/[0.03] dark:hover:bg-white/[0.05] border border-slate-200 dark:border-white/[0.07] flex items-center justify-between gap-4 cursor-pointer transition-colors shadow-sm">
           <div className="space-y-0.5">
-            <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-              <FolderPlusIcon className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <FolderPlusIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>Auto-create Remote Repository</span>
             </span>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
               If the destination repository does not exist on your GitHub account, AutoDev will automatically initialize it.
             </p>
           </div>
@@ -351,18 +351,18 @@ export const ProfileGitHubSection: React.FC<ProfileGitHubSectionProps> = ({
             type="checkbox"
             checked={autoCreateRepo}
             onChange={(e) => setAutoCreateRepo(e.target.checked)}
-            className="w-4 h-4 rounded border-white/20 bg-black/40 accent-white focus:ring-0 cursor-pointer shrink-0"
+            className="w-4 h-4 rounded border-slate-300 dark:border-white/20 bg-white dark:bg-black/40 accent-slate-900 dark:accent-white focus:ring-0 cursor-pointer shrink-0"
           />
         </label>
       </div>
 
       {/* ── 4. Save Controls ── */}
-      <div className="pt-4 border-t border-white/[0.08] flex items-center justify-end gap-3">
+      <div className="pt-4 border-t border-slate-200 dark:border-white/[0.08] flex items-center justify-end gap-3">
         <button
           type="button"
           disabled={isSaving}
           onClick={handleSaveSettings}
-          className="px-6 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white transition-all cursor-pointer disabled:opacity-50"
+          className="px-6 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 shadow-sm dark:bg-white/15 dark:hover:bg-white/25 dark:text-white dark:border-white/20 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
         >
           {isSaving ? 'Saving Settings...' : 'Save GitHub Settings'}
         </button>

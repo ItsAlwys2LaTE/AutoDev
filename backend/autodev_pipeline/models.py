@@ -398,7 +398,7 @@ class PipelineConfig:
     Global configuration parameters for pipeline execution, timeouts, and resilience policies.
     """
     max_revisions: Optional[int] = None                          # Maximum critic revision cycles before quarantine
-    generation_mode: str = "QUICK"
+    generation_mode: str = "STANDARD"
     lease_duration_sec: float = 3600.0               # Lease TTL per stage acquisition
     lease_heartbeat_interval_sec: float = 10.0      # Heartbeat cadence (tau = Delta t / 3)
     stage_timeout_sec: float = 3600.0               # Global stage execution timeout
@@ -412,7 +412,7 @@ class PipelineConfig:
     max_stage_concurrency: int = 2                 # Max parallel components per stage
 
     def __post_init__(self):
-        gen_mode = str(self.generation_mode or "QUICK").upper()
+        gen_mode = str(self.generation_mode or "STANDARD").upper()
         if self.generation_mode != gen_mode:
             object.__setattr__(self, "generation_mode", gen_mode)
         if self.max_revisions is None:
@@ -439,7 +439,7 @@ class PipelineConfig:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> PipelineConfig:
         """Deserializes a dictionary into a PipelineConfig instance."""
-        gen_mode = str(data.get("generation_mode") or "QUICK").upper()
+        gen_mode = str(data.get("generation_mode") or "STANDARD").upper()
         default_max_revs = 3
         return cls(
             max_revisions=int(data["max_revisions"]) if "max_revisions" in data and data["max_revisions"] is not None else default_max_revs,

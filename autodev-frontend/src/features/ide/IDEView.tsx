@@ -60,11 +60,8 @@ export function IDEView({
   const liveStore = isSSR ? useAppStore.getState() : null;
 
   // --- Zustand Store State ---
-  const storeMode = useAppStore((s) => s.mode);
   const storeGenerationMode = useAppStore((s) => s.generationMode || s.mode);
-  const mode = isSSR ? (liveStore?.mode ?? storeMode) : storeMode;
   const generationMode = isSSR ? (liveStore?.generationMode ?? storeGenerationMode) : storeGenerationMode;
-  const isQuickMode = generationMode === 'QUICK' || mode === 'QUICK';
 
   const storeRequirements = useAppStore((s) => s.requirements);
   const storeBlueprint = useAppStore((s) => s.currentBlueprint);
@@ -198,8 +195,8 @@ export function IDEView({
         const payload: any = {
           requirements: currentRequirements,
           blueprint: currentBlueprint,
-          generation_mode: 'QUICK',
-          mode: 'QUICK',
+          generation_mode: 'STANDARD',
+          mode: 'STANDARD',
         };
 
         if (isRevision && currentRevisionPlan && currentCodebase) {
@@ -281,7 +278,6 @@ export function IDEView({
       cancelCountdown,
       currentRequirements,
       currentBlueprint,
-      isQuickMode,
       currentRevisionPlan,
       currentCodebase,
       streamHook,
@@ -369,7 +365,7 @@ export function IDEView({
       await executeSandboxCode({
         codebase: currentCodebase,
         blueprint: currentBlueprint as any,
-        mode: (generationMode || mode || 'QUICK') as any,
+        mode: (generationMode || 'STANDARD') as any,
         autoAdvance: true,
       });
     } catch (err: any) {
@@ -379,7 +375,7 @@ export function IDEView({
       }
       console.error('[IDEView] Sandbox execution error:', err);
     }
-  }, [cancelCountdown, setInFlightPhase, setStepper, currentCodebase, currentBlueprint, generationMode, mode]);
+  }, [cancelCountdown, setInFlightPhase, setStepper, currentCodebase, currentBlueprint, generationMode]);
 
   // Handle auto-advance or 30s countdown to execution
   useEffect(() => {
@@ -510,7 +506,7 @@ export function IDEView({
             <span className="text-xs text-slate-500 font-bold uppercase tracking-wider mr-2 whitespace-nowrap">
               Revisions:
             </span>
-            <div id="revisionTabs" className="relative flex items-center gap-1.5 p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm" role="tablist">
+            <div id="revisionTabs" className="relative flex items-center gap-1.5 p-0.5 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-sm" role="tablist">
               {revisionHistory.map((rev, index) => {
                 const isActive = index === activeRevisionIndex;
                 const isPostRun = !!rev.isPostCompletion;
@@ -528,10 +524,10 @@ export function IDEView({
                       isActive
                         ? isPostRun
                           ? 'text-emerald-300 font-bold'
-                          : 'text-white font-bold'
+                          : 'text-slate-900 dark:text-white font-bold'
                         : isPostRun
                         ? 'text-emerald-400/80 hover:text-emerald-300'
-                        : 'text-slate-400 hover:text-slate-200'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                     }`}
                   >
                     {isActive && (
@@ -540,7 +536,7 @@ export function IDEView({
                         className={`absolute inset-0 rounded-full border shadow-sm ${
                           isPostRun
                             ? 'bg-emerald-600/30 border-emerald-500/50'
-                            : 'bg-white/15 border-white/25'
+                            : 'bg-white dark:bg-white/15 border-slate-300/80 dark:border-white/25'
                         }`}
                         transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                       />
@@ -696,7 +692,7 @@ export function IDEView({
             <div className="w-full sm:w-2/3 h-full relative flex flex-col">
               {/* Tab Header Bar */}
               <div className="flex items-center justify-between bg-slate-950/[0.4] border-b border-white/[0.07] px-3 py-1.5 h-10">
-                <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.3] border border-white/10 backdrop-blur-sm">
+                <div className="relative flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-950/[0.3] border border-slate-200 dark:border-white/10 backdrop-blur-sm">
                   <motion.button
                     id="tabCode"
                     type="button"
@@ -704,14 +700,14 @@ export function IDEView({
                     whileTap={{ scale: 0.95 }}
                     className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                       !isPreviewOpen
-                        ? 'text-white'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'text-slate-900 dark:text-white font-bold'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                     }`}
                   >
                     {!isPreviewOpen && (
                       <motion.div
                         layoutId="idePreviewToggleGlider"
-                        className="absolute inset-0 rounded-full bg-white/10 border border-white/20 shadow-sm"
+                        className="absolute inset-0 rounded-full bg-white dark:bg-white/10 border border-slate-300/80 dark:border-white/20 shadow-sm"
                         transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                       />
                     )}
@@ -724,14 +720,14 @@ export function IDEView({
                     whileTap={{ scale: 0.95 }}
                     className={`relative px-3 py-1 rounded-full text-xs font-semibold transition-colors cursor-pointer ${
                       isPreviewOpen
-                        ? 'text-white'
-                        : 'text-slate-400 hover:text-white'
+                        ? 'text-slate-900 dark:text-white font-bold'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                     }`}
                   >
                     {isPreviewOpen && (
                       <motion.div
                         layoutId="idePreviewToggleGlider"
-                        className="absolute inset-0 rounded-full bg-white/10 border border-white/20 shadow-sm"
+                        className="absolute inset-0 rounded-full bg-white dark:bg-white/10 border border-slate-300/80 dark:border-white/20 shadow-sm"
                         transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                       />
                     )}

@@ -11,9 +11,15 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
-BREVO_SENDER_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "noreply@autodev.org")
-BREVO_SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "AutoDev")
+def get_brevo_config() -> tuple[str, str, str]:
+    """Dynamically resolves Brevo configuration from environment variables."""
+    load_dotenv(override=False)
+    api_key = os.getenv("BREVO_API_KEY", "").strip()
+    sender_email = os.getenv("BREVO_SENDER_EMAIL", "anupamsharma12102004@gmail.com").strip()
+    sender_name = os.getenv("BREVO_SENDER_NAME", "AutoDev").strip()
+    return api_key, sender_email, sender_name
+
+
 BREVO_SMTP_URL = "https://api.brevo.com/v3/smtp/email"
 
 
@@ -145,18 +151,21 @@ async def send_otp_email(
 ) -> bool:
     """
     Sends a 6-digit OTP email using Brevo (Sendinblue) transactional email API.
-    If BREVO_API_KEY is not configured, logs code to console for local testing.
+    Always logs code to console for local testing and developer visibility.
     """
     clean_email = email.strip().lower()
+    api_key, sender_email, sender_name = get_brevo_config()
 
-    if not BREVO_API_KEY:
+    # Always log to server terminal for instant developer visibility
+    print(f"[AutoDev OTP] Verification code for {clean_email} ({purpose}): {code}")
+
+    if not api_key:
         logger.warning(
             "BREVO_API_KEY is not configured in environment. [DEV MODE] OTP for %s (%s): %s",
             clean_email,
             purpose,
             code,
         )
-        print(f"[Brevo Dev Mode] OTP for {clean_email} ({purpose}): {code}")
         return True
 
     purpose_subject = {
@@ -167,8 +176,8 @@ async def send_otp_email(
 
     payload = {
         "sender": {
-            "name": BREVO_SENDER_NAME,
-            "email": BREVO_SENDER_EMAIL,
+            "name": sender_name,
+            "email": sender_email,
         },
         "to": [
             {"email": clean_email}
@@ -179,7 +188,7 @@ async def send_otp_email(
 
     headers = {
         "accept": "application/json",
-        "api-key": BREVO_API_KEY,
+        "api-key": api_key,
         "content-type": "application/json",
     }
 
@@ -187,7 +196,9 @@ async def send_otp_email(
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(BREVO_SMTP_URL, json=payload, headers=headers)
             if response.status_code in (200, 201, 202):
-                logger.info("Successfully sent OTP email to %s via Brevo", clean_email)
+                msg_id = response.json().get("messageId", "ok") if response.headers.get("content-type", "").startswith("application/json") else "ok"
+                logger.info("Successfully sent OTP email to %s via Brevo (messageId: %s)", clean_email, msg_id)
+                print(f"[Brevo Email] Verification code successfully dispatched to {clean_email} via Brevo (ID: {msg_id})")
                 return True
             else:
                 logger.error(
@@ -195,7 +206,9 @@ async def send_otp_email(
                     response.status_code,
                     response.text,
                 )
+                print(f"[Brevo Email Error] HTTP {response.status_code}: {response.text}")
                 return False
     except Exception as e:
         logger.error("Failed to dispatch OTP email to %s via Brevo: %s", clean_email, e)
+        print(f"[Brevo Email Exception] {e}")
         return False

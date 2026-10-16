@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 class CreateSessionRequest(BaseModel):
     project_name: str = "Untitled Project"
     feature_request: str = ""
-    mode: str = "QUICK"
+    mode: str = "STANDARD"
 
 
 class UpdateSessionRequest(BaseModel):

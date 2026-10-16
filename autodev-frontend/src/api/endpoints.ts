@@ -142,7 +142,7 @@ export async function productEnquiry(
 ): Promise<ProductEnquiryResponse> {
   const payload: any = {
     prompt: data.prompt || data.feature_request || '',
-    mode: data.mode || data.generation_mode || 'QUICK',
+    mode: data.mode || data.generation_mode || 'STANDARD',
   };
   if (data.context) payload.context = data.context;
 

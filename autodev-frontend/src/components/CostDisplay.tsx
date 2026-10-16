@@ -59,17 +59,17 @@ export const CostDisplay: React.FC<CostDisplayProps> = ({
     <div
       id="costBox"
       style={{ backdropFilter: 'blur(14px)' }}
-      className={`text-right bg-slate-950/[0.25] backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] ${className}`}
+      className={`text-right bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-white/[0.08] shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] ${className}`}
     >
-      <div className="text-[11px] text-slate-400 uppercase font-bold tracking-wider mb-0.5">
+      <div className="text-[11px] text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider mb-0.5">
         Session Cost (INR)
       </div>
       <div
         id="costDisplay"
-        className="text-base sm:text-lg font-mono font-semibold text-emerald-400"
+        className="text-base sm:text-lg font-mono font-semibold text-emerald-600 dark:text-emerald-400"
       >
         {formattedInr}{' '}
-        <span className="text-xs text-slate-400 ml-1">
+        <span className="text-xs text-slate-500 dark:text-slate-400 ml-1">
           ({totalTokens} tokens)
         </span>
       </div>

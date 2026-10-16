@@ -146,7 +146,7 @@ def pipeline_init(payload: PipelineInitInput):
     global scheduler
     from key_balancer import get_generation_mode, get_key_reservation_manager
     get_key_reservation_manager().clear_all()
-    active_mode = payload.generation_mode or payload.mode or get_generation_mode() or "QUICK"
+    active_mode = payload.generation_mode or payload.mode or get_generation_mode() or "STANDARD"
     mode = str(active_mode).upper()
     max_revs = 3
     scheduler = PipelineScheduler(
@@ -176,11 +176,7 @@ def pipeline_init(payload: PipelineInitInput):
 
     valid_ids = set(seen_ids)
     for r in records:
-        for dep in r.dependencies:
-            if dep == r.component_id:
-                raise HTTPException(status_code=400, detail=f"Component '{r.component_id}' cannot depend on itself")
-            if dep not in valid_ids:
-                raise HTTPException(status_code=400, detail=f"Component '{r.component_id}' references non-existent dependency: '{dep}'")
+        r.dependencies = [str(dep).strip() for dep in r.dependencies if str(dep).strip() in valid_ids and str(dep).strip() != r.component_id]
 
     success = scheduler.register_components(records)
     if not success:
@@ -353,7 +349,7 @@ def pipeline_restart(payload: Optional[PipelineRestartRequest] = None):
         print("[RESTART] Product Development restarted.")
 
     # 3. Instantiate fresh scheduler
-    active_mode = get_generation_mode() or "QUICK"
+    active_mode = get_generation_mode() or "STANDARD"
     mode = str(active_mode).upper()
     scheduler = PipelineScheduler(
         config=PipelineConfig(
@@ -417,7 +413,7 @@ def pipeline_complete(payload: CompleteStageInput):
     )
     if success:
         from key_balancer import get_generation_mode, resolve_models_for_mode, format_phase_transition
-        mode = payload.mode or payload.generation_mode or get_generation_mode() or "QUICK"
+        mode = payload.mode or payload.generation_mode or get_generation_mode() or "STANDARD"
         primary_model, _ = resolve_models_for_mode(mode)
         comp_record = scheduler.components.get(payload.component_id)
         comp_name = comp_record.name if comp_record else payload.component_id
@@ -432,6 +428,6 @@ def pipeline_complete(payload: CompleteStageInput):
                 extra_msg = f"Revision {payload.revision_count}" if payload.revision_count else "Revision"
                 codegen_model = "gemini-3.5-flash-lite"
                 print(format_phase_transition(comp_name, "CRITICS", "CODEGEN", codegen_model, "CODEGEN", mode=mode, extra=extra_msg, component_id=eff_comp_id))
-    if scheduler.is_pipeline_finished():
+    if scheduler.is_pipeline_successful():
         print("Development completed.")
     return {"success": success}

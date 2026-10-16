@@ -18,7 +18,7 @@ import {
   loadPersistedState,
   registerPersistenceLifecycle,
 } from '../stores/persistence';
-import { hydrateStores, captureCurrentState } from '../stores';
+import { hydrateStores, captureCurrentState, persistState } from '../stores';
 import {
   executeSandboxCode,
   runCriticsEvaluation,
@@ -214,6 +214,17 @@ export function initAutoRecovery(): AutoDevStateV1 | null {
   }
 
   if (saved.pipelineStatus === 'running' && saved.inFlightPhase) {
+    const stageNum = saved.currentStage || useAppStore.getState().currentStage || 1;
+    if (stageNum < 4 && saved.inFlightPhase === 'decomposition') {
+      console.log('[AutoDev] Sanitizing stale decomposition in-flight phase while on landing/early stage.');
+      const store = useAppStore.getState();
+      store.setPipelineActive(false);
+      store.setPipelineStatus('idle');
+      store.setInFlightPhase(null);
+      persistState(true);
+      return saved;
+    }
+
     console.log(`[AutoDev] Resuming active in-flight phase: ${saved.inFlightPhase}`);
     const store = useAppStore.getState();
     store.setPipelineActive(true);

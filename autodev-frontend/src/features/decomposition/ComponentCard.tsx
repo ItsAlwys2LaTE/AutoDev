@@ -65,36 +65,36 @@ export function ComponentCard({
       <div>
         {/* Top Badges */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
-          <span className="font-mono text-xs text-slate-300 bg-white/[0.06] border border-white/[0.08] px-2.5 py-0.5 rounded-full font-medium">
+          <span className="font-mono text-xs text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] px-2.5 py-0.5 rounded-full font-medium shadow-xs">
             {`ID: ${component.component_id}`}
           </span>
-          <span className="text-xs font-mono bg-white/[0.06] text-slate-300 border border-white/[0.08] px-2 py-0.5 rounded-md font-medium">
+          <span className="text-xs font-mono bg-white/70 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/[0.08] px-2 py-0.5 rounded-md font-medium shadow-xs">
             {`Order: ${component.priority_order ?? 1}`}
           </span>
         </div>
 
         {/* Component Name */}
-        <h4 className="font-bold text-slate-100 text-base mb-1.5 tracking-tight">
+        <h4 className="font-bold text-slate-900 dark:text-slate-100 text-base mb-1.5 tracking-tight">
           {displayTitle}
         </h4>
 
         {/* Description */}
-        <p className="text-xs text-slate-300 mb-3.5 leading-relaxed font-sans">
+        <p className="text-xs text-slate-600 dark:text-slate-300 mb-3.5 leading-relaxed font-sans">
           {component.description}
         </p>
       </div>
 
-      <div className="space-y-2.5 pt-2.5 border-t border-white/[0.07]">
+      <div className="space-y-2.5 pt-2.5 border-t border-slate-200 dark:border-white/[0.07]">
         {/* Tech Stack Chips */}
         {techStack.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 mr-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400 mr-1">
               Stack:
             </span>
             {techStack.map((tech) => (
               <span
                 key={tech}
-                className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.06] text-slate-300 border border-white/[0.08] font-mono"
+                className="text-[11px] px-2 py-0.5 rounded-md bg-white/70 dark:bg-white/[0.06] text-slate-800 dark:text-slate-300 border border-slate-200 dark:border-white/[0.08] font-mono shadow-xs"
               >
                 {tech}
               </span>
@@ -103,18 +103,18 @@ export function ComponentCard({
         )}
 
         {/* Docker Image Tag */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
             Image:
           </span>
-          <span className="font-mono text-[11px] text-slate-300 bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded-md">
+          <span className="font-mono text-[11px] text-slate-800 dark:text-slate-300 bg-white/70 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] px-2 py-0.5 rounded-md shadow-xs">
             {dockerImage}
           </span>
         </div>
 
         {/* Dependency Tags */}
-        <div className="text-xs text-slate-400 flex items-center gap-1.5 pt-1">
-          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+        <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 pt-1">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
             Depends on:
           </span>
           {dependencies.length > 0 ? (
@@ -122,7 +122,7 @@ export function ComponentCard({
               {dependencies.map((dep) => (
                 <span
                   key={dep}
-                  className="font-mono text-[11px] text-slate-300 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded"
+                  className="font-mono text-[11px] text-slate-800 dark:text-slate-300 bg-white/70 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] px-1.5 py-0.5 rounded shadow-xs"
                 >
                   {dep}
                 </span>

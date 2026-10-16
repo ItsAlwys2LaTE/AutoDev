@@ -36,15 +36,15 @@ function getFileIcon(fileName: string) {
     lower.endsWith('.html') ||
     lower.endsWith('.css')
   ) {
-    return <CodeBracketIcon className="w-4 h-4 text-slate-300 shrink-0" />;
+    return <CodeBracketIcon className="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" />;
   }
   if (lower.endsWith('.json') || lower.endsWith('.yaml') || lower.endsWith('.yml')) {
-    return <DocumentTextIcon className="w-4 h-4 text-slate-300 shrink-0" />;
+    return <DocumentTextIcon className="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" />;
   }
   if (lower.endsWith('.md') || lower.endsWith('.txt')) {
-    return <DocumentTextIcon className="w-4 h-4 text-slate-300 shrink-0" />;
+    return <DocumentTextIcon className="w-4 h-4 text-slate-600 dark:text-slate-300 shrink-0" />;
   }
-  return <DocumentIcon className="w-4 h-4 text-slate-400 shrink-0" />;
+  return <DocumentIcon className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />;
 }
 
 export function ComponentFileExplorer({
@@ -58,17 +58,17 @@ export function ComponentFileExplorer({
   return (
     <div
       id={`file-list-${componentId}`}
-      className={`w-full md:w-1/3 bg-slate-950/[0.15] backdrop-blur-md border-b md:border-b-0 md:border-r border-white/[0.07] flex flex-col overflow-hidden select-none ${className}`}
+      className={`w-full md:w-1/3 bg-slate-50 dark:bg-slate-950/70 border-b md:border-b-0 md:border-r border-slate-200 dark:border-white/[0.07] flex flex-col overflow-hidden select-none ${className}`}
     >
       {/* Explorer Header */}
-      <div className="p-2.5 text-xs font-semibold text-slate-300 uppercase tracking-wider border-b border-white/[0.07] bg-slate-950/[0.2] flex items-center justify-between">
+      <div className="p-2.5 text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider border-b border-slate-200 dark:border-white/[0.07] bg-slate-100 dark:bg-slate-900/80 flex items-center justify-between">
         <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-700 dark:bg-white/80" />
           <span>Files</span>
         </span>
         <span
           id={`file-count-${componentId}`}
-          className="text-[11px] font-mono text-slate-300 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded"
+          className="text-[11px] font-mono text-slate-700 dark:text-slate-300 bg-white dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] px-1.5 py-0.5 rounded shadow-xs"
         >
           {`${files.length} ${files.length === 1 ? 'file' : 'files'}`}
         </span>
@@ -77,16 +77,16 @@ export function ComponentFileExplorer({
       {/* File List with ModernScrollbar */}
       <ModernScrollbar
         className="flex-1 min-h-0"
-        viewportClassName="py-1 divide-y divide-white/[0.04]"
+        viewportClassName="py-1 divide-y divide-slate-100 dark:divide-white/[0.04]"
         role="tree"
         aria-label={`Files for component ${componentId}`}
       >
         {isLoading ? (
-          <div className="p-4 text-xs text-slate-400 font-mono italic text-center animate-pulse">
+          <div className="p-4 text-xs text-slate-500 dark:text-slate-400 font-mono italic text-center animate-pulse">
             Synthesizing codebase...
           </div>
         ) : files.length === 0 ? (
-          <div className="p-4 text-xs text-slate-500 italic text-center">
+          <div className="p-4 text-xs text-slate-400 dark:text-slate-500 italic text-center">
             No source files generated yet.
           </div>
         ) : (
@@ -100,8 +100,8 @@ export function ComponentFileExplorer({
                 onClick={() => onSelectFile(index)}
                 className={`file-item w-full text-left px-3 py-2 text-sm cursor-pointer flex items-center gap-2 truncate transition-colors duration-150 ${
                   isActive
-                    ? 'bg-white/10 text-white font-medium border-l-2 border-white shadow-inner'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                    ? 'bg-slate-200/80 dark:bg-white/10 text-slate-900 dark:text-white font-medium border-l-2 border-white shadow-inner'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                 }`}
                 title={file.file_name}
                 aria-selected={isActive}

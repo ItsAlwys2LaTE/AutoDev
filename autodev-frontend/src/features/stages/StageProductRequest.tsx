@@ -101,10 +101,10 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
   return (
     <div
       id="stageProductRequest"
-      className={`h-full flex flex-col justify-center max-w-[760px] mx-auto px-4 sm:px-6 py-6 select-none space-y-6 ${className}`}
+      className={`h-full flex flex-col justify-center w-full max-w-4xl lg:max-w-5xl xl:max-w-[1080px] mx-auto px-4 sm:px-6 py-6 select-none space-y-6 ${className}`}
     >
-      <div className="space-y-2.5 text-center">
-        <h2 className="text-3xl sm:text-4xl md:text-[45px] font-bold text-white tracking-tight leading-tight min-h-[2.75rem] md:min-h-[3.5rem] flex items-center justify-center text-center drop-shadow-sm">
+      <div className="w-full max-w-4xl lg:max-w-5xl xl:max-w-[1080px] mx-auto space-y-2.5 text-center">
+        <h2 className="text-3xl sm:text-4xl md:text-[45px] font-bold text-slate-900 dark:text-white tracking-tight leading-tight min-h-[2.75rem] md:min-h-[3.5rem] flex items-center justify-center text-center drop-shadow-sm whitespace-normal sm:whitespace-nowrap">
           <TextType
             as="span"
             text={headingPhrases}
@@ -115,7 +115,7 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
             loop={false}
             showCursor={true}
             cursorCharacter="|"
-            cursorClassName="text-white/80 font-semibold"
+            cursorClassName="text-slate-900 dark:text-white/80 font-semibold"
             onComplete={handleTitleComplete}
           />
         </h2>
@@ -123,7 +123,7 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
           initial={{ opacity: 0, y: 4 }}
           animate={isTitleComplete ? { opacity: 1, y: 0 } : { opacity: 0, y: 4 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="text-xs sm:text-sm md:text-[15px] text-slate-300 min-h-[1.5rem]"
+          className="text-xs sm:text-sm md:text-[15px] text-slate-600 dark:text-slate-300 min-h-[1.5rem]"
         >
           Describe the product you want to build.
         </motion.p>
@@ -132,13 +132,13 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
       {errorMessage && (
         <div
           id="errorSection"
-          className="p-3.5 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-xs sm:text-sm text-rose-200 flex items-center justify-between backdrop-blur-xl"
+          className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-500/40 text-xs sm:text-sm text-rose-800 dark:text-rose-200 flex items-center justify-between backdrop-blur-xl shadow-sm"
         >
           <span id="errorText">{errorMessage}</span>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
-            className="text-xs text-rose-300 hover:text-white font-semibold cursor-pointer"
+            className="text-xs text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white font-semibold cursor-pointer"
           >
             Dismiss
           </button>
@@ -147,13 +147,13 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
 
       {/* Non-Software Direct Answer Gate */}
       {directAnswer && (
-        <div className="p-5 sm:p-6 rounded-3xl bg-amber-950/40 border border-amber-500/30 backdrop-blur-xl space-y-3">
-          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-amber-300">
-            <InformationCircleIcon className="w-4.5 h-4.5 text-amber-400" />
+        <div className="p-5 sm:p-6 rounded-3xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/30 backdrop-blur-xl space-y-3 shadow-sm">
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <InformationCircleIcon className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
             <span>Informational Query Response (Non-Software)</span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">{directAnswer}</p>
-          <div className="text-[11px] sm:text-xs text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed">{directAnswer}</p>
+          <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400">
             AutoDev only develops software systems and technical tools. Please provide a software feature or application request.
           </div>
           <div className="flex gap-3 pt-1">
@@ -163,7 +163,7 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
                 clearIntentGate();
                 textareaRef.current?.focus();
               }}
-              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white backdrop-blur-md transition-colors cursor-pointer shadow-md"
+              className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-black text-white dark:bg-white/10 dark:hover:bg-white/20 text-xs font-semibold backdrop-blur-md transition-colors cursor-pointer shadow-sm"
             >
               Enter Software Engineering Request
             </button>
@@ -185,10 +185,10 @@ export const StageProductRequest: React.FC<StageProductRequestProps> = ({
         onKeyDown={handleKeyDown}
         placeholder="e.g. Build a real-time collaborative task board with drag-and-drop columns, user assignments, and WebSocket sync..."
         disabled={isSubmitting}
-        caretColorClass="text-white/80 font-semibold"
-        wrapperClassName="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10 transition-all overflow-hidden"
-        className="w-full bg-transparent border-none outline-none focus:outline-none transition-all text-sm sm:text-base md:text-[16px] text-white placeholder:text-white/40 font-sans leading-relaxed resize-none p-5 sm:p-6"
-        style={{ backdropFilter: 'blur(14px)' }}
+        caretColorClass="text-slate-900 dark:text-white/80 font-semibold"
+        wrapperClassName="rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-300 dark:border-white/[0.07] shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] focus-within:border-slate-400 dark:focus-within:border-white/20 focus-within:ring-1 focus-within:ring-slate-300 dark:focus-within:ring-white/10 transition-all overflow-hidden"
+        className="w-full bg-transparent border-none outline-none focus:outline-none transition-all text-sm sm:text-base md:text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 font-sans leading-relaxed resize-none p-5 sm:p-6"
+        wrapperStyle={{ backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}
       />
 
       {/* Separated and Centered Start Development Button with Colourless SpecularButton */}

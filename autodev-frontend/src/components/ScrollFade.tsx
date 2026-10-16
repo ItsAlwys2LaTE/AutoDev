@@ -43,11 +43,7 @@ export const ScrollFade = React.forwardRef<HTMLElement, ScrollFadeProps>(
     });
 
     const getScrollTarget = useCallback((root: HTMLElement): HTMLElement => {
-      if (
-        root.tagName === 'TEXTAREA' ||
-        root.scrollHeight > root.clientHeight + 2 ||
-        root.scrollWidth > root.clientWidth + 2
-      ) {
+      if (root.tagName === 'TEXTAREA') {
         return root;
       }
       const textarea = root.querySelector('textarea');
@@ -58,6 +54,12 @@ export const ScrollFade = React.forwardRef<HTMLElement, ScrollFadeProps>(
         (scrollable.scrollHeight > scrollable.clientHeight || scrollable.scrollWidth > scrollable.clientWidth)
       ) {
         return scrollable;
+      }
+      if (
+        root.scrollHeight > root.clientHeight + 2 ||
+        root.scrollWidth > root.clientWidth + 2
+      ) {
+        return root;
       }
       return root;
     }, []);
@@ -70,11 +72,15 @@ export const ScrollFade = React.forwardRef<HTMLElement, ScrollFadeProps>(
 
       const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = el;
 
-      // 3px buffer to handle subpixel rounding oscillations
-      const canScrollUp = topFade && scrollTop > 3;
-      const canScrollDown = bottomFade && scrollTop + clientHeight < scrollHeight - 3;
-      const canScrollLeft = leftFade && scrollLeft > 3;
-      const canScrollRight = rightFade && scrollLeft + clientWidth < scrollWidth - 3;
+      const styles = typeof window !== 'undefined' ? window.getComputedStyle(el) : null;
+      const cannotScrollY = styles ? styles.overflowY === 'hidden' : false;
+      const cannotScrollX = styles ? styles.overflowX === 'hidden' : false;
+
+      // 3px buffer to handle subpixel rounding oscillations; do not fade if overflow is hidden
+      const canScrollUp = topFade && !cannotScrollY && scrollTop > 3;
+      const canScrollDown = bottomFade && !cannotScrollY && scrollTop + clientHeight < scrollHeight - 3;
+      const canScrollLeft = leftFade && !cannotScrollX && scrollLeft > 3;
+      const canScrollRight = rightFade && !cannotScrollX && scrollLeft + clientWidth < scrollWidth - 3;
 
       setFadeState((prev) => {
         if (

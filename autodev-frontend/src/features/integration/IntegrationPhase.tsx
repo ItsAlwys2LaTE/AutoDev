@@ -83,7 +83,7 @@ export function IntegrationPhase({
     }
   }, [allPassed, store.pipelineStatus]);
 
-  // Auto-trigger in QUICK mode, 30s countdown in COMPLEX mode
+  // Auto-trigger integration synthesis once all components pass
   useEffect(() => {
     if (!allPassed || hasAutoTriggeredRef.current || runner.integratedCodebase) {
       return;
@@ -267,7 +267,6 @@ export function IntegrationPhase({
                 maxRevisions={runner.dynamicBudget}
                 revisionHistory={runner.revisionHistory}
                 isReadOnly={
-                  ((isSSR ? liveStore?.mode : store.mode) ?? 'QUICK') === 'QUICK' &&
                   !((isSSR ? liveStore?.isPaused : store.isPaused) ?? false)
                 }
                 isDiffMode={runner.isDiffMode}

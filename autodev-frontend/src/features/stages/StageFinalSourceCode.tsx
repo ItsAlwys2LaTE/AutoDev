@@ -72,16 +72,16 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
       className={`h-full flex flex-col max-w-6xl mx-auto px-4 py-3 space-y-3.5 select-none ${className}`}
     >
       {/* ── Top Bar: Title & Description ── */}
-      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+      <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-white/[0.07]">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
-            <CodeBracketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
+          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-slate-800 dark:text-white/90 shadow-sm shrink-0">
+            <CodeBracketIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-800 dark:text-white/90" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
             Final Source Code
           </h2>
         </div>
-        <p className="text-xs md:text-sm text-slate-300">
+        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
           Final verified production source codebase resulting from autonomous synthesis, sandbox testing, and multi-critic adjudication.
         </p>
       </div>
@@ -89,14 +89,14 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
       {/* ── Main Source Code Workspace (File Explorer + Monaco Editor) ── */}
       <div
         id="finalCodeContainer"
-        className="flex-1 min-h-[500px] flex flex-col md:flex-row border border-white/[0.07] rounded-3xl overflow-hidden bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]"
+        className="flex-1 min-h-[500px] flex flex-col md:flex-row border border-slate-200 dark:border-white/[0.07] rounded-3xl overflow-hidden bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md shadow-sm"
         style={{ backdropFilter: 'blur(14px)' }}
       >
         {/* Left Pane: File Explorer */}
-        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-white/10 bg-slate-950/[0.12] backdrop-blur-md flex flex-col flex-shrink-0">
-          <div className="p-3 border-b border-white/10 flex items-center justify-between text-xs font-semibold text-slate-300 uppercase tracking-wider">
+        <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-slate-950/[0.12] backdrop-blur-md flex flex-col flex-shrink-0">
+          <div className="p-3 border-b border-slate-200 dark:border-white/10 flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
             <span className="flex items-center gap-1.5">
-              <DocumentTextIcon className="w-3.5 h-3.5 text-white/80" />
+              <DocumentTextIcon className="w-3.5 h-3.5 text-slate-600 dark:text-white/80" />
               Files ({files.length})
             </span>
           </div>
@@ -114,11 +114,11 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
                     onClick={() => setActiveFileIndex(idx)}
                     className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono transition-all flex items-center gap-2 cursor-pointer ${
                       isSelected
-                        ? 'bg-white/15 text-white font-semibold border border-white/20 shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.05]'
+                        ? 'bg-white text-slate-900 font-semibold border border-slate-300/80 shadow-sm dark:bg-white/15 dark:text-white dark:border-white/20'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.05]'
                     }`}
                   >
-                    <CodeBracketIcon className="w-3.5 h-3.5 text-white/60 shrink-0" />
+                    <CodeBracketIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-white/60'}`} />
                     <span className="truncate">{file.file_name}</span>
                   </button>
                 );
@@ -130,14 +130,14 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
         {/* Right Pane: Code Editor Surface */}
         <div className="flex-1 h-full relative overflow-hidden bg-[#1e1e1e] flex flex-col">
           {/* Top file tab header */}
-          <div className="px-3.5 py-2.5 border-b border-white/10 bg-slate-950/[0.12] flex items-center justify-between text-xs">
+          <div className="px-3.5 py-2.5 border-b border-slate-700/60 dark:border-white/10 bg-slate-900/80 dark:bg-slate-950/[0.12] flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-              <CodeBracketIcon className="w-3.5 h-3.5 text-white/70 shrink-0" />
-              <span className="truncate max-w-[280px] sm:max-w-md text-white font-semibold">
+              <CodeBracketIcon className="w-3.5 h-3.5 text-slate-400 dark:text-white/70 shrink-0" />
+              <span className="truncate max-w-[280px] sm:max-w-md text-slate-100 dark:text-white font-semibold">
                 {activeFile?.file_name || 'No file selected'}
               </span>
             </div>
-            <span className="text-[11px] font-mono text-slate-400 uppercase bg-white/[0.06] px-2 py-0.5 rounded-md border border-white/10">
+            <span className="text-[11px] font-mono text-slate-300 dark:text-slate-400 uppercase bg-white/10 dark:bg-white/[0.06] px-2 py-0.5 rounded-md border border-white/15 dark:border-white/10">
               {language}
             </span>
           </div>

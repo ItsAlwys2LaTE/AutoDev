@@ -15,7 +15,7 @@ export function getComponentStatusConfig(status: string = 'queued'): StatusConfi
     return {
       dotClass: 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]',
       badgeText: 'Passed',
-      badgeClass: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      badgeClass: 'text-emerald-700 bg-emerald-100 border-emerald-300 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/20',
     };
   }
   if (
@@ -35,33 +35,33 @@ export function getComponentStatusConfig(status: string = 'queued'): StatusConfi
           : s === 'executing'
           ? 'Executing Tests...'
           : 'Evaluating...',
-      badgeClass: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+      badgeClass: 'text-blue-700 bg-blue-100 border-blue-300 dark:text-blue-400 dark:bg-blue-500/10 dark:border-blue-500/20',
     };
   }
   if (s.includes('waiting') || s === 'stalled') {
     return {
       dotClass: 'bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.6)]',
       badgeText: 'Action Required',
-      badgeClass: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+      badgeClass: 'text-amber-800 bg-amber-100 border-amber-300 dark:text-amber-400 dark:bg-amber-500/10 dark:border-amber-500/20',
     };
   }
   if (s === 'failed' || s === 'quarantined') {
     return {
       dotClass: 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]',
       badgeText: 'Failed',
-      badgeClass: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+      badgeClass: 'text-rose-700 bg-rose-100 border-rose-300 dark:text-rose-400 dark:bg-rose-500/10 dark:border-rose-500/20',
     };
   }
   // Default queued
   return {
-    dotClass: 'bg-slate-400 dark:bg-slate-500',
+    dotClass: 'bg-slate-500 dark:bg-slate-400',
     badgeText:
       s === 'coding_queued'
         ? 'Queued for Code'
         : s === 'critic_queued'
         ? 'Queued for Tests'
         : 'Queued for Design',
-    badgeClass: 'text-slate-400 bg-white/[0.04] border border-white/[0.07]',
+    badgeClass: 'text-slate-700 bg-slate-100 border-slate-300 dark:text-slate-400 dark:bg-white/[0.04] dark:border-white/[0.07]',
   };
 }
 
@@ -131,7 +131,7 @@ export function ComponentToggler({
         role="tablist"
         aria-label="Component Workspace Selector"
         orientation="horizontal"
-        className="inline-flex bg-slate-950/[0.12] backdrop-blur-md p-1.5 rounded-full shadow-inner overflow-x-auto max-w-full items-center gap-1 border border-white/[0.08] custom-scrollbar"
+        className="inline-flex bg-slate-100 dark:bg-slate-950/[0.12] backdrop-blur-md p-1.5 rounded-full shadow-inner overflow-x-auto max-w-full items-center gap-1 border border-slate-300 dark:border-white/[0.08] custom-scrollbar"
       >
         {queue.map((component) => {
           const cId = component.component_id;
@@ -149,16 +149,16 @@ export function ComponentToggler({
               type="button"
               whileTap={{ scale: 0.95 }}
               onClick={() => handlePillClick(cId)}
-              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-150 whitespace-nowrap flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer ${
+              className={`relative px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-colors duration-150 whitespace-nowrap flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-white/20 cursor-pointer ${
                 isActive
-                  ? 'text-white'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'text-slate-900 font-bold dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/5'
               }`}
             >
               {isActive && (
                 <motion.div
                   layoutId="componentTogglerActivePill"
-                  className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                  className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                   transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                 />
               )}

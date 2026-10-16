@@ -12,21 +12,21 @@ from dotenv import load_dotenv
 from google import genai
 import google.api_core.exceptions as g_exc
 
-# Thread-safe and async-safe context variable tracking active generation mode ('QUICK' or 'COMPLEX')
-# Defaults to None internally, but get_generation_mode() defaults to _GLOBAL_MODE ("QUICK")
+# Thread-safe and async-safe context variable tracking active generation mode ('STANDARD')
+# Defaults to None internally, but get_generation_mode() defaults to _GLOBAL_MODE ("STANDARD")
 _CURRENT_MODE: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("autodev_generation_mode", default=None)
-_GLOBAL_MODE: str = "QUICK"
+_GLOBAL_MODE: str = "STANDARD"
 
 
 def set_generation_mode(mode: str) -> None:
-    """Sets the active generation mode (defaults to 'QUICK')."""
+    """Sets the active generation mode (defaults to 'STANDARD')."""
     global _GLOBAL_MODE
-    _GLOBAL_MODE = "QUICK"
-    _CURRENT_MODE.set("QUICK")
+    _GLOBAL_MODE = "STANDARD"
+    _CURRENT_MODE.set("STANDARD")
 
 
 def get_generation_mode() -> str:
-    """Gets the active generation mode (defaults to 'QUICK')."""
+    """Gets the active generation mode (defaults to 'STANDARD')."""
     val = _CURRENT_MODE.get()
     return val if val is not None else _GLOBAL_MODE
 
@@ -34,7 +34,7 @@ def get_generation_mode() -> str:
 def reset_generation_mode() -> None:
     """Resets the active generation mode to default."""
     global _GLOBAL_MODE
-    _GLOBAL_MODE = "QUICK"
+    _GLOBAL_MODE = "STANDARD"
     _CURRENT_MODE.set(None)
 
 

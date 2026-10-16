@@ -97,13 +97,13 @@ export function ExecutionOutput({
   return (
     <div
       id="execOutputSection"
-      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in transition-all duration-200 ${className}`}
+      className={`rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 fade-in transition-all duration-200 ${className}`}
       style={{ backdropFilter: 'blur(14px)' }}
     >
       {/* Header with Title and Badges */}
       <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-        <h2 className="font-semibold text-slate-200 flex items-center gap-2 text-base sm:text-lg">
-          <span className="bg-white/10 text-white border border-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+        <h2 className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2 text-base sm:text-lg">
+          <span className="bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white border border-slate-300 dark:border-white/20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
             2c
           </span>
           <span>Test Execution Results</span>
@@ -114,7 +114,7 @@ export function ExecutionOutput({
           {coveragePercent && (
             <span
               id="covBadge"
-              className="px-3 py-1 text-xs sm:text-sm rounded-full font-medium border bg-blue-500/20 text-blue-400 border-blue-500/30 flex items-center gap-1.5"
+              className="px-3 py-1 text-xs sm:text-sm rounded-full font-medium border bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30 flex items-center gap-1.5"
             >
               <ShieldCheckIcon className="w-3.5 h-3.5" />
               <span>{`Coverage: ${coveragePercent}`}</span>
@@ -127,8 +127,8 @@ export function ExecutionOutput({
               id="execStatusBadge"
               className={`px-3 py-1 text-xs sm:text-sm rounded-full font-semibold border flex items-center gap-1.5 ${
                 isSuccess
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                  : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:border-emerald-500/30'
+                  : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:border-rose-500/30'
               }`}
             >
               {isSuccess ? (
@@ -146,8 +146,8 @@ export function ExecutionOutput({
           )}
 
           {isExecuting && !currentExecutionResult && (
-            <span className="px-3 py-1 text-xs sm:text-sm rounded-full font-medium border bg-amber-500/20 text-amber-300 border-amber-500/30 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            <span className="px-3 py-1 text-xs sm:text-sm rounded-full font-medium border bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
               <span>Running Sandbox Tests...</span>
             </span>
           )}
@@ -155,8 +155,8 @@ export function ExecutionOutput({
       </div>
 
       {/* Execution Logs Terminal Block (#execLogsOutput) */}
-      <ModernScrollbar className="bg-black/25 backdrop-blur-md rounded-2xl border border-white/[0.07] max-h-96 shadow-inner mb-6" viewportClassName="p-4">
-        <div className="flex items-center justify-between text-xs text-slate-500 border-b border-white/[0.07] pb-2 mb-2 font-mono">
+      <ModernScrollbar className="bg-slate-950 dark:bg-black/25 backdrop-blur-md rounded-2xl border border-slate-800 dark:border-white/[0.07] max-h-96 shadow-inner mb-6 overflow-hidden" viewportClassName="p-4">
+        <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-400 border-b border-slate-800 dark:border-white/[0.07] pb-2 mb-2 font-mono">
           <span className="flex items-center gap-1.5">
             <CommandLineIcon className="w-3.5 h-3.5 text-slate-400" />
             <span>docker://autodev-sandbox/stdout</span>
@@ -166,7 +166,8 @@ export function ExecutionOutput({
         <pre className="m-0 p-0">
           <code
             id="execLogsOutput"
-            className="text-slate-200 text-xs sm:text-sm block whitespace-pre-wrap font-mono leading-relaxed"
+            className="text-slate-100 dark:text-slate-200 text-xs sm:text-sm block whitespace-pre-wrap font-mono leading-relaxed"
+            style={{ color: '#f1f5f9' }}
           >
             {logs || (isExecuting ? 'Starting container and executing sandbox test commands...' : 'No logs produced.')}
           </code>
@@ -174,8 +175,8 @@ export function ExecutionOutput({
       </ModernScrollbar>
 
       {/* Phase 3 Action Transition Button (#criticBtn) */}
-      <div className="border-t border-white/[0.07] pt-5">
-        <p className="text-slate-400 text-xs sm:text-sm mb-3 text-center">
+      <div className="border-t border-slate-200 dark:border-white/[0.07] pt-5">
+        <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mb-3 text-center">
           Execution complete. Invoke the parallel Arbitration Engine.
         </p>
 
@@ -184,7 +185,7 @@ export function ExecutionOutput({
           type="button"
           onClick={onRunCritics}
           disabled={isEvaluatingCritics || isExecuting || pipelineStatus === 'aborted'}
-          className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm cursor-pointer"
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/20 dark:text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex justify-center items-center gap-2 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-sm cursor-pointer"
         >
           <span>
             {countdown.isRunning && (countdown.targetAction === 'critics' || countdown.targetAction === 'criticBtn')

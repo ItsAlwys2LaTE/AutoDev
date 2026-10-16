@@ -55,7 +55,7 @@ export function IntegrationRevTabs({
       id="integrationRevTabs"
       className={`flex items-center gap-1 mb-3 flex-wrap border-b border-white/10 pb-0.5 ${className}`}
     >
-      <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm gap-1">
+      <div className="relative flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-sm gap-1">
         {revisionHistory.map((rev, i) => {
           const isSelected = activeRevisionIndex === i;
           const isPostRun = Boolean(rev.isPostCompletion);
@@ -70,10 +70,10 @@ export function IntegrationRevTabs({
                 isSelected
                   ? isPostRun
                     ? 'text-emerald-300 font-bold'
-                    : 'text-white font-bold'
+                    : 'text-slate-900 dark:text-white font-bold'
                   : isPostRun
                   ? 'text-emerald-400/80 hover:text-emerald-300'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               onClick={() => onSelectRevision(i)}
             >
@@ -83,7 +83,7 @@ export function IntegrationRevTabs({
                   className={`absolute inset-0 rounded-full border shadow-sm ${
                     isPostRun
                       ? 'bg-emerald-600/30 border-emerald-500/50'
-                      : 'bg-white/15 border-white/20'
+                      : 'bg-white dark:bg-white/15 border-slate-300/80 dark:border-white/20'
                   }`}
                   transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                 />

@@ -160,7 +160,7 @@ export function PostCompletionPanel({
     : (isSSR ? (liveStore?.currentCodebase ?? null) : sCodebase);
   const currentBlueprint = isSSR ? (liveStore?.currentBlueprint ?? null) : sBlueprint;
   const revisionHistory = isSSR ? (liveStore?.revisionHistory ?? []) : sRevisionHistory;
-  const appMode = isSSR ? (liveStore?.mode ?? 'QUICK') : sAppMode;
+  const appMode = isSSR ? (liveStore?.mode ?? 'STANDARD') : sAppMode;
   const storeRequirements = isSSR ? (liveStore?.requirements ?? null) : sRequirements;
 
   const setStoreMode = useAppStore((s) => s.setPostCompletionMode);
@@ -632,7 +632,7 @@ export function PostCompletionPanel({
             id="postCompModeToggle"
             role="radiogroup"
             aria-label="Post-Completion Mode"
-            className="inline-flex bg-slate-950 p-1 rounded-full border border-slate-700 shadow-inner shrink-0 relative"
+            className="inline-flex bg-slate-100 dark:bg-slate-950 p-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-inner shrink-0 relative"
           >
             <motion.button
               type="button"
@@ -642,7 +642,7 @@ export function PostCompletionPanel({
               className={`relative px-4 py-1.5 text-xs font-bold rounded-full transition-colors duration-150 flex items-center gap-1.5 focus:outline-none cursor-pointer ${
                 mode === 'modify'
                   ? 'text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               {mode === 'modify' && (
@@ -664,7 +664,7 @@ export function PostCompletionPanel({
               className={`relative px-4 py-1.5 text-xs font-bold rounded-full transition-colors duration-150 flex items-center gap-1.5 focus:outline-none cursor-pointer ${
                 mode === 'query'
                   ? 'text-white'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
             >
               {mode === 'query' && (

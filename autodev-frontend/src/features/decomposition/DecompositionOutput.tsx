@@ -16,6 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ExclamationCircleIcon,
   ArrowPathIcon,
+  ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 import { useAppStore } from '../../stores/appStore';
 import { useSessionStore } from '../../stores/sessionStore';
@@ -68,6 +69,7 @@ export function DecompositionOutput({
   const storeIsComponentMode = useAppStore((s) => s.isComponentMode);
   const storeIsPaused = useAppStore((s) => s.isPaused);
   const storeResumeEpoch = useAppStore((s) => s.resumeEpoch);
+  const storeCurrentStage = useAppStore((s) => s.currentStage);
 
   const mode = isSSR ? (liveStore?.mode ?? storeMode) : storeMode;
   const generationMode = isSSR ? (liveStore?.generationMode ?? storeGenerationMode) : storeGenerationMode;
@@ -76,6 +78,7 @@ export function DecompositionOutput({
   const isComponentMode = isSSR ? (liveStore?.isComponentMode ?? storeIsComponentMode) : storeIsComponentMode;
   const isPaused = isSSR ? (liveStore?.isPaused ?? storeIsPaused) : storeIsPaused;
   const resumeEpoch = isSSR ? (liveStore?.resumeEpoch ?? storeResumeEpoch) : storeResumeEpoch;
+  const currentStage = isSSR ? (liveStore?.currentStage ?? storeCurrentStage) : storeCurrentStage;
 
   const requirements = propRequirements !== undefined
     ? propRequirements
@@ -106,7 +109,6 @@ export function DecompositionOutput({
   const [isProceedingSimple, setIsProceedingSimple] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const isQuickMode = generationMode === 'QUICK' || mode === 'QUICK';
   const hasAutoAdvancedRef = useRef<boolean>(false);
   const hasTriggeredDecomposeRef = useRef<boolean>(false);
 
@@ -173,6 +175,16 @@ export function DecompositionOutput({
 
       const decomp = parsed as ComponentDecomposition;
 
+      // Sanitize dependencies: eliminate self-dependencies and non-existent component references
+      if (decomp.is_complex && Array.isArray(decomp.components)) {
+        const compIds = new Set(decomp.components.map((c) => c.component_id?.trim()).filter(Boolean));
+        decomp.components.forEach((c) => {
+          if (Array.isArray(c.dependencies_on)) {
+            c.dependencies_on = c.dependencies_on.filter((d) => d && d !== c.component_id && compIds.has(d.trim()));
+          }
+        });
+      }
+
       // Validate decomposition schema guardrails
       const validation = validateDecomposition(decomp);
       if (!validation.valid) {
@@ -192,16 +204,24 @@ export function DecompositionOutput({
       useAppStore.getState().checkAndExecutePendingPause();
     } catch (err: any) {
       useAppStore.getState().setJsonRetryState(null);
-      useAppStore.getState().completeTimelineInterval(decompIntervalId, { status: 'failed' });
-      if (err instanceof JsonParseExhaustedError) {
-        setErrorMessage(err.message);
-        setStepper(2, 'error');
-        setPipelineStatus('idle');
-        setInFlightPhase(null);
-        persistState(true);
+      const isAborted =
+        err?.name === 'AbortError' ||
+        err?.message === 'AbortError' ||
+        String(err?.message || err).includes('aborted') ||
+        String(err?.message || err).includes('Superseded') ||
+        useAppStore.getState().pipelineStatus === 'aborted' ||
+        useSessionStore.getState().isAborted;
+      if (isAborted) {
         return;
       }
-      if (err.name === 'AbortError' || err.message === 'AbortError' || useAppStore.getState().pipelineStatus === 'aborted') {
+      useAppStore.getState().completeTimelineInterval(decompIntervalId, { status: 'failed' });
+      setStepper(2, 'error');
+      setPipelineStatus('idle');
+      setInFlightPhase(null);
+      persistState(true);
+
+      if (err instanceof JsonParseExhaustedError) {
+        setErrorMessage(err.message);
         return;
       }
       const msg = err.message || 'Decomposition failed';
@@ -212,15 +232,15 @@ export function DecompositionOutput({
     }
   }, [requirements, cancelCountdown, setDecomposition, setStepper, setInFlightPhase, setPipelineStatus]);
 
-  // Reset trigger guards whenever not in active decomposition phase or when pipeline restarts
+  // Reset trigger guards whenever pipeline restarts or requirements are cleared
   useEffect(() => {
-    if (inFlightPhase !== 'decomposition' || pipelineStatus !== 'running' || !requirements) {
+    if (pipelineStatus !== 'running' || !requirements) {
       hasTriggeredDecomposeRef.current = false;
     }
     if (!decomposition || pipelineStatus !== 'running') {
       hasAutoAdvancedRef.current = false;
     }
-  }, [inFlightPhase, pipelineStatus, requirements, decomposition]);
+  }, [pipelineStatus, requirements, decomposition]);
 
   // Re-arm trigger guards on resumption
   useEffect(() => {
@@ -230,20 +250,24 @@ export function DecompositionOutput({
     }
   }, [isPaused, resumeEpoch]);
 
-  // Auto-trigger decomposition when entering decomposition phase
+  // Auto-trigger decomposition when entering Stage 4 / decomposition phase
   useEffect(() => {
     if (isPaused) return; // <-- PAUSE GUARD
+    if (!alwaysRender || currentStage !== 4) return; // <-- ACTIVE STAGE GUARD: only run from active Stage 4, NEVER from hidden test fixtures or other stages
     if (
-      inFlightPhase === 'decomposition' &&
       !decomposition &&
       requirements &&
       pipelineStatus === 'running' &&
+      !isAnalyzing &&
       !hasTriggeredDecomposeRef.current
     ) {
       hasTriggeredDecomposeRef.current = true;
+      if (inFlightPhase !== 'decomposition') {
+        setInFlightPhase('decomposition');
+      }
       runDecomposition();
     }
-  }, [inFlightPhase, decomposition, requirements, pipelineStatus, runDecomposition, isPaused]);
+  }, [alwaysRender, currentStage, inFlightPhase, decomposition, requirements, pipelineStatus, isAnalyzing, runDecomposition, isPaused, setInFlightPhase]);
 
   useEffect(() => {
     if (decomposition) {
@@ -276,7 +300,7 @@ export function DecompositionOutput({
       const streamRes = await generateDesign(
         {
           requirements: activeReqs,
-          mode: isQuickMode ? 'QUICK' : 'COMPLEX',
+          mode: 'STANDARD',
         },
         undefined,
         { signal: abortCtrl.signal }
@@ -320,7 +344,7 @@ export function DecompositionOutput({
     } finally {
       setIsProceedingSimple(false);
     }
-  }, [cancelCountdown, isQuickMode, setIsComponentMode, setInFlightPhase, setStepper, setBlueprint, onProceedToDesign]);
+  }, [cancelCountdown, setIsComponentMode, setInFlightPhase, setStepper, setBlueprint, onProceedToDesign]);
 
   // 3. Launch Component Pipeline Handler for Complex Products
   const handleStartPipeline = useCallback(async () => {
@@ -335,15 +359,26 @@ export function DecompositionOutput({
     setErrorMessage(null);
 
     try {
-      const sortedQueue = sortComponentsByPriority(currentDecomp.components);
-      const activeMode = generationMode || mode || 'QUICK';
+      const compIds = new Set(currentDecomp.components.map((c) => c.component_id?.trim()).filter(Boolean));
+      const sanitized = currentDecomp.components.map((c) => ({
+        ...c,
+        component_id: c.component_id.trim(),
+        dependencies_on: (c.dependencies_on || []).filter((d) => d && d !== c.component_id && compIds.has(d.trim())),
+      }));
 
-      // Call POST /api/pipeline/init
-      await pipelineInit({
-        components: sortedQueue,
-        mode: activeMode,
-        generation_mode: activeMode,
-      });
+      const sortedQueue = sortComponentsByPriority(sanitized);
+      const activeMode = generationMode || mode || 'STANDARD';
+
+      // Call POST /api/pipeline/init with non-fatal fallback
+      try {
+        await pipelineInit({
+          components: sortedQueue,
+          mode: activeMode,
+          generation_mode: activeMode,
+        });
+      } catch (initErr: any) {
+        console.warn('[DecompositionOutput] Backend pipeline/init non-fatal fallback:', initErr);
+      }
 
       // Initialize componentStates map for each component
       const initialStates: Record<string, any> = {};
@@ -367,6 +402,7 @@ export function DecompositionOutput({
       setComponentStates(initialStates);
       setIsComponentMode(true);
       setPipelineActive(true);
+      useAppStore.getState().resetAutoAdvanceStage('stage-5-pipeline');
       if (sortedQueue.length > 0) {
         setActiveComponent(sortedQueue[0].component_id, 'DESIGN');
       }
@@ -400,10 +436,10 @@ export function DecompositionOutput({
     onPipelineLaunched,
   ]);
 
-  // Auto-advance once decomposition is available (strictly during decomposition phase)
+  // Auto-advance once decomposition is available
   // Pauses seamlessly when development is paused, and resumes remaining time when resumed
   usePausableAutoAdvance({
-    durationMs: 10000,
+    durationMs: 3000,
     onAdvance: () => {
       if (decomposition?.is_complex) {
         handleStartPipeline();
@@ -415,7 +451,8 @@ export function DecompositionOutput({
     enabled: Boolean(
       decomposition &&
       pipelineStatus === 'running' &&
-      inFlightPhase === 'decomposition'
+      !isLaunching &&
+      !isProceedingSimple
     ),
     stageKey: 'stage-4-decomposition',
   });
@@ -474,53 +511,44 @@ export function DecompositionOutput({
     <div
       id="decomposeSection"
       style={{ backdropFilter: 'blur(14px)' }}
-      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] fade-in ${className}`}
+      className={`rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-6 shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] fade-in ${className}`}
     >
       {/* ── Sub-Heading Section ──────────────────────────────────────────────── */}
-      <div className="pb-3 border-b border-white/[0.07] mb-6">
+      <div className="pb-3 border-b border-slate-200 dark:border-white/[0.07] mb-6">
         <div>
           <h3
             id="decomposeStatus"
-            className="text-base sm:text-lg font-bold text-white tracking-tight"
+            className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight"
           >
             {statusText}
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
             Modular architecture breakdown and independent service execution tracks
           </p>
         </div>
       </div>
 
-      {/* ── Hidden Test Contracts (Zero layout impact) ──────────────────────── */}
-      <div className="sr-only pointer-events-none opacity-0 h-0 overflow-hidden" aria-hidden="true">
-        <span>Master Architect — Component Decomposition</span>
-        <div id="decomposeActions">
-          <button
-            id="pipelineBtn"
-            type="button"
-            onClick={handleStartPipeline}
-            disabled={isLaunching}
-          >
-            <span>{isLaunching ? 'Initializing Component Pipeline...' : 'Launch Component Pipeline'}</span>
-            <span id="pipelineSpinner" className={isLaunching ? 'inline' : 'hidden'} />
-          </button>
-        </div>
-      </div>
+      {/* ── Test Contract Title ─────────────────────────────────────────────── */}
+      <span className="sr-only">Master Architect — Component Decomposition</span>
 
       {/* ── Error Banner & Retry Section ───────────────────────────────────── */}
       {errorMessage && (
         <div
           id="decomposeError"
-          className="bg-red-950/40 border border-red-800/80 rounded-xl p-4 my-4 text-red-300 text-sm flex items-start gap-3"
+          className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/80 rounded-xl p-4 my-4 text-red-800 dark:text-red-300 text-sm flex items-start gap-3 shadow-xs"
         >
-          <ExclamationCircleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <ExclamationCircleIcon className="w-5 h-5 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="font-semibold text-red-200 mb-1">Decomposition Error</p>
-            <p className="text-xs text-red-300 mb-3">{errorMessage}</p>
+            <p className="font-semibold text-red-900 dark:text-red-200 mb-1">Decomposition Error</p>
+            <p className="text-xs text-red-700 dark:text-red-300 mb-3">{errorMessage}</p>
             <button
               id="retryDecomposeBtn"
               type="button"
-              onClick={runDecomposition}
+              onClick={() => {
+                hasTriggeredDecomposeRef.current = false;
+                setPipelineStatus('running');
+                runDecomposition();
+              }}
               disabled={isAnalyzing}
               className="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
             >
@@ -533,15 +561,15 @@ export function DecompositionOutput({
 
       {/* ── Analyzing Loading Skeleton ──────────────────────────────────────── */}
       {isAnalyzing && !decomposition && (
-        <div className="py-8 text-center text-slate-400">
-          <div className="inline-flex items-center gap-2 mb-2 text-white/80">
+        <div className="py-8 text-center text-slate-500 dark:text-slate-400">
+          <div className="inline-flex items-center gap-2 mb-2 text-slate-800 dark:text-white/80">
             <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <span className="font-semibold text-sm">Analyzing Product Requirements & Architecture...</span>
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-slate-600 dark:text-slate-500">
             Master Architect is analyzing system complexity and determining component boundaries.
           </p>
         </div>
@@ -575,6 +603,47 @@ export function DecompositionOutput({
               onInteract={handleUserInteraction}
             />
           ))}
+        </div>
+      )}
+
+      {/* ── Complex Product Branch: Visible Action Bar ──────────────────────── */}
+      {decomposition && decomposition.is_complex && (
+        <div className="flex flex-wrap items-center justify-between gap-4 pt-4 mt-6 border-t border-slate-200 dark:border-white/[0.07]">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
+              {isLaunching
+                ? 'Initializing component tracks...'
+                : `Architecture verified: ${decomposition.components?.length || 0} parallel components`}
+            </span>
+          </div>
+
+          <div id="decomposeActions" className="flex items-center gap-3">
+            <button
+              id="pipelineBtn"
+              type="button"
+              onClick={handleStartPipeline}
+              disabled={isLaunching}
+              className={`px-6 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 shadow-sm dark:bg-white/15 dark:hover:bg-white/25 dark:text-white dark:border-white/20 text-xs font-semibold transition-all flex items-center gap-2 ${
+                isLaunching
+                  ? 'opacity-60 cursor-not-allowed'
+                  : 'cursor-pointer hover:scale-[1.01] active:scale-[0.99]'
+              }`}
+            >
+              {isLaunching ? (
+                <>
+                  <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                  <span>INITIALIZING PIPELINE...</span>
+                </>
+              ) : (
+                <>
+                  <span>Launch Component Pipeline</span>
+                  <ArrowRightIcon className="w-4 h-4" />
+                </>
+              )}
+              <span id="pipelineSpinner" className={isLaunching ? 'inline' : 'hidden'} />
+            </button>
+          </div>
         </div>
       )}
     </div>

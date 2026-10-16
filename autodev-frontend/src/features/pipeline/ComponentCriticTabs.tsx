@@ -146,8 +146,8 @@ export function ComponentCriticTabs({
                 onClick={() => onSelectCriticTab?.(idx)}
                 className={`text-xs font-mono px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-white/15 text-white border border-white/20 font-semibold shadow-sm'
-                    : 'bg-white/[0.04] text-slate-400 border border-white/[0.07] hover:bg-white/[0.08] hover:text-slate-200'
+                    ? 'bg-white text-slate-900 dark:bg-white/15 dark:text-white border border-slate-300/80 dark:border-white/20 font-bold shadow-xs'
+                    : 'bg-slate-100/80 text-slate-600 hover:text-slate-900 hover:bg-white dark:bg-white/[0.04] dark:text-slate-400 dark:border-white/[0.07] dark:hover:bg-white/[0.08] dark:hover:text-slate-200 border border-slate-200 shadow-xs'
                 }`}
               >
                 {tabLabel}
@@ -160,28 +160,28 @@ export function ComponentCriticTabs({
       {/* ── Execution Logs View ────────────────────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <h5 className="text-xs uppercase font-bold text-slate-400 tracking-wider flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+          <h5 className="text-xs uppercase font-bold text-slate-700 dark:text-slate-400 tracking-wider flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-700 dark:bg-white/80" />
             <span>Execution Logs</span>
           </h5>
           <span className="text-[11px] font-mono text-slate-500">
             {exec ? (exec.success ? 'passed (exit 0)' : 'failed (exit 1)') : 'sandbox runtime'}
           </span>
         </div>
-        <div className="rounded-2xl border border-white/[0.08] bg-slate-950/[0.3] backdrop-blur-md overflow-hidden shadow-inner">
-          <div className="px-4 py-2 bg-white/[0.03] border-b border-white/[0.06] flex items-center justify-between">
+        <div className="rounded-2xl border border-slate-200 dark:border-white/[0.08] bg-white dark:bg-slate-900/95 overflow-hidden shadow-xs dark:shadow-inner">
+          <div className="px-4 py-2 bg-slate-100 dark:bg-slate-950/60 border-b border-slate-200 dark:border-white/[0.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-white/20" />
-              <span className="w-2 h-2 rounded-full bg-white/10" />
-              <span className="w-2 h-2 rounded-full bg-white/10" />
-              <span className="font-mono text-xs text-slate-400 ml-1">sandbox.log</span>
+              <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-white/20" />
+              <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/10" />
+              <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-white/10" />
+              <span className="font-mono text-xs text-slate-600 dark:text-slate-400 ml-1">sandbox.log</span>
             </div>
           </div>
           <ModernScrollbar className="h-48 w-full">
             <div className="p-4">
               <pre
                 id={`exec-logs-${componentId}`}
-                className="text-xs font-mono text-slate-300 whitespace-pre-wrap leading-relaxed select-text"
+                className="text-xs font-mono text-slate-800 dark:text-slate-300 whitespace-pre-wrap leading-relaxed select-text"
               >
                 {isLoading
                   ? 'Executing sandbox tests in container...'
@@ -192,24 +192,23 @@ export function ComponentCriticTabs({
         </div>
       </div>
 
-      {/* ── Critic Severity Cards ───────────────────────────────────────────── */}
+      {/* ── Critic Severity Cards ───────────────────────────────────── */}
       <div>
-        <h5 className="text-xs uppercase font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-white/80" />
+        <h5 className="text-xs uppercase font-bold text-slate-700 dark:text-slate-400 mb-2 tracking-wider flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-700 dark:bg-white/80" />
           <span>Critic Reports</span>
         </h5>
 
-        <ModernScrollbar
+        <div
           id={`critic-cards-${componentId}`}
-          className="max-h-72 w-full pr-1"
-          viewportClassName="grid grid-cols-1 gap-3"
+          className="grid grid-cols-1 gap-3 w-full"
         >
           {entryError ? (
-            <div className="p-4 bg-rose-950/40 border border-rose-800/50 rounded-2xl text-rose-300 text-xs font-mono">
+            <div className="p-4 bg-rose-50 text-rose-800 border border-rose-300 dark:bg-rose-950/40 dark:border-rose-800/50 dark:text-rose-300 rounded-2xl text-xs font-mono">
               Error executing critics: {entryError}
             </div>
           ) : feedbacks.length === 0 ? (
-            <div className="p-5 bg-slate-950/[0.15] border border-white/[0.07] rounded-2xl text-slate-400 text-xs italic text-center">
+            <div className="p-5 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.07] rounded-2xl text-slate-600 dark:text-slate-400 text-xs italic text-center shadow-xs">
               {isLoading
                 ? 'Evaluating code against criteria...'
                 : 'No critic feedback available yet.'}
@@ -221,16 +220,16 @@ export function ComponentCriticTabs({
                 <div
                   key={i}
                   id={`critic-card-${componentId}-${i}`}
-                  className="bg-slate-950/[0.2] border border-white/[0.08] backdrop-blur-md rounded-2xl p-4 space-y-2.5 shadow-sm"
+                  className="bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/[0.08] rounded-2xl p-4 space-y-2.5 shadow-xs"
                 >
                   <div className="flex justify-between items-center gap-2">
-                    <span className="font-semibold text-slate-200 text-sm flex items-center gap-2">
+                    <span className="font-semibold text-slate-900 dark:text-slate-200 text-sm flex items-center gap-2">
                       {f.severity_score <= 2 ? (
-                        <CheckCircleIcon className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <CheckCircleIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       ) : f.severity_score <= 5 ? (
-                        <ExclamationTriangleIcon className="w-4 h-4 text-amber-400 shrink-0" />
+                        <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                       ) : (
-                        <XCircleIcon className="w-4 h-4 text-rose-400 shrink-0" />
+                        <XCircleIcon className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
                       )}
                       <span>{f.critic_name}</span>
                     </span>
@@ -242,15 +241,15 @@ export function ComponentCriticTabs({
                   </div>
 
                   {f.overall_comments && (
-                    <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans break-words whitespace-normal">
                       {f.overall_comments}
                     </p>
                   )}
 
                   {f.issues_list && f.issues_list.length > 0 && (
-                    <ul className="text-xs text-slate-400 list-disc list-inside space-y-1 font-mono pl-1">
+                    <ul className="text-xs text-slate-600 dark:text-slate-400 list-disc list-inside space-y-1.5 font-mono pl-1">
                       {f.issues_list.map((issue, idx) => (
-                        <li key={idx} className="truncate">
+                        <li key={idx} className="break-words whitespace-normal leading-relaxed">
                           {issue}
                         </li>
                       ))}
@@ -260,13 +259,13 @@ export function ComponentCriticTabs({
               );
             })
           )}
-        </ModernScrollbar>
+        </div>
       </div>
 
       {/* ── Master Adjudicator Decision Box ─────────────────────────────────── */}
       <div
         id={`verdict-box-${componentId}`}
-        className={`p-5 bg-slate-950/[0.25] backdrop-blur-md rounded-2xl border border-white/[0.08] mb-2 shadow-lg relative overflow-hidden transition-all duration-200 ${
+        className={`p-5 bg-white dark:bg-slate-900/95 rounded-2xl border border-slate-200 dark:border-white/[0.08] mb-2 shadow-xs dark:shadow-lg relative overflow-hidden transition-all duration-200 ${
           decision ? 'block' : 'hidden'
         }`}
       >
@@ -277,9 +276,9 @@ export function ComponentCriticTabs({
           className={`absolute top-0 left-0 w-1.5 h-full ${stripColor}`}
         />
 
-        <div className="flex justify-between items-center mb-3 border-b border-white/[0.07] pb-3 pl-2">
-          <span className="text-xs uppercase font-bold text-slate-300 tracking-wider flex items-center gap-2">
-            <ScaleIcon className="w-4 h-4 text-slate-200" />
+        <div className="flex justify-between items-center mb-3 border-b border-slate-200 dark:border-white/[0.07] pb-3 pl-2">
+          <span className="text-xs uppercase font-bold text-slate-700 dark:text-slate-300 tracking-wider flex items-center gap-2">
+            <ScaleIcon className="w-4 h-4 text-slate-700 dark:text-slate-200" />
             <span>Master Adjudicator</span>
           </span>
           <span
@@ -295,7 +294,7 @@ export function ComponentCriticTabs({
         <div
           id={`verdict-reasoning-${componentId}`}
           data-testid="verdict-reasoning"
-          className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed font-mono bg-slate-950/[0.2] p-3.5 rounded-xl border border-white/[0.07] ml-2"
+          className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed font-mono bg-slate-50 dark:bg-slate-950/80 p-3.5 rounded-xl border border-slate-200 dark:border-white/[0.07] ml-2"
         >
           {decision?.revision_plan || (isPass ? 'All criteria satisfied. Approved for integration.' : 'No revision plan provided.')}
         </div>

@@ -33,23 +33,31 @@ export const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
   const applyTheme = useCallback((dark: boolean) => {
     if (typeof document === 'undefined') return;
     const html = document.documentElement;
-    if (dark) {
+
+    try {
+      localStorage.setItem('autodev_dark_mode', dark ? '1' : '0');
+    } catch (e) {
+      console.warn('[DarkModeToggle] Failed to write to localStorage:', e);
+    }
+
+    const isPermanentDark =
+      document.getElementById('pageLanding') !== null ||
+      document.getElementById('pageSignIn') !== null ||
+      (typeof sessionStorage !== 'undefined' &&
+        (sessionStorage.getItem('autodev_current_page') === 'landing' ||
+         sessionStorage.getItem('autodev_current_page') === 'signup'));
+
+    if (isPermanentDark) {
       html.classList.add('dark');
       html.classList.remove('light');
-      try {
-        localStorage.setItem('autodev_dark_mode', '1');
-      } catch (e) {
-        console.warn('[DarkModeToggle] Failed to write to localStorage:', e);
-      }
+    } else if (dark) {
+      html.classList.add('dark');
+      html.classList.remove('light');
     } else {
       html.classList.remove('dark');
       html.classList.add('light');
-      try {
-        localStorage.setItem('autodev_dark_mode', '0');
-      } catch (e) {
-        console.warn('[DarkModeToggle] Failed to write to localStorage:', e);
-      }
     }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('autodev:theme-change', { detail: { isDark: dark } })

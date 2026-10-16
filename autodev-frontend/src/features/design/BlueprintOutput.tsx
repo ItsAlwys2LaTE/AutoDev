@@ -45,16 +45,12 @@ export function BlueprintOutput({
   const isSSR = typeof window === 'undefined';
   const liveStore = isSSR ? useAppStore.getState() : null;
 
-  const storeMode = useAppStore((s) => s.mode);
-  const storeGenerationMode = useAppStore((s) => s.generationMode || s.mode);
   const storeCurrentBlueprint = useAppStore((s) => s.currentBlueprint);
   const storeInFlightPhase = useAppStore((s) => s.inFlightPhase);
   const storePipelineStatus = useAppStore((s) => s.pipelineStatus);
   const storeIsPaused = useAppStore((s) => s.isPaused);
   const storeResumeEpoch = useAppStore((s) => s.resumeEpoch);
 
-  const mode = isSSR ? (liveStore?.mode ?? storeMode) : storeMode;
-  const generationMode = isSSR ? (liveStore?.generationMode ?? storeGenerationMode) : storeGenerationMode;
   const currentBlueprint = isSSR ? (liveStore?.currentBlueprint ?? storeCurrentBlueprint) : storeCurrentBlueprint;
   const inFlightPhase = isSSR ? (liveStore?.inFlightPhase ?? storeInFlightPhase) : storeInFlightPhase;
   const pipelineStatus = isSSR ? (liveStore?.pipelineStatus ?? storePipelineStatus) : storePipelineStatus;
@@ -76,7 +72,6 @@ export function BlueprintOutput({
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const isQuickMode = generationMode === 'QUICK' || mode === 'QUICK';
   const contentRef = useRef<HTMLDivElement>(null);
   const hasAutoAdvancedRef = useRef<boolean>(false);
 
@@ -141,20 +136,17 @@ export function BlueprintOutput({
     try {
       let activeBp: SystemDesignBlueprint | null = currentBlueprint;
 
-      // In COMPLEX mode, re-parse edited text if user modified it
-      if (!isQuickMode) {
-        const textToParse = contentRef.current?.innerText || displayText;
-        if (textToParse.trim()) {
-          try {
-            const parsedBp = await parseMutation.mutateAsync(textToParse);
-            if (parsedBp && parsedBp.files) {
-              activeBp = parsedBp;
-              setBlueprint(parsedBp);
-              persistState(false);
-            }
-          } catch (parseErr: any) {
-            console.warn('[BlueprintOutput] Could not parse rich text, using existing blueprint:', parseErr);
+      const textToParse = contentRef.current?.innerText || displayText;
+      if (textToParse.trim() && textToParse.trim() !== displayText.trim()) {
+        try {
+          const parsedBp = await parseMutation.mutateAsync(textToParse);
+          if (parsedBp && parsedBp.files) {
+            activeBp = parsedBp;
+            setBlueprint(parsedBp);
+            persistState(false);
           }
+        } catch (parseErr: any) {
+          console.warn('[BlueprintOutput] Could not parse rich text, using existing blueprint:', parseErr);
         }
       }
 
@@ -199,7 +191,6 @@ export function BlueprintOutput({
   }
 
   const isCountdownActive =
-    !isQuickMode &&
     countdown.isRunning &&
     countdown.targetAction === 'codegen' &&
     countdown.remainingSeconds > 0;
@@ -234,21 +225,21 @@ export function BlueprintOutput({
         <div className="flex flex-wrap items-center gap-2">
           {/* Segmented View Mode Toggle */}
           {currentBlueprint && (
-            <div className="relative flex items-center p-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm">
+            <div className="relative flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-sm">
               <motion.button
                 type="button"
                 onClick={() => setViewMode('structured')}
                 whileTap={{ scale: 0.95 }}
                 className={`relative px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                   viewMode === 'structured'
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-slate-900 dark:text-white font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {viewMode === 'structured' && (
                   <motion.div
                     layoutId="blueprintViewModeGlider"
-                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                    className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                     transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                   />
                 )}
@@ -260,14 +251,14 @@ export function BlueprintOutput({
                 whileTap={{ scale: 0.95 }}
                 className={`relative px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                   viewMode === 'editor'
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'text-slate-900 dark:text-white font-semibold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 {viewMode === 'editor' && (
                   <motion.div
                     layoutId="blueprintViewModeGlider"
-                    className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                    className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                     transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                   />
                 )}

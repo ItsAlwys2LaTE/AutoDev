@@ -205,6 +205,7 @@ export interface AppStoreState {
   currentStage: number;
   maxUnlockedStage: number;
   minNavigableStage: number;
+  completedAutoAdvanceStages: Record<string, boolean>;
 
   // --- Persistent Session Tracking (Phase 9 / MongoDB) ---
   currentSessionId: string | null;
@@ -221,6 +222,10 @@ export interface AppStoreActions {
   setMaxUnlockedStage: (stage: number) => void;
   setMinNavigableStage: (stage: number) => void;
   unlockStage: (stage: number) => void;
+  markAutoAdvanceCompleted: (stageKey: string) => void;
+  isAutoAdvanceCompleted: (stageKey: string) => boolean;
+  resetAutoAdvanceStage: (stageKey: string) => void;
+  resetAllAutoAdvanceStages: () => void;
 
   // Mode & Configuration
   setMode: (mode: AppMode) => void;
@@ -408,9 +413,9 @@ export const initialStepperStates: StepperStateMap = {
 
 export const initialAppStoreState: AppStoreState = {
   // Pipeline Lifecycle & Mode
-  mode: 'QUICK',
-  currentMode: 'QUICK',
-  generationMode: 'QUICK',
+  mode: 'STANDARD',
+  currentMode: 'STANDARD',
+  generationMode: 'STANDARD',
   featureRequest: '',
   pipelineStatus: 'idle',
   inFlightPhase: null,
@@ -539,6 +544,7 @@ export const initialAppStoreState: AppStoreState = {
   currentStage: 1,
   maxUnlockedStage: 1,
   minNavigableStage: 1,
+  completedAutoAdvanceStages: {},
 
   // Persistent Session Tracking (Phase 9 / MongoDB)
   currentSessionId: null,
@@ -642,6 +648,37 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       maxUnlockedStage: Math.max(s.maxUnlockedStage, stage),
     })),
 
+  markAutoAdvanceCompleted: (stageKey: string) => {
+    if (!stageKey) return;
+    set((s) => {
+      if (s.completedAutoAdvanceStages[stageKey]) return s;
+      return {
+        completedAutoAdvanceStages: {
+          ...s.completedAutoAdvanceStages,
+          [stageKey]: true,
+        },
+      };
+    });
+  },
+
+  isAutoAdvanceCompleted: (stageKey: string) => {
+    if (!stageKey) return false;
+    return Boolean(get().completedAutoAdvanceStages[stageKey]);
+  },
+
+  resetAutoAdvanceStage: (stageKey: string) => {
+    if (!stageKey) return;
+    set((s) => {
+      const next = { ...s.completedAutoAdvanceStages };
+      delete next[stageKey];
+      return { completedAutoAdvanceStages: next };
+    });
+  },
+
+  resetAllAutoAdvanceStages: () => {
+    set({ completedAutoAdvanceStages: {} });
+  },
+
   // --- Mode & Configuration ---
   setMode: (mode: AppMode) => {
     if (get().pipelineActive) return; // Prevent mid-flight mode modification
@@ -702,6 +739,11 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
     return set((state) => ({
       pipelineStatus: status,
+      pipelineActive: status === 'completed' ? false : (status === 'running' ? true : state.pipelineActive),
+      isPaused: status === 'completed' ? false : state.isPaused,
+      isPauseRequested: status === 'completed' ? false : state.isPauseRequested,
+      pausedAtPhase: status === 'completed' ? null : state.pausedAtPhase,
+      pausedAt: status === 'completed' ? null : state.pausedAt,
       // Latch: once completed, the Post-Completion Control Plane is permanently visible.
       // This flag never goes back to false except via requestNewProduct() full reset.
       postCompletionVisible:
@@ -762,8 +804,14 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     }),
 
   showRestorationBanner: (phase: InFlightPhase, message?: string) => {
-    const label = formatPhaseLabel(phase);
+    const label = phase ? formatPhaseLabel(phase) : '';
     const bannerMessage = message || `Restored previous development session. Resuming ${label}...`;
+    const shortTitle = label ? `Development Restored: ${label}` : 'Development Restored';
+    const shortMessage = label ? `Resuming ${label}.` : 'Development restored.';
+
+    // Dispatch short toast notification matching system notification standards
+    useSessionStore.getState().showInfoToast(shortMessage, shortTitle);
+
     set({
       restorationBanner: {
         visible: true,
@@ -1853,6 +1901,38 @@ export const useAppStore = create<AppStore>()((set, get) => ({
     }
     patch.stepperStates = currentSteppers;
 
+    // Reset auto-advance completed flags for invalidated downstream stages
+    const nextCompletedStages = { ...get().completedAutoAdvanceStages };
+    if (fromPhase === 'requirements') {
+      delete nextCompletedStages['stage-3-requirements'];
+      delete nextCompletedStages['stage-4-decomposition'];
+      delete nextCompletedStages['stage-5-pipeline'];
+      delete nextCompletedStages['stage-6-integration'];
+      delete nextCompletedStages['stage-7-final-code'];
+      delete nextCompletedStages['stage-8-live-preview'];
+    } else if (fromPhase === 'decomposition' || fromPhase === 'single_design') {
+      delete nextCompletedStages['stage-4-decomposition'];
+      delete nextCompletedStages['stage-5-pipeline'];
+      delete nextCompletedStages['stage-6-integration'];
+      delete nextCompletedStages['stage-7-final-code'];
+      delete nextCompletedStages['stage-8-live-preview'];
+    } else if (
+      fromPhase === 'component_dag' ||
+      fromPhase === 'single_codegen' ||
+      fromPhase === 'single_execution' ||
+      fromPhase === 'single_critics'
+    ) {
+      delete nextCompletedStages['stage-5-pipeline'];
+      delete nextCompletedStages['stage-6-integration'];
+      delete nextCompletedStages['stage-7-final-code'];
+      delete nextCompletedStages['stage-8-live-preview'];
+    } else if (fromPhase === 'integration') {
+      delete nextCompletedStages['stage-6-integration'];
+      delete nextCompletedStages['stage-7-final-code'];
+      delete nextCompletedStages['stage-8-live-preview'];
+    }
+    patch.completedAutoAdvanceStages = nextCompletedStages;
+
     // Apply patch directly to the store
     set(patch);
     return patch;
@@ -1871,7 +1951,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
           const session = await sessionApi.createSession({
             project_name: currentStore.featureRequest?.slice(0, 100) || 'Untitled',
             feature_request: currentStore.featureRequest || '',
-            mode: currentStore.generationMode || 'QUICK',
+            mode: currentStore.generationMode || 'STANDARD',
           });
           set({ currentSessionId: session.id });
         }
@@ -2293,6 +2373,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       integrationActiveCriticIndex: s.integrationActiveCriticIndex,
       isPreviewOpen: s.isPreviewOpen,
       isPaused: s.isPaused,
+      isPauseRequested: s.isPauseRequested,
       pausedAtPhase: s.pausedAtPhase,
       pausedAt: s.pausedAt,
       inspectingPhase: s.inspectingPhase,
@@ -2307,11 +2388,12 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       productEnquiryAnswers: s.productEnquiryAnswers,
       productEnquiryAdditionalNotes: s.productEnquiryAdditionalNotes,
       terminalLogs: s.terminalLogs || [],
+      completedAutoAdvanceStages: s.completedAutoAdvanceStages || {},
     };
   },
 
   loadSnapshot: (snapshot: Partial<AutoDevStateV1>) => {
-    const mode = snapshot.currentMode || 'QUICK';
+    const mode = snapshot.currentMode || 'STANDARD';
     const codebase =
       snapshot.integratedCodebase ||
       snapshot.singlePassCode ||
@@ -2441,16 +2523,31 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       stepperStates: derivedStates,
       restorationBanner,
       
-      isPaused: Boolean(snapshot.isPaused),
-      pausedAtPhase: snapshot.pausedAtPhase || null,
-      pausedAt: snapshot.pausedAt || null,
-      inspectingPhase: snapshot.inspectingPhase || null,
-      pauseSnapshot: snapshot.pauseSnapshot !== undefined ? snapshot.pauseSnapshot : null,
-      pauseRevisionIndex: snapshot.pauseRevisionIndex !== undefined ? snapshot.pauseRevisionIndex : -1,
+      isPaused: (snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible))
+        ? false
+        : Boolean(snapshot.isPaused),
+      isPauseRequested: (snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible))
+        ? false
+        : Boolean(snapshot.isPauseRequested),
+      pausedAtPhase: (snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible))
+        ? null
+        : (snapshot.pausedAtPhase || null),
+      pausedAt: (snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible))
+        ? null
+        : (snapshot.pausedAt || null),
+      inspectingPhase: (snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible))
+        ? null
+        : (snapshot.inspectingPhase || null),
+      pauseSnapshot: (snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible))
+        ? null
+        : (snapshot.pauseSnapshot !== undefined ? snapshot.pauseSnapshot : null),
+      pauseRevisionIndex: (snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible))
+        ? -1
+        : (snapshot.pauseRevisionIndex !== undefined ? snapshot.pauseRevisionIndex : -1),
       resumeEpoch: snapshot.resumeEpoch || 0,
       
       // Restore latch: if pipeline was completed, the panel must remain visible after page reload.
-      postCompletionVisible: snapshot.pipelineStatus === 'completed',
+      postCompletionVisible: snapshot.pipelineStatus === 'completed' || Boolean((snapshot as any).postCompletionVisible),
 
       // Restore timeline metrics if present in snapshot
       timelineMetrics: snapshot.timelineMetrics || {
@@ -2468,6 +2565,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       productEnquiryAnswers: snapshot.productEnquiryAnswers || [],
       productEnquiryAdditionalNotes: snapshot.productEnquiryAdditionalNotes || '',
       terminalLogs: Array.isArray(snapshot.terminalLogs) ? snapshot.terminalLogs : [],
+      completedAutoAdvanceStages: snapshot.completedAutoAdvanceStages || {},
     });
   },
 }));

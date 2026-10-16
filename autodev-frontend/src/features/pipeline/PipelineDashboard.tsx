@@ -45,6 +45,8 @@ export interface PipelineDashboardProps {
   renderTrack?: (component: ComponentSpec) => ReactNode;
   /** Milestone 3 slot: render the complete IntegrationPhase component */
   renderIntegration?: () => ReactNode;
+  /** Whether to show the integration section below tracks (default: true) */
+  showIntegration?: boolean;
 }
 
 export function PipelineDashboard({
@@ -56,6 +58,7 @@ export function PipelineDashboard({
   onIntegrate,
   renderTrack,
   renderIntegration,
+  showIntegration = true,
 }: PipelineDashboardProps) {
   // Support both SSR (useAppStore.getState() in Node / renderToString) and client reactivity (useAppStore hook)
   const isSSR = typeof window === 'undefined';
@@ -111,8 +114,9 @@ export function PipelineDashboard({
     <div
       id="pipelineDashboard"
       style={{ backdropFilter: 'blur(14px)' }}
-      className={`rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 space-y-5 fade-in ${className}`}
+      className={`rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] p-6 space-y-5 fade-in ${className}`}
     >
+
       {/* ── Hidden Test Contracts (Zero layout impact) ──────────────────────── */}
       <div className="sr-only pointer-events-none opacity-0 h-0 overflow-hidden" aria-hidden="true">
         <span id="pipelineProgress">{`${passedCount} / ${totalCount} components complete`}</span>
@@ -122,12 +126,12 @@ export function PipelineDashboard({
       </div>
 
       {/* ── Top Header & Status Indicators (matching visualizer layout) ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/[0.06] pb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/[0.06] pb-4">
         <div>
-          <h3 className="text-sm md:text-base font-semibold text-white tracking-wide">
+          <h3 className="text-sm md:text-base font-semibold text-slate-900 dark:text-white tracking-wide">
             COMPONENT-WISE WORKSPACE
           </h3>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
             Component specifications, code synthesis, container execution, and critic evaluations.
           </p>
         </div>
@@ -136,25 +140,25 @@ export function PipelineDashboard({
         <div className="flex items-center gap-2 flex-wrap">
           {/* Live / Paused / Completed pill */}
           {isPaused ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs font-medium text-amber-300">
-              <PauseIcon className="w-3.5 h-3.5 text-amber-300" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-500/30 text-xs font-medium text-amber-800 dark:text-amber-300">
+              <PauseIcon className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
               <span>PAUSED</span>
             </div>
           ) : allPassed ? (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-medium text-emerald-300">
-              <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-300" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/30 text-xs font-medium text-emerald-800 dark:text-emerald-300">
+              <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-300" />
               <span>COMPLETED</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-500/15 border border-sky-500/30 text-xs font-medium text-sky-300">
-              <PlayIcon className="w-3.5 h-3.5 text-sky-300 animate-pulse" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-100 dark:bg-sky-500/15 border border-sky-300 dark:border-sky-500/30 text-xs font-medium text-sky-800 dark:text-sky-300">
+              <PlayIcon className="w-3.5 h-3.5 text-sky-700 dark:text-sky-300 animate-pulse" />
               <span>LIVE</span>
             </div>
           )}
 
           {/* Components Completed x/y pill */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-xs font-mono text-slate-300">
-            <CheckCircleIcon className="w-3.5 h-3.5 text-slate-400" />
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-white/[0.04] border border-slate-300 dark:border-white/[0.08] text-xs font-mono text-slate-700 dark:text-slate-300">
+            <CheckCircleIcon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
             <span>{`Completed: ${passedCount}/${totalCount}`}</span>
           </div>
         </div>
@@ -175,7 +179,7 @@ export function PipelineDashboard({
               <div
                 key={cId}
                 id={`workspace-${cId}`}
-                className={`w-full ${isSelected ? 'block border-cyan-500/60 ring-2 ring-cyan-500/20' : 'hidden'}`}
+                className={`w-full ${isSelected ? 'block' : 'hidden'}`}
               >
                 {renderTrack(component)}
               </div>
@@ -186,8 +190,7 @@ export function PipelineDashboard({
           return (
             <div
               key={cId}
-              id={`workspace-${cId}`}
-              className={`w-full ${isSelected ? 'block border-cyan-500/60 ring-2 ring-cyan-500/20' : 'hidden'}`}
+              className={`w-full ${isSelected ? 'block' : 'hidden'}`}
             >
               <ComponentTrack
                 key={cId}
@@ -200,25 +203,27 @@ export function PipelineDashboard({
       </div>
 
       {/* ── Integration Section ─────────────────────────────────────────────── */}
-      <div
-        id="integrationSection"
-        className={`border-t border-slate-700/80 pt-6 mt-6 transition-all duration-300 ${
-          allPassed ? 'block' : 'hidden'
-        }`}
-      >
-        {renderIntegration ? (
-          renderIntegration()
-        ) : (
-          <IntegrationPhase
-            allPassed={allPassed}
-            renderWithoutContainer
-            onIntegrationStart={onIntegrate}
-            onIntegrationComplete={() => {
-              if (onIntegrate) onIntegrate();
-            }}
-          />
-        )}
-      </div>
+      {showIntegration && (
+        <div
+          id="integrationSection"
+          className={`border-t border-slate-700/80 pt-6 mt-6 transition-all duration-300 ${
+            allPassed ? 'block' : 'hidden'
+          }`}
+        >
+          {renderIntegration ? (
+            renderIntegration()
+          ) : (
+            <IntegrationPhase
+              allPassed={allPassed}
+              renderWithoutContainer
+              onIntegrationStart={onIntegrate}
+              onIntegrationComplete={() => {
+                if (onIntegrate) onIntegrate();
+              }}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

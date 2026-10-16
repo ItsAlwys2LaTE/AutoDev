@@ -149,7 +149,7 @@ export function FeatureRequestInput({
       });
 
       try {
-        const activeMode = generationMode || mode || 'QUICK';
+        const activeMode = generationMode || mode || 'STANDARD';
         const setJsonRetryState = useAppStore.getState().setJsonRetryState;
         const parsed = await withJsonRetry(
           async (opts) => {
@@ -309,7 +309,7 @@ export function FeatureRequestInput({
 
       const classification = await classifyIntent({
         prompt: trimmedInput,
-        mode: generationMode || mode || 'QUICK',
+        mode: generationMode || mode || 'STANDARD',
         context,
       });
 
@@ -398,7 +398,7 @@ export function FeatureRequestInput({
 
       const classification = await classifyIntent({
         prompt: clarificationState.originalPrompt,
-        mode: generationMode || mode || 'QUICK',
+        mode: generationMode || mode || 'STANDARD',
         context,
       });
 
@@ -697,7 +697,7 @@ export function FeatureRequestInput({
                 type="button"
                 id="dismissDirectAnswerBtn"
                 onClick={handleDismissDirectAnswer}
-                className="font-medium text-xs py-2 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-colors cursor-pointer active:scale-[0.99] shadow-sm"
+                className="font-medium text-xs py-2 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border-white/20 transition-colors cursor-pointer active:scale-[0.99] shadow-sm"
               >
                 Got it, let me rephrase
               </button>
@@ -713,7 +713,7 @@ export function FeatureRequestInput({
                   persistState(true);
                   executeRequirementsGeneration(prompt);
                 }}
-                className="font-medium text-xs py-2 px-4 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.08] transition-colors cursor-pointer active:scale-[0.99]"
+                className="font-medium text-xs py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:text-slate-200 dark:border-white/[0.08] transition-colors cursor-pointer active:scale-[0.99]"
               >
                 Build it anyway
               </button>

@@ -88,11 +88,12 @@ export interface AdjudicationEvaluationResult {
  */
 export function evaluateAdjudicationDecision(
   decision: AdjudicatorDecision | null | undefined,
-  mode: AppMode = 'QUICK',
+  mode: AppMode = 'STANDARD',
   currentRevisionCount: number = 0,
   fallbackDynamicBudget?: number | null
 ): AdjudicationEvaluationResult {
   const isQuickMode = mode === 'QUICK';
+  const isComplexMode = mode === 'COMPLEX';
   // Standard in pipeline phase is 3 revisions
   const defaultRevs = (decision?.dynamic_budget ?? null) ? decision!.dynamic_budget! : 3;
 
@@ -111,7 +112,7 @@ export function evaluateAdjudicationDecision(
   const isLoopFinished = isPassed || isRevisionsExhausted || (!isQuickMode && rawVerdict === 'error');
 
   const isForcedQuickMode = isQuickMode && isLoopFinished && !isPassed;
-  const isMaxRevisions = !isQuickMode && isLoopFinished && !isPassed && isRevisionsExhausted;
+  const isMaxRevisions = isLoopFinished && !isPassed && isRevisionsExhausted && !isQuickMode;
 
   const shouldRetry = !isLoopFinished && !isEarlyStop && (
     (isQuickMode && !isPassed) ||
@@ -143,8 +144,12 @@ export function evaluateAdjudicationDecision(
     verdictStatus = 'error';
   }
 
+  // In COMPLEX mode, max revisions does not pass.
+  // In STANDARD and QUICK modes, reaching budget ceiling allows progressing.
+  const effectivePassed = isPassed || isForcedQuickMode || (!isComplexMode && isMaxRevisions);
+
   return {
-    isPassed: isPassed || isForcedQuickMode,
+    isPassed: effectivePassed,
     isEarlyStop,
     isForcedQuickMode,
     isMaxRevisions,

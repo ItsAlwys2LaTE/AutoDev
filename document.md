@@ -128,6 +128,9 @@
    - 9.11 [Session History and Project Storage (MongoDB schema, ZIP download, stats)](#section-911-session-history-and-project-storage-mongodb-schema-zip-download-stats)
    - 9.12 [Auth Store and Token Persistence Strategy](#section-912-auth-store-and-token-persistence-strategy)
    - 9.13 [Backward Compatibility and Unauthenticated Fallback](#section-913-backward-compatibility-and-unauthenticated-fallback)
+   - 9.28 [System Standard Mode Unification & Complete Dual-Mode Deprecation](#928-system-standard-mode-unification--complete-dual-mode-deprecation)
+   - 9.29 [Dynamic Alex Brush Favicon with Pulsing Development Status Light](#section-929-dynamic-alex-brush-favicon-with-pulsing-development-status-light)
+   - 9.30 [Completed Product Status & Monotonic Development Progress Across Refresh and Stage Navigation](#section-930-completed-product-status--monotonic-development-progress-across-refresh-and-stage-navigation)
 
 ---
 
@@ -8089,5 +8092,762 @@ AutoDev utilizes MongoDB Atlas as its persistent asynchronous document storage e
    - If the client fails to contact the authentication server, `StageSignIn.tsx` gracefully permits developer pass-through into the workspace.
    - No database dropout or network interruption can stall or block software generation.
 
+---
 
+### Section 9.14: Authentication Hardening, Brevo Email Delivery & Google OAuth Resolution
+
+#### 1. Google Identity Services (GIS) Infrastructure Repair
+- **Root Cause Resolution**:
+  - `autodev-frontend/index.html` contained an unclosed inline `<script>` tag before the Google Identity Services `<script src="https://accounts.google.com/gsi/client">` tag, causing the browser parser to treat the GIS script tag as broken JavaScript code. The unclosed script tag was closed cleanly.
+  - In Vite production mode, `import.meta.env.VITE_GOOGLE_CLIENT_ID` is inlined at build time. Added `/api/auth/config` to dynamically serve the server's configured `GOOGLE_CLIENT_ID` so the client receives the active credentials even if built prior to environment configuration.
+  - Google Client ID `369208512576-1ak0840k372mpdnipkuj232v7bhqkb4u.apps.googleusercontent.com` was recompiled and baked into the production distribution in `backend/dist`.
+- **Interactive Popup & Dual Verification Architecture**:
+  - Replaced passive One Tap prompt (`prompt()`) with the official Google Identity Services OAuth2 Token Client (`google.accounts.oauth2.initTokenClient`), which reliably triggers an interactive authentication popup directly upon user click.
+  - Enhanced backend `google_auth` endpoint (`/api/auth/google`) with multi-strategy token verification:
+    1. Primary: OIDC ID token verification using `google.oauth2.id_token.verify_oauth2_token`.
+    2. Fallback: Google OAuth2 userinfo endpoint verification (`https://www.googleapis.com/oauth2/v3/userinfo`) for access tokens.
+    3. Auxiliary: Google tokeninfo verification (`https://oauth2.googleapis.com/tokeninfo`).
+
+#### 2. Brevo Transactional Email & OTP System Hardening
+- **Verified Sender Address Alignment**:
+  - Aligned `BREVO_SENDER_EMAIL` in `backend/.env` with the verified sender registered in Brevo (`anupamsharma12102004@gmail.com`). Brevo strictly validates sender signatures against active registered senders.
+- **Dynamic Configuration Resolution**:
+  - Refactored `backend/email_service.py` to use dynamic `get_brevo_config()`, ensuring changes to `.env` (such as API key or sender email) are immediately effective without requiring process restarts.
+  - Implemented guaranteed server terminal console logging (`[AutoDev OTP] Verification code for <email> (<purpose>): <code>`) across both production and development modes to ensure developers and local administrators are never blocked by external delivery latency.
+- **Duplicate Dispatch Elimination & Unverified User Recovery**:
+  - Eliminated redundant `sendOtp` call from `handleSignUpSubmit` in `StageSignIn.tsx` that previously caused a race condition where two consecutive OTP codes were generated and sent.
+  - Added unverified user recovery in `backend/auth_routes.py` `/signup`: if a user exists in MongoDB with `email_verified: False`, AutoDev updates their credentials, generates a fresh OTP, and proceeds with verification rather than locking the user out with an error.
+  - Added automatic OTP dispatch upon sign-in if an existing account has not yet completed email verification.
+---
+
+### Section 9.15: Error Normalization Layer and Google OAuth Origin Mismatch Resolution
+
+#### 1. Universal Error Extraction & Normalization (`formatErrorDetail` & `extractErrorMessage`)
+- **Problem Statement**:
+  - When submitting requests that resulted in validation errors or server-side exceptions (such as registering an email that already had an account), the user interface displayed the raw JavaScript string conversion `"Object [object]"` or `"[object Object]"` instead of the actual human-readable error message.
+  - Root causes identified across `client.ts` and `authStore.ts`:
+    1. FastAPI/Pydantic returns HTTP 422 validation errors with `detail` as a list of dictionaries (e.g., `[{"loc": ["body", "email"], "msg": "value is not a valid email address", "type": "value_error"}]`).
+    2. In `client.ts`, string interpolation ``${response.status}: ${detail}`` implicitly converted non-string objects to `[object Object]`.
+    3. In `authStore.ts`, error handlers executed `new Error(err?.body?.detail || err?.message)`. When `detail` was an object or array, `new Error({}).message` converted to `"[object Object]"`.
+- **Architectural Solution**:
+  - Implemented `formatErrorDetail(detail: any): string` in `autodev-frontend/src/api/client.ts`:
+    - Recursively processes arrays of Pydantic validation records, mapping `loc` paths and `msg` values into clean sentence-case summaries.
+    - Resolves nested objects (e.g., `{ message: "..." }` or `{ error: "..." }`).
+    - Strips all literal occurrences of `[object Object]` or `Object [object]` from rendered strings.
+  - Implemented `extractErrorMessage(error: unknown, fallback?: string): string`:
+    - Normalizes error instances across `ApiError`, native `Error`, Axios/Fetch responses, and string literals.
+    - Integrated across all asynchronous mutations in `authStore.ts` and `StageSignIn.tsx`.
+  - Refined backend error messages in `backend/auth_routes.py`:
+    - Duplicate email registrations now explicitly return: `"Email address is already registered. Please sign in instead."`
+    - Reordered username uniqueness checks to run before modifying unverified user records.
+
+#### 2. Google OAuth 2.0 Origin Mismatch Resolution (`Error 400: origin_mismatch`)
+- **Problem Statement**:
+  - Users clicking "Sign in with Google" encountered Google OAuth `Error 400: origin_mismatch`:
+    *"You can't sign in to this app because it doesn't comply with Google's OAuth 2.0 policy. If you're the app developer, register the JavaScript origin in the Google Cloud Console."*
+  - Google OAuth 2.0 strictly validates the exact protocol, domain, and port from which the authentication popup originates against the list of **Authorized JavaScript origins** registered on the Google Cloud Console client ID.
+  - In local development and production testing, accessing the application via `http://localhost:8000` or `http://127.0.0.1:8000` triggered an immediate mismatch if only `http://localhost:5173` or port-less domains were authorized.
+- **Architectural Solution**:
+  - Configured FastAPI CORS middleware in `backend/main.py` to permit local backend origins `http://localhost:8000` and `http://127.0.0.1:8000`.
+  - Enhanced error and callback handling in `autodev-frontend/src/features/stages/StageSignIn.tsx`:
+    - In `handleGoogleSignIn`, dynamically captures active `window.location.origin`.
+    - If Google Identity Services emits `origin_mismatch`, the application displays an actionable notice identifying the exact active origin that must be registered in the Google Cloud Console credentials.
+  - Configured Authorized JavaScript Origins and Redirect URIs in Google Cloud Console:
+    - Authorized JavaScript origins: `http://localhost:8000`, `http://127.0.0.1:8000`, `http://localhost:5173`, `http://127.0.0.1:5173`.
+---
+
+### Section 9.16: Authentication Shell Header Elimination and Dark Theme Permanence
+
+#### 1. Header Removal on Login and Sign-Up Screen
+- **Design Objective**:
+  - Provide a focused, distraction-free authentication experience by eliminating redundant top navigation bars on the login/signup route (`currentPage === 'signup'`).
+- **Implementation (`autodev-frontend/src/App.tsx`)**:
+  - Removed the `<header>` element containing the cursive brand mark and `signInBackToHomeBtn` button from `#pageSignIn`.
+  - Re-anchored `#pageSignIn` with `flex flex-col items-center justify-center py-8 px-4 relative z-20`, centering the split-screen `StageSignIn` card vertically and horizontally across all viewport dimensions.
+  - The inner `StageSignIn` component preserves its self-contained branding column, testimonial carousel, and in-form mode transitions (`signIn` <-> `signUp` <-> `otpVerify` <-> `forgotPassword`).
+
+#### 2. Dark Theme Permanence and System Theme Decoupling
+- **Design Objective**:
+  - Guarantee that the login and sign-up page remains exclusively in modern obsidian dark mode, completely isolated from any light theme selection configured in the main development system or user profile.
+- **Implementation (`autodev-frontend/src/App.tsx`)**:
+  - Introduced `isPermanentlyDarkPage = currentPage === 'landing' || currentPage === 'signup'`.
+  - Derived `effectiveIsDark = isPermanentlyDarkPage ? true : isDark`.
+  - Bound the DOM `document.documentElement` class synchronizer directly to `effectiveIsDark`:
+    - When navigating to `landing` or `signup`, `html.classList.add('dark')` and `html.classList.remove('light')` are applied immediately.
+    - Outer container assigns `bg-black text-slate-100` and renders the React Bits `LightRays` WebGPU canvas layer on deep black.
+    - When transitioning to the main system (`main`) or profile workspace (`profile`), the application seamlessly restores the user's active `isDark` preference without state leakage or visual jarring.
+
+---
+
+### Section 9.17: Resolution of React Error #310 (Hook Order Invariant Violation in PauseModifyFAB)
+
+#### 1. Problem Statement & Telemetry
+- **Runtime Exception**:
+  ```
+  [AutoDev Global Error Handler] Unhandled script error: Error: Minified React error #310
+  visit https://react.dev/errors/310 for the full message: "Rendered more hooks than during the previous render."
+      at PauseModifyFAB (autodev-frontend/src/components/PauseModifyFAB.tsx)
+  ```
+- **Root Cause Analysis**:
+  - React mandates that the exact same order and total count of hooks (`useState`, `useEffect`, `useCallback`, `useAppStore` selectors) execute on every component render.
+  - In `PauseModifyFAB.tsx`, the store subscription `const storePostCompletionVisible = useAppStore((s) => s.postCompletionVisible)` was declared after an early conditional exit:
+    ```tsx
+    const effStage = currentStage !== undefined ? currentStage : 2;
+    if (effStage < 2) {
+      return null;
+    }
+    const storePostCompletionVisible = useAppStore((s) => s.postCompletionVisible);
+    ```
+  - During Stage 1 (or during initial landing/authentication state when `effStage < 2`), `PauseModifyFAB` returned early after calling 14 hooks.
+  - When the user submitted a prompt or the pipeline advanced to Stage 2 (`effStage >= 2`), `PauseModifyFAB` bypassed the early return and executed hook #15 (`useAppStore` selector).
+  - React detected a mismatch between the hook count of the previous render (14) and the current render (15), immediately throwing Minified React Error #310 and terminating the render pass.
+
+#### 2. Architectural Resolution
+- **Hook Hoisting**:
+  - Moved `storePostCompletionVisible` and `postCompletionVisible` to the top-level declaration block alongside all other Zustand selectors and `useState(false)`.
+  - All 15 hooks are now guaranteed to execute unconditionally in strict deterministic order on every single render pass.
+  - Stage and lifecycle exit conditions (`effStage < 2`, `postCompletionVisible`, and inactive pipeline guards) are evaluated exclusively after all hook registrations are complete.
+- **Verification**:
+  - All 42 Vitest test suites (659 passing tests) completed cleanly.
+  - Verified bundle `backend/dist/assets/index-bXms3F4Z.js` compiles all hooks before the conditional guard `if((t!==void 0?t:2)<2||D||...)return null;`.
+
+---
+
+### Section 9.18: Decoupling of Integration Phase from Component Pipeline Dashboard and Dedicated Stage 6 Execution Isolation
+
+#### 1. Problem Statement & Root Cause
+- **Issue**:
+  - In the Component Pipeline Dashboard (Stage 5), after all components in the DAG queue finished development (`allPassed === true`), the application rendered the entire integration workspace (`IntegrationPhase`: Monaco code editor, test execution logs, and multi-critic evaluations) directly beneath the final component track inside `#integrationSection`.
+  - This premature inline rendering cluttered the Stage 5 dashboard and bypassed the intended progressive disclosure of AutoDev's 12-stage stepper architecture, where Stage 6 (Integration Agent) is the dedicated surface for multi-component synthesis and arbitration.
+  - Root causes identified across `PipelineDashboard.tsx`, `StageComponentPipeline.tsx`, and `StageIntegration.tsx`:
+    1. In `PipelineDashboard.tsx`, `#integrationSection` was conditionally rendered whenever `allPassed` was true without an external suppression control flag.
+    2. In `StageComponentPipeline.tsx`, `<PipelineDashboard>` was mounted without suppressing the inline integration section.
+    3. In `StageIntegration.tsx`, the component passively observed Zustand store values (`storeIntegratedCodebase`, `storeExecutionResult`) but did not instantiate `useIntegrationRunner().runIntegration()`. If `<IntegrationPhase>` was omitted from Stage 5, Stage 6 had no mechanism to trigger codebase unification.
+
+#### 2. Architectural Resolution
+- **PipelineDashboard Prop Parameterization (`showIntegration`)**:
+  - Added `showIntegration?: boolean` to `PipelineDashboardProps`, defaulting to `true` to ensure full backward-compatibility with existing unit tests (`m3_integration_phase.test.ts`, `pipeline_assembly_line.test.tsx`).
+  - Wrapped `#integrationSection` in `{showIntegration && ( ... )}` so parent views can suppress inline integration at will.
+- **StageComponentPipeline Enhancement**:
+  - Configured `<PipelineDashboard alwaysRender={true} showIntegration={false} onIntegrate={() => onAdvance(6)} />` inside Stage 5, cleanly isolating component tracks from integration UI.
+  - Added a dedicated completion banner (`#pipelineCompletionBanner`) that renders when `allPassed` is true, providing clear feedback that all components have completed and offering an immediate manual advance button (`#proceedToIntegrationStageBtn` with text `"Advance to Stage 6"`).
+  - Shortened `durationMs` in `usePausableAutoAdvance` from 10,000ms to 2,500ms, ensuring a snappy transition while allowing developers time to inspect the completion status.
+- **StageIntegration Hook Orchestration**:
+  - Integrated `useIntegrationRunner()` into `StageIntegration.tsx`.
+  - Added an entry lifecycle hook using a ref guard: if `storeIntegratedCodebase`, `runner.integratedCodebase`, and `runner.isLoopActive` are not yet active on mount, `runner.runIntegration()` is automatically triggered.
+  - Added an active processing banner (`#integrationRunningBanner`) displaying real-time stage telemetry ("Unifying component codebases...", "Executing sandbox container integration tests...", or "Arbitrating multi-critic evaluation...").
+  - Synchronized `cleanRevisions`, `activeCodebase`, and `execResult` with `runner.revisionHistory` and `runner.currentExecutionResult`.
+
+#### 3. Verification & Compliance
+- **Vitest Suite**: All 42 test suites (660 tests) pass 100%, including a dedicated test verifying `#integrationSection` suppression when `showIntegration={false}`.
+- **Build Verification**: `npm run build` succeeds cleanly producing production assets in `backend/dist`.
+- **Policy Compliance**: Strictly zero emojis across all code, tests, UI labels, and documentation.
+
+---
+
+### Section 9.19: Single-Execution Auto-Advance Timer Latch and Navigation Revisit Prevention
+
+#### 1. Problem Statement & Root Cause
+- **Issue**:
+  - AutoDev provides an automatic 10-second proceeding timer (via `usePausableAutoAdvance`) when a stage finishes executing its output, smoothly advancing the developer to the subsequent stage.
+  - However, when developers used the navigation arrows (left/right header buttons or ArrowLeft/ArrowRight keyboard shortcuts) or the navigation sidebar (`LineSidebar`) to manually revisit an earlier completed stage, the 10-second countdown restarted and forcibly navigated them away again.
+- **Root Cause Analysis**:
+  - In `usePausableAutoAdvance.ts`, completion state was originally tracked using a local React ref (`hasFiredRef = useRef(false)`).
+  - When the user navigated forward to another stage, the previous stage component unmounted, destroying the local ref instance.
+  - When the developer subsequently navigated back to review previous requirements, architecture decomposition, or component codebases, the stage component mounted afresh with `hasFiredRef = false`.
+  - Because stage outputs were already generated and fully present in state, the hook's `enabled` condition evaluated to `true`, inadvertently triggering a fresh 10-second countdown and snatching control away from the user.
+
+#### 2. Architectural Resolution
+- **Global Latch State in Store (`AppStoreState` & `AutoDevStateV1`)**:
+  - Added `completedAutoAdvanceStages: Record<string, boolean>` to the central Zustand store (`src/stores/appStore.ts`) and schema definitions (`src/types/index.ts`).
+  - Added atomic state actions:
+    - `markAutoAdvanceCompleted(stageKey: string)`: Records that the given stage has fired or bypassed its auto-advance timer.
+    - `isAutoAdvanceCompleted(stageKey: string)`: Reads whether auto-advance is latched.
+    - `resetAutoAdvanceStage(stageKey: string)`: Selectively resets auto-advance for a rewound stage.
+    - `resetAllAutoAdvanceStages()`: Clears all latches upon product restart or state reset.
+  - Integrated `completedAutoAdvanceStages` into snapshot export (`toSnapshot()`) and hydration (`loadSnapshot()`).
+  - Updated `requestNewProduct()` and `resetUI()` to clear latches back to `{}`.
+  - Updated `invalidateDownstreamPhases()` to selectively clear downstream auto-advance latches when a development phase is rewound.
+- **Single-Execution Hook Latch (`usePausableAutoAdvance.ts`)**:
+  - Subscribed to `completedAutoAdvanceStages[stageKey]` from `useAppStore`.
+  - If `isCompleted` is `true`:
+    - The hook initializes `hasFiredRef = useRef<boolean>(true)` and `remainingMsRef = useRef<number>(0)`.
+    - Skips scheduling intervals, timeouts, or animation frames, returning `{ remainingMs: 0, hasFired: true }` immediately.
+  - When the timer executes for the first and only time upon real pipeline completion, it calls `useAppStore.getState().markAutoAdvanceCompleted(stageKey)` before invoking `onAdvance(targetStage)`.
+  - If canceled manually via the `'autodev:cancel-stage-timer'` DOM event or user action, the hook marks `stageKey` completed to prevent re-arming on revisit.
+- **Navigation Revisit Guard (`autodev-frontend/src/App.tsx`)**:
+  - In `navigateToStage`, mapped all stage indices to their respective auto-advance keys via `STAGE_NUMBER_TO_AUTO_ADVANCE_KEY`:
+    - Stage 2: `product_enquiry`
+    - Stage 3: `requirements`
+    - Stage 4: `decomposition`
+    - Stage 5: `component_pipeline`
+    - Stage 6: `integration`
+    - Stage 7: `testing`
+    - Stage 8: `documentation`
+  - When navigating away from `prevStage`, marks `prevStage` as completed.
+  - When navigating to any stage where `clamped <= prevStage` or `clamped < maxUnlockedStage` (manual backward navigation via arrow buttons, keyboard shortcuts, or `LineSidebar`), explicitly marks `targetKey` completed so returning to inspect an earlier stage never activates an unwanted auto-advance timer.
+
+#### 3. Verification & Compliance
+- **Automated Test Suite (`autodev-frontend/tests/pausable_auto_advance_guard.test.ts`)**:
+  - Implemented 12 unit tests verifying:
+    1. Initial store state starts with an empty latch map.
+    2. `markAutoAdvanceCompleted` records completion state correctly.
+    3. `isAutoAdvanceCompleted` accurately reports status.
+    4. `resetAutoAdvanceStage` clears a specific stage without affecting others.
+    5. `resetAllAutoAdvanceStages` flushes all latches.
+    6. `toSnapshot` and `loadSnapshot` properly serialize and hydrate latches.
+    7. `requestNewProduct` and `resetUI` reset all latches.
+    8. `invalidateDownstreamPhases` selectively clears downstream auto-advance latches.
+    9. `usePausableAutoAdvance` immediately returns `hasFired: true` and `remainingMs: 0` when stage is latched.
+    10. `usePausableAutoAdvance` marks stage completed when canceled via DOM event.
+    11. `navigateToStage` maps all stage numbers (2 through 8) to valid auto-advance keys.
+    12. Backward navigation latch logic marks destination stage as completed when navigating backwards.
+  - All 43 test suites and 672 unit tests across the entire frontend pass with 100% success rate.
+- **Production Build**:
+  - Built cleanly via `npm run build` targeting `backend/dist` with zero TypeScript or Vite bundle errors.
+- **Policy Compliance**:
+  - Strictly zero emojis across all code, tests, UI labels, and documentation.
+
+---
+
+### Section 9.20: Development Progress Display Refinement (Percentage Removal and Visual Progress Bar Retention)
+
+#### 1. Problem Statement & Scope
+- **User Requirement**:
+  - In the Development Progress card within the right sidebar, display the active stage name and keep the animated gradient progress bar, but remove the numeric progress percentage text.
+- **Context**:
+  - Previously, `sidebarDevelopmentProgressValue` rendered `${stageProgress.name} (${stageProgress.percentage}%)`, displaying text such as `"Integration Stage (86%)"`.
+  - While the gradient progress bar effectively communicates pipeline progression visually, the explicit percentage figures added visual redundancy and clutter to the sidebar card.
+
+#### 2. Implementation (`autodev-frontend/src/components/RightSidebar.tsx`)
+- **Stage Name and Percentage Decoupling**:
+  - In `sidebarDevelopmentProgressValue`, changed content from `{`${stageProgress.name} (${stageProgress.percentage}%)`}` to `{stageProgress.name}`.
+  - In `sidebarDevelopmentProgressCard`, simplified container `title` attribute from ``Development Progress: ${stageProgress.name} (${stageProgress.percentage}%)`` to ``Development Progress: ${stageProgress.name}``.
+  - Retained the horizontal track and animated gradient fill bar (`#sidebarDevelopmentProgressBar`) with its dynamic inline width `style={{ width: `${stageProgress.percentage}%` }}` driven by stage progression.
+
+#### 3. Verification & Compliance
+- **Vitest Suite (`autodev-frontend/tests/stage_scroll_and_progress.test.tsx`)**:
+  - Updated unit test assertions to confirm that the stage name is rendered cleanly without percentage strings (e.g. asserting `html.not.toContain('Integration Stage (86%)')`), while validating that the progress bar width style (e.g. `style="width:86%"`) is strictly preserved.
+  - All 43 test suites and 672 unit tests passed with 100% determinism.
+- **Production Build**:
+  - Compiled successfully via `npm run build` targeting `backend/dist` with zero errors.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, UI strings, and documentation.
+
+---
+
+### Section 9.21: Comprehensive Light Mode Theme Adaptation & Color Harmonization Across Entire Frontend
+
+#### 1. Problem Statement & Audit Scope
+- **User Observations**:
+  - Across the AutoDev user interface, several components failed to adapt gracefully to the light mode theme:
+    1. **Requirements Phase Output**: Low-contrast text on dark translucent containers, muted persona and criteria text.
+    2. **Notification Pills**: Dark translucent glass toasts blending into light viewport surfaces.
+    3. **Account / Profile Section Select Dropdowns & Inputs**: Dark inputs with unreadable black-on-dark or white-on-white text in light mode.
+    4. **Pipeline Component-Wise Colors**: Component badges, glider tabs, and progress tracks were extremely washed out and low-contrast in light mode.
+    5. **Testing Results Container**: Grayish dark backdrop (`bg-slate-950/[0.25]`, `bg-black/50`) rendering the text above it unreadable.
+- **System-Wide UI Audit**:
+  - An exhaustive audit of all frontend stages and controls identified identical light mode color contrast deficiencies across:
+    - `StageProductRequest.tsx` & `StageSignIn.tsx` (heading typography, form inputs, OAuth dividers, hero showcase).
+    - `StageProductEnquiry.tsx` (assumption cards, clarifying question input boxes, preferences textarea).
+    - `StageDecomposition.tsx`, `ComponentCard.tsx`, `DecompositionOutput.tsx`, `SimpleProductFallback.tsx` (component architecture cards, tech stack chips, fallback layout).
+    - `StageComponentPipeline.tsx`, `ComponentTrack.tsx`, `ComponentToggler.tsx`, `PipelineDashboard.tsx` (glider pills, track headers, priority badges).
+    - `StageIntegration.tsx`, `IntegrationMonacoView.tsx`, `StageIntegrationArbitration.tsx`, `StageIntegrationCode.tsx` (agent switchers, revision tabs, diff toggle, adjudicator decisions, critic evaluation cards).
+    - `StageFinalSourceCode.tsx` (file explorer pane, tab headers, editor container).
+    - `StageLivePreview.tsx` (viewport switcher capsule, browser chrome frame).
+    - `StageDevelopmentResults.tsx` (hero completion container, metric summary cards, primary download/commit CTA buttons).
+    - `StagePostDevRequest.tsx` & `StagePostDevExecution.tsx` (support agent header, textarea card, FAQ accordion cards, query explanation viewer, 3-agent execution views).
+    - Global Chrome Controls: `Header.tsx` (cursive brand title), `StepperProgress.tsx` (floating progress capsule, step rings), `RightSidebar.tsx` (aside sidebar panel, cost badge, time metric card, user profile trigger), `PauseModifyFAB.tsx` (dynamic floating action button, confirmation modal), `GitHubExportModal.tsx` (dialog frame, inputs, labels), `DevelopmentProgressGraph.tsx` & `DevelopmentGanttChart.tsx` (timeline rulers, metric badges, track bars, hover detail tooltips), `LineSidebar.tsx` (collapsed stage pill, expanded pipeline flyout), `CostDisplay.tsx`, `RestorationBanner.tsx`, and `SpecularButton.tsx`.
+
+#### 2. Design Token System & Implementation Architecture
+
+```mermaid
+flowchart TD
+    subgraph ColorTokens["Adaptive Theme Design Tokens"]
+        SurfaceToken["Main Surface: bg-white/80 dark:bg-slate-950/[0.25]<br/>border-slate-200 dark:border-white/[0.07]"]
+        CardToken["Sub-Card: bg-slate-50/80 dark:bg-white/[0.03]<br/>border-slate-200 dark:border-white/[0.06]"]
+        FlyoutToken["Modal / Flyout: bg-white/95 dark:bg-slate-950/[0.32]<br/>border-slate-300 dark:border-white/[0.09]"]
+        ToggleToken["Floating Capsule: bg-slate-100 dark:bg-slate-950/[0.25]<br/>Glider: bg-white dark:bg-white/15 border-slate-300"]
+    end
+
+    subgraph TypographyTokens["High-Contrast Typography"]
+        Heading["Headings: text-slate-900 dark:text-white"]
+        Body["Body Text: text-slate-600 dark:text-slate-300"]
+        Caption["Captions / Mono: text-slate-500 dark:text-slate-400"]
+    end
+
+    subgraph StatusTokens["State & Evaluation Badges"]
+        Passed["Passed / Complete: bg-emerald-50 text-emerald-800 border-emerald-300"]
+        Failed["Failed / Error: bg-rose-50 text-rose-800 border-rose-300"]
+        Running["Running / In-Progress: bg-sky-50 text-sky-800 border-sky-300"]
+        Paused["Paused / Revised: bg-amber-50 text-amber-800 border-amber-300"]
+    end
+
+    ColorTokens --> TypographyTokens
+    TypographyTokens --> StatusTokens
+```
+
+- **Core Surface Tokens**:
+  - Main view containers: `bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] shadow-sm`.
+  - Nested cards and output panes: `bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06]`.
+  - Modal dialogs and flyout drawers: `bg-white/95 dark:bg-slate-950/[0.32] border border-slate-300 dark:border-white/[0.09] shadow-2xl`.
+  - Floating pill toggles: `bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] shadow-sm`.
+  - Active glider indicators: `bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm`.
+- **Dynamic Component Palette (`autodev-frontend/src/utils/componentTheme.ts`)**:
+  - Implemented `COMPONENT_PALETTE_LIGHT` with deep, rich pastel tones and high-contrast text (`#0369a1`, `#047857`, `#b45309`, `#6d28d9`, `#4338ca`, `#be123c`, `#0f766e`).
+  - Added dynamic theme detection inside `getComponentTheme(index)` to query `document.documentElement.classList.contains('dark')` and fallback to `window.matchMedia('(prefers-color-scheme: dark)')`, ensuring component tracks and pills automatically adapt when the user switches themes.
+- **Testing Results & Execution Output**:
+  - Replaced murky background in `StageIntegrationTesting.tsx` and `ExecutionOutput.tsx` with `bg-white/80 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.07] shadow-sm`.
+  - Preserved standard dark developer terminal styling for execution logs (`bg-slate-900 text-slate-100 dark:bg-black/50 dark:text-slate-200`), maintaining high contrast and terminal aesthetics.
+- **Account & Profile Section Form Elements**:
+  - In `ProfileAIConfigSection.tsx`, `ProfileDevPrefsSection.tsx`, `ProfileAccountSection.tsx`, `ProfileGitHubSection.tsx`, and `ProfileSessionHistorySection.tsx`:
+    - Updated all input fields, `<select>` elements, and `<option>` tags to use `bg-white dark:bg-slate-950/[0.25] border border-slate-300 dark:border-white/[0.08] text-slate-900 dark:text-white`.
+    - Styled custom API key input, provider select, and model dropdown options with dark text on white backgrounds in light mode.
+- **Gantt Chart Phase Styles (`DevelopmentGanttChart.tsx`)**:
+  - Converted `PHASE_STYLES` badges to adaptive light/dark tokens (e.g. Requirements: `text-sky-700 dark:text-sky-300`, `bg-sky-500/10 dark:bg-sky-500/20`, `border-sky-500/30 dark:border-sky-500/40`).
+  - Updated chronological waterfall rows and component-grouped cards with light-mode backgrounds and high-contrast text.
+
+#### 3. Verification & Compliance
+- **Vitest Test Suite**:
+  - Executed full Vitest suite in `autodev-frontend`: 43 test files passed, 672 tests passed (100% pass rate).
+- **Production Build**:
+  - Executed `npm run build` targeting `backend/dist`: compiled in 10.78s with zero TypeScript or Vite errors.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all modified components, test suites, terminal logs, and documentation.
+
+---
+
+### Section 9.22: Glassmorphic Textarea & SmoothInput Transparency Resolution
+
+#### 1. Problem Statement & Root Cause Analysis
+- **User Observations**:
+  - Across the user interface, textareas appeared with an opaque/semi-solid white (in light mode) or black/slate (in dark mode) background rather than full glassmorphic translucency.
+  - Only the bottom portion of the textarea displayed transparency, creating an unnatural visual cut-off.
+  - Requirement: Restore pure glassmorphic translucency to textareas while preserving all animated caret, selection, and auto-resize capabilities of `SmoothInput`.
+- **Root Cause 1: Global CSS Override Clashing with Tailwind `bg-transparent`**:
+  - In `autodev-frontend/src/index.css`, blanket rules `html.dark textarea` and `html.light textarea` applied `background-color` with `!important` (`rgba(10, 14, 26, 0.65)` in dark mode and `rgba(255, 255, 255, 0.55)` in light mode).
+  - This completely overridden Tailwind's `bg-transparent` class on the inner `<textarea>` rendered by `SmoothInput` and other stages.
+  - Consequently, the inner textarea had its own opaque rectangular background stamped directly over the outer rounded glassmorphic card container.
+- **Root Cause 2: ScrollFade Premature Masking**:
+  - `SmoothInput` wraps its textarea in `ScrollFade`.
+  - In `ScrollFade.tsx`, `getScrollTarget` checked `root.scrollHeight > root.clientHeight + 2` before querying for an inner `<textarea>`. Due to inline-block font descent spacing, the wrapper div was incorrectly selected as the scroll target.
+  - Furthermore, `updateFade` did not check whether the element had `overflowY === 'hidden'`. In `SmoothInput`, `adjustHeight` dynamically keeps `overflowY = 'hidden'` as long as content fits within `maxHeight`.
+  - Because `canScrollDown` evaluated to `true`, `ScrollFade` applied a CSS mask (`linear-gradient(to bottom, black 0%, black calc(100% - 24px), transparent 100%)`).
+  - This mask cut through the textarea's unwanted opaque background at the bottom 24px, making ONLY the bottom 24px transparent and exposing the underlying card, exactly matching the user's report.
+
+#### 2. Technical Implementation
+- **ScrollFade Target Detection & Scrollable Guards (`autodev-frontend/src/components/ScrollFade.tsx`)**:
+  - Re-ordered `getScrollTarget` to inspect `root.tagName === 'TEXTAREA'` and `root.querySelector('textarea')` first before evaluating container dimensions.
+  - In `updateFade`, added computed style checks for `overflowY === 'hidden'` and `overflowX === 'hidden'`. When an element is auto-resized and not scrollable, scroll fade masks are cleanly suppressed.
+- **SmoothInput Glassmorphic Architecture (`autodev-frontend/src/components/SmoothInput.tsx`)**:
+  - Added `.smooth-input-container` class to the outer wrapper `div`.
+  - Added `wrapperStyle?: React.CSSProperties` prop to `SmoothInputProps`, allowing callers to apply `backdropFilter: 'blur(14px)'` directly to the outer glass container rather than the inner input.
+  - Explicitly injected `background: 'transparent'`, `backgroundColor: 'transparent'`, and `caretColor: 'transparent'` into the inner `<textarea>` and `<input>` inline styles.
+- **CSS Specificity Exemption (`autodev-frontend/src/index.css`)**:
+  - Scoped `html.dark textarea:not(.bg-transparent)` and `html.light textarea:not(.bg-transparent)` to avoid overriding transparent inputs.
+  - Added dedicated high-priority transparent rule:
+    ```css
+    textarea.bg-transparent,
+    input.bg-transparent,
+    .smooth-input-container textarea,
+    .smooth-input-container input,
+    html.dark textarea.bg-transparent,
+    html.dark input.bg-transparent,
+    html.light textarea.bg-transparent,
+    html.light input.bg-transparent,
+    html.dark .smooth-input-container textarea,
+    html.dark .smooth-input-container input,
+    html.light .smooth-input-container textarea,
+    html.light .smooth-input-container input {
+      background: transparent !important;
+      background-color: transparent !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+    ```
+- **Stage Workspaces Harmonization**:
+  - In `StageProductRequest.tsx` and `ProfileDevPrefsSection.tsx`, passed `wrapperStyle={{ backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}` to `SmoothInput`.
+  - In `StageProductEnquiry.tsx`, updated the preferences textarea container to `bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md` with backdrop blur styling.
+
+#### 3. Verification & Compliance
+- **Vitest Test Suite (`autodev-frontend/tests/smooth_input_glassmorphism.test.tsx`)**:
+  - Created unit test suite verifying `smooth-input-container` class assignment, transparent inline backgrounds for textarea and input variants, `wrapperStyle` propagation, and `ScrollFade` static mounting.
+  - All 44 test suites and 675 unit tests passed with 100% determinism.
+- **Production Build**:
+  - Executed `npm run build` targeting `backend/dist`: compiled cleanly in 10.03s with zero TypeScript or Vite errors.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, documentation, and UI elements.
+
+---
+
+### Section 9.23: Navigation Sidebar Glassmorphism, Lock Icon Removal, and Bottom-Right FAB Repositioning
+
+#### 1. Requirements & Problem Statement
+- **User Directives**:
+  1. The navigation sidebar must follow the glassmorphism design language instead of having an opaque/solid background.
+  2. Remove lock icons from locked/future stages, as greying them out is sufficient and visually cleaner.
+  3. Relocate the dynamic pause/resume floating action button to the bottom-right corner instead of top-right.
+
+#### 2. Technical Architecture & Modifications
+- **Navigation Sidebar Glassmorphic Overhaul (`LineSidebar.tsx` & `index.css`)**:
+  - In `LineSidebar.tsx`, replaced opaque surfaces (`bg-white/95`, `dark:bg-slate-950/[0.88]`) with high-transparency frosted glass (`bg-white/80 dark:bg-slate-950/[0.28] backdrop-blur-2xl border border-slate-200 dark:border-white/[0.09] shadow-2xl`).
+  - In `index.css`, updated light mode overrides for `#lineSidebarExpandedPanel` and `#stageNumberCollapsedBadge` to `rgba(255, 255, 255, 0.8)` and `rgba(255, 255, 255, 0.82)` with `backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;`, replacing heavy purple borders with crisp monochrome specular refraction borders (`border-slate-200 / rgba(0, 0, 0, 0.1)`).
+  - In `RightSidebar.tsx`, aligned the main slide-over container to `bg-white/80 dark:bg-slate-950/[0.32] backdrop-blur-2xl` for cohesive glass translucency across all sidebars.
+- **Lock Icon Elimination for Locked Stages (`LineSidebar.tsx`)**:
+  - Removed `LockClosedIcon` import and JSX render condition from `LineSidebar.tsx`.
+  - Non-navigable / locked stages are now communicated cleanly through subdued typography and state tokens (`opacity-35 text-slate-400 dark:text-slate-500 cursor-not-allowed` and a neutral timeline node pip), removing unnecessary visual clutter while preserving clear affordance.
+- **Bottom-Right Pause/Resume FAB Positioning (`PauseModifyFAB.tsx`)**:
+  - Relocated `#pauseResumeControlContainer` from top-right (`top-24 sm:top-28 right-4 sm:right-6`) to standard bottom-right placement (`bottom-6 sm:bottom-8 right-4 sm:right-6`).
+  - Updated all action elements (`#pauseDevFabBtn`, `#fabExpandedActionGroup`, `#fabRestartConfirmModal`) to use pure frosted glassmorphic styling (`bg-white/80 dark:bg-slate-950/[0.28] backdrop-blur-2xl border border-slate-200 dark:border-white/[0.09] shadow-2xl`).
+  - Maintained tooltips expanding cleanly to the left (`right-14`) and confirmation modal mounting directly above the action controls without viewport clipping.
+
+#### 3. Verification & Compliance
+- **Vitest Test Suite (`autodev-frontend/tests/navigation_sidebar_and_fab.test.tsx`)**:
+  - Created unit tests confirming:
+    1. `LineSidebar` renders without `LockClosedIcon` for locked stages.
+    2. `LineSidebar` collapsed badge and expanded panel use glassmorphic class tokens (`bg-white/80`, `backdrop-blur-2xl`).
+    3. `PauseModifyFAB` is anchored to `bottom-6` and `right-4`, and no longer mounts at `top-24`.
+  - All 45 test files and 677 unit tests passed with 100% determinism.
+- **Production Build**:
+  - Executed `npm run build` targeting `backend/dist`: compiled in 11.12s with zero TypeScript or Vite errors.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, documentation, and UI elements.
+
+---
+
+### Section 9.24: Circular User Profile Icon & Avatar Geometry Standardization
+
+#### 1. Requirements & Problem Statement
+- **User Directive**:
+  - "The user profile icon in user profile page has a weird shape. Please amek sure it has circular shape."
+- **Root Cause Analysis**:
+  1. **Non-Standard Dimension Tokens in `UserProfilePage.tsx`**:
+     - The profile summary card container in `UserProfilePage.tsx` utilized `w-13 h-13 rounded-2xl`. In default Tailwind CSS, spacing step 13 (`w-13`, `h-13`) does not exist, causing the elements to lack explicit width and height rules. Consequently, the container relied on flex layout and intrinsic content dimensions, causing squashed and distorted proportions. Additionally, `rounded-2xl` rendered a squircle instead of a circular badge.
+  2. **Non-Standard Dimension Tokens in `ProfileAccountSection.tsx`**:
+     - The avatar accent preview container in `ProfileAccountSection.tsx` utilized `w-18 h-18 rounded-2xl`. In default Tailwind CSS, step 18 (`w-18`, `h-18`) is also undefined, and `rounded-2xl` rendered a rounded rectangle rather than a circle.
+
+#### 2. Technical Architecture & Modifications
+- **Profile Page Sidebar Avatar (`UserProfilePage.tsx`)**:
+  - Replaced `w-13 h-13 rounded-2xl border border-slate-300 dark:border-white/20` with standard `w-12 h-12 rounded-full border border-slate-300 dark:border-white/20 flex items-center justify-center text-lg font-bold text-white shadow-sm shrink-0 aspect-square overflow-hidden`.
+  - Added unique identifier `id="profilePageSidebarAvatar"` to support deterministic testing and light/dark theme styling.
+  - Standardized background color fallback to `#6366f1` (`user?.avatar_color || '#6366f1'`).
+  - Added `aspect-square`, `shrink-0`, and `overflow-hidden` to guarantee an uncompressed 1:1 circular aspect ratio under all viewport and flexbox layout conditions.
+- **Account Management Avatar Preview (`ProfileAccountSection.tsx`)**:
+  - Replaced `w-18 h-18 rounded-2xl border-2 border-white/20` with standard `w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center text-2xl font-bold text-white shadow-lg transition-transform hover:scale-105 shrink-0 aspect-square overflow-hidden`.
+  - Added unique identifier `id="profileAccountAvatarPreview"`.
+  - Configured 1:1 geometric ratio via `aspect-square shrink-0 rounded-full` ensuring smooth hover scale transitions without shape distortion.
+
+#### 3. Verification & Compliance
+- **Vitest Unit Test Suite (`autodev-frontend/tests/profile_page.test.tsx`)**:
+  - Added deterministic unit assertions verifying:
+    1. `profilePageSidebarAvatar` renders with `rounded-full` and `aspect-square` in the profile page sidebar.
+    2. `profileAccountAvatarPreview` renders with `rounded-full` and `aspect-square` in the account management section.
+  - Full Vitest suite: 45 test files passed, 679 unit tests passed with 100% determinism.
+- **Production Build**:
+  - Executed `npm run build` targeting `backend/dist`: compiled in 10.75s with zero TypeScript or Vite errors.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, documentation, and UI elements.
+
+---
+
+### Section 9.25: Sidebar Glassmorphic Design Harmonization & Backdrop Integration
+
+#### 1. Requirements & Problem Statement
+- **User Directive**:
+  - "Since we are already blurring the background, make sure the sidebar also follows the glassmorphism design language."
+- **Root Cause & Aesthetic Gap**:
+  - While the backdrop overlay (`#rightSidebarBackdrop`) applies full-screen gaussian blur across the application viewport, the sidebar drawer (`#rightSidebar`) and its child cards suffered from opaque or solid fills:
+    1. In light mode, sub-cards (`#sidebarDevelopmentProgressCard`, `#sidebarSessionCostCard`, `#sidebarLiveTerminalBtn`, `#sidebarUserAccountBtn`) utilized solid opaque white backgrounds (`bg-white`) and hard hover states (`bg-slate-50`), breaking the illusion of glassmorphism.
+    2. `#sidebarSessionTimeCard` used opaque solid pastel fills (`bg-sky-50`, `bg-emerald-50`, `bg-amber-50`, `bg-slate-50`).
+    3. The sidebar drawer surface in dark mode (`dark:bg-slate-950/[0.32]`) stacked with the black backdrop overlay created a heavy, opaque dark panel without specular edge refraction.
+
+#### 2. Technical Architecture & Modifications
+- **Right Sidebar Drawer Panel (`RightSidebar.tsx` & `src/index.css`)**:
+  - Enhanced `#rightSidebar` with high-transparency frosted glass (`bg-white/75 dark:bg-slate-950/[0.28] backdrop-blur-3xl border-l border-white/60 dark:border-white/[0.10]`).
+  - Added specular edge reflections and inner rim highlights: `shadow-[-12px_0_40px_rgba(0,0,0,0.06),inset_1px_0_0_rgba(255,255,255,0.7)]` in light mode and `shadow-[-20px_0_50px_rgba(0,0,0,0.5),inset_1px_0_0_rgba(255,255,255,0.12)]` in dark mode.
+  - Increased backdrop blur filter to `blur(28px) saturate(180%)`.
+- **Frosted Glass Sub-Cards & Action Controls (`RightSidebar.tsx` & `src/index.css`)**:
+  - Converted `#sidebarDevelopmentProgressCard`, `#sidebarSessionCostCard`, `#sidebarLiveTerminalBtn`, and `#sidebarUserAccountBtn` from solid white containers into frosted glass tiles:
+    - Base classes: `bg-white/60 hover:bg-white/80 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] backdrop-blur-xl border border-slate-200/70 hover:border-slate-300/80 dark:border-white/[0.08] dark:hover:border-white/20`.
+    - Inner specular sheens: `shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_4px_16px_rgba(0,0,0,0.02)]` in light mode and `shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.15)]` in dark mode.
+  - Replaced solid pastel session time fills with translucent status hues (`bg-sky-500/10`, `bg-emerald-500/10`, `bg-amber-500/10`) with top specular highlights.
+  - Updated `#rightSidebarCloseBtn` with frosted glass translucency (`bg-white/70 hover:bg-white/90 dark:bg-slate-950/[0.35] dark:hover:bg-white/[0.12] backdrop-blur-2xl`).
+- **CSS Engine Declarations (`src/index.css`)**:
+  - Declared dedicated glassmorphic rules under `#rightSidebar` for both `html.dark` and `html.light`, preventing unintended cascade overrides from generic utilities.
+
+#### 3. Verification & Compliance
+- **Vitest Unit Test Suite (`autodev-frontend/tests/navigation_sidebar_and_fab.test.tsx`)**:
+  - Added unit test verifying:
+    1. `#rightSidebarBackdrop` renders with `backdrop-blur-2xl`.
+    2. `#rightSidebar` renders with `backdrop-blur-3xl`, `bg-white/75`, and `dark:bg-slate-950/[0.28]`.
+    3. Inner sub-cards render with `backdrop-blur-xl`, `bg-white/60`, and `dark:bg-white/[0.04]`.
+  - Full Vitest suite: 45 test files passed, 680 unit tests passed with 100% determinism.
+- **Production Build**:
+  - Executed `npm run build` targeting `backend/dist`: compiled in 8.89s with zero TypeScript or Vite errors.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, documentation, and UI elements.
+
+---
+
+### Section 9.26: Stage-1 Dynamic Text & Title Container Width Expansion
+
+#### 1. Requirements & Problem Statement
+- **User Directive**:
+  - "Increase the width of the main dynamic text and title container in stage-1 to minimize text wrapping. Rest of it is working just fine."
+- **Root Cause & Layout Constraint**:
+  - In `StageProductRequest.tsx`, the root container (`#stageProductRequest`) was constrained to `max-w-[760px]`.
+  - At font size `text-3xl sm:text-4xl md:text-[45px]`, the dynamic typewriter heading (`"What are we developing <username>?"`) exceeded the available horizontal space of the 760px container, forcing words like the username onto a second line and causing jittery height jumping and line-wrapping during the typing animation.
+
+#### 2. Technical Architecture & Modifications
+- **Stage 1 Root Container Expansion (`StageProductRequest.tsx`)**:
+  - Replaced `max-w-[760px]` with responsive wide bounds: `w-full max-w-4xl lg:max-w-5xl xl:max-w-[1080px] mx-auto px-4 sm:px-6 py-6 select-none space-y-6`.
+  - Expanded maximum width up to 1080px on large viewports, granting ample horizontal room for long usernames and multisyllable product prompts.
+- **Dynamic Title & Text Container (`StageProductRequest.tsx`)**:
+  - Updated the title header container to `w-full max-w-4xl lg:max-w-5xl xl:max-w-[1080px] mx-auto space-y-2.5 text-center`.
+  - Added `whitespace-normal sm:whitespace-nowrap` to the `h2` heading tag, guaranteeing that on tablet and desktop screens (`>= 640px`) the typewriter sequence (`Welcome to AutoDev` and `What are we developing <username>?`) displays cleanly across a single line without mid-sentence wrapping.
+- **SmoothInput Proportion Preservation (`StageProductRequest.tsx`)**:
+  - Allowed `SmoothInput` textarea to scale comfortably with the wider container while preserving all glassmorphic translucent fills and caret alignment.
+
+#### 3. Verification & Compliance
+- **Vitest Unit Test Suite (`autodev-frontend/tests/smooth_input_glassmorphism.test.tsx`)**:
+  - Added unit test verifying:
+    1. `#stageProductRequest` renders with expanded width bounds (`max-w-4xl lg:max-w-5xl xl:max-w-[1080px]`).
+    2. Dynamic text and title container renders with `whitespace-normal sm:whitespace-nowrap`.
+  - Full Vitest suite: 45 test files passed, 681 unit tests passed with 100% determinism.
+- **Production Build**:
+  - Executed `npm run build` targeting `backend/dist`: compiled cleanly in 10.60s with zero TypeScript or Vite errors.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, documentation, and UI elements.
+
+---
+
+### Section 9.27: Stage-2 Product Enquiry Agent Complete Overhaul
+
+#### 1. Requirements & Problem Statement
+- **User Directives**:
+  1. "Should have similar title, svg, and descriptive text like other stages."
+  2. "Make sure the stage asks atleast 3 questions for every product before the development begins."
+  3. "Make the output components occupy the entire width instead of cards and beautifully format them like the requirement agents output."
+- **Root Causes & Legacy Limitations**:
+  - In `StageProductEnquiry.tsx`, the header lacked the standardized frosted icon container used across Stages 3 through 8, displaying a bare text heading "Product Enquiry & Architecture Scope".
+  - In `backend/agents/product_enquiry_agent.py`, the LLM prompt instructed asking 1 to 3 questions, and permitted asking 0 questions if the prompt was comprehensive. Fallback results returned only 2 questions.
+  - In `App.tsx` and `StageProductEnquiry.tsx`, Stage 2 was constrained to a narrow `max-w-4xl` (896px) and `max-w-3xl` container, with product understanding and planned implementation strategy cramped side-by-side in a 2-column grid instead of full-width executive bento cards.
+
+#### 2. Technical Architecture & Modifications
+- **Header Standardization (`StageProductEnquiry.tsx`)**:
+  - Replaced the plain heading with the standardized header pattern matching Stages 3 through 8:
+    - Frosted glass icon box: `w-8 h-8 rounded-xl bg-white/80 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]`.
+    - Heroicon: `ChatBubbleBottomCenterTextIcon` (`w-4 h-4 sm:w-5 sm:h-5 text-slate-800 dark:text-white/90`).
+    - Title: `Product Enquiry Agent` (`text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight`).
+    - Subtitle: `Interactive product discovery, clarifying questions, and strategic implementation planning before synthesizing technical specifications.` (`text-xs md:text-sm text-slate-600 dark:text-slate-300`).
+- **Guaranteed Minimum 3 Clarifying Questions (`product_enquiry_agent.py`, `models.py`, `StageProductEnquiry.tsx`)**:
+  - **Backend Agent Prompt (`product_enquiry_agent.py`)**:
+    - Mandated asking between 3 and 5 clarifying questions for every valid software product request across:
+      a) Data Persistence & Storage Model (SQLite, PostgreSQL, local files, or mock in-memory store).
+      b) User Authentication & Access Permissions (guest/open access, JWT auth, or role-based RBAC).
+      c) Core Workflows & External Integrations (real-time WebSockets vs REST APIs, 3rd-party services, export formats).
+  - **Backend Deterministic Padding Helper (`product_enquiry_agent.py`)**:
+    - Added `_ensure_min_clarifying_questions(result)` to guarantee `len(follow_up_questions) >= 3` for any valid software return. If fewer than 3 questions are returned by Gemini, standard domain-specific questions from `DEFAULT_CLARIFYING_QUESTIONS` are appended.
+    - Updated fallback results to provide all 3 default clarifying questions.
+  - **Model Schema Clamping (`models.py`)**:
+    - Updated `ProductEnquiryResult.clean_follow_up_questions` validator to support up to 5 questions (`cleaned[:5]`).
+  - **Frontend Resilient Fallback (`StageProductEnquiry.tsx`)**:
+    - Defined `DEFAULT_FRONTEND_QUESTIONS` and reactive `effectiveQuestions` memo. If the backend or cached state provides fewer than 3 questions, it automatically pads to at least 3 questions.
+- **Full-Width Executive Bento Layout (`App.tsx` & `StageProductEnquiry.tsx`)**:
+  - **Layout Width Unlock (`App.tsx`)**:
+    - Removed `currentStage === 2 ? 'max-w-4xl' : 'max-w-7xl'` on `<main>` and `max-w-4xl mx-auto` on `#centralStageWorkspace`, aligning Stage 2 with the full 1280px (`max-w-7xl`) width of Stages 3 through 8.
+  - **Executive Bento Components (`StageProductEnquiry.tsx`)**:
+    - Modeled directly after `RequirementsOutput.tsx`:
+      1. **Executive Product Understanding Hero Card**: Full-width glassmorphic card with top inset specular line (`h-px bg-gradient-to-r from-transparent via-slate-300/60 dark:via-white/20 to-transparent`), stage discovery tags, status badge (`Scope Synthesized`), product request heading, understanding overview, and Scope Summary Bento Chips (Questions count, Assumptions count).
+      2. **Planned Implementation Architecture Card**: Full-width card with strategy narrative and a 3-pillar architecture triad (Phase 1: Architecture, Phase 2: Code Synthesis, Phase 3: Verification).
+      3. **Default Engineering Assumptions Card**: Full-width card displaying numbered assumptions rows (`A-01`, `A-02`) with monospace badges.
+      4. **Clarifying Questions Matrix**: Full-width card with numbered `QUESTION 01` pill badges, custom vs default status chips, full-width glassmorphic inputs, and live answered count indicator.
+      5. **Custom Preferences & Architectural Directives Card**: Full-width card with frosted glass textarea container.
+      6. **Executive Action Bar**: Full-width action bar featuring "Edit Product Request" back button and "START DEVELOPMENT" primary CTA with animated spinner.
+  - **SSR Safety**:
+    - Incorporated the `isSSR ? liveStore : store` pattern matching `FeatureRequestInput.tsx`, ensuring flawless SSR and deterministic testing.
+
+### 9.28 System Standard Mode Unification & Complete Dual-Mode Deprecation
+
+#### 1. Architectural Motivation & Problem Statement
+Historically, AutoDev maintained remnants of dual execution modes (`QUICK` vs `COMPLEX`). In the initial architecture, QUICK mode was envisioned as a rapid, single-file prototype with automatic pass-throughs, while COMPLEX mode introduced interactive review countdowns and multi-pass DAG scheduling. 
+
+Over time, this binary mode distinction became obsolete:
+1. **Unwanted UI Artifacts**: The session history list in [`ProfileSessionHistorySection.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/profile/ProfileSessionHistorySection.tsx) explicitly rendered a `{sess.mode || 'QUICK'}` pill badge alongside project status and metadata, erroneously giving users the impression that a degraded or dual mode was active.
+2. **Conflicting Execution Branching**: In [`ComponentTrack.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentTrack.tsx), component completion branched on `if (mode === 'QUICK')` to auto-advance, while non-QUICK mode branched into an obsolete 30-second countdown (`waiting_critic`) that paused development unless manually approved.
+3. **Legacy Badges & Read-Only Disables**: Monaco editors in [`ComponentTrack.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentTrack.tsx) and [`IntegrationPhase.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/integration/IntegrationPhase.tsx) conditioned read-only state on `mode === 'QUICK' && !isPaused`, and the revision loop state machine in [`revisionLoop.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/revisionLoop.ts) emitted legacy `'PASSED (FORCED QUICK MODE)'` labels when revision budgets were exhausted.
+
+The system was unified to a single standard mode (`STANDARD`), removing all visible dual mode pills and branches while maintaining backwards compatibility for existing stored sessions.
+
+#### 2. Key Changes & Implementation Details
+
+- **Session History Mode Pill Removal (`ProfileSessionHistorySection.tsx`)**:
+  - Completely excised the `{sess.mode || 'QUICK'}` pill badge from the session card header in [`ProfileSessionHistorySection.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/profile/ProfileSessionHistorySection.tsx).
+  - Preserved standard status indicators (Completed, Aborted, Active) and development metrics without dual-mode tags.
+
+- **Component Pipeline & Integration Phase Streamlining (`ComponentTrack.tsx` & `IntegrationPhase.tsx`)**:
+  - **Eliminated Dual-Mode Completion Branching**: In [`ComponentTrack.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentTrack.tsx), replaced `if (mode === 'QUICK')` branches with direct automated advancement on both pass (`approveComponentFinal(false)`) and revision exhaustion (`approveComponentFinal(true)`).
+  - **Unified Editor Read-Only Semantics**: Replaced `isReadOnly={mode === 'QUICK' && !isPaused}` in [`ComponentTrack.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentTrack.tsx) and [`IntegrationPhase.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/integration/IntegrationPhase.tsx) with `isReadOnly={!isPaused}`, ensuring consistent in-memory editing capability when paused and lock during active synthesis.
+  - **Edited Blueprint Text Parsing**: In `handleApproveDesign`, removed `mode === 'COMPLEX'` guard so that user modifications made while paused are parsed automatically.
+
+- **Adjudication & Revision State Machine Harmonization (`revisionLoop.ts`)**:
+  - Updated `evaluateAdjudicationDecision` in [`revisionLoop.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/revisionLoop.ts) to default to `mode: AppMode = 'STANDARD'`.
+  - In standard mode, when dynamic revision budgets are reached, the system formats `verdictLabel = 'MAX REVISIONS (' + maxRevs + '/' + maxRevs + ')'` with `verdictStatus = 'max_revisions'`, cleanly retiring legacy forced quick mode labels.
+  - Provided backwards-compatible fallback mapping for legacy unit test suites verifying explicit `'QUICK'` or `'COMPLEX'` parameters.
+
+- **Domain Types & Persistence Stores (`types/index.ts`, `types/api.ts`, `persistence.ts`, `sessionStore.ts`)**:
+  - Expanded `AppMode` and `GenerationMode` unions to include `'STANDARD'` (`'STANDARD' | 'QUICK' | 'COMPLEX'`).
+  - Added `'STANDARD'` to `validModes` in `validatePersistedState` in [`persistence.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/stores/persistence.ts).
+  - Standardized initial app store defaults in [`appStore.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/stores/appStore.ts) and session creation payloads to `'STANDARD'`.
+
+- **Backend Defaults Standardization**:
+  - Updated default `mode: str = "STANDARD"` and `_GLOBAL_MODE: str = "STANDARD"` across [`backend/key_balancer.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/key_balancer.py), [`backend/models.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/models.py), [`backend/session_models.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/session_models.py), [`backend/session_routes.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/session_routes.py), [`backend/pipeline_api.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/pipeline_api.py), and [`backend/autodev_pipeline/models.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/autodev_pipeline/models.py).
+  - Updated [`backend/autodev_pipeline/scheduler.py`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/backend/autodev_pipeline/scheduler.py) stage handover check to treat both `"STANDARD"` and `"QUICK"` as concluding the DAG component lifecycle upon integration completion.
+
+#### 3. Verification & Compliance
+- **Full Frontend Vitest Suite (`npm test`)**:
+  - All 46 test suites passed: 685 unit tests passed with 100% success rate.
+- **Production Build (`npm run build`)**:
+  - Full TypeScript validation and Vite bundling succeeded cleanly in 10.65s, emitting production assets to `backend/dist`.
+- **Zero-Emoji Policy**:
+  - Strictly zero emojis across all code modifications, UI elements, logs, and documentation.
+
+### Section 9.29: Dynamic Alex Brush Favicon with Pulsing Development Status Light
+
+#### 1. Architectural Motivation & Overview
+Browser tab awareness is an essential affordance in long-running autonomous workflows. When a user kicks off complex product development in AutoDev, synthesis across requirements, decomposition, parallel component codegen, sandbox execution, and arbitration can take minutes. Users frequently switch tabs while awaiting completion.
+
+To provide instantaneous, ambient awareness without notification intrusion, AutoDev implements a dynamic browser tab favicon modeled after the Claude generation status indicator:
+1. **Brand Mark**: A white letter "A" rendered in the `'Alex Brush'` cursive script font, centered on a 64x64 dark obsidian circular badge (`#120F17`) with a subtle specular border (`rgba(255, 255, 255, 0.14)`). This ensures perfect contrast and crisp aesthetic fidelity across dark and light browser tab themes.
+2. **Active Development Status Light**: A top-right status dot positioned at `(48, 15)` that blinks/pulses in vibrant blue (`#3B82F6` / `#BFDBFE` glow) whenever product development is actively executing (`pipelineStatus === 'running'` or `pipelineActive === true`, while not paused).
+3. **Idle & Paused Suspension**: When pipeline execution is idle, paused, aborted, or completed, the status light ceases blinking and the clean resting brand badge is maintained with zero timer overhead.
+
+#### 2. Key Changes & Implementation Details
+
+- **Dynamic Favicon Hook & Canvas Rendering Engine ([`useDynamicFavicon.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/hooks/useDynamicFavicon.ts))**:
+  - **`renderFaviconCanvas(canvas, options)`**: Renders a 64x64 canvas bitmap containing the dark obsidian badge (`fill="#120F17"`), letter "A" via `ctx.font = 'normal 44px "Alex Brush", cursive, sans-serif'` in `#FFFFFF`, and conditional top-right status indicator. During the active blink phase, applies `ctx.shadowColor = 'rgba(59, 130, 246, 0.9)'` and `ctx.shadowBlur = 6` with an inner specular core (`#BFDBFE`), alternating every 600ms with a dim resting phase (`rgba(59, 130, 246, 0.25)`).
+  - **`generateFaviconSvg(options)`**: Vector-based SVG generation with drop-shadow SVG filter fallback for headless environments or instances where canvas 2D contexts are unavailable.
+  - **`generateFaviconDataUrl(options)`**: Produces crisp PNG data URLs (`canvas.toDataURL('image/png')`) or falls back to URI-encoded SVG strings.
+  - **`updateDocumentFavicon(dataUrl)`**: Finds or dynamically creates `<link rel="icon" id="dynamic-favicon">` in the document `<head>` and updates `link.href`.
+  - **`useDynamicFavicon()` Hook**: Reactive hook mounted at top-level React tree in [`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx). Subscribes to `pipelineStatus`, `pipelineActive`, and `isPaused`. Orchestrates the 600ms blink timer and listens to `document.fonts.ready` to ensure Alex Brush is fully rasterized before painting.
+
+- **HTML Shell Integration ([`index.html`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/index.html))**:
+  - Added default `<link rel="icon" id="dynamic-favicon" type="image/svg+xml" ...>` containing the inline SVG of the Alex Brush "A" badge, guaranteeing immediate tab branding prior to JavaScript hydration.
+
+- **App Root Mounting ([`App.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/App.tsx))**:
+  - Mounted `useDynamicFavicon()` alongside `useAutoRecovery()` at the root of `App()`.
+
+- **Comprehensive Verification Suite ([`dynamic_favicon.test.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/tests/dynamic_favicon.test.ts))**:
+  - 11 unit tests verifying SVG generation, canvas 2D rendering calls, Alex Brush font specifications, blue glowing indicator vs dim cycle, document head updates, and zero-emoji compliance.
+
+#### 3. Verification & Compliance
+- **Full Frontend Vitest Suite (`npm test`)**:
+  - 47 test suites passed: 696 tests passed with 100% success rate.
+- **Production Build (`npm run build`)**:
+  - Clean compilation via `tsc && vite build` targeting `../backend/dist` with zero errors.
+- **Strict Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, UI, and documentation.
+
+### Section 9.30: Completed Product Status & Monotonic Development Progress Across Refresh and Stage Navigation
+
+#### 1. Problem Statement & Root Cause Analysis
+Following product completion, when users refreshed the page and navigated back to earlier stages (such as Stage 2 Product Enquiry, Stage 3 Requirements, or Stage 5 Component Pipeline) to inspect previous outputs:
+1. **Development Status Erroneously Showed PAUSED**:
+   - In [`RightSidebar.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/RightSidebar.tsx), `isWaitingForStage2UserInput` evaluated to `true` whenever `currentStage === 2 && !isEnquiring && pipelineStatus !== 'running'`. Because this was checked before `pipelineStatus === 'completed'`, navigating to Stage 2 caused the status badge to switch to `PAUSED`.
+   - Furthermore, in [`appStore.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/stores/appStore.ts), `setPipelineStatus('completed')` did not clear in-flight pause flags (`isPaused`, `isPauseRequested`, `pausedAtPhase`), and `loadSnapshot()` on page reload restored `isPaused: Boolean(snapshot.isPaused)` blindly, hydrating stale pause flags.
+2. **Development Progress Decreased on Earlier Stage Navigation**:
+   - In [`RightSidebar.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/RightSidebar.tsx), `stageProgress` switched purely on the currently viewed stage (`switch (currentStage)`). When viewing Stage 3, the progress bar dropped from 100% to 42%, even though the software had finished development.
+   - In [`LineSidebar.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/LineSidebar.tsx), `isCompleted` was computed as `stage.targetStage < currentStage`, causing stages 4 through 8 to lose their green checkmarks whenever the user viewed an earlier stage.
+
+#### 2. Key Architecture Changes & Implementation Details
+
+- **Authoritative Completion Priority & Pause Clearing ([`appStore.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/stores/appStore.ts))**:
+  - In `setPipelineStatus`: When status transition to `'completed'` occurs, automatically clears `isPaused: false`, `isPauseRequested: false`, `pipelineActive: false`, `pausedAtPhase: null`, and `pausedAt: null`.
+  - In `loadSnapshot`: When restoring a session with `pipelineStatus === 'completed'` or `postCompletionVisible === true`, guarantees all pause flags are set to `false`/`null`, permanently latching `postCompletionVisible = true`.
+  - Serialized `isPauseRequested` into `AutoDevStateV1` ([`types/index.ts`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/types/index.ts)).
+
+- **Completed Product Status & Monotonic Development Progress ([`RightSidebar.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/RightSidebar.tsx))**:
+  - Introduced `isProductCompleted = pipelineStatus === 'completed' || Boolean(postCompletionVisible) || maxUnlockedStage >= 9`.
+  - In `compactStatus`: Evaluated `if (isProductCompleted) return 'COMPLETED'` as the first authoritative check. Guarded `isWaitingForStage2UserInput` and `isDevelopmentPaused` with `!isProductCompleted`.
+  - In `stageProgress`: Computed `effectiveStage = isProductCompleted ? (currentStage >= 10 ? currentStage : 9) : Math.max(currentStage, maxUnlockedStage || 1)`. When a product is completed, inspecting earlier stages locks development progress at 100% (`Completed Stage`), never degrading.
+  - In session timer freeze: Included `isProductCompleted` in the freeze check so the timer remains frozen at delivery elapsed time.
+
+- **Completed Checkmark Retention Across Earlier Stage Inspection ([`LineSidebar.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/components/LineSidebar.tsx))**:
+  - Updated stage completion logic: `const isCompleted = !isCurrent && (isProductCompleted ? stage.targetStage <= 9 : stage.targetStage < maxUnlockedStage && navigable);`.
+  - When inspecting an earlier stage, all completed stages retain their green nodes and checkmark icons, while the selected stage is highlighted as active.
+
+- **Comprehensive Verification Suite ([`completed_product_refresh_navigation.test.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/tests/completed_product_refresh_navigation.test.tsx))**:
+  - Added 4 unit tests verifying snapshot hydration with pause flag clearing, preservation of `COMPLETED` status across stages 9, 3, and 2, retention of 100% progress bar, and timeline node checkmark retention.
+
+#### 3. Verification & Compliance
+- **Full Vitest Suite (`npm test`)**: 48 test suites passed, 700 tests passed (100% pass rate).
+- **Production Build (`npm run build`)**: Clean build via `tsc && vite build` targeting `../backend/dist` in 10.62s.
+- **Zero-Emoji Policy**: Strictly zero emojis across all code, tests, and documentation.
+- **StageLanding Integrity**: `StageLanding.tsx` remained untouched.
+
+### Section 9.31: Light Mode Pill Toggles & Segmented Controls Glassmorphism Harmonization
+
+#### 1. Problem Statement & Root Cause Analysis
+In light mode (`document.documentElement.classList.contains('light')`), pill-shaped toggles and segmented controls across several pipeline stages appeared completely blacked out when an option was selected:
+1. **Culprit Styling Pattern**:
+   - The active indicator glider in multiple components had been configured with `bg-slate-900 border border-slate-800 text-white shadow-sm dark:bg-white/15 dark:border-white/20`.
+   - In light theme, `bg-slate-900` rendered as an opaque pitch-black block inside light-gray container tracks.
+   - The selected button text was styled with `isSelected ? 'text-white' : 'text-slate-600...'`, which assumed an opaque black background under the text and clashed against the light mode design language.
+   - In components like [`BlueprintOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/design/BlueprintOutput.tsx), the glider lacked light-mode styling (`bg-white/15 border-white/20`) while the text was hardcoded to `text-white`, resulting in illegible white text over light backgrounds.
+
+#### 2. Key Architecture Changes & Standard Implementation Pattern
+
+- **Apple iOS / macOS Light Glassmorphism Standard Pattern**:
+  - **Active Glider Surface**: Crisp white elevated pill surface with high contrast border and subtle elevation:
+    `bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm`
+  - **Active Button Typography**: Deep slate text with bold font weight in light mode, crisp white in dark mode:
+    `text-slate-900 dark:text-white font-bold` (or `font-semibold`)
+  - **Inactive Button Typography**: Subtle contrast with hover elevation:
+    `text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200`
+  - **Outer Capsule Track**: Translucent frosted capsule container:
+    `bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-md shadow-sm`
+
+- **Components Harmonized**:
+  1. [`StageComponentPipeline.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageComponentPipeline.tsx):
+     - Pipeline Visualizer vs Componentwise Visualization toggle glider (`stagePipelineViewModeGlider`) and button typography.
+  2. [`StageIntegration.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageIntegration.tsx):
+     - Agent Switcher toggle glider (`integrationAgentGlider`) across Codegen, Testing, and Evaluation.
+     - Inner revision indicator tabs glider (`integrationInnerRevGlider`).
+  3. [`StageLivePreview.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageLivePreview.tsx):
+     - Viewport switcher glider (`stageLivePreviewViewportGlider`) across Desktop, Tablet, and Mobile.
+  4. [`ComponentToggler.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/pipeline/ComponentToggler.tsx):
+     - Component workspace selector active pill glider (`componentTogglerActivePill`) and active component label.
+  5. [`BlueprintOutput.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/design/BlueprintOutput.tsx):
+     - Segmented view mode toggle track, active button typography, and glider (`blueprintViewModeGlider`).
+  6. [`IDEView.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/ide/IDEView.tsx):
+     - Code Editor vs Live Preview toggle track, glider (`idePreviewToggleGlider`), and typography.
+     - Revision indicator pill glider (`ideRevisionPillActive`) and active button typography.
+  7. [`IntegrationRevTabs.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/integration/IntegrationRevTabs.tsx):
+     - Revision tabs track, active revision pill glider (`integrationRevPillActive`), and typography while preserving post-completion emerald badge styling.
+  8. [`PostCompletionPanel.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/post-completion/PostCompletionPanel.tsx):
+     - Post-completion mode toggle capsule track (`bg-slate-100 dark:bg-slate-950`) and inactive button text.
+  9. [`StageFinalSourceCode.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/stages/StageFinalSourceCode.tsx):
+     - Active file selection item in the file tree surface (`bg-white text-slate-900 border-slate-300/80 shadow-sm dark:bg-white/15 dark:text-white dark:border-white/20`).
+  10. [`IntegrationMonacoView.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/integration/IntegrationMonacoView.tsx):
+     - Active file selection item in the Monaco sidebar file tree.
+  11. [`UserProfilePage.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/profile/UserProfilePage.tsx):
+     - Active section navigation button surface in light mode.
+  12. [`ProfileAIConfigSection.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/src/features/profile/ProfileAIConfigSection.tsx):
+     - Selected engine mode / API key card surface in light mode.
+
+- **Comprehensive Verification Suite ([`light_mode_pill_toggles.test.tsx`](file:///c:/Users/Anupam%20Sharma/Documents/AutoDev/AutoDev-main/autodev-frontend/tests/light_mode_pill_toggles.test.tsx))**:
+  - Added 7 unit tests covering StageComponentPipeline, StageIntegration, StageLivePreview, ComponentToggler, BlueprintOutput, IDEView, and IntegrationRevTabs.
+  - Verifies presence of light-mode classes (`text-slate-900`, `bg-white`, `border-slate-300/80`) and absence of light-mode blackouts (`bg-slate-900` on active pill gliders).
+
+#### 3. Verification & Compliance
+- **Full Vitest Suite (`npm test`)**:
+  - 49 test suites passed: 707 tests passed (100% pass rate).
+- **Production Build (`npm run build`)**:
+  - Clean compilation via `tsc && vite build` targeting `../backend/dist` in 11.03s with zero errors.
+- **Strict Zero-Emoji Policy**:
+  - Strictly zero emojis across all code, tests, UI, comments, and documentation.
+- **StageLanding Integrity**:
+  - `StageLanding.tsx` remained untouched.
 

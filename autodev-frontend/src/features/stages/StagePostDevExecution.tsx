@@ -211,7 +211,7 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
               codebase: baseCode,
               blueprint: stateSnapshot.currentBlueprint || currentBlueprint,
               query: trimmedPrompt,
-              mode: 'QUICK',
+              mode: 'STANDARD',
             },
             {
               onChunk: (accumulated) => {
@@ -246,7 +246,7 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
             codebase: baseCode,
             blueprint: stateSnapshot.currentBlueprint || currentBlueprint,
             prompt: trimmedPrompt,
-            mode: 'QUICK',
+            mode: 'STANDARD',
             run_verification: true,
             requirements: stateSnapshot.requirements || storeRequirements,
           });
@@ -467,14 +467,14 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
       className={`h-full flex flex-col w-full max-w-6xl mx-auto px-4 py-3 space-y-3.5 select-none overflow-y-auto custom-scrollbar ${className}`}
     >
       {/* ── Top Bar: Standardized Title & Conditional 3-Agent Switcher Toggle ── */}
-      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+      <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-white/[0.07]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
-              <WrenchScrewdriverIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
+            <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 dark:bg-white/[0.06] dark:border-white/[0.08] dark:text-white/90 flex items-center justify-center shadow-sm shrink-0">
+              <WrenchScrewdriverIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 dark:text-white/90" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
-              Post-Development Execution Agent
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+              Post-Development Execution Agent <span className="text-xs sm:text-sm font-normal text-slate-500 dark:text-slate-400 font-mono lowercase tracking-normal">(beta)</span>
             </h2>
           </div>
 
@@ -483,7 +483,7 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <div
                 id="postDevAgentSwitcher"
-                className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_16px_rgba(0,0,0,0.1)]"
+                className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-md shadow-sm"
               >
                 {(['Codegen', 'Testing', 'Evaluation'] as const).map((agent) => {
                   const isSelected = activeAgent === agent;
@@ -495,13 +495,13 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                       onClick={() => handleAgentChange(agent)}
                       whileTap={{ scale: 0.96 }}
                       className={`relative px-3 sm:px-4 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                        isSelected ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'
+                        isSelected ? 'text-slate-900 dark:text-white font-bold' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                       }`}
                     >
                       {isSelected && (
                         <motion.div
                           layoutId="postDevAgentGlider"
-                          className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                          className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                           transition={{ type: 'spring', stiffness: 450, damping: 26, mass: 0.8 }}
                         />
                       )}
@@ -522,7 +522,7 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
             </div>
           )}
         </div>
-        <p className="text-xs md:text-sm text-slate-300">
+        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
           {postCompletionMode === 'query'
             ? 'Contextual technical explanation and architectural analysis synthesized from your verified codebase.'
             : 'Targeted code synthesis, isolated sandbox verification, and multi-critic quality evaluation.'}
@@ -532,13 +532,13 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
       {errorMessage && (
         <div
           id="postDevExecutionError"
-          className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-400/30 text-xs text-rose-300 flex items-center justify-between"
+          className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/15 border border-rose-300 dark:border-rose-400/30 text-xs text-rose-800 dark:text-rose-300 flex items-center justify-between"
         >
           <span>{errorMessage}</span>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
-            className="text-xs text-rose-200 hover:text-white font-semibold cursor-pointer"
+            className="text-xs text-rose-700 dark:text-rose-200 hover:text-rose-900 dark:hover:text-white font-semibold cursor-pointer"
           >
             Dismiss
           </button>
@@ -549,13 +549,13 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
       {!hasValidPrompt ? (
         <div
           id="postDevIdleState"
-          className="flex-1 min-h-[380px] flex flex-col items-center justify-center rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)]"
+          className="flex-1 min-h-[380px] flex flex-col items-center justify-center rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-8 text-center shadow-sm"
           style={{ backdropFilter: 'blur(14px)' }}
         >
-          <p className="text-sm font-semibold text-slate-200">
+          <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
             No post-development support request submitted.
           </p>
-          <p className="text-xs text-slate-400 mt-1 max-w-md">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
             Enter a product query, bug report, or feature modification request in the Post-Development Support Agent stage and click Proceed to execute.
           </p>
         </div>
@@ -563,24 +563,24 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
         /* ── Output Mode 1: Basic Well-Formatted Text Window Output for Product-Related Queries ── */
         <div
           id="postDevQueryOutputWindow"
-          className="flex-1 min-h-[480px] flex flex-col rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-5 sm:p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4 overflow-hidden"
+          className="flex-1 min-h-[480px] flex flex-col rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-5 sm:p-6 shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4 overflow-hidden"
           style={{ backdropFilter: 'blur(14px)' }}
         >
-          <div className="flex items-center justify-between border-b border-white/10 pb-3 gap-4 flex-wrap">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-3 gap-4 flex-wrap">
             <div className="flex items-center gap-2.5 min-w-0">
-              <ChatBubbleLeftRightIcon className="w-4 h-4 text-white/80 shrink-0" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white truncate">
+              <ChatBubbleLeftRightIcon className="w-4 h-4 text-slate-700 dark:text-white/80 shrink-0" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white truncate">
                 Product Enquiry Response
               </h3>
-              <span className="text-xs text-slate-400 truncate max-w-md hidden sm:inline">
+              <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-md hidden sm:inline">
                 — &ldquo;{trimmedPrompt}&rdquo;
               </span>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
               {isRunning && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-medium text-slate-300">
-                  <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-white/80" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                  <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-white/80" />
                   <span>Synthesizing explanation...</span>
                 </span>
               )}
@@ -589,11 +589,11 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                   id="copyQueryOutputBtn"
                   type="button"
                   onClick={handleCopyExplanation}
-                  className="text-xs text-slate-300 hover:text-white flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] transition-colors cursor-pointer"
+                  className="text-xs text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border border-slate-300 dark:border-white/[0.08] transition-colors cursor-pointer"
                 >
                   {copyFeedback ? (
                     <>
-                      <CheckIcon className="w-3.5 h-3.5 text-emerald-400" />
+                      <CheckIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>Copied</span>
                     </>
                   ) : (
@@ -608,8 +608,8 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
           </div>
 
           <ModernScrollbar
-            className="flex-1 min-h-[360px] rounded-2xl bg-black/40 border border-white/[0.07] shadow-inner"
-            viewportClassName="p-5 font-sans text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-wrap"
+            className="flex-1 min-h-[360px] rounded-2xl bg-slate-50/80 dark:bg-black/40 border border-slate-200 dark:border-white/[0.07] shadow-inner"
+            viewportClassName="p-5 font-sans text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-wrap"
           >
             <div id="postDevQueryTextContent">
               {formatMarkdownToHumanReadable(postCompletionResponse) ||
@@ -624,17 +624,17 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
         /* ── Output Mode 2: Integration Phase-Type Output Window for Bug-Fix & Modification Requests ── */
         <div
           id="postDevIntegrationContainer"
-          className="flex-1 min-h-[500px] flex flex-col rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-4 sm:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4 overflow-y-auto custom-scrollbar"
+          className="flex-1 min-h-[500px] flex flex-col rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-4 sm:p-5 shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4 overflow-y-auto custom-scrollbar"
           style={{ backdropFilter: 'blur(14px)' }}
         >
           {/* ── Top Revision & Status Bar Inside Container ── */}
           <div
             id="postDevRevTabs"
-            className="flex items-center justify-between pb-3 border-b border-white/10 gap-2 flex-wrap"
+            className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 gap-2 flex-wrap"
           >
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-medium text-slate-400">Revisions:</span>
-              <div className="relative flex items-center p-0.5 rounded-full bg-slate-950/[0.25] border border-white/[0.08] backdrop-blur-sm gap-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Revisions:</span>
+              <div className="relative flex items-center p-0.5 rounded-full bg-slate-100 dark:bg-slate-950/[0.25] border border-slate-200 dark:border-white/[0.08] backdrop-blur-sm gap-1">
                 {postDevRevisions.map((rev, idx) => {
                   const isActive = localRevisionIndex === idx;
                   return (
@@ -644,13 +644,13 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setLocalRevisionIndex(idx)}
                       className={`relative px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
-                        isActive ? 'text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                        isActive ? 'text-slate-900 dark:text-white font-semibold' : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
                       }`}
                     >
                       {isActive && (
                         <motion.div
                           layoutId="postDevInnerRevGlider"
-                          className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-sm"
+                          className="absolute inset-0 rounded-full bg-white dark:bg-white/15 border border-slate-300/80 dark:border-white/20 shadow-sm"
                           transition={{ type: 'spring', stiffness: 450, damping: 25, mass: 0.8 }}
                         />
                       )}
@@ -663,8 +663,8 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
               </div>
 
               {isRunning && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] border border-white/[0.08] text-[11px] font-medium text-slate-300">
-                  <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-white/80" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                  <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-white/80" />
                   <span>Synthesizing &amp; verifying modifications...</span>
                 </span>
               )}
@@ -677,11 +677,11 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                 type="button"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setIsDiffMode(!isDiffMode)}
-                className="text-xs px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="text-xs px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white border border-slate-300 dark:border-white/[0.08] flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Compare changes against previous revision"
               >
                 <svg
-                  className="w-3.5 h-3.5 text-white/80"
+                  className="w-3.5 h-3.5 text-slate-600 dark:text-white/80"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -701,19 +701,19 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
           {/* Modification Summary & Modified File Badges (if present on active revision) */}
           {(currentRevision?.summary ||
             (currentRevision?.modifiedFiles && currentRevision.modifiedFiles.length > 0)) && (
-            <div className="rounded-2xl bg-black/30 border border-white/[0.06] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+            <div className="rounded-2xl bg-slate-50/80 dark:bg-black/30 border border-slate-200 dark:border-white/[0.06] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
               {currentRevision?.summary && (
-                <p className="text-xs text-slate-300">{currentRevision.summary}</p>
+                <p className="text-xs text-slate-700 dark:text-slate-300">{currentRevision.summary}</p>
               )}
               {currentRevision?.modifiedFiles && currentRevision.modifiedFiles.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {currentRevision.modifiedFiles.map((file, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-0.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-[11px] font-mono text-slate-200 flex items-center gap-1.5"
+                      className="px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-white/[0.06] border border-slate-200 dark:border-white/[0.08] text-[11px] font-mono text-slate-800 dark:text-slate-200 flex items-center gap-1.5"
                     >
                       <span>{file}</span>
-                      <span className="text-[9px] text-amber-400 font-bold">[MODIFIED]</span>
+                      <span className="text-[9px] text-amber-600 dark:text-amber-400 font-bold">[MODIFIED]</span>
                     </span>
                   ))}
                 </div>
@@ -761,16 +761,16 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                 >
                   <div
                     id="execLogsSection"
-                    className="flex items-center justify-between pb-3 border-b border-white/10"
+                    className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-slate-300">Sandbox Test Run:</span>
+                      <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Sandbox Test Run:</span>
                       <span
                         id="execStatusBadge"
                         className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           passed
-                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-                            : 'bg-rose-500/15 text-rose-300 border border-rose-400/30'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30'
+                            : 'bg-rose-50 text-rose-800 border border-rose-300 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-400/30'
                         }`}
                       >
                         {passed ? (
@@ -787,17 +787,21 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                       </span>
                     </div>
 
-                    <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                    <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <ClockIcon className="w-3.5 h-3.5" />
                       <span>Isolated Container Execution</span>
                     </div>
                   </div>
 
                   <ModernScrollbar
-                    className="flex-1 min-h-[320px] rounded-2xl bg-black/50 border border-white/[0.07] shadow-inner"
-                    viewportClassName="p-4 font-mono text-xs text-slate-200 leading-relaxed"
+                    className="flex-1 min-h-[320px] rounded-2xl bg-slate-950 text-slate-100 dark:bg-black/50 dark:text-slate-200 border border-slate-800 dark:border-white/[0.07] shadow-inner overflow-hidden"
+                    viewportClassName="p-4 font-mono text-xs leading-relaxed text-slate-100 dark:text-slate-200"
                   >
-                    <pre id="execLogsOutput" className="whitespace-pre-wrap break-all">
+                    <pre
+                      id="execLogsOutput"
+                      className="whitespace-pre-wrap break-all text-slate-100 dark:text-slate-200 font-mono"
+                      style={{ color: '#f1f5f9' }}
+                    >
                       {logs}
                     </pre>
                   </ModernScrollbar>
@@ -817,12 +821,12 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                   {/* Master Adjudicator Decision Box */}
                   <div
                     id="adjudicatorCard"
-                    className="rounded-2xl bg-black/40 border border-white/[0.08] p-4 sm:p-5 space-y-3 shadow-inner"
+                    className="rounded-2xl bg-slate-50/80 dark:bg-black/40 border border-slate-200 dark:border-white/[0.08] p-4 sm:p-5 space-y-3 shadow-sm dark:shadow-inner"
                   >
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <div className="flex items-center gap-2">
-                        <CheckBadgeIcon className="w-5 h-5 text-emerald-400" />
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                        <CheckBadgeIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                           Master Adjudicator Verdict
                         </h3>
                       </div>
@@ -830,8 +834,8 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                         id="adjudicatorVerdict"
                         className={`px-3 py-1 rounded-full text-xs font-extrabold ${
                           verdict.includes('APPROVED') || verdict === 'PASS'
-                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/30'
-                            : 'bg-amber-500/15 text-amber-300 border border-amber-400/30'
+                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/30'
+                            : 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/30'
                         }`}
                       >
                         {verdict}
@@ -841,17 +845,17 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                     {decision?.revision_plan && (
                       <p
                         id="adjudicatorPlan"
-                        className="text-xs text-slate-300 leading-relaxed bg-white/[0.03] p-3 rounded-xl border border-white/[0.05]"
+                        className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white/70 dark:bg-white/[0.03] p-3 rounded-xl border border-slate-200 dark:border-white/[0.05]"
                       >
                         {decision.revision_plan}
                       </p>
                     )}
 
-                    <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 pt-1">
+                    <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1">
                       {typeof decision?.weighted_composite === 'number' && (
                         <span>
                           Composite Score:{' '}
-                          <strong className="text-slate-200">
+                          <strong className="text-slate-800 dark:text-slate-200">
                             {decision.weighted_composite.toFixed(2)}
                           </strong>
                         </span>
@@ -859,13 +863,13 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                       {typeof decision?.delta === 'number' && (
                         <span>
                           Delta:{' '}
-                          <strong className="text-slate-200">{decision.delta.toFixed(2)}</strong>
+                          <strong className="text-slate-800 dark:text-slate-200">{decision.delta.toFixed(2)}</strong>
                         </span>
                       )}
                       {decision?.dynamic_budget !== undefined && (
                         <span>
                           Budget:{' '}
-                          <strong className="text-slate-200">{decision.dynamic_budget}</strong>
+                          <strong className="text-slate-800 dark:text-slate-200">{decision.dynamic_budget}</strong>
                         </span>
                       )}
                     </div>
@@ -876,34 +880,34 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
                     {defaultFeedbacks.map((critic, cIdx) => (
                       <div
                         key={`postdev-critic-${cIdx}`}
-                        className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 space-y-2 flex flex-col justify-between"
+                        className="rounded-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] p-3.5 space-y-2 flex flex-col justify-between shadow-sm dark:shadow-none"
                       >
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-bold text-slate-200 truncate">
+                            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">
                               {critic.critic_name}
                             </h4>
                             <span
                               className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                                 critic.severity_score === 0
-                                  ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-400/20'
-                                  : 'bg-amber-500/15 text-amber-300 border border-amber-400/20'
+                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-400/20'
+                                  : 'bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-400/20'
                               }`}
                             >
                               Score: {critic.severity_score}
                             </span>
                           </div>
-                          <p className="text-[11px] text-slate-400 leading-snug">
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-snug">
                             {critic.overall_comments}
                           </p>
                         </div>
 
                         {critic.issues_list && critic.issues_list.length > 0 && (
-                          <div className="pt-2 border-t border-white/[0.05] space-y-1">
+                          <div className="pt-2 border-t border-slate-200/60 dark:border-white/[0.05] space-y-1">
                             <span className="text-[10px] uppercase font-mono text-slate-500">
                               Issues:
                             </span>
-                            <ul className="text-[11px] text-slate-300 list-disc list-inside space-y-0.5">
+                            <ul className="text-[11px] text-slate-700 dark:text-slate-300 list-disc list-inside space-y-0.5">
                               {critic.issues_list.map((issue, iIdx) => (
                                 <li key={iIdx} className="truncate">
                                   {issue}

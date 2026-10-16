@@ -66,6 +66,12 @@ export function notifyPreviewReloaded(): string {
   return notifyInfo('Live preview container refreshed with active codebase.', 'Preview Reloaded');
 }
 
+export function notifyDevelopmentRestored(phaseLabel?: string): string {
+  const title = phaseLabel ? `Development Restored: ${phaseLabel}` : 'Development Restored';
+  const message = phaseLabel ? `Resuming ${phaseLabel}.` : 'Development restored.';
+  return notifyInfo(message, title);
+}
+
 // ============================================================================
 // System, Network & Graceful Error Notifications
 // ============================================================================

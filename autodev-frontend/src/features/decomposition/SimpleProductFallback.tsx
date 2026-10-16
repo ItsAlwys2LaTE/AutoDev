@@ -19,13 +19,13 @@ export function SimpleProductFallback({
     <div
       id="decomposeSimpleMsg"
       style={{ backdropFilter: 'blur(14px)' }}
-      className={`rounded-2xl p-6 text-center border border-white/[0.07] bg-slate-950/[0.25] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] my-4 ${className}`}
+      className={`rounded-2xl p-6 text-center border border-slate-200 dark:border-white/[0.07] bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] my-4 ${className}`}
     >
-      <CheckCircleIcon className="w-8 h-8 text-white/80 mx-auto mb-2" />
-      <p className="text-lg font-semibold text-slate-100 mb-1">
+      <CheckCircleIcon className="w-8 h-8 text-slate-800 dark:text-white/80 mx-auto mb-2" />
+      <p className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-1">
         Simple Product Detected
       </p>
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
         No decomposition needed. Proceeding with single-pass pipeline...
       </p>
 
@@ -34,7 +34,7 @@ export function SimpleProductFallback({
         type="button"
         onClick={onProceed}
         disabled={isProcessing}
-        className="mt-4 w-full bg-white/10 hover:bg-white/20 active:scale-[0.99] disabled:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20 text-white font-semibold py-3.5 rounded-2xl flex justify-center items-center gap-2 transition-all shadow-sm cursor-pointer"
+        className="mt-4 w-full bg-slate-900 hover:bg-slate-800 text-white dark:bg-white/10 dark:hover:bg-white/20 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed border border-slate-800 dark:border-white/20 font-semibold py-3.5 rounded-2xl flex justify-center items-center gap-2 transition-all shadow-sm cursor-pointer"
       >
         <span>
           {isProcessing

@@ -325,16 +325,16 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
       className={`h-full flex flex-col w-full max-w-6xl mx-auto px-4 py-3 space-y-6 select-none ${className}`}
     >
       {/* ── Top Header: Standard AutoDev Agent Header (No back arrows or back to results button) ── */}
-      <div className="space-y-1.5 pb-2 border-b border-white/[0.07]">
+      <div className="space-y-1.5 pb-2 border-b border-slate-200 dark:border-white/[0.07]">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] shrink-0">
-            <WrenchScrewdriverIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white/90" />
+          <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 border border-slate-300 dark:bg-white/[0.06] dark:border-white/[0.08] dark:text-white/90 flex items-center justify-center shadow-sm shrink-0">
+            <WrenchScrewdriverIcon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 dark:text-white/90" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight truncate">
-            Post-Development Support Agent
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+            Post-Development Support Agent <span className="text-xs sm:text-sm font-normal text-slate-500 dark:text-slate-400 font-mono lowercase tracking-normal">(beta)</span>
           </h2>
         </div>
-        <p className="text-xs md:text-sm text-slate-300">
+        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300">
           Autonomous software enhancement, defect resolution, and technical architectural guidance for your verified codebase.
         </p>
       </div>
@@ -342,16 +342,16 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
       {securityAlert && (
         <div
           id="securityAlertSection"
-          className="p-4 rounded-2xl bg-rose-950/50 border border-rose-500/40 text-xs sm:text-sm text-rose-200 flex items-center justify-between backdrop-blur-xl shadow-lg"
+          className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-500/40 text-xs sm:text-sm text-rose-800 dark:text-rose-200 flex items-center justify-between backdrop-blur-xl shadow-sm"
         >
           <div className="flex items-center gap-2.5 min-w-0 pr-3">
-            <ShieldExclamationIcon className="w-5 h-5 text-rose-400 shrink-0" />
+            <ShieldExclamationIcon className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" />
             <span className="leading-relaxed">{securityAlert}</span>
           </div>
           <button
             type="button"
             onClick={() => setSecurityAlert(null)}
-            className="text-xs text-rose-300 hover:text-white font-semibold cursor-pointer shrink-0"
+            className="text-xs text-rose-700 dark:text-rose-300 hover:text-rose-900 dark:hover:text-white font-semibold cursor-pointer shrink-0"
           >
             Dismiss
           </button>
@@ -359,12 +359,12 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
       )}
 
       {errorMessage && (
-        <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-400/30 text-xs text-rose-300 flex items-center justify-between">
+        <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/15 border border-rose-300 dark:border-rose-400/30 text-xs text-rose-800 dark:text-rose-300 flex items-center justify-between">
           <span>{errorMessage}</span>
           <button
             type="button"
             onClick={() => setErrorMessage(null)}
-            className="text-xs text-rose-200 hover:text-white font-semibold cursor-pointer"
+            className="text-xs text-rose-700 dark:text-rose-200 hover:text-rose-900 dark:hover:text-white font-semibold cursor-pointer"
           >
             Dismiss
           </button>
@@ -375,14 +375,14 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
       {nonProductReason && (
         <div
           id="nonProductGateSection"
-          className="p-5 sm:p-6 rounded-3xl bg-amber-950/40 border border-amber-500/30 backdrop-blur-xl space-y-3 shadow-lg"
+          className="p-5 sm:p-6 rounded-3xl bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/30 backdrop-blur-xl space-y-3 shadow-sm"
         >
-          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-amber-300">
-            <InformationCircleIcon className="w-4.5 h-4.5 text-amber-400 shrink-0" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-amber-800 dark:text-amber-300">
+            <InformationCircleIcon className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span>Non-Product Related Request Detected</span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">{nonProductReason}</p>
-          <div className="text-[11px] sm:text-xs text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-sans">{nonProductReason}</p>
+          <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400">
             AutoDev Post-Development Support Agent exclusively maintains, enhances, and clarifies your generated software product. Please provide a software feature request, bug fix report, or technical architectural inquiry.
           </div>
           <div className="flex gap-3 pt-1">
@@ -393,7 +393,7 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
                 setNonProductReason(null);
                 textareaRef.current?.focus();
               }}
-              className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white backdrop-blur-md transition-colors cursor-pointer shadow-md"
+              className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white dark:border-white/20 text-xs font-semibold backdrop-blur-md transition-colors cursor-pointer shadow-sm"
             >
               Rephrase Support Request
             </button>
@@ -403,10 +403,10 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
 
       {/* ── Input Surface: Glassmorphic Textbox Area Component Card ── */}
       <div
-        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4"
+        className="rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-5 shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4"
         style={{ backdropFilter: 'blur(14px)' }}
       >
-        <div className="rounded-2xl border border-white/[0.08] bg-black/25 focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/10 overflow-hidden transition-all">
+        <div className="rounded-2xl border border-slate-300 dark:border-white/[0.08] bg-slate-50/80 dark:bg-black/25 focus-within:border-slate-400 dark:focus-within:border-white/20 focus-within:ring-1 focus-within:ring-slate-300 dark:focus-within:ring-white/10 overflow-hidden transition-all">
           <SmoothInput
             id="postDevTextarea"
             ref={textareaRef}
@@ -424,20 +424,20 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
             }}
             onKeyDown={handleKeyDown}
             placeholder="Describe any continuous feature enhancement, report a codebase bug to fix, or ask technical questions regarding architecture, runtime setup, and APIs..."
-            caretColorClass="text-white/80 font-semibold"
+            caretColorClass="text-slate-900 dark:text-white/80 font-semibold"
             wrapperClassName="w-full bg-transparent border-none overflow-hidden"
-            className="w-full bg-transparent border-none outline-none focus:outline-none transition-all text-sm sm:text-base text-white placeholder:text-white/40 font-sans leading-relaxed resize-none p-4 sm:p-5"
+            className="w-full bg-transparent border-none outline-none focus:outline-none transition-all text-sm sm:text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/40 font-sans leading-relaxed resize-none p-4 sm:p-5"
           />
         </div>
 
         {/* Card Action Bar: Proceed Button on Right (Classification type removed from UI) */}
-        <div className="flex items-center justify-end pt-2 border-t border-white/10">
+        <div className="flex items-center justify-end pt-2 border-t border-slate-200 dark:border-white/10">
           <button
             id="postDevSubmitBtn"
             type="button"
             onClick={handleSubmit}
             disabled={!prompt.trim()}
-            className="px-6 py-2.5 sm:py-3 rounded-2xl bg-white/10 hover:bg-white/20 disabled:opacity-40 text-white font-semibold text-xs tracking-wide border border-white/20 transition-all flex items-center gap-2 cursor-pointer shadow-md"
+            className="px-6 py-2.5 sm:py-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-xs tracking-wide border border-slate-300 dark:border-white/20 transition-all flex items-center gap-2 cursor-pointer shadow-sm"
           >
             <span>PROCEED</span>
             <ArrowRightIcon className="w-4 h-4" />
@@ -448,19 +448,19 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
       {/* ── New FAQs Section: Common Queries Regarding AutoDev Generated Software ── */}
       <div
         id="postDevFaqSection"
-        className="rounded-3xl bg-slate-950/[0.25] backdrop-blur-md border border-white/[0.07] p-5 sm:p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4"
+        className="rounded-3xl bg-white/80 dark:bg-slate-950/[0.25] backdrop-blur-md border border-slate-200 dark:border-white/[0.07] p-5 sm:p-6 shadow-sm dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_8px_32px_rgba(0,0,0,0.08)] space-y-4"
         style={{ backdropFilter: 'blur(14px)' }}
       >
-        <div className="flex items-center justify-between pb-3 border-b border-white/10">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center text-white/90">
-              <QuestionMarkCircleIcon className="w-4 h-4 text-emerald-400" />
+            <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-700 border border-slate-300 dark:bg-white/[0.06] dark:border-white/[0.08] dark:text-white/90 flex items-center justify-center">
+              <QuestionMarkCircleIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                 Frequently Asked Questions &amp; Runtime Guidance
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Essential reference on executing, extending, and publishing your generated software
               </p>
             </div>
@@ -475,7 +475,7 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
             return (
               <div
                 key={`faq-${idx}`}
-                className="rounded-2xl border border-white/[0.06] bg-black/20 hover:border-white/15 transition-all overflow-hidden"
+                className="rounded-2xl border border-slate-200 dark:border-white/[0.06] bg-slate-50/70 dark:bg-black/20 hover:border-slate-300 dark:hover:border-white/15 transition-all overflow-hidden"
               >
                 <button
                   type="button"
@@ -483,10 +483,10 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
                   className="w-full text-left p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0 text-slate-300">
+                    <div className="w-7 h-7 rounded-lg bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-300">
                       <Icon className="w-3.5 h-3.5" />
                     </div>
-                    <span className="text-xs sm:text-sm font-semibold text-slate-200">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
                       {faq.question}
                     </span>
                   </div>
@@ -508,8 +508,8 @@ export const StagePostDevRequest: React.FC<StagePostDevRequestProps> = ({
                       transition={{ duration: 0.25, ease: 'easeInOut' }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 pb-4 pt-1 border-t border-white/[0.04]">
-                        <p className="text-xs text-slate-300 leading-relaxed font-sans pl-10">
+                      <div className="px-4 pb-4 pt-1 border-t border-slate-200/60 dark:border-white/[0.04]">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-sans pl-10">
                           {faq.answer}
                         </p>
                       </div>

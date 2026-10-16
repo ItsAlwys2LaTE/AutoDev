@@ -49,14 +49,43 @@ async def signup(req: SignupRequest):
     clean_email = req.email.strip().lower()
     clean_username = req.username.strip()
 
-    # 1. Uniqueness checks
+    # 1. Check if email already registered
     existing_email = await coll.find_one({"email": clean_email})
     if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email address is already registered",
-        )
+        if existing_email.get("email_verified", False):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email address is already registered. Please sign in instead.",
+            )
+        else:
+            # Check username uniqueness if changing username on unverified account
+            existing_user = await coll.find_one({"username": clean_username})
+            if existing_user and str(existing_user["_id"]) != str(existing_email["_id"]):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username is already taken",
+                )
 
+            # User began sign-up but was unverified. Update credentials and reissue OTP
+            now = datetime.now(timezone.utc)
+            updated_fields = {
+                "password_hash": hash_password(req.password),
+                "username": clean_username,
+                "display_name": (req.display_name or clean_username).strip(),
+                "updated_at": now,
+            }
+            await coll.update_one({"_id": existing_email["_id"]}, {"$set": updated_fields})
+            existing_email.update(updated_fields)
+
+            otp = generate_otp()
+            await store_otp(clean_email, otp, purpose="signup")
+            await send_otp_email(clean_email, otp, purpose="signup")
+
+            token = create_access_token({"sub": str(existing_email["_id"]), "email": clean_email})
+            profile = user_doc_to_profile(existing_email)
+            return AuthResponse(access_token=token, token_type="bearer", user=profile)
+
+    # 2. Check username uniqueness for new accounts
     existing_username = await coll.find_one({"username": clean_username})
     if existing_username:
         raise HTTPException(
@@ -160,26 +189,67 @@ async def get_me(current_user: Dict[str, Any] = Depends(get_current_user)):
     return user_doc_to_profile(current_user)
 
 
+@auth_router.get("/config")
+async def get_auth_config():
+    """
+    Returns public authentication configuration flags for frontend initialization.
+    """
+    from email_service import get_brevo_config
+    api_key, _, _ = get_brevo_config()
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip() or GOOGLE_CLIENT_ID
+    return {
+        "google_client_id": client_id,
+        "has_brevo": bool(api_key),
+    }
+
+
 @auth_router.post("/google", response_model=AuthResponse)
 async def google_auth(req: GoogleAuthRequest):
     """
-    Authenticates or signs up a user via Google OAuth ID token.
-    Verifies token validity against Google certificates.
+    Authenticates or signs up a user via Google OAuth ID token or OAuth2 access token.
+    Verifies token validity against Google certificates or userinfo endpoint.
     """
     from google.oauth2 import id_token
     from google.auth.transport import requests as google_requests
+    import httpx
 
+    client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip() or GOOGLE_CLIENT_ID
+    id_info = None
+
+    # Strategy 1: Verify as OIDC ID token (JWT format)
     try:
         id_info = id_token.verify_oauth2_token(
             req.id_token,
             google_requests.Request(),
-            audience=GOOGLE_CLIENT_ID if GOOGLE_CLIENT_ID else None,
+            audience=client_id if client_id else None,
         )
-    except Exception as e:
-        logger.warning("Google ID token verification failed: %s", e)
+    except Exception as verify_err:
+        logger.info("OIDC ID token verification note: %s. Trying userinfo fallback...", verify_err)
+
+    # Strategy 2: Verify via Google userinfo endpoint (OAuth2 access token ya29...)
+    if not id_info:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://www.googleapis.com/oauth2/v3/userinfo",
+                    headers={"Authorization": f"Bearer {req.id_token}"},
+                )
+                if resp.status_code == 200:
+                    id_info = resp.json()
+                else:
+                    # Strategy 3: Try tokeninfo endpoint
+                    resp_ti = await client.get(
+                        f"https://oauth2.googleapis.com/tokeninfo?id_token={req.id_token}"
+                    )
+                    if resp_ti.status_code == 200:
+                        id_info = resp_ti.json()
+        except Exception as fallback_err:
+            logger.warning("Google userinfo fallback failed: %s", fallback_err)
+
+    if not id_info:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Google authentication failed: {e}",
+            detail="Google authentication failed: Invalid or expired token",
         )
 
     google_email = (id_info.get("email") or "").strip().lower()

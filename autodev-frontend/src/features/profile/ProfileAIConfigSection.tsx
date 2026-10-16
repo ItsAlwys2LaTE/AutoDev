@@ -268,15 +268,15 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
             onClick={() => handleToggleKeyMode(false)}
             className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
               !useCustomKey
-                ? 'bg-white/10 border-white/30 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.2)]'
-                : 'bg-white/[0.02] border-white/[0.07] text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                ? 'bg-white border-slate-300/80 text-slate-900 shadow-sm dark:bg-white/10 dark:border-white/30 dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.2)]'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:bg-white/[0.02] dark:border-white/[0.07] dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.05]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold">AutoDev Default Keys</span>
               {!useCustomKey && <CheckCircleIcon className="w-4 h-4 text-emerald-400" />}
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-400">
+            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
               Uses AutoDev's automated 7-key round-robin rotation balancer across all stages.
             </p>
           </button>
@@ -287,15 +287,15 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
             onClick={() => handleToggleKeyMode(true)}
             className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
               useCustomKey
-                ? 'bg-white/10 border-white/30 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.2)]'
-                : 'bg-white/[0.02] border-white/[0.07] text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                ? 'bg-white border-slate-300/80 text-slate-900 shadow-sm dark:bg-white/10 dark:border-white/30 dark:text-white dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_16px_rgba(0,0,0,0.2)]'
+                : 'bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:bg-white/[0.02] dark:border-white/[0.07] dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/[0.05]'
             }`}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold">Enter Your Own API Key</span>
               {useCustomKey && <CheckCircleIcon className="w-4 h-4 text-indigo-400" />}
             </div>
-            <p className="text-[11px] leading-relaxed text-slate-400">
+            <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
               Provide your personal Gemini API key. Overrides the 7-key system for all pipeline requests.
             </p>
           </button>
@@ -303,11 +303,11 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
 
         {/* Custom Key Input Drawer */}
         {useCustomKey && (
-          <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3 animate-element">
+          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] space-y-3 animate-element shadow-xs">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300 flex items-center justify-between">
+              <label className="text-xs font-medium text-slate-700 dark:text-slate-300 flex items-center justify-between">
                 <span>Personal Google Gemini API Key</span>
-                <span className="text-[11px] text-slate-400 font-mono">Stored securely in session</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">Stored securely in session</span>
               </label>
               <div className="relative">
                 <input
@@ -318,12 +318,12 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
                     setTestResult(null);
                   }}
                   placeholder="AIzaSy..."
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl p-3 pr-10 text-xs sm:text-sm text-slate-100 placeholder-slate-500 font-mono focus:border-white/30 focus:outline-none"
+                  className="w-full bg-white dark:bg-black/40 border border-slate-300 dark:border-white/10 rounded-2xl p-3 pr-10 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 font-mono focus:border-slate-500 dark:focus:border-white/30 focus:outline-none shadow-xs"
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                  className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
                   title={showKey ? 'Hide key' : 'Show key'}
                 >
                   {showKey ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
@@ -337,16 +337,16 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
                 type="button"
                 disabled={isTestingKey || !customApiKey.trim()}
                 onClick={handleTestKey}
-                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-semibold text-white flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40"
+                className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 shadow-sm dark:bg-white/10 dark:hover:bg-white/20 dark:border-white/15 dark:text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isTestingKey ? (
                   <>
-                    <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                    <ArrowPathIcon className="w-3.5 h-3.5 animate-spin text-slate-600 dark:text-slate-300" />
                     <span>Verifying...</span>
                   </>
                 ) : (
                   <>
-                    <ShieldCheckIcon className="w-3.5 h-3.5" />
+                    <ShieldCheckIcon className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                     <span>Test Connection</span>
                   </>
                 )}
@@ -355,7 +355,7 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
               {testResult && (
                 <div
                   className={`text-xs flex items-center gap-1.5 font-medium ${
-                    testResult.success ? 'text-emerald-400' : 'text-rose-400'
+                    testResult.success ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                   }`}
                 >
                   {testResult.success ? (
@@ -372,8 +372,8 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
       </div>
 
       {/* ── 3. Model Selection ── */}
-      <div className="space-y-4 pt-4 border-t border-white/[0.08]">
-        <h3 className="text-xs uppercase tracking-wider text-slate-400 font-mono font-semibold flex items-center gap-1.5">
+      <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-white/[0.08]">
+        <h3 className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono font-semibold flex items-center gap-1.5">
           <SparklesIcon className="w-3.5 h-3.5" />
           <span>Model Selection</span>
         </h3>
@@ -381,38 +381,38 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Primary Model */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Primary Synthesis Model</label>
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Primary Synthesis Model</label>
             <select
               value={primaryModel}
               onChange={(e) => setPrimaryModel(e.target.value)}
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-100 focus:border-white/30 focus:outline-none cursor-pointer"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:border-slate-500 dark:focus:border-white/30 focus:outline-none cursor-pointer shadow-xs"
             >
               {AVAILABLE_MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
+                <option key={m.id} value={m.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                   {m.label} ({m.id})
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {AVAILABLE_MODELS.find((m) => m.id === primaryModel)?.description}
             </p>
           </div>
 
           {/* Fallback Model */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-slate-300">Fallback Resilience Model</label>
+            <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Fallback Resilience Model</label>
             <select
               value={fallbackModel}
               onChange={(e) => setFallbackModel(e.target.value)}
-              className="w-full bg-slate-900 border border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-100 focus:border-white/30 focus:outline-none cursor-pointer"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl p-3 text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:border-slate-500 dark:focus:border-white/30 focus:outline-none cursor-pointer shadow-xs"
             >
               {AVAILABLE_MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
+                <option key={m.id} value={m.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                   {m.label} ({m.id})
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
               {AVAILABLE_MODELS.find((m) => m.id === fallbackModel)?.description}
             </p>
           </div>
@@ -420,11 +420,11 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
       </div>
 
       {/* ── 4. Save and Reset Controls ── */}
-      <div className="pt-4 border-t border-white/[0.08] flex items-center justify-between gap-4">
+      <div className="pt-4 border-t border-slate-200 dark:border-white/[0.08] flex items-center justify-between gap-4">
         <button
           type="button"
           onClick={handleResetToDefaults}
-          className="px-4 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-pointer"
+          className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-semibold text-slate-700 hover:text-slate-900 dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-slate-300 dark:hover:text-white transition-all cursor-pointer"
         >
           Reset to Defaults
         </button>
@@ -433,7 +433,7 @@ export const ProfileAIConfigSection: React.FC<ProfileAIConfigSectionProps> = ({
           type="button"
           disabled={isSaving}
           onClick={handleSaveConfig}
-          className="px-6 py-2.5 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white transition-all cursor-pointer disabled:opacity-50"
+          className="px-6 py-2.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 border border-slate-300 shadow-sm dark:bg-white/15 dark:hover:bg-white/25 dark:text-white dark:border-white/20 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
         >
           {isSaving ? 'Saving...' : 'Save AI Configuration'}
         </button>

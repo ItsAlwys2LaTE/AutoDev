@@ -3,6 +3,7 @@ import {
   authApi,
   UserProfile,
   UpdateProfileRequest,
+  extractErrorMessage,
 } from '../api/authEndpoints';
 
 export type {
@@ -89,7 +90,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
       });
     } catch (err: any) {
-      const msg = err?.body?.detail || err?.message || 'Login failed. Please check your credentials.';
+      const msg = extractErrorMessage(err, 'Login failed. Please check your credentials.');
       set({ isLoading: false, error: msg });
       throw new Error(msg);
     }
@@ -113,7 +114,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
       });
     } catch (err: any) {
-      const msg = err?.body?.detail || err?.message || 'Signup failed. Please try again.';
+      const msg = extractErrorMessage(err, 'Signup failed. Please try again.');
       set({ isLoading: false, error: msg });
       throw new Error(msg);
     }
@@ -132,7 +133,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         error: null,
       });
     } catch (err: any) {
-      const msg = err?.body?.detail || err?.message || 'Google authentication failed.';
+      const msg = extractErrorMessage(err, 'Google authentication failed.');
       set({ isLoading: false, error: msg });
       throw new Error(msg);
     }
@@ -142,7 +143,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await authApi.sendOtp({ email, purpose });
     } catch (err: any) {
-      const msg = err?.body?.detail || err?.message || 'Failed to dispatch verification email.';
+      const msg = extractErrorMessage(err, 'Failed to dispatch verification email.');
       throw new Error(msg);
     }
   },
@@ -161,7 +162,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
       return res.verified;
     } catch (err: any) {
-      const msg = err?.body?.detail || err?.message || 'Verification code is invalid or has expired.';
+      const msg = extractErrorMessage(err, 'Verification code is invalid or has expired.');
       throw new Error(msg);
     }
   },
@@ -174,9 +175,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       user: null,
       error: null,
     });
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      try {
+        window.dispatchEvent(new CustomEvent('autodev:logout'));
+      } catch {
+        // ignore in mock environments
+      }
+    }
   },
 
   updateProfile: async (updates: UpdateProfileRequest) => {
+    const currentUser = get().user;
+    if (currentUser) {
+      set({
+        user: {
+          ...currentUser,
+          ...updates,
+          ai_config: updates.ai_config
+            ? { ...currentUser.ai_config, ...updates.ai_config }
+            : currentUser.ai_config,
+          dev_preferences: updates.dev_preferences
+            ? { ...currentUser.dev_preferences, ...updates.dev_preferences }
+            : currentUser.dev_preferences,
+          github_config: updates.github_config
+            ? { ...currentUser.github_config, ...updates.github_config }
+            : currentUser.github_config,
+        } as UserProfile,
+      });
+    }
     set({ isLoading: true, error: null });
     try {
       const updatedUser = await authApi.updateProfile(updates);
@@ -185,7 +211,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
     } catch (err: any) {
-      const msg = err?.body?.detail || err?.message || 'Failed to update profile settings.';
+      if (currentUser) {
+        set({ user: currentUser });
+      }
+      const msg = extractErrorMessage(err, 'Failed to update profile settings.');
       set({ isLoading: false, error: msg });
       throw new Error(msg);
     }
@@ -200,7 +229,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       set({ isLoading: false, error: null });
     } catch (err: any) {
-      const msg = err?.body?.detail || err?.message || 'Password update failed.';
+      const msg = extractErrorMessage(err, 'Password update failed.');
       set({ isLoading: false, error: msg });
       throw new Error(msg);
     }

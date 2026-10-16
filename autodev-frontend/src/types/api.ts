@@ -50,7 +50,7 @@ export type {
 // Common & Primitive Types
 // ============================================================================
 
-export type GenerationMode = 'QUICK' | 'COMPLEX';
+export type GenerationMode = 'STANDARD' | 'QUICK' | 'COMPLEX';
 
 export type PipelineStage =
   | 'REQUIREMENTS'
@@ -325,6 +325,7 @@ export interface ProductEnquiryRequest {
 }
 
 export interface ProductEnquiryResponse {
+  product_title?: string | null;
   understanding_summary: string;
   implementation_strategy: string;
   is_valid_software: boolean;

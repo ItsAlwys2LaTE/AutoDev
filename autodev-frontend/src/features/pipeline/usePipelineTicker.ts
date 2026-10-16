@@ -271,6 +271,7 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
             !currentState ||
             currentState.status === 'queued' ||
             currentState.status === 'stalled' ||
+            currentState.status === 'failed' ||
             currentState.status === 'waiting_design'
           ) {
             targetStatus = 'designing';
@@ -281,7 +282,8 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
             currentState.status === 'coding_queued' ||
             currentState.status === 'queued' ||
             currentState.status === 'waiting_code' ||
-            currentState.status === 'stalled'
+            currentState.status === 'stalled' ||
+            currentState.status === 'failed'
           ) {
             targetStatus = 'coding';
           }
@@ -291,7 +293,8 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
             currentState.status === 'critic_queued' ||
             currentState.status === 'queued' ||
             currentState.status === 'waiting_critic' ||
-            currentState.status === 'stalled'
+            currentState.status === 'stalled' ||
+            currentState.status === 'failed'
           ) {
             targetStatus = 'executing';
           }

@@ -843,11 +843,11 @@ class PipelineScheduler:
                         return True
 
             # Standard sequential progression: CRITICS passing concludes the per-component unit lifecycle
-            # In QUICK mode, INTEGRATION passing completely bypasses DOCUMENTATION
-            is_quick_mode = getattr(self.config, "generation_mode", "QUICK").upper() == "QUICK"
+            # In standard mode, INTEGRATION passing completely concludes the DAG component lifecycle
+            is_standard_or_quick = getattr(self.config, "generation_mode", "STANDARD").upper() in ("STANDARD", "QUICK")
             if norm_stage == StageEnum.CRITICS:
                 next_stg = None
-            elif norm_stage == StageEnum.INTEGRATION and is_quick_mode:
+            elif norm_stage == StageEnum.INTEGRATION and is_standard_or_quick:
                 next_stg = None
             else:
                 next_stg = norm_stage.next_stage()
@@ -981,10 +981,11 @@ class PipelineScheduler:
         """
         Returns True if all registered DAG components have reached terminal states:
         COMPLETED, FAILED, QUARANTINED, or STALLED.
+        Returns False if no components are registered.
         """
         with self._scheduler_lock:
             if not self.dag.nodes:
-                return True
+                return False
             for comp in self.dag.nodes.values():
                 if comp.status not in (
                     ComponentStatus.COMPLETED,
@@ -994,6 +995,16 @@ class PipelineScheduler:
                 ):
                     return False
             return True
+
+    def is_pipeline_successful(self) -> bool:
+        """
+        Returns True if all registered DAG components have successfully completed.
+        Returns False if the DAG is empty or any component has not completed.
+        """
+        with self._scheduler_lock:
+            if not self.dag.nodes:
+                return False
+            return all(comp.status == ComponentStatus.COMPLETED for comp in self.dag.nodes.values())
 
     def create_snapshot(self) -> PipelineSnapshot:
         """Creates an immutable state snapshot of the entire pipeline."""

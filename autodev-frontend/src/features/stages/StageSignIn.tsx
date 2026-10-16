@@ -10,6 +10,7 @@ import {
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '../../stores/authStore';
+import { authApi } from '../../api/authEndpoints';
 import { OtpInput } from '../../components/OtpInput';
 
 // --- GOOGLE BRAND ICON ---
@@ -110,8 +111,21 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [configClientId, setConfigClientId] = useState<string>('');
 
   const { login, signup, googleAuth, sendOtp, verifyOtp } = useAuthStore();
+
+  // Load public auth configuration from backend
+  useEffect(() => {
+    authApi
+      .getAuthConfig()
+      .then((cfg) => {
+        if (cfg?.google_client_id) {
+          setConfigClientId(cfg.google_client_id);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Resend OTP countdown timer
   useEffect(() => {
@@ -299,45 +313,90 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
   // 6. GOOGLE SIGN IN
   const handleGoogleSignIn = () => {
     clearMessages();
+
+    // Google Identity Services strictly rejects numeric IP addresses (like 127.0.0.1)
+    if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
+      const port = window.location.port ? `:${window.location.port}` : '';
+      setErrorMessage(
+        `Google Sign-In does not support numeric IP addresses (127.0.0.1). Please open AutoDev using http://localhost${port} in your browser.`
+      );
+      return;
+    }
+
     const googleClientId =
       (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ||
+      configClientId ||
       (typeof window !== 'undefined' ? (window as any).GOOGLE_CLIENT_ID : null);
 
+    if (!googleClientId) {
+      setErrorMessage('Google Client ID is not configured. Please check your environment settings.');
+      return;
+    }
+
+    // Official Google Identity Services OAuth 2.0 Token Client (interactive popup flow)
     if (
       typeof window !== 'undefined' &&
-      (window as any).google?.accounts?.id &&
-      googleClientId
+      (window as any).google?.accounts?.oauth2?.initTokenClient
     ) {
       try {
-        (window as any).google.accounts.id.initialize({
+        const tokenClient = (window as any).google.accounts.oauth2.initTokenClient({
           client_id: googleClientId,
-          callback: async (response: any) => {
-            if (response?.credential) {
+          scope: 'openid email profile',
+          callback: async (tokenResponse: any) => {
+            if (tokenResponse?.error) {
+              setErrorMessage(
+                tokenResponse.error_description ||
+                  `Google Sign-In error: ${tokenResponse.error}`
+              );
+              return;
+            }
+            if (tokenResponse?.access_token) {
               try {
-                await googleAuth(response.credential, rememberMe);
+                setIsSubmitting(true);
+                await googleAuth(tokenResponse.access_token, rememberMe);
                 onSignInSuccess();
               } catch (err: any) {
                 setErrorMessage(err?.message || 'Google authentication failed.');
+              } finally {
+                setIsSubmitting(false);
               }
             }
           },
+          error_callback: (err: any) => {
+            console.warn('[StageSignIn] Google OAuth token client error:', err);
+            if (err?.type === 'popup_closed') {
+              return;
+            }
+            setErrorMessage(
+              `Google Sign-In failed (${err?.message || err?.type || 'Authorization popup error'}). Ensure ${window.location.origin} is added to Authorized JavaScript Origins in Google Cloud Console.`
+            );
+          },
         });
-        (window as any).google.accounts.id.prompt();
+
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
         return;
-      } catch (err) {
-        console.warn('[StageSignIn] Google OAuth prompt failed:', err);
+      } catch (err: any) {
+        console.warn('[StageSignIn] Google OAuth token client exception:', err);
+        setErrorMessage(err?.message || 'Failed to initialize Google authentication popup.');
+        return;
       }
     }
 
-    // Graceful developer pass-through when Google credentials are not yet configured in .env
-    console.info('[StageSignIn] Google Client ID not configured or GIS unavailable; proceeding with dev access.');
-    onSignInSuccess();
+    // Fallback: If GIS script is not yet loaded or blocked
+    setErrorMessage(
+      'Google Sign-In script is loading or blocked by your browser. Please ensure accounts.google.com is accessible, or use email and password.'
+    );
   };
 
   return (
     <div
       id="stageSignIn"
-      className={`w-full max-w-6xl mx-auto flex flex-col lg:flex-row rounded-3xl border border-white/[0.08] bg-slate-950/[0.25] backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_40px_rgba(0,0,0,0.3)] overflow-hidden select-none ${className}`}
+      style={{
+        backgroundColor: 'rgba(2, 6, 23, 0.40)',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
+        color: '#f8fafc',
+      }}
+      className={`w-full max-w-6xl mx-auto flex flex-col lg:flex-row rounded-3xl border border-white/[0.08] bg-slate-950/[0.25] backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_12px_40px_rgba(0,0,0,0.3)] overflow-hidden select-none text-slate-100 ${className}`}
     >
       {/* Left Column: Interactive Auth Form */}
       <section className="flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-12">
@@ -761,11 +820,6 @@ export const StageSignIn: React.FC<StageSignInProps> = ({
 
         {/* Top Branding */}
         <div className="relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-mono text-slate-300">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Autonomous Software Engineering</span>
-          </div>
-
           <h2
             className="font-cursive text-5xl text-white/90 italic tracking-wide"
             style={{ fontFamily: "'Alex Brush', cursive, sans-serif" }}

@@ -21,6 +21,7 @@ export interface SmoothInputProps
   as?: 'input' | 'textarea';
   type?: 'text' | 'password';
   wrapperClassName?: string;
+  wrapperStyle?: React.CSSProperties;
   caretColorClass?: string;
   autoResize?: boolean;
   minHeight?: number | string;
@@ -36,6 +37,7 @@ export const SmoothInput = React.forwardRef<
   type = 'text',
   className = '',
   wrapperClassName = '',
+  wrapperStyle,
   caretColorClass = 'text-white/80 font-semibold',
   autoResize = true,
   minHeight = 100,
@@ -406,8 +408,8 @@ export const SmoothInput = React.forwardRef<
   return (
     <div
       ref={containerRef}
-      className={cn('relative w-full', wrapperClassName)}
-      style={{ caretColor: 'transparent' }}
+      className={cn('smooth-input-container relative w-full', wrapperClassName)}
+      style={{ caretColor: 'transparent', ...wrapperStyle }}
     >
         {as === 'textarea' ? (
           <ScrollFade fadeSize={24} className="w-full">
@@ -424,6 +426,8 @@ export const SmoothInput = React.forwardRef<
               style={{
                 minHeight: typeof minHeight === 'number' ? `${minHeight}px` : minHeight,
                 maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight,
+                background: 'transparent',
+                backgroundColor: 'transparent',
                 ...style,
                 caretColor: 'transparent',
               }}
@@ -449,7 +453,12 @@ export const SmoothInput = React.forwardRef<
               'w-full bg-transparent outline-none font-sans',
               className
             )}
-            style={{ ...style, caretColor: 'transparent' }}
+            style={{
+              background: 'transparent',
+              backgroundColor: 'transparent',
+              ...style,
+              caretColor: 'transparent',
+            }}
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleInputKeyDown}
