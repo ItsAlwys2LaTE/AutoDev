@@ -365,6 +365,19 @@ export function ComponentTrack({
     if (inFlightStageRef.current === 'DESIGN') return;
     if (useAppStore.getState().isPaused) return;
     if ((completedStagesRef.current.get('DESIGN') ?? 0) >= curEpoch && curEpoch > 0) return;
+
+    // Strict sequential ordering guard: must not start if prior component in queue is incomplete
+    const queue = useAppStore.getState().pipelineQueue || [];
+    const myIndex = queue.findIndex((c) => c.component_id === cId);
+    if (myIndex > 0) {
+      const states = useAppStore.getState().componentStates || {};
+      const priorIncomplete = queue.slice(0, myIndex).some((prevComp) => {
+        const st = states[prevComp.component_id]?.status;
+        return st !== 'passed' && st !== 'COMPLETED';
+      });
+      if (priorIncomplete) return;
+    }
+
     inFlightStageRef.current = 'DESIGN';
     const myRun = ++runIdRef.current;
     const startResumeEpoch = useAppStore.getState().resumeEpoch || 0;
@@ -560,6 +573,19 @@ export function ComponentTrack({
     if (inFlightStageRef.current === 'CODEGEN') return;
     if (useAppStore.getState().isPaused) return;
     if (curEpoch > 0 && lastCompletedEpoch >= curEpoch && curRev <= lastCompletedRev) return;
+
+    // Strict sequential ordering guard: must not start if prior component in queue is incomplete
+    const queue = useAppStore.getState().pipelineQueue || [];
+    const myIndex = queue.findIndex((c) => c.component_id === cId);
+    if (myIndex > 0) {
+      const states = useAppStore.getState().componentStates || {};
+      const priorIncomplete = queue.slice(0, myIndex).some((prevComp) => {
+        const st = states[prevComp.component_id]?.status;
+        return st !== 'passed' && st !== 'COMPLETED';
+      });
+      if (priorIncomplete) return;
+    }
+
     inFlightStageRef.current = 'CODEGEN';
     const myRun = ++runIdRef.current;
     const startResumeEpoch = useAppStore.getState().resumeEpoch || 0;
@@ -772,6 +798,19 @@ export function ComponentTrack({
     if (inFlightStageRef.current === 'CRITICS') return;
     if (useAppStore.getState().isPaused) return;
     if (curEpoch > 0 && lastCompletedEpoch >= curEpoch && curRev <= lastCompletedRev) return;
+
+    // Strict sequential ordering guard: must not start if prior component in queue is incomplete
+    const queue = useAppStore.getState().pipelineQueue || [];
+    const myIndex = queue.findIndex((c) => c.component_id === cId);
+    if (myIndex > 0) {
+      const states = useAppStore.getState().componentStates || {};
+      const priorIncomplete = queue.slice(0, myIndex).some((prevComp) => {
+        const st = states[prevComp.component_id]?.status;
+        return st !== 'passed' && st !== 'COMPLETED';
+      });
+      if (priorIncomplete) return;
+    }
+
     inFlightStageRef.current = 'CRITICS';
     const myRun = ++runIdRef.current;
     const startResumeEpoch = useAppStore.getState().resumeEpoch || 0;
@@ -1033,6 +1072,20 @@ export function ComponentTrack({
     // Disregard if already completed
     if (curStatus === 'passed' || curStatus === 'COMPLETED') {
       return;
+    }
+
+    // Strict sequential ordering guard: must not start if prior component in queue is incomplete
+    const queue = useAppStore.getState().pipelineQueue || [];
+    const myIndex = queue.findIndex((c) => c.component_id === cId);
+    if (myIndex > 0) {
+      const states = useAppStore.getState().componentStates || {};
+      const priorIncomplete = queue.slice(0, myIndex).some((prevComp) => {
+        const st = states[prevComp.component_id]?.status;
+        return st !== 'passed' && st !== 'COMPLETED';
+      });
+      if (priorIncomplete) {
+        return;
+      }
     }
 
     if (curStatus === 'designing' && inFlightStageRef.current !== 'DESIGN') {

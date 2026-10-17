@@ -354,8 +354,21 @@ class PipelineDAG:
                 upstream = self._upstream.get(cid, set())
                 # Only check prerequisites that are registered in _nodes
                 valid_upstream = {u for u in upstream if u in self._nodes}
-                if valid_upstream.issubset(completed_ids):
-                    ready.append(cid)
+                if not valid_upstream.issubset(completed_ids):
+                    continue
+
+                # Strict priority ordering: any component with strictly lower priority_order number
+                # (higher in execution order) must be fully completed before this component can begin.
+                higher_order_incomplete = False
+                for other_cid, other_node in self._nodes.items():
+                    if other_cid != cid and other_node.priority_order < node.priority_order:
+                        if other_cid not in completed_ids:
+                            higher_order_incomplete = True
+                            break
+                if higher_order_incomplete:
+                    continue
+
+                ready.append(cid)
 
         ready.sort(key=lambda x: (self._nodes[x].priority_order, self._nodes[x].created_at, x))
         return ready

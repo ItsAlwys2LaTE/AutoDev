@@ -366,7 +366,10 @@ export function DecompositionOutput({
         dependencies_on: (c.dependencies_on || []).filter((d) => d && d !== c.component_id && compIds.has(d.trim())),
       }));
 
-      const sortedQueue = sortComponentsByPriority(sanitized);
+      const sortedQueue = sortComponentsByPriority(sanitized).map((comp, idx) => ({
+        ...comp,
+        priority_order: idx + 1,
+      }));
       const activeMode = generationMode || mode || 'STANDARD';
 
       // Call POST /api/pipeline/init with non-fatal fallback

@@ -316,9 +316,9 @@ class StageLockManager:
     """
 
     STAGE_MAX_CONCURRENCY: Dict[StageEnum, int] = {
-        StageEnum.DESIGN: 2,
-        StageEnum.CODEGEN: 2,
-        StageEnum.CRITICS: 2,
+        StageEnum.DESIGN: 1,
+        StageEnum.CODEGEN: 1,
+        StageEnum.CRITICS: 1,
         StageEnum.INTEGRATION: 1,
         StageEnum.DOCUMENTATION: 1,
     }

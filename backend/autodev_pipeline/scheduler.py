@@ -545,6 +545,13 @@ class PipelineScheduler:
             if dep_comp and dep_comp.status != ComponentStatus.COMPLETED:
                 return False
 
+        # Strict priority ordering: any component with strictly lower priority_order number
+        # (higher in execution order) must be fully completed before this candidate can be dispatched.
+        for other_cid, other_comp in self.dag.nodes.items():
+            if other_cid != candidate.component_id and other_comp.priority_order < candidate.priority_order:
+                if other_comp.status != ComponentStatus.COMPLETED:
+                    return False
+
         return True
 
     def tick_schedule(self) -> List[Tuple[str, StageEnum, int]]:

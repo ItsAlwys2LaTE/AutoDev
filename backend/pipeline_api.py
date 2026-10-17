@@ -158,7 +158,7 @@ def pipeline_init(payload: PipelineInitInput):
     )
     seen_ids = set()
     records = []
-    for c in payload.components:
+    for idx, c in enumerate(payload.components):
         cid = (c.get("component_id") or "").strip()
         if not cid:
             raise HTTPException(status_code=400, detail="Component ID cannot be empty")
@@ -166,13 +166,22 @@ def pipeline_init(payload: PipelineInitInput):
             raise HTTPException(status_code=400, detail=f"Duplicate component_id detected: {cid}")
         seen_ids.add(cid)
         deps = c.get("dependencies") or c.get("dependencies_on") or []
+        raw_prio = c.get("priority_order")
+        prio = int(raw_prio) if (raw_prio is not None and int(raw_prio) > 0) else (idx + 1)
         records.append(ComponentStateRecord(
             component_id=cid,
             name=c.get("component_name", cid),
             dependencies=deps,
-            priority_order=c.get("priority_order", 0),
+            priority_order=prio,
             max_revisions=max_revs,
         ))
+
+    # Normalize priority orders to strictly ascending 1, 2, 3... based on (priority_order, registration_index)
+    # This guarantees total strict ordering across all registered components
+    indexed_records = list(enumerate(records))
+    indexed_records.sort(key=lambda item: (item[1].priority_order, item[0]))
+    for rank, (_, r) in enumerate(indexed_records, start=1):
+        r.priority_order = rank
 
     valid_ids = set(seen_ids)
     for r in records:

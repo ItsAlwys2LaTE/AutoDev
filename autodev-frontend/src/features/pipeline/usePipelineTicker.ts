@@ -219,6 +219,20 @@ export function usePipelineTicker(options: UsePipelineTickerOptions = {}): UsePi
           continue;
         }
 
+        // Sequential priority ordering guard:
+        // A component must NEVER begin development if any higher-order component in queue is not completed
+        const currentQueue = useAppStore.getState().pipelineQueue || [];
+        const compIdx = currentQueue.findIndex((c) => c.component_id === compId);
+        if (compIdx > 0) {
+          const priorIncomplete = currentQueue.slice(0, compIdx).some((prevComp) => {
+            const st = latestStates[prevComp.component_id]?.status;
+            return st !== 'passed' && st !== 'COMPLETED';
+          });
+          if (priorIncomplete) {
+            continue;
+          }
+        }
+
         // Monotonic epoch check
         const cached = lastProcessedLeasesRef.current.get(compId);
         const isQueuedWaiting =
