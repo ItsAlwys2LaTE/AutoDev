@@ -1051,6 +1051,23 @@ def start_preview(payload: ExecuteInput):
 
     cmd, internal_port = normalize_preview_command(cmd, internal_port, image, payload.codebase)
 
+    # Image/command coherence: ensure the Docker image actually has the runtime
+    # the inferred command requires. Without this, a Node.js project with a
+    # python:3.11-slim image would crash with "npm: not found".
+    cmd_lower = (cmd or "").lower()
+    needs_node = any(tok in cmd_lower for tok in ("npm ", "npx ", "node ", "yarn ", "pnpm "))
+    needs_python = any(tok in cmd_lower for tok in ("python ", "python3 ", "pip "))
+    image_lower = (image or "").lower()
+    image_has_node = any(tok in image_lower for tok in ("node", "playwright", "bun", "deno"))
+    image_has_python = "python" in image_lower
+
+    if needs_node and not image_has_node:
+        image = "mcr.microsoft.com/playwright:v1.48.0-jammy"
+        payload.blueprint.docker_image = image
+    elif needs_python and not image_has_python and not needs_node:
+        image = "python:3.11-slim"
+        payload.blueprint.docker_image = image
+
     host_port = get_free_port()
 
     try:

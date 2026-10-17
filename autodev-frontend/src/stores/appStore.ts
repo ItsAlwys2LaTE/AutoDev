@@ -286,6 +286,7 @@ export interface AppStoreActions {
 
   // Multi-Component Integration
   setIntegratedCodebase: (codebase: GeneratedCodeBase | null) => void;
+  syncProjectToBackend: (codebaseToSync?: GeneratedCodeBase | null) => Promise<void>;
   setIntegrationRevisionInfo: (
     count: number,
     plan: string | null,
@@ -912,6 +913,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
           : -1;
       return {
         currentCodebase,
+        integratedCodebase: state.integratedCodebase ? currentCodebase : state.integratedCodebase,
         singlePassCode: currentCodebase,
         singlePass: { ...state.singlePass, codebase: currentCodebase },
         activeFileIndex,
@@ -945,6 +947,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
 
       return {
         currentCodebase: updatedCodebase,
+        integratedCodebase: state.integratedCodebase ? updatedCodebase : state.integratedCodebase,
         singlePassCode: updatedCodebase,
         singlePass: { ...state.singlePass, codebase: updatedCodebase },
       };
@@ -1079,6 +1082,7 @@ export const useAppStore = create<AppStore>()((set, get) => ({
       return {
         activeRevisionIndex: index,
         currentCodebase: targetRev.codebase,
+        integratedCodebase: state.integratedCodebase ? targetRev.codebase : state.integratedCodebase,
         currentExecutionResult: targetRev.executionResult || null,
         executionLogs: targetRev.executionResult?.logs || state.executionLogs,
         activeFileIndex: targetRev.codebase.files.length > 0 ? 0 : -1,
@@ -1107,6 +1111,35 @@ export const useAppStore = create<AppStore>()((set, get) => ({
         ? { ...state.stepperStates, 5: 'success' }
         : state.stepperStates,
     })),
+
+  syncProjectToBackend: async (codebaseToSync) => {
+    try {
+      const sessionId = get().currentSessionId;
+      const { useAuthStore } = await import('./authStore');
+      const auth = useAuthStore.getState();
+      if (!auth.isAuthenticated || !auth.token || !sessionId) return;
+      const target = codebaseToSync || get().currentCodebase || get().integratedCodebase;
+      if (!target?.files || target.files.length === 0) return;
+      const { sessionApi } = await import('../api/authEndpoints');
+      const files = target.files.map((f: any) => ({
+        file_name: f.file_name || f.path || 'unknown.txt',
+        source_code: f.source_code || '',
+      }));
+      const readmeFile = target.files.find((f: any) =>
+        (f.file_name || f.path || '').toLowerCase().includes('readme')
+      );
+      const userGuideFile = target.files.find((f: any) =>
+        (f.file_name || f.path || '').toLowerCase().includes('user_guide')
+      );
+      await sessionApi.storeProject(sessionId, {
+        files,
+        readme: readmeFile ? readmeFile.source_code : undefined,
+        user_guide: userGuideFile ? userGuideFile.source_code : undefined,
+      });
+    } catch (e) {
+      console.warn('[Session] Failed to sync project codebase to backend:', e);
+    }
+  },
 
   setIntegrationRevisionInfo: (
     integrationRevisionCount,

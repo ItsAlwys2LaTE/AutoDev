@@ -295,6 +295,8 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
           };
 
           setCodebase(newCodebase);
+          useAppStore.getState().setIntegratedCodebase(newCodebase);
+          useAppStore.getState().syncProjectToBackend(newCodebase);
           if (eResult) {
             setExecutionResult(eResult);
             setPostCompletionSandboxResult(eResult);
@@ -450,7 +452,10 @@ export const StagePostDevExecution: React.FC<StagePostDevExecutionProps> = ({
     const updatedFiles = activeCodebase.files.map((f) =>
       f.file_name === fileName ? { ...f, source_code: newCode } : f
     );
-    setCodebase({ ...activeCodebase, files: updatedFiles });
+    const updatedCodebase = { ...activeCodebase, files: updatedFiles };
+    setCodebase(updatedCodebase);
+    useAppStore.getState().setIntegratedCodebase(updatedCodebase);
+    useAppStore.getState().syncProjectToBackend(updatedCodebase);
   };
 
   const handleCopyExplanation = () => {

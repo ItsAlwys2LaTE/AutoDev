@@ -392,6 +392,8 @@ export function PostCompletionPanel({
 
         // Update stores
         setCodebase(newCodebase);
+        useAppStore.getState().setIntegratedCodebase(newCodebase);
+        useAppStore.getState().syncProjectToBackend(newCodebase);
         if (execResult) {
           setExecutionResult(execResult);
         }

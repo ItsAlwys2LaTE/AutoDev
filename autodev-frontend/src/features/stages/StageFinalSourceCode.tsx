@@ -22,13 +22,20 @@ export const StageFinalSourceCode: React.FC<StageFinalSourceCodeProps> = ({
 }) => {
   const storeIntegratedCodebase = useAppStore((s) => s.integratedCodebase);
   const storeCurrentCodebase = useAppStore((s) => s.currentCodebase);
+  const revisionHistory = useAppStore((s) => s.revisionHistory);
   const isPaused = useAppStore((s) => s.isPaused);
   const setCodebase = useAppStore((s) => s.setCodebase);
 
   const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
 
-  // Final source code strictly from integrated or current codebase
-  const codebase: GeneratedCodeBase | null = storeIntegratedCodebase || storeCurrentCodebase;
+  // Final source code strictly from latest post-dev revision, current, or integrated codebase
+  const postDevRevs = (revisionHistory || []).filter(
+    (r) => r.isPostCompletion && r.codebase && r.codebase.files && r.codebase.files.length > 0
+  );
+  const codebase: GeneratedCodeBase | null =
+    (postDevRevs.length > 0 ? (storeCurrentCodebase || postDevRevs[postDevRevs.length - 1].codebase) : null) ||
+    storeCurrentCodebase ||
+    storeIntegratedCodebase;
 
   // Immediately unlock Stage 8 (Live Preview) when codebase is available
   useEffect(() => {

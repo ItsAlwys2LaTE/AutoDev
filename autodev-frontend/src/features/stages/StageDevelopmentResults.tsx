@@ -29,6 +29,7 @@ export const StageDevelopmentResults: React.FC<StageDevelopmentResultsProps> = (
   const decomposition = useAppStore((s) => s.decomposition);
   const storeIntegratedCodebase = useAppStore((s) => s.integratedCodebase);
   const storeCurrentCodebase = useAppStore((s) => s.currentCodebase);
+  const revisionHistory = useAppStore((s) => s.revisionHistory);
   const pipelineStatus = useAppStore((s) => s.pipelineStatus);
   const setGitHubModalOpen = useAppStore((s) => s.setGitHubModalOpen);
   const storeMetrics = useAppStore((s) => s.timelineMetrics);
@@ -36,7 +37,21 @@ export const StageDevelopmentResults: React.FC<StageDevelopmentResultsProps> = (
 
   const [isExportingZip, setIsExportingZip] = useState(false);
 
-  const codebase = storeIntegratedCodebase || storeCurrentCodebase;
+  // Resolve the latest codebase for download and export:
+  // If post-development ran, prefer the latest post-development revision or storeCurrentCodebase.
+  // Otherwise, prefer storeCurrentCodebase (which contains any subsequent edits) over storeIntegratedCodebase.
+  const codebase = useMemo(() => {
+    const postDevRevs = (revisionHistory || []).filter(
+      (r) => r.isPostCompletion && r.codebase && r.codebase.files && r.codebase.files.length > 0
+    );
+    if (postDevRevs.length > 0) {
+      if (storeCurrentCodebase && storeCurrentCodebase.files && storeCurrentCodebase.files.length > 0) {
+        return storeCurrentCodebase;
+      }
+      return postDevRevs[postDevRevs.length - 1].codebase;
+    }
+    return storeCurrentCodebase || storeIntegratedCodebase;
+  }, [revisionHistory, storeCurrentCodebase, storeIntegratedCodebase]);
 
   // Resolve Product Name
   const productName =

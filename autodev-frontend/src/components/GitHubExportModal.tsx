@@ -137,7 +137,14 @@ export function GitHubExportModal({
     setError(null);
     setResult(null);
 
-    const targetCodebase = integratedCodebase || currentCodebase;
+    const revisionHistory = useAppStore.getState().revisionHistory || [];
+    const postDevRevs = revisionHistory.filter(
+      (r) => r.isPostCompletion && r.codebase && r.codebase.files && r.codebase.files.length > 0
+    );
+    const targetCodebase =
+      (postDevRevs.length > 0 ? (currentCodebase || postDevRevs[postDevRevs.length - 1].codebase) : null) ||
+      currentCodebase ||
+      integratedCodebase;
     const preparedFiles = prepareExportFiles(targetCodebase, requirements);
 
     if (preparedFiles.length === 0) {
